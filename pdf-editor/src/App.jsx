@@ -31,6 +31,7 @@ import Printer from "lucide-react/dist/esm/icons/printer.mjs";
 import Plus from "lucide-react/dist/esm/icons/plus.mjs";
 import Redo2 from "lucide-react/dist/esm/icons/redo-2.mjs";
 import Save from "lucide-react/dist/esm/icons/save.mjs";
+import ScanText from "lucide-react/dist/esm/icons/scan-text.mjs";
 import Search from "lucide-react/dist/esm/icons/search.mjs";
 import Send from "lucide-react/dist/esm/icons/send.mjs";
 import Settings from "lucide-react/dist/esm/icons/settings.mjs";
@@ -204,6 +205,46 @@ function pointerToNormalized(event, pageElement) {
     x: clamp((event.clientX - rect.left) / rect.width, 0, 1),
     y: clamp((event.clientY - rect.top) / rect.height, 0, 1),
   };
+}
+
+function extractDetectedTextItems(textContent, viewport, pageRecord, pageIndex) {
+  const items = textContent.items
+    .filter((item) => item.str?.trim())
+    .map((item, index) => {
+      const transform = pdfjsLib.Util.transform(viewport.transform, item.transform);
+      const rawHeight = Math.hypot(transform[2], transform[3]) || Math.abs(item.height || 10);
+      const rawWidth = Math.max(item.width || 0, item.str.length * rawHeight * 0.42);
+      const left = transform[4];
+      const top = transform[5] - rawHeight;
+      const x = clamp(left / viewport.width, 0, 0.98);
+      const y = clamp(top / viewport.height, 0, 0.98);
+      const w = clamp(rawWidth / viewport.width, 0.012, 0.86);
+      const h = clamp((rawHeight * 1.22) / viewport.height, 0.012, 0.16);
+      const fontSize = clamp((rawHeight / viewport.height) * pageRecord.height, 6, 42);
+
+      return {
+        id: makeId("detected-text"),
+        pageNumber: pageIndex,
+        originalText: item.str,
+        currentText: item.str,
+        x,
+        y,
+        w: Math.min(w, 0.98 - x),
+        h: Math.min(h, 0.98 - y),
+        fontSize,
+        fontFamily: item.fontName || "Helvetica",
+        color: colors.black,
+        rotation: 0,
+        source: "pdf-text-layer",
+        confidence: 1,
+        isEdited: false,
+        isDeleted: false,
+        createdAt: nowIso(),
+        updatedAt: nowIso(),
+      };
+    });
+
+  return items.filter((item) => item.w > 0.006 && item.h > 0.006);
 }
 
 function samplePages() {
@@ -618,7 +659,9 @@ export function App() {
   const [tool, setTool] = useState("select");
   const [pageIndex, setPageIndex] = useState(0);
   const [annotations, setAnnotations] = useState([]);
+  const [detectedTextItems, setDetectedTextItems] = useState([]);
   const [selectedId, setSelectedId] = useState(null);
+  const [selectedDetectedTextId, setSelectedDetectedTextId] = useState(null);
   const [zoom, setZoom] = useState(100);
   const [saved, setSaved] = useState(true);
   const [saveState, setSaveState] = useState("saved");
@@ -664,9 +707,11 @@ export function App() {
   });
 
   const selected = useMemo(() => annotations.find((annotation) => annotation.id === selectedId), [annotations, selectedId]);
+  const selectedDetectedText = useMemo(() => detectedTextItems.find((item) => item.id === selectedDetectedTextId), [detectedTextItems, selectedDetectedTextId]);
   const activeDocument = useMemo(() => documents.find((document) => document.id === activeDocumentId), [documents, activeDocumentId]);
   const currentPage = pages[pageIndex] || pages[0];
   const pageAnnotations = annotations.filter((annotation) => annotation.page === pageIndex);
+  const pageDetectedTextItems = detectedTextItems.filter((item) => item.pageNumber === pageIndex && !item.isDeleted);
   const zoomOptions = useMemo(() => (
     Array.from(new Set([...ZOOM_PRESETS, zoom])).sort((a, b) => a - b)
   ), [zoom]);
@@ -704,13 +749,23 @@ export function App() {
         title: `Page ${annotation.page + 1}`,
         excerpt: excerpt(annotation.content),
       }));
+    const detectedTextMatches = detectedTextItems
+      .filter((item) => !item.isDeleted && String(item.currentText || "").toLowerCase().includes(query))
+      .map((item) => ({
+        id: item.id,
+        type: item.source === "ocr" ? "OCR text" : "PDF text",
+        page: item.pageNumber,
+        detectedTextId: item.id,
+        title: `Page ${item.pageNumber + 1}`,
+        excerpt: excerpt(item.currentText),
+      }));
 
     const fileMatch = fileName.toLowerCase().includes(query)
       ? [{ id: "file-name", type: "Document", page: 0, title: fileName, excerpt: `Document name: ${fileName}` }]
       : [];
 
-    return [...fileMatch, ...pageMatches, ...annotationMatches].sort((a, b) => a.page - b.page);
-  }, [annotations, documentSearchQuery, fileName, pages]);
+    return [...fileMatch, ...pageMatches, ...annotationMatches, ...detectedTextMatches].sort((a, b) => a.page - b.page);
+  }, [annotations, detectedTextItems, documentSearchQuery, fileName, pages]);
   const commentResults = useMemo(() => (
     annotations
       .filter((annotation) => annotation.type === "comment")
@@ -772,6 +827,7 @@ export function App() {
           name: fileName,
           pages,
           annotations,
+          detectedTextItems,
           pageCount: pages.length,
           updatedAt: stamp,
         }
@@ -798,6 +854,10 @@ export function App() {
       ...annotation,
       id: makeId(annotation.type || "annotation"),
     }));
+    const clonedDetectedTextItems = detectedTextItems.map((item) => ({
+      ...item,
+      id: makeId("detected-text"),
+    }));
     const duplicateRecord = {
       ...(activeDocument || {}),
       id: makeId("doc"),
@@ -810,6 +870,7 @@ export function App() {
       pdfDataUrl: activeDocument?.pdfDataUrl || "",
       pages: clonedPages,
       annotations: clonedAnnotations,
+      detectedTextItems: clonedDetectedTextItems,
     };
 
     upsertDocument(duplicateRecord);
@@ -817,7 +878,9 @@ export function App() {
     setFileName(nextName);
     setPages(clonedPages);
     setAnnotations(clonedAnnotations);
+    setDetectedTextItems(clonedDetectedTextItems);
     setSelectedId(null);
+    setSelectedDetectedTextId(null);
     setUndoStack([]);
     setRedoStack([]);
     setPageIndex(0);
@@ -828,15 +891,62 @@ export function App() {
   };
 
   const commitAnnotations = (next) => {
-    setUndoStack((stack) => [...stack.slice(-24), annotations]);
+    setUndoStack((stack) => [...stack.slice(-24), { annotations, detectedTextItems }]);
     setRedoStack([]);
     setAnnotations(next);
+    markUnsaved();
+  };
+
+  const commitDetectedTextItems = (next) => {
+    setUndoStack((stack) => [...stack.slice(-24), { annotations, detectedTextItems }]);
+    setRedoStack([]);
+    setDetectedTextItems(next);
     markUnsaved();
   };
 
   const updateAnnotation = (id, patch) => {
     setAnnotations((items) => items.map((item) => (item.id === id ? { ...item, ...patch } : item)));
     markUnsaved();
+  };
+
+  const updateDetectedTextItem = (id, patch) => {
+    setDetectedTextItems((items) => items.map((item) => (
+      item.id === id
+        ? {
+          ...item,
+          ...patch,
+          isEdited: patch.isEdited ?? true,
+          updatedAt: nowIso(),
+        }
+        : item
+    )));
+    markUnsaved();
+  };
+
+  const deleteDetectedTextItem = (id) => {
+    commitDetectedTextItems(detectedTextItems.map((item) => (
+      item.id === id ? { ...item, isDeleted: true, isEdited: true, updatedAt: nowIso() } : item
+    )));
+    setSelectedDetectedTextId(null);
+    showToast("Detected text removed from export.");
+  };
+
+  const duplicateDetectedTextItem = (item) => {
+    if (!item) return;
+    const duplicate = {
+      ...item,
+      id: makeId("detected-text"),
+      x: clamp(item.x + 0.02, 0, 0.92),
+      y: clamp(item.y + 0.02, 0, 0.94),
+      originalText: item.currentText,
+      isEdited: true,
+      source: item.source,
+      createdAt: nowIso(),
+      updatedAt: nowIso(),
+    };
+    commitDetectedTextItems([...detectedTextItems, duplicate]);
+    setSelectedDetectedTextId(duplicate.id);
+    setSelectedId(null);
   };
 
   const addAnnotation = (annotation) => {
@@ -850,7 +960,8 @@ export function App() {
     setActiveSearchIndex(index);
     setPageIndex(clamp(result.page, 0, Math.max(0, pages.length - 1)));
     setSelectedId(result.annotationId || null);
-    if (result.annotationId) {
+    setSelectedDetectedTextId(result.detectedTextId || null);
+    if (result.annotationId || result.detectedTextId) {
       setIsInspectorCollapsed(false);
     }
     setTool("select");
@@ -915,7 +1026,7 @@ export function App() {
     if (!activeDocumentId || !pages.length || saveState !== "unsaved") return undefined;
     const timer = window.setTimeout(() => saveActiveDocument(false), 900);
     return () => window.clearTimeout(timer);
-  }, [annotations, fileName, pages, activeDocumentId, saveState]);
+  }, [annotations, detectedTextItems, fileName, pages, activeDocumentId, saveState]);
 
   useEffect(() => {
     setActiveSearchIndex(0);
@@ -981,6 +1092,7 @@ export function App() {
       const buffer = await file.arrayBuffer();
       const document = await pdfjsLib.getDocument({ data: buffer.slice(0) }).promise;
       const loadedPages = [];
+      const detectedItems = [];
 
       for (let index = 1; index <= document.numPages; index += 1) {
         setUploadStage({
@@ -991,6 +1103,7 @@ export function App() {
         const page = await document.getPage(index);
         const textContent = await page.getTextContent();
         const pageText = textContent.items.map((item) => item.str).join(" ").replace(/\s+/g, " ").trim();
+        const textViewport = page.getViewport({ scale: 1 });
         const viewport = page.getViewport({ scale: 1.35 });
         const canvas = window.document.createElement("canvas");
         const context = canvas.getContext("2d");
@@ -999,7 +1112,7 @@ export function App() {
         await page.render({ canvasContext: context, viewport }).promise;
         const displayWidth = BASE_PAGE_WIDTH;
         const displayHeight = Math.round(BASE_PAGE_WIDTH * (viewport.height / viewport.width));
-        loadedPages.push({
+        const pageRecord = {
           id: makeId("page"),
           number: index,
           originalIndex: index - 1,
@@ -1008,6 +1121,11 @@ export function App() {
           image: canvas.toDataURL("image/png"),
           text: pageText,
           source: "pdf",
+        };
+        detectedItems.push(...extractDetectedTextItems(textContent, textViewport, pageRecord, index - 1));
+        loadedPages.push({
+          ...pageRecord,
+          hasDetectedText: pageText.length > 0,
         });
       }
 
@@ -1026,6 +1144,7 @@ export function App() {
         pdfDataUrl: await arrayBufferToDataUrl(buffer.slice(0)),
         pages: loadedPages,
         annotations: [],
+        detectedTextItems: detectedItems,
       };
 
       upsertDocument(documentRecord);
@@ -1035,16 +1154,18 @@ export function App() {
       setFileName(file.name);
       setPageIndex(0);
       setAnnotations([]);
+      setDetectedTextItems(detectedItems);
       setUndoStack([]);
       setRedoStack([]);
       setSelectedId(null);
+      setSelectedDetectedTextId(null);
       setTool("select");
       setScreen("editor");
       setSaved(true);
       setSaveState("saved");
       setLastSavedAt(stamp);
       setUploadStage({ status: "complete", percent: 100, fileName: file.name });
-      showToast("Document uploaded and saved locally.");
+      showToast(detectedItems.length ? `Smart Edit detected ${detectedItems.length} text item${detectedItems.length === 1 ? "" : "s"}.` : "This looks scanned. OCR is not enabled in this browser build yet.");
       window.setTimeout(() => setUploadStage({ status: "idle", percent: 0, fileName: "" }), 900);
     } catch {
       setUploadError("We could not read that PDF. Try a smaller or unprotected PDF file.");
@@ -1110,6 +1231,7 @@ export function App() {
       pdfDataUrl: "",
       pages: blankPages,
       annotations: [],
+      detectedTextItems: [],
     };
 
     upsertDocument(documentRecord);
@@ -1119,9 +1241,11 @@ export function App() {
     setFileName("Untitled blank document.pdf");
     setPageIndex(0);
     setAnnotations([]);
+    setDetectedTextItems([]);
     setUndoStack([]);
     setRedoStack([]);
     setSelectedId(null);
+    setSelectedDetectedTextId(null);
     setTool("text");
     setScreen("editor");
     setSaved(true);
@@ -1141,6 +1265,7 @@ export function App() {
     };
     setPages((items) => [...items.slice(0, insertionIndex), blankPage, ...items.slice(insertionIndex)].map((page, index) => ({ ...page, number: index + 1 })));
     setAnnotations((items) => items.map((annotation) => (annotation.page >= insertionIndex ? { ...annotation, page: annotation.page + 1 } : annotation)));
+    setDetectedTextItems((items) => items.map((item) => (item.pageNumber >= insertionIndex ? { ...item, pageNumber: item.pageNumber + 1 } : item)));
     setPageIndex(insertionIndex);
     markUnsaved();
     showToast("Blank page added.");
@@ -1156,6 +1281,9 @@ export function App() {
     setAnnotations((items) => items
       .filter((annotation) => annotation.page !== removedIndex)
       .map((annotation) => (annotation.page > removedIndex ? { ...annotation, page: annotation.page - 1 } : annotation)));
+    setDetectedTextItems((items) => items
+      .filter((item) => item.pageNumber !== removedIndex)
+      .map((item) => (item.pageNumber > removedIndex ? { ...item, pageNumber: item.pageNumber - 1 } : item)));
     setSelectedId(null);
     setPageIndex((value) => clamp(value, 0, pages.length - 2));
     markUnsaved();
@@ -1175,6 +1303,11 @@ export function App() {
       if (annotation.page === nextIndex) return { ...annotation, page: pageIndex };
       return annotation;
     }));
+    setDetectedTextItems((items) => items.map((item) => {
+      if (item.pageNumber === pageIndex) return { ...item, pageNumber: nextIndex };
+      if (item.pageNumber === nextIndex) return { ...item, pageNumber: pageIndex };
+      return item;
+    }));
     setPageIndex(nextIndex);
     markUnsaved();
   };
@@ -1187,12 +1320,14 @@ export function App() {
       originalIndex: page.source === "pdf" && page.originalIndex == null ? index : page.originalIndex,
     })));
     setAnnotations(documentRecord.annotations || []);
+    setDetectedTextItems(documentRecord.detectedTextItems || []);
     setPdfBytes(documentRecord.pdfDataUrl ? await dataUrlToArrayBuffer(documentRecord.pdfDataUrl) : null);
     setFileName(documentRecord.name);
     setPageIndex(0);
     setUndoStack([]);
     setRedoStack([]);
     setSelectedId(null);
+    setSelectedDetectedTextId(null);
     setTool("select");
     setScreen("editor");
     setSaved(true);
@@ -1257,6 +1392,7 @@ export function App() {
       updatedAt: stamp,
       pages: (documentRecord.pages || []).map((page) => ({ ...page, id: makeId("page") })),
       annotations: (documentRecord.annotations || []).map((annotation) => ({ ...annotation, id: makeId("annotation") })),
+      detectedTextItems: (documentRecord.detectedTextItems || []).map((item) => ({ ...item, id: makeId("detected-text") })),
     };
     replaceDocuments([duplicatedDocument, ...documents]);
     showToast("Document copied.");
@@ -1290,8 +1426,10 @@ export function App() {
     lastPagePointRef.current = pointerToNormalized(event, event.currentTarget);
     if (!["text", "highlight", "draw", "signature", "initials", "checkbox", "field", "date", "whiteout", "rectangle", "circle", "line", "arrow", "comment", "image"].includes(tool)) {
       setSelectedId(null);
+      setSelectedDetectedTextId(null);
       return;
     }
+    setSelectedDetectedTextId(null);
     const point = lastPagePointRef.current;
 
     if (tool === "image") {
@@ -1490,28 +1628,49 @@ export function App() {
   const undo = () => {
     if (!undoStack.length) return;
     const previous = undoStack[undoStack.length - 1];
-    setRedoStack((stack) => [annotations, ...stack].slice(0, 25));
+    setRedoStack((stack) => [{ annotations, detectedTextItems }, ...stack].slice(0, 25));
     setUndoStack((stack) => stack.slice(0, -1));
-    setAnnotations(previous);
+    if (Array.isArray(previous)) {
+      setAnnotations(previous);
+    } else {
+      setAnnotations(previous.annotations || []);
+      setDetectedTextItems(previous.detectedTextItems || []);
+    }
     setSelectedId(null);
+    setSelectedDetectedTextId(null);
     markUnsaved();
   };
 
   const redo = () => {
     if (!redoStack.length) return;
     const [next, ...rest] = redoStack;
-    setUndoStack((stack) => [...stack, annotations].slice(-25));
+    setUndoStack((stack) => [...stack, { annotations, detectedTextItems }].slice(-25));
     setRedoStack(rest);
-    setAnnotations(next);
+    if (Array.isArray(next)) {
+      setAnnotations(next);
+    } else {
+      setAnnotations(next.annotations || []);
+      setDetectedTextItems(next.detectedTextItems || []);
+    }
+    setSelectedId(null);
+    setSelectedDetectedTextId(null);
     markUnsaved();
   };
 
   const duplicateSelected = () => {
+    if (selectedDetectedText) {
+      duplicateDetectedTextItem(selectedDetectedText);
+      return;
+    }
     if (!selected || selected.type === "draw") return;
     addAnnotation({ ...selected, id: makeId(selected.type), x: clamp(selected.x + 0.025, 0, 0.86), y: clamp(selected.y + 0.025, 0, 0.94) });
   };
 
   const deleteSelected = () => {
+    if (selectedDetectedTextId) {
+      deleteDetectedTextItem(selectedDetectedTextId);
+      return;
+    }
     if (!selected) return;
     commitAnnotations(annotations.filter((annotation) => annotation.id !== selected.id));
     setSelectedId(null);
@@ -1563,6 +1722,77 @@ export function App() {
     showToast("Fit page to width.");
   };
 
+  const updateDetectedTextContent = (id, element) => {
+    const pageRect = element.closest(".page-surface")?.getBoundingClientRect();
+    const text = element.innerText;
+    const patch = { currentText: text || " ", isEdited: true };
+    if (pageRect?.width && pageRect?.height) {
+      patch.w = clamp((element.scrollWidth + 18) / pageRect.width, 0.02, 0.92);
+      patch.h = clamp((element.scrollHeight + 10) / pageRect.height, 0.018, 0.32);
+    }
+    updateDetectedTextItem(id, patch);
+  };
+
+  const startDetectedTextDrag = (event, item) => {
+    if (event.target.closest?.("[contenteditable='true'], .detected-text-toolbar, .resize-handle")) return;
+    event.stopPropagation();
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+    const pageRect = event.currentTarget.closest(".page-surface").getBoundingClientRect();
+    const origin = { clientX: event.clientX, clientY: event.clientY, x: item.x, y: item.y };
+    setUndoStack((stack) => [...stack.slice(-24), { annotations, detectedTextItems }]);
+    setRedoStack([]);
+    setSelectedDetectedTextId(item.id);
+    setSelectedId(null);
+    const move = (moveEvent) => {
+      setDetectedTextItems((items) => items.map((candidate) => (
+        candidate.id === item.id
+          ? {
+            ...candidate,
+            x: clamp(origin.x + (moveEvent.clientX - origin.clientX) / pageRect.width, 0, 0.98 - candidate.w),
+            y: clamp(origin.y + (moveEvent.clientY - origin.clientY) / pageRect.height, 0, 0.98 - candidate.h),
+            isEdited: true,
+            updatedAt: nowIso(),
+          }
+          : candidate
+      )));
+      markUnsaved();
+    };
+    const up = () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+    };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+  };
+
+  const startDetectedTextResize = (event, item) => {
+    event.stopPropagation();
+    const pageRect = event.currentTarget.closest(".page-surface").getBoundingClientRect();
+    const origin = { clientX: event.clientX, clientY: event.clientY, w: item.w, h: item.h };
+    setUndoStack((stack) => [...stack.slice(-24), { annotations, detectedTextItems }]);
+    setRedoStack([]);
+    const move = (moveEvent) => {
+      setDetectedTextItems((items) => items.map((candidate) => (
+        candidate.id === item.id
+          ? {
+            ...candidate,
+            w: clamp(origin.w + (moveEvent.clientX - origin.clientX) / pageRect.width, 0.02, 0.92),
+            h: clamp(origin.h + (moveEvent.clientY - origin.clientY) / pageRect.height, 0.018, 0.32),
+            isEdited: true,
+            updatedAt: nowIso(),
+          }
+          : candidate
+      )));
+      markUnsaved();
+    };
+    const up = () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+    };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+  };
+
   useEffect(() => {
     if (!pages.length) return undefined;
 
@@ -1588,6 +1818,7 @@ export function App() {
 
       if (key === "escape") {
         setSelectedId(null);
+        setSelectedDetectedTextId(null);
         setPendingImage(null);
         setTool("select");
       }
@@ -1598,7 +1829,7 @@ export function App() {
       if (key === "s") setTool("signature");
       if (key === "f") setTool("field");
       if (key === "c") setTool("checkbox");
-      if ((key === "backspace" || key === "delete") && selectedId) {
+      if ((key === "backspace" || key === "delete") && (selectedId || selectedDetectedTextId)) {
         event.preventDefault();
         deleteSelected();
       }
@@ -1606,7 +1837,7 @@ export function App() {
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [pages.length, selectedId, selected?.type, annotations, saveState]);
+  }, [pages.length, selectedId, selectedDetectedTextId, selected?.type, annotations, detectedTextItems, saveState]);
 
   const exportPdf = async () => {
     setIsExporting(true);
@@ -1627,6 +1858,44 @@ export function App() {
     const helvetica = await pdfDoc.embedFont(StandardFonts.Helvetica);
     const helveticaBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
     const timesItalic = await pdfDoc.embedFont(StandardFonts.TimesRomanItalic);
+
+    for (const item of detectedTextItems.filter((candidate) => candidate.isEdited || candidate.isDeleted)) {
+      const page = pdfDoc.getPages()[item.pageNumber];
+      if (!page) continue;
+      const { width, height } = page.getSize();
+      const pageRecord = pages[item.pageNumber] || {};
+      const pdfScale = width / (pageRecord.width || BASE_PAGE_WIDTH);
+      const x = item.x * width;
+      const boxHeight = item.h * height;
+      const y = height - item.y * height - boxHeight;
+      const boxWidth = item.w * width;
+      const fontSize = clamp((item.fontSize || 11) * pdfScale, 4, 54);
+      const font = item.fontFamily?.toLowerCase().includes("times") ? timesItalic : helvetica;
+      const color = hexToRgb(item.color || colors.black);
+
+      page.drawRectangle({
+        x: Math.max(0, x - 1.5),
+        y: Math.max(0, y - 1.5),
+        width: Math.min(width - x + 1.5, boxWidth + 3),
+        height: Math.min(height - y + 1.5, boxHeight + 3),
+        color: rgb(1, 1, 1),
+        opacity: 1,
+        borderOpacity: 0,
+      });
+
+      if (!item.isDeleted && String(item.currentText || "").trim()) {
+        String(item.currentText || "").split("\n").forEach((line, index) => {
+          page.drawText(line, {
+            x: x + 1.5,
+            y: y + Math.max(1, boxHeight - fontSize * 0.95) - index * fontSize * 1.18,
+            size: fontSize,
+            font,
+            color,
+            opacity: 1,
+          });
+        });
+      }
+    }
 
     for (const annotation of annotations) {
       const page = pdfDoc.getPages()[annotation.page];
@@ -2103,7 +2372,63 @@ export function App() {
               onPointerUp={onPagePointerUp}
             >
               {currentPage.image ? <img className="pdf-image" src={currentPage.image} alt={`PDF page ${pageIndex + 1}`} /> : currentPage.source === "blank" ? <BlankDocument /> : <SampleDocument pageIndex={pageIndex} />}
+              {currentPage.source === "pdf" && !pageDetectedTextItems.length && !currentPage.text?.trim() && (
+                <div className="ocr-state">
+                  <ScanText size={16} />
+                  Scanned page detected. OCR is not enabled in this browser build yet.
+                </div>
+              )}
               <div className="annotation-layer">
+                {pageDetectedTextItems.map((item) => {
+                  const isActive = item.id === selectedDetectedTextId;
+                  const displayScale = (zoom / 100) * EDITOR_PAGE_SCALE;
+                  return (
+                    <div
+                      key={item.id}
+                      className={`detected-text-item ${item.isEdited ? "is-edited" : ""} ${isActive ? "is-selected" : ""} ${item.source === "ocr" && item.confidence < 0.75 ? "is-low-confidence" : ""}`}
+                      style={{
+                        left: `${item.x * 100}%`,
+                        top: `${item.y * 100}%`,
+                        width: `${item.w * 100}%`,
+                        height: `${item.h * 100}%`,
+                        color: item.color || colors.black,
+                        fontSize: `${Math.max(6, item.fontSize * displayScale)}px`,
+                        fontFamily: item.fontFamily || '"PP Agrandir", Inter, Arial, sans-serif',
+                      }}
+                      onPointerDown={(event) => startDetectedTextDrag(event, item)}
+                    >
+                      {isActive && (
+                        <div className="detected-text-toolbar" onPointerDown={(event) => event.stopPropagation()}>
+                          <button type="button" className="mini-grip" title="Move" onPointerDown={(event) => startDetectedTextDrag(event, item)}><GripVertical size={15} /></button>
+                          <button type="button" title="Smaller text" onClick={() => updateDetectedTextItem(item.id, { fontSize: clamp(item.fontSize - 1, 6, 54) })}>-</button>
+                          <span>{Math.round(item.fontSize)}</span>
+                          <button type="button" title="Larger text" onClick={() => updateDetectedTextItem(item.id, { fontSize: clamp(item.fontSize + 1, 6, 54) })}>+</button>
+                          <button type="button" className="color-dot" title="Switch color" onClick={() => updateDetectedTextItem(item.id, { color: item.color === colors.black ? colors.blue : colors.black })} />
+                          <button type="button" title="Duplicate" onClick={() => duplicateDetectedTextItem(item)}><Copy size={15} /></button>
+                          <button type="button" title="Remove from export" onClick={() => deleteDetectedTextItem(item.id)}><Trash2 size={15} /></button>
+                          <button type="button" title="Done" onClick={() => setSelectedDetectedTextId(null)}><CheckCircle2 size={15} /></button>
+                        </div>
+                      )}
+                      <div
+                        className="detected-text-content"
+                        contentEditable={isActive}
+                        suppressContentEditableWarning
+                        spellCheck="false"
+                        onPointerDown={(event) => {
+                          event.stopPropagation();
+                          setSelectedDetectedTextId(item.id);
+                          setSelectedId(null);
+                          setTool("select");
+                        }}
+                        onInput={(event) => updateDetectedTextContent(item.id, event.currentTarget)}
+                        onBlur={(event) => updateDetectedTextContent(item.id, event.currentTarget)}
+                      >
+                        {item.currentText}
+                      </div>
+                      {isActive && <span className="resize-handle" onPointerDown={(event) => startDetectedTextResize(event, item)} />}
+                    </div>
+                  );
+                })}
                 {pageAnnotations.map((annotation) => (
                   <Annotation
                     key={annotation.id}
