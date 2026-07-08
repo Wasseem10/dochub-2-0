@@ -695,7 +695,7 @@ export function App() {
   const [detectedTextItems, setDetectedTextItems] = useState([]);
   const [selectedId, setSelectedId] = useState(null);
   const [selectedDetectedTextId, setSelectedDetectedTextId] = useState(null);
-  const [zoom, setZoom] = useState(100);
+  const [zoom, setZoom] = useState(80);
   const [saved, setSaved] = useState(true);
   const [saveState, setSaveState] = useState("saved");
   const [lastSavedAt, setLastSavedAt] = useState(null);
@@ -2273,10 +2273,11 @@ export function App() {
           setPages([]);
           setScreen("upload");
         }} title="Back to dashboard">
-          <span className="pdfnet-logo-mark blank-mark" aria-hidden="true" />
+          <List size={27} aria-hidden="true" />
         </button>
         <div className="file-meta">
           <button type="button" className="file-name" onClick={renameActiveDocument} title="Rename document">{fileName}</button>
+          <span className="save-state"><Info size={16} /> Edited {saveState === "saved" ? "just now" : "now"}</span>
         </div>
         <div className="pdfnet-header-tools">
           <button type="button" className="icon-button" onClick={() => setIsSearchOpen((value) => !value)} title="Search"><Search size={22} /></button>
@@ -2365,8 +2366,8 @@ export function App() {
             )}
           </div>
           <button type="button" className="language-button" onClick={() => showToast("Language set to English.")}>◎ EN</button>
-          <button type="button" className="share-button" onClick={() => setShareModalOpen(true)} title="Share">Share</button>
-          <button type="button" className="download-button" onClick={exportPdf} disabled={isExporting}><Download size={18} /> {isExporting ? "Exporting" : "Download"}</button>
+          <button type="button" className="share-button" onClick={() => setShareModalOpen(true)} title="Share"><Share2 size={18} /> Share</button>
+          <button type="button" className="sign-secure-button" onClick={() => setSignatureModalOpen(true)}><PenLine size={18} /> Sign securely <ChevronDown size={15} /></button>
         </div>
       </header>
 
@@ -2435,7 +2436,12 @@ export function App() {
         </aside>
         <aside className={`pages-panel ${isPagesCollapsed ? "is-collapsed" : ""}`}>
           <div className="panel-title pdfnet-page-title">
-            <button type="button" className="pdfnet-add-page" onClick={addBlankPage}><Plus size={19} /> Add page <ChevronDown size={17} /></button>
+            <strong>Thumbnails</strong>
+            <div>
+              <button type="button" title="Grid view" onClick={() => setViewMode("grid")}><Grid2X2 size={18} /></button>
+              <button type="button" title="List view" onClick={() => setViewMode("list")}><List size={18} /></button>
+              <button type="button" title="Close thumbnails" onClick={() => setIsPagesCollapsed(true)}><X size={18} /></button>
+            </div>
           </div>
           <div className="page-actions">
             <button type="button" onClick={addBlankPage}><Plus size={15} /> Add</button>

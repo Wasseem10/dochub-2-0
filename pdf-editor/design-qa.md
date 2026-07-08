@@ -1,48 +1,39 @@
-# Design QA: CosmicPDF + Lumin Dashboard Clone
+**Source Visual Truth**
+- Path: `/var/folders/y5/5nxfxhk97_9fmsmdf8tqj81r0000gn/T/TemporaryItems/NSIRD_screencaptureui_2OIGjY/Screenshot 2026-07-08 at 6.02.28 PM.png`
 
-Final result: passed
+**Implementation Evidence**
+- Path: `/tmp/dochub-2-0-fresh/pdf-editor/design-qa-lumin-editor-implementation-wide.png`
+- Local URL: `http://127.0.0.1:4173/?view=dashboard&v=lumin-editor-wide`
+- Viewport: `2048x1100`
+- State: editor opened from a recent blank PDF document at default `80%` zoom.
 
-## Source Evidence
+**Full-View Comparison Evidence**
+- Compared the provided Lumin-style editor screenshot against the local implementation capture.
+- Composite generation was unavailable because Pillow/ImageMagick was not installed; both captures were opened and inspected directly.
 
-- Source URL: https://cosmicpdf.com/
-- Desktop captures: `public/reference/cosmicpdf-source/desktop-0-0.png`, `desktop-filter-convert-from-pdf.png`, `desktop-faq-open.png`
-- Mobile capture: `public/reference/cosmicpdf-source/mobile-top.png`
-- Style evidence: `public/reference/cosmicpdf-source/style-evidence.json`
-- Interaction evidence: `public/reference/cosmicpdf-source/interaction-states.json`
+**Focused Region Comparison Evidence**
+- Header and toolbar: checked file header, zoom controls, Share, Sign securely, and tool ribbon density.
+- Left navigation and thumbnails: checked category rail, active Popular state, Thumbnails title bar, selected page card, and page label.
+- Canvas and navigation: checked dotted canvas, centered page surface, right utility rail, and floating page navigation.
 
-## Local Evidence
+**Findings**
+- No blocking P0/P1/P2 issues remain for this pass.
+- P3: The reference screenshot includes a promotional upgrade strip. This implementation intentionally omits it because the user previously asked to remove that bar.
+- P3: The local QA document is a blank test document, so the PDF page content differs from the NDA reference. The editor chrome and zoom behavior are the evaluated surfaces.
+- P3: At the requested `80%` default zoom, the page is visibly smaller than the reference screenshot's `164%` zoom readout. This is intentional for the latest "make sure it's zoomed out" request.
 
-- Local URL verified: `http://127.0.0.1:5173/?v=cosmic-one-to-one-pass-2`
-- Desktop capture: `public/reference/cosmicpdf-local/desktop-top-final.png`
-- Filter capture: `public/reference/cosmicpdf-local/desktop-filter-final.png`
-- Mobile capture: `public/reference/cosmicpdf-local/mobile-top-final.png`
-- One-to-one desktop capture: `public/reference/cosmicpdf-local/desktop-one-to-one-pass-1.png`
-- One-to-one tools capture: `public/reference/cosmicpdf-local/desktop-tools-one-to-one-pass-1.png`
-- One-to-one reviews/FAQ capture: `public/reference/cosmicpdf-local/desktop-reviews-one-to-one-pass-1.png`
-- One-to-one mobile capture: `public/reference/cosmicpdf-local/mobile-one-to-one-pass-1.png`
-- Dashboard source image: `/var/folders/y5/5nxfxhk97_9fmsmdf8tqj81r0000gn/T/TemporaryItems/NSIRD_screencaptureui_Qdmymo/Screenshot 2026-07-07 at 6.34.20 PM.png`
-- Dashboard local capture: `public/reference/lumin-dashboard-local/dashboard-pass-3.png`
-- Editor source image: `/var/folders/y5/5nxfxhk97_9fmsmdf8tqj81r0000gn/T/TemporaryItems/NSIRD_screencaptureui_z9y02h/Screenshot 2026-07-08 at 3.09.33 PM.png`
-- Editor local route verified: `http://127.0.0.1:4173/?view=dashboard&v=pdfnet-editor-pass-3`
+**Patches Made**
+- Default editor zoom changed to `80%`.
+- Header changed to hamburger-style entry, edited timestamp, compact zoom controls, Share, and Sign securely.
+- Tool ribbon changed to stable icon/label tiles with horizontal overflow instead of jumbled labels.
+- Left category rail, thumbnails panel, dotted canvas, right utility rail, and floating page nav restyled to match the reference editor structure.
+- Inspector hidden by default to match the reference screenshot.
 
-## Checks
+**Implementation Checklist**
+- Build passes with `npm run build`.
+- Local preview verified at `2048x1100`.
+- Toolbar labels no longer overlap.
+- Editor opens zoomed out.
 
-- Production build passed with Vite.
-- Header, hero, upload dropzone, trust row, security row, steps, tools, forms, reviews, FAQ, final CTA, and footer render.
-- Category filter works and changes the visible tools to the selected tool family.
-- FAQ rows open inline.
-- Support button opens an inline support state.
-- Footer language menu opens with local options.
-- Desktop and mobile report `0px` horizontal overflow.
-- Mobile layout collapses into a single-column source-like view with the compact header actions.
-- Browser console showed no errors during mobile QA.
-- Dashboard direct URL renders at `?view=dashboard` for fast design iteration.
-- Dashboard matches the reference structure: left rail, Lumin wordmark, centered search, invite/help/bell/avatar actions, five quick action tiles, suggested documents tabs, source-like document row, and zoomed-out whitespace.
-- Editor pass matches the pdf.net reference structure: white top bar, brand/title, centered search/undo/redo/zoom controls, right-side language/share/download controls, left Add page rail, selected page thumbnail, floating primary tool ribbon, contextual text toolbar, plain canvas, and 100% page view.
-- Editor controls remain wired to existing app behavior: text placement, draw/image/sign tools, add page, zoom menu, share, export/download, page thumbnails, and undo/redo.
-
-## Notes
-
-- Source imagery was copied into local `/public/cosmic-assets`; the app does not hotlink those image assets.
-- Source web fonts were downloaded into local `/public/cosmic-assets/fonts` and loaded with local `@font-face` rules.
-- Source iconography is implemented with the existing Lucide icon system for a production app feel.
+**Final Result**
+- final result: passed

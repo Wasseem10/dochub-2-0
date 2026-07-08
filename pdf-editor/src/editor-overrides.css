@@ -506,7 +506,7 @@ main.editor-shell .page-surface:focus {
   }
 
   main.editor-shell .pdfnet-header-tools {
-    display: none !important;
+    display: flex !important;
   }
 
   main.editor-shell .tool-ribbon {
@@ -5320,5 +5320,628 @@ main.editor-shell .align-group {
 
   .auth-shell .auth-card h2 {
     font-size: 30px !important;
+  }
+}
+
+/* Lumin-style editor chrome, kept last so the active editor state wins. */
+main.editor-shell {
+  --editor-top: #f7f8fa;
+  --editor-line: #dfe5eb;
+  --editor-ink: #233747;
+  --editor-muted: #607383;
+  --editor-blue-soft: #c8f5ff;
+  --editor-blue-active: #bff2ff;
+  display: grid !important;
+  grid-template-rows: 70px 58px minmax(0, 1fr) !important;
+  height: 100vh !important;
+  overflow: hidden !important;
+  background: #f2f4f7 !important;
+  color: var(--editor-ink) !important;
+  font-family: Inter, "PP Agrandir", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+}
+
+main.editor-shell .file-header {
+  display: grid !important;
+  grid-template-columns: 64px minmax(230px, 1fr) auto auto !important;
+  align-items: center !important;
+  height: 70px !important;
+  padding: 0 18px 0 20px !important;
+  border-bottom: 1px solid #e6ebf0 !important;
+  background: #f9fafb !important;
+  box-shadow: none !important;
+}
+
+main.editor-shell .pdfnet-brand {
+  display: grid !important;
+  width: 48px !important;
+  height: 48px !important;
+  place-items: center !important;
+  border: 0 !important;
+  border-radius: 10px !important;
+  background: transparent !important;
+  color: #243a4a !important;
+  cursor: pointer !important;
+}
+
+main.editor-shell .pdfnet-brand:hover {
+  background: #eef3f7 !important;
+}
+
+main.editor-shell .file-meta {
+  display: grid !important;
+  align-content: center !important;
+  gap: 4px !important;
+  height: auto !important;
+  min-width: 0 !important;
+  border-right: 0 !important;
+}
+
+main.editor-shell .file-name {
+  display: block !important;
+  max-width: min(520px, 42vw) !important;
+  overflow: hidden !important;
+  border: 0 !important;
+  background: transparent !important;
+  color: #1f2933 !important;
+  text-align: left !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  font-size: 17px !important;
+  font-weight: 780 !important;
+  line-height: 1.15 !important;
+}
+
+main.editor-shell .save-state {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 5px !important;
+  color: #5f6f7d !important;
+  font-size: 13px !important;
+  font-weight: 650 !important;
+  text-decoration: underline !important;
+  text-underline-offset: 2px !important;
+}
+
+main.editor-shell .pdfnet-header-tools {
+  justify-self: end !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  min-width: 0 !important;
+  padding-right: 10px !important;
+  border-right: 1px solid #dde5ec !important;
+}
+
+main.editor-shell .header-actions {
+  justify-self: end !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+
+main.editor-shell .icon-button,
+main.editor-shell .toolbar-icon,
+main.editor-shell .toolbar-chip,
+main.editor-shell .language-button {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  height: 38px !important;
+  min-width: 38px !important;
+  padding: 0 9px !important;
+  border: 0 !important;
+  border-radius: 9px !important;
+  background: transparent !important;
+  color: #284153 !important;
+  box-shadow: none !important;
+  font-size: 14px !important;
+  font-weight: 760 !important;
+}
+
+main.editor-shell .icon-button:hover,
+main.editor-shell .toolbar-icon:hover,
+main.editor-shell .toolbar-chip:hover,
+main.editor-shell .language-button:hover {
+  background: #edf4f8 !important;
+}
+
+main.editor-shell .toolbar-chip {
+  min-width: 82px !important;
+  gap: 4px !important;
+}
+
+main.editor-shell .language-button {
+  display: none !important;
+}
+
+main.editor-shell .share-button,
+main.editor-shell .sign-secure-button {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  height: 46px !important;
+  min-width: 108px !important;
+  padding: 0 14px !important;
+  border: 0 !important;
+  border-radius: 9px !important;
+  color: #183242 !important;
+  box-shadow: none !important;
+  font-size: 16px !important;
+  font-weight: 800 !important;
+  white-space: nowrap !important;
+}
+
+main.editor-shell .share-button {
+  background: #c9f5ff !important;
+}
+
+main.editor-shell .sign-secure-button {
+  min-width: 172px !important;
+  background: #d8c8ff !important;
+  color: #242044 !important;
+}
+
+main.editor-shell .more-menu-wrap {
+  display: inline-flex !important;
+}
+
+main.editor-shell .tool-ribbon {
+  position: relative !important;
+  top: auto !important;
+  left: auto !important;
+  z-index: 22 !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 7px !important;
+  width: 100% !important;
+  height: 58px !important;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  padding: 0 72px 0 118px !important;
+  border: 0 !important;
+  border-bottom: 1px solid #dde5ec !important;
+  border-radius: 0 !important;
+  background: #eef2f5 !important;
+  box-shadow: none !important;
+}
+
+main.editor-shell .tool-ribbon::-webkit-scrollbar {
+  display: none !important;
+}
+
+main.editor-shell .ribbon-tool {
+  display: grid !important;
+  flex: 0 0 auto !important;
+  grid-template-rows: 22px 16px !important;
+  align-content: center !important;
+  justify-items: center !important;
+  gap: 2px !important;
+  min-width: 84px !important;
+  width: 84px !important;
+  height: 50px !important;
+  padding: 0 4px !important;
+  border: 0 !important;
+  border-radius: 8px !important;
+  background: transparent !important;
+  color: #29495d !important;
+  box-shadow: none !important;
+}
+
+main.editor-shell .ribbon-tool svg {
+  width: 20px !important;
+  height: 20px !important;
+  flex: 0 0 auto !important;
+}
+
+main.editor-shell .ribbon-tool span {
+  display: block !important;
+  max-width: 78px !important;
+  overflow: hidden !important;
+  color: inherit !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  font-size: 12px !important;
+  font-weight: 760 !important;
+}
+
+main.editor-shell .ribbon-tool.is-active {
+  background: #cceeff !important;
+  color: #183b4c !important;
+  box-shadow: none !important;
+}
+
+main.editor-shell .smart-text-chip,
+main.editor-shell .ribbon-divider {
+  display: none !important;
+}
+
+main.editor-shell .tool-settings {
+  position: absolute !important;
+  top: 138px !important;
+  left: 50% !important;
+  z-index: 38 !important;
+  display: flex !important;
+  width: max-content !important;
+  max-width: min(860px, calc(100vw - 500px)) !important;
+  min-height: 52px !important;
+  height: 52px !important;
+  padding: 0 10px !important;
+  border: 1px solid #e3e8ee !important;
+  border-radius: 8px !important;
+  background: #ffffff !important;
+  box-shadow: 0 14px 34px rgba(35, 55, 71, 0.13) !important;
+  transform: translateX(-50%) !important;
+}
+
+main.editor-shell .workspace {
+  display: grid !important;
+  grid-template-columns: 92px 324px minmax(0, 1fr) 62px !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+  background: #f4f6f8 !important;
+}
+
+main.editor-shell .lumin-editor-rail {
+  display: grid !important;
+  grid-template-rows: repeat(7, 92px) minmax(0, 1fr) !important;
+  align-content: start !important;
+  width: 92px !important;
+  min-width: 92px !important;
+  padding: 6px 8px 12px !important;
+  border-right: 1px solid #e4e9ee !important;
+  background: #f6f8fa !important;
+}
+
+main.editor-shell .lumin-editor-rail button {
+  display: grid !important;
+  place-items: center !important;
+  align-content: center !important;
+  gap: 7px !important;
+  min-width: 0 !important;
+  width: 76px !important;
+  height: 82px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 10px !important;
+  background: transparent !important;
+  color: #394b59 !important;
+  font-size: 13px !important;
+  font-weight: 760 !important;
+}
+
+main.editor-shell .lumin-editor-rail button.is-active {
+  background: #bff2ff !important;
+  color: #0f5970 !important;
+}
+
+main.editor-shell .lumin-editor-rail button svg {
+  width: 27px !important;
+  height: 27px !important;
+}
+
+main.editor-shell .pages-panel {
+  display: grid !important;
+  grid-template-rows: 68px minmax(0, 1fr) !important;
+  min-width: 0 !important;
+  width: 324px !important;
+  border-right: 1px solid #dfe6ec !important;
+  background: #ffffff !important;
+  box-shadow: 6px 0 18px rgba(34, 48, 61, 0.04) !important;
+}
+
+main.editor-shell .pages-panel.is-collapsed {
+  display: none !important;
+}
+
+main.editor-shell .pdfnet-page-title {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  height: 68px !important;
+  padding: 0 18px !important;
+  border-bottom: 1px solid #dfe6ec !important;
+  background: #ffffff !important;
+}
+
+main.editor-shell .pdfnet-page-title strong {
+  color: #253746 !important;
+  font-size: 17px !important;
+  font-weight: 820 !important;
+}
+
+main.editor-shell .pdfnet-page-title div {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+
+main.editor-shell .pdfnet-page-title button {
+  display: grid !important;
+  width: 34px !important;
+  height: 34px !important;
+  place-items: center !important;
+  border: 0 !important;
+  border-radius: 8px !important;
+  background: transparent !important;
+  color: #42586a !important;
+}
+
+main.editor-shell .pdfnet-page-title button:hover {
+  background: #eef4f8 !important;
+}
+
+main.editor-shell .page-actions,
+main.editor-shell .saved-foot {
+  display: none !important;
+}
+
+main.editor-shell .thumbnail-list {
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  align-content: start !important;
+  gap: 26px !important;
+  overflow: auto !important;
+  padding: 24px 0 48px !important;
+  background: #ffffff !important;
+}
+
+main.editor-shell .thumbnail {
+  justify-self: center !important;
+  display: grid !important;
+  width: 190px !important;
+  height: auto !important;
+  min-height: 236px !important;
+  gap: 10px !important;
+  padding: 12px 10px 14px !important;
+  overflow: visible !important;
+  border: 0 !important;
+  border-radius: 10px !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+main.editor-shell .thumbnail.is-selected {
+  background: #e8e9eb !important;
+  border: 0 !important;
+}
+
+main.editor-shell .thumbnail-preview {
+  display: grid !important;
+  width: 136px !important;
+  height: 178px !important;
+  place-items: center !important;
+  margin: 0 auto !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+main.editor-shell .thumbnail.is-selected .thumbnail-preview {
+  outline: 2px solid #15718a !important;
+  outline-offset: 0 !important;
+}
+
+main.editor-shell .thumbnail-label {
+  color: #5f6872 !important;
+  font-size: 15px !important;
+  font-weight: 750 !important;
+}
+
+main.editor-shell .canvas-column {
+  min-width: 0 !important;
+  overflow: hidden !important;
+  background:
+    radial-gradient(circle, rgba(183, 196, 207, 0.62) 1.6px, transparent 1.7px) 0 0 / 38px 38px,
+    #f5f7f9 !important;
+}
+
+main.editor-shell .document-stage {
+  display: flex !important;
+  justify-content: center !important;
+  align-items: flex-start !important;
+  height: 100% !important;
+  overflow: auto !important;
+  padding: 62px 36px 96px !important;
+  background: transparent !important;
+}
+
+main.editor-shell .page-surface {
+  flex: 0 0 auto !important;
+  overflow: visible !important;
+  border: 1px solid #c8d6e1 !important;
+  background: #ffffff !important;
+  box-shadow: 0 22px 58px rgba(42, 54, 68, 0.13) !important;
+}
+
+main.editor-shell .inspector-wrap {
+  display: none !important;
+}
+
+main.editor-shell .lumin-right-rail {
+  display: grid !important;
+  grid-template-rows: repeat(2, 54px) 1px repeat(3, 54px) 1px 54px minmax(0, 1fr) !important;
+  align-content: start !important;
+  justify-items: center !important;
+  width: 62px !important;
+  min-width: 62px !important;
+  padding: 10px 0 !important;
+  border-left: 1px solid #dfe6ec !important;
+  background: #f7f9fb !important;
+}
+
+main.editor-shell .lumin-right-rail button {
+  display: grid !important;
+  width: 42px !important;
+  height: 42px !important;
+  place-items: center !important;
+  border: 0 !important;
+  border-radius: 9px !important;
+  background: transparent !important;
+  color: #284153 !important;
+}
+
+main.editor-shell .lumin-right-rail button:hover,
+main.editor-shell .lumin-right-rail button.is-active {
+  background: #e8f3f8 !important;
+}
+
+main.editor-shell .lumin-right-rail button svg {
+  width: 23px !important;
+  height: 23px !important;
+}
+
+main.editor-shell .lumin-right-rail span {
+  width: 34px !important;
+  height: 1px !important;
+  margin: 7px 0 !important;
+  background: #ccd7e1 !important;
+}
+
+main.editor-shell .status-bar {
+  position: fixed !important;
+  left: 50% !important;
+  bottom: 18px !important;
+  z-index: 45 !important;
+  display: flex !important;
+  width: auto !important;
+  height: 50px !important;
+  padding: 0 12px !important;
+  border: 1px solid #e4e9ef !important;
+  border-radius: 12px !important;
+  background: rgba(255, 255, 255, 0.94) !important;
+  box-shadow: 0 14px 36px rgba(34, 48, 61, 0.16) !important;
+  transform: translateX(-50%) !important;
+  backdrop-filter: blur(14px) !important;
+}
+
+main.editor-shell .status-bar > div:first-child,
+main.editor-shell .status-tools {
+  display: none !important;
+}
+
+main.editor-shell .page-nav {
+  display: flex !important;
+  align-items: center !important;
+  gap: 9px !important;
+  height: 100% !important;
+}
+
+main.editor-shell .page-nav button {
+  display: grid !important;
+  width: 30px !important;
+  height: 30px !important;
+  place-items: center !important;
+  border: 0 !important;
+  border-radius: 8px !important;
+  background: transparent !important;
+  color: #728392 !important;
+  font-size: 23px !important;
+}
+
+main.editor-shell .page-nav input {
+  width: 54px !important;
+  height: 34px !important;
+  border: 0 !important;
+  border-radius: 9px !important;
+  background: #f2f4f6 !important;
+  color: #243746 !important;
+  text-align: center !important;
+  font-size: 15px !important;
+  font-weight: 780 !important;
+}
+
+main.editor-shell .page-nav span {
+  color: #667988 !important;
+  font-size: 15px !important;
+  font-weight: 760 !important;
+}
+
+@media (max-width: 1180px) {
+  main.editor-shell .file-header {
+    grid-template-columns: 56px minmax(180px, 1fr) auto !important;
+  }
+
+  main.editor-shell .pdfnet-header-tools {
+    display: none !important;
+  }
+
+  main.editor-shell .header-actions {
+    grid-column: 3 !important;
+  }
+
+  main.editor-shell .sign-secure-button {
+    min-width: 48px !important;
+    width: 48px !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    font-size: 0 !important;
+  }
+
+  main.editor-shell .sign-secure-button svg {
+    width: 20px !important;
+    height: 20px !important;
+  }
+
+  main.editor-shell .sign-secure-button svg + * {
+    display: none !important;
+  }
+
+  main.editor-shell .workspace {
+    grid-template-columns: 82px 270px minmax(0, 1fr) 56px !important;
+  }
+
+  main.editor-shell .pages-panel {
+    width: 270px !important;
+  }
+
+  main.editor-shell .tool-ribbon {
+    padding-left: 92px !important;
+  }
+}
+
+@media (max-width: 820px) {
+  main.editor-shell {
+    grid-template-rows: 64px 54px minmax(0, 1fr) !important;
+  }
+
+  main.editor-shell .file-header {
+    height: 64px !important;
+    grid-template-columns: 52px minmax(0, 1fr) auto !important;
+    padding: 0 10px !important;
+  }
+
+  main.editor-shell .share-button {
+    min-width: 48px !important;
+    padding: 0 12px !important;
+    font-size: 0 !important;
+  }
+
+  main.editor-shell .sign-secure-button,
+  main.editor-shell .language-button,
+  main.editor-shell .more-menu-wrap {
+    display: none !important;
+  }
+
+  main.editor-shell .workspace {
+    grid-template-columns: 74px minmax(0, 1fr) 52px !important;
+  }
+
+  main.editor-shell .pages-panel {
+    display: none !important;
+  }
+
+  main.editor-shell .lumin-editor-rail {
+    width: 74px !important;
+    min-width: 74px !important;
+  }
+
+  main.editor-shell .lumin-editor-rail button {
+    width: 58px !important;
+    font-size: 11px !important;
+  }
+
+  main.editor-shell .tool-ribbon {
+    padding-left: 80px !important;
   }
 }
