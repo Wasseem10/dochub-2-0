@@ -1535,6 +1535,52 @@ main.editor-shell .canvas-column {
   }
 }
 
+/* Brandless state until a company name is chosen. */
+.blank-brand,
+.blank-logo {
+  min-width: 44px;
+}
+
+.blank-brand span,
+.blank-logo span,
+.blank-mark {
+  display: inline-grid;
+  place-items: center;
+}
+
+.blank-logo {
+  color: transparent;
+}
+
+.blank-mark {
+  width: 28px;
+  height: 28px;
+}
+
+.auth-submit:disabled,
+.sso-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.popover-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 38px;
+  margin-top: 8px;
+  border: 1px solid #d8e0ea;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #334155;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.popover-secondary:hover {
+  background: #f8fafc;
+}
+
 /* Absolute final editor correction: keep after every legacy density block. */
 main.editor-shell,
 .editor-shell {

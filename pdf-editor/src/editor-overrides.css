@@ -5020,3 +5020,49 @@ main.editor-shell .format-toggle-group,
 main.editor-shell .align-group {
   min-height: 58px !important;
 }
+
+/* Brandless state until a company name is chosen. */
+.blank-brand,
+.blank-logo {
+  min-width: 44px;
+}
+
+.blank-brand span,
+.blank-logo span,
+.blank-mark {
+  display: inline-grid;
+  place-items: center;
+}
+
+.blank-logo {
+  color: transparent !important;
+}
+
+.blank-mark {
+  width: 28px;
+  height: 28px;
+}
+
+.auth-submit:disabled,
+.sso-button:disabled {
+  cursor: not-allowed !important;
+  opacity: 0.55 !important;
+}
+
+.popover-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 38px;
+  margin-top: 8px;
+  border: 1px solid #d8e0ea;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #334155;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.popover-secondary:hover {
+  background: #f8fafc;
+}

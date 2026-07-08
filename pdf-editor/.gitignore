@@ -3,6 +3,9 @@ node_modules.damaged*/
 dist/
 .npm-cache/
 .npmrc
+.env
+.env.local
+.env.*.local
 qa-implementation.png
 qa-comparison.png
 qa-upload-empty.png

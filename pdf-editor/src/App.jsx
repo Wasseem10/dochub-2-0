@@ -54,6 +54,15 @@ import Zap from "lucide-react/dist/esm/icons/zap.mjs";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import * as pdfjsLib from "pdfjs-dist";
 import "pdfjs-dist/build/pdf.worker.mjs";
+import {
+  createUserWithEmailAndPassword,
+  onAuthStateChanged,
+  signInWithEmailAndPassword,
+  signInWithPopup,
+  signOut,
+  updateProfile,
+} from "firebase/auth";
+import { auth, googleProvider, isFirebaseConfigured } from "./firebase";
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
   "pdfjs-dist/build/pdf.worker.mjs",
@@ -63,7 +72,6 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
 const BASE_PAGE_WIDTH = 760;
 const BASE_PAGE_HEIGHT = 984;
 const EDITOR_PAGE_SCALE = 0.74;
-const APP_NAME = "CosmicPDF";
 const STORAGE_KEY = "paperflow.documents.v1";
 const MAX_FILE_BYTES = 8 * 1024 * 1024;
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
@@ -108,6 +116,28 @@ function clamp(value, min, max) {
 
 function nowIso() {
   return new Date().toISOString();
+}
+
+function mapFirebaseUser(user) {
+  if (!user) return null;
+  const fallbackName = user.email?.split("@")[0] || "Workspace owner";
+  return {
+    uid: user.uid,
+    email: user.email || "",
+    name: user.displayName || fallbackName,
+    photoURL: user.photoURL || "",
+  };
+}
+
+function formatAuthError(error) {
+  const code = error?.code || "";
+  if (code.includes("auth/email-already-in-use")) return "That email already has an account. Log in instead.";
+  if (code.includes("auth/invalid-credential") || code.includes("auth/wrong-password")) return "Email or password is incorrect.";
+  if (code.includes("auth/user-not-found")) return "No account exists for that email.";
+  if (code.includes("auth/weak-password")) return "Use a password with at least 6 characters.";
+  if (code.includes("auth/popup-closed-by-user")) return "Google sign-in was closed before it finished.";
+  if (code.includes("auth/unauthorized-domain")) return "This domain is not authorized in Firebase Authentication settings.";
+  return error?.message || "Authentication failed. Try again.";
 }
 
 function formatDateTime(value) {
@@ -652,6 +682,7 @@ export function App() {
   ));
   const [authMode, setAuthMode] = useState("signup");
   const [currentUser, setCurrentUser] = useState(null);
+  const [authReady, setAuthReady] = useState(!isFirebaseConfigured);
   const [documents, setDocuments] = useState(() => safeLoadDocuments());
   const [activeDocumentId, setActiveDocumentId] = useState(null);
   const [pages, setPages] = useState([]);
@@ -781,6 +812,18 @@ export function App() {
       .sort((a, b) => a.page - b.page)
   ), [annotations]);
 
+  useEffect(() => {
+    if (!auth) {
+      setAuthReady(true);
+      return undefined;
+    }
+
+    return onAuthStateChanged(auth, (user) => {
+      setCurrentUser(mapFirebaseUser(user));
+      setAuthReady(true);
+    });
+  }, []);
+
   const showToast = (message) => {
     setToast(message);
     window.setTimeout(() => setToast(""), 2600);
@@ -803,9 +846,38 @@ export function App() {
     setScreen("auth");
   };
 
-  const completeAuth = ({ email, name }) => {
-    setCurrentUser({ email, name: name || email?.split("@")[0] || "Workspace owner" });
-    setScreen("upload");
+  const completeAuth = async ({ email, password, name, provider }) => {
+    if (!auth) {
+      return { ok: false, error: "Firebase is not configured yet. Add the VITE_FIREBASE_* env vars first." };
+    }
+
+    try {
+      const credential = provider === "google"
+        ? await signInWithPopup(auth, googleProvider)
+        : authMode === "signup"
+          ? await createUserWithEmailAndPassword(auth, email, password)
+          : await signInWithEmailAndPassword(auth, email, password);
+
+      if (authMode === "signup" && provider !== "google" && name?.trim()) {
+        await updateProfile(credential.user, { displayName: name.trim() });
+      }
+
+      setCurrentUser(mapFirebaseUser(auth.currentUser || credential.user));
+      setScreen("upload");
+      return { ok: true };
+    } catch (error) {
+      return { ok: false, error: formatAuthError(error) };
+    }
+  };
+
+  const logout = async () => {
+    if (auth) {
+      await signOut(auth);
+    }
+    setCurrentUser(null);
+    setPages([]);
+    setScreen("landing");
+    showToast("Signed out.");
   };
 
   const upsertDocument = (document) => {
@@ -2139,6 +2211,8 @@ export function App() {
         setMode={setAuthMode}
         onBack={() => setScreen("landing")}
         onComplete={completeAuth}
+        authReady={authReady}
+        isFirebaseConfigured={isFirebaseConfigured}
       />
     );
   }
@@ -2164,6 +2238,8 @@ export function App() {
         onDownloadDocument={downloadStoredDocument}
         onToggleFavorite={toggleDocumentFavorite}
         onMoveDocument={moveDocument}
+        currentUser={currentUser}
+        onLogout={logout}
       />
     );
   }
@@ -2178,8 +2254,7 @@ export function App() {
           setPages([]);
           setScreen("upload");
         }} title="Back to dashboard">
-          <span className="pdfnet-logo-mark">C</span>
-          <span>CosmicPDF</span>
+          <span className="pdfnet-logo-mark blank-mark" aria-hidden="true" />
         </button>
         <div className="file-meta">
           <button type="button" className="file-name" onClick={renameActiveDocument} title="Rename document">{fileName}</button>
@@ -2652,7 +2727,7 @@ function LandingPage({ fileInputRef, onUpload, onSelectFiles, onLogin }) {
   ];
   const visibleTools = activeCategory === "All" ? tools : tools.filter((tool) => tool[2] === activeCategory);
   const faq = [
-    ["Is CosmicPDF really free to use?", "Yes. You can upload, edit, fill, sign, and download a PDF without creating an account. Larger team and cloud workflows can be upgraded later."],
+    ["Is this really free to use?", "Yes. You can upload, edit, fill, sign, and download a PDF. Larger team and cloud workflows can be upgraded later."],
     ["Are my documents safe and private?", "Files are handled in a secure browser workspace in this local clone. The source experience emphasizes 256-bit SSL, automatic deletion, GDPR, and CCPA messaging."],
     ["Do I need to install software?", "No. The source is a browser-first PDF editor. This clone keeps that flow: upload, edit, and download from the web app."],
     ["Can I edit a scanned PDF?", "Scanned PDFs can be annotated, signed, highlighted, and exported. OCR-level text replacement would be a future backend feature."],
@@ -2687,7 +2762,7 @@ function LandingPage({ fileInputRef, onUpload, onSelectFiles, onLogin }) {
     <main className="cosmic-page">
       <input ref={fileInputRef} className="hidden-input" type="file" accept="application/pdf" onChange={onUpload} />
       <header className="cosmic-header">
-        <a className="cosmic-brand" href="#hero" onClick={() => setMobileMenuOpen(false)}><span><Box size={17} /></span> CosmicPDF</a>
+        <a className="cosmic-brand blank-brand" href="#hero" onClick={() => setMobileMenuOpen(false)}><span><Box size={17} /></span></a>
         <nav className="cosmic-nav" aria-label="Primary">
           {navItems.map(([label, href]) => <a key={label} href={href}>{label}{label === "All tools" && <ChevronDown size={13} />}</a>)}
         </nav>
@@ -2868,7 +2943,7 @@ function LandingPage({ fileInputRef, onUpload, onSelectFiles, onLogin }) {
       </section>
 
       <footer className="cosmic-footer">
-        <div><a className="cosmic-brand" href="#hero"><span><Box size={17} /></span> CosmicPDF</a><p>The PDF editor built for Americans. Edit, sign, fill, convert - all in your browser.</p></div>
+        <div><a className="cosmic-brand blank-brand" href="#hero"><span><Box size={17} /></span></a><p>The PDF editor built for Americans. Edit, sign, fill, convert - all in your browser.</p></div>
         <div><strong>Edit & Sign</strong><a href="#tools">Edit PDF</a><a href="#tools">Sign PDF</a><a href="#tools">Annotate</a><a href="#tools">Redact PDF</a></div>
         <div><strong>Convert</strong><a href="#tools">PDF to Word</a><a href="#tools">PDF to Excel</a><a href="#tools">PDF to JPG</a><a href="#tools">Word to PDF</a><a href="#tools">JPG to PDF</a></div>
         <div><strong>US Forms</strong><a href="#forms">W-9</a><a href="#forms">I-9</a><a href="#forms">1099-NEC</a><a href="#forms">1040</a><a href="#forms">W-4</a></div>
@@ -2879,36 +2954,60 @@ function LandingPage({ fileInputRef, onUpload, onSelectFiles, onLogin }) {
   );
 }
 
-function AuthPage({ mode, setMode, onBack, onComplete }) {
+function AuthPage({ mode, setMode, onBack, onComplete, authReady, isFirebaseConfigured }) {
   const isSignup = mode === "signup";
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const submitAuth = (event) => {
+  const submitAuth = async (event) => {
     event.preventDefault();
+    if (!isFirebaseConfigured) {
+      setError("Firebase is not configured yet. Add your VITE_FIREBASE_* env vars.");
+      return;
+    }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
       setError("Enter a valid email to continue.");
       return;
     }
+    if (password.length < 6) {
+      setError("Password must be at least 6 characters.");
+      return;
+    }
     setError("");
-    onComplete({ email: email.trim(), name: name.trim() });
+    setIsSubmitting(true);
+    const result = await onComplete({ email: email.trim(), password, name: name.trim() });
+    setIsSubmitting(false);
+    if (!result?.ok) setError(result?.error || "Authentication failed.");
+  };
+
+  const submitGoogleAuth = async () => {
+    if (!isFirebaseConfigured) {
+      setError("Firebase is not configured yet. Add your VITE_FIREBASE_* env vars.");
+      return;
+    }
+    setError("");
+    setIsSubmitting(true);
+    const result = await onComplete({ provider: "google" });
+    setIsSubmitting(false);
+    if (!result?.ok) setError(result?.error || "Google sign-in failed.");
   };
 
   return (
     <main className="auth-shell">
       <section className="auth-brand-panel">
-        <button type="button" className="landing-brand auth-brand" onClick={onBack}><span>P</span> {APP_NAME}</button>
+        <button type="button" className="landing-brand auth-brand blank-brand" onClick={onBack}><span aria-hidden="true" /></button>
         <div>
           <p className="eyebrow">Secure document workspace</p>
           <h1>{isSignup ? "Create your workspace and upload your first PDF." : "Welcome back to your document workspace."}</h1>
-          <p>Use one account to upload PDFs, fill forms, place signatures, manage templates, and export final documents from the browser.</p>
+          <p>Use Firebase Authentication to upload PDFs, fill forms, place signatures, manage templates, and export final documents from the browser.</p>
         </div>
         <div className="auth-proof-list">
-          <span><CheckCircle2 size={17} /> Browser-based PDF editor</span>
-          <span><CheckCircle2 size={17} /> Autosaved documents and templates</span>
-          <span><CheckCircle2 size={17} /> Signatures, comments, sharing, export</span>
+          <span><CheckCircle2 size={17} /> Firebase email/password accounts</span>
+          <span><CheckCircle2 size={17} /> Google sign-in ready</span>
+          <span><CheckCircle2 size={17} /> Session restored on refresh</span>
         </div>
       </section>
 
@@ -2916,7 +3015,12 @@ function AuthPage({ mode, setMode, onBack, onComplete }) {
         <button type="button" className="auth-back" onClick={onBack}>Back</button>
         <h2>{isSignup ? "Create free account" : "Log in"}</h2>
         <p>{isSignup ? "Start with a local workspace, then upload or create a document." : "Continue to your dashboard and recent documents."}</p>
-        <button type="button" className="sso-button" onClick={() => onComplete({ email: email.trim() || "workspace@paperflow.local", name: name.trim() || "Workspace owner" })}><Users size={18} /> Continue with Google</button>
+        {!isFirebaseConfigured && (
+          <div className="auth-error">
+            Firebase config is missing. Add `VITE_FIREBASE_API_KEY`, `VITE_FIREBASE_AUTH_DOMAIN`, `VITE_FIREBASE_PROJECT_ID`, and `VITE_FIREBASE_APP_ID`.
+          </div>
+        )}
+        <button type="button" className="sso-button" onClick={submitGoogleAuth} disabled={!authReady || isSubmitting || !isFirebaseConfigured}><Users size={18} /> Continue with Google</button>
         <div className="auth-divider"><span /> or use email <span /></div>
         <form onSubmit={submitAuth}>
           {isSignup && (
@@ -2934,10 +3038,12 @@ function AuthPage({ mode, setMode, onBack, onComplete }) {
             <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder={isSignup ? "Create a password" : "Enter your password"} />
           </label>
           {error && <div className="auth-error">{error}</div>}
-          <button type="submit" className="auth-submit">{isSignup ? "Create account and continue" : "Log in and continue"}</button>
+          <button type="submit" className="auth-submit" disabled={!authReady || isSubmitting || !isFirebaseConfigured}>
+            {isSubmitting ? "Connecting..." : isSignup ? "Create account and continue" : "Log in and continue"}
+          </button>
         </form>
         <div className="auth-switch">
-          {isSignup ? "Already have an account?" : `New to ${APP_NAME}?`}
+          {isSignup ? "Already have an account?" : "Need an account?"}
           <button type="button" onClick={() => setMode(isSignup ? "login" : "signup")}>{isSignup ? "Log in" : "Create account"}</button>
         </div>
       </section>
@@ -3072,6 +3178,8 @@ function UploadLanding({
   onDownloadDocument,
   onToggleFavorite,
   onMoveDocument,
+  currentUser,
+  onLogout,
 }) {
   const [activeSection, setActiveSection] = useState("Home");
   const [searchQuery, setSearchQuery] = useState("");
@@ -3082,6 +3190,13 @@ function UploadLanding({
   const [favoriteTrendingIds, setFavoriteTrendingIds] = useState([]);
   const [workspaceNotice, setWorkspaceNotice] = useState("");
   const [openDocumentMenuId, setOpenDocumentMenuId] = useState(null);
+  const userName = currentUser?.name || currentUser?.email || "Workspace owner";
+  const userInitials = userName
+    .split(/\s|@/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join("") || "U";
 
   const primaryNav = [
     { label: "Home", icon: Home },
@@ -3521,7 +3636,7 @@ function UploadLanding({
 
       <section className="upload-main">
         <header className="upload-topbar">
-          <div className="upload-logo"><span>L</span> Lumin</div>
+          <div className="upload-logo blank-logo"><span aria-hidden="true" /></div>
           <label className="lumin-search">
             <Search size={25} />
             <input type="search" placeholder="Search" value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} />
@@ -3530,7 +3645,7 @@ function UploadLanding({
             <button type="button" className="invite-button" onClick={() => setOpenPanel(openPanel === "invite" ? null : "invite")}><Users size={18} /> Invite members</button>
             <button type="button" className="top-icon" onClick={() => setOpenPanel(openPanel === "help" ? null : "help")}><CircleHelp size={17} /></button>
             <button type="button" className="top-icon" onClick={() => setOpenPanel(openPanel === "notifications" ? null : "notifications")}><Bell size={17} /></button>
-            <button type="button" className="top-avatar" onClick={() => setOpenPanel(openPanel === "account" ? null : "account")}>WD</button>
+            <button type="button" className="top-avatar" onClick={() => setOpenPanel(openPanel === "account" ? null : "account")}>{userInitials}</button>
             {openPanel && (
               <div className="workspace-popover">
                 <button type="button" className="popover-close" onClick={closePanel}><X size={16} /></button>
@@ -3571,9 +3686,10 @@ function UploadLanding({
                 )}
                 {openPanel === "account" && (
                   <>
-                    <h3>Wasseem Dabbas</h3>
-                    <p>{APP_NAME} workspace owner. Documents are saved in this browser until exported or deleted.</p>
+                    <h3>{userName}</h3>
+                    <p>{currentUser?.email || "Signed in workspace"}</p>
                     <button type="button" className="popover-primary" onClick={() => setActiveSection("Settings")}>Workspace settings</button>
+                    <button type="button" className="popover-secondary" onClick={onLogout}>Sign out</button>
                   </>
                 )}
               </div>
