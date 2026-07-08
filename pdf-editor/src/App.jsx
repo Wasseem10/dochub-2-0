@@ -2420,7 +2420,7 @@ export function App() {
         <ToolSettingsPanel tool={tool} settings={toolSettings} setSettings={setToolSettings} />
       </section>
 
-      <section className="workspace">
+      <section className={`workspace ${isPagesCollapsed ? "pages-collapsed" : ""}`}>
         <aside className="lumin-editor-rail">
           {[
             { label: "Popular", icon: FileText, active: true },
@@ -3222,13 +3222,167 @@ function ToolSettingsPanel({ tool, settings, setSettings }) {
   );
 }
 
+function normalizePickerHexColor(value) {
+  if (!value || typeof value !== "string") return colors.black;
+  const trimmed = value.trim();
+  if (/^#[0-9a-f]{6}$/i.test(trimmed)) return trimmed.toUpperCase();
+  if (/^#[0-9a-f]{3}$/i.test(trimmed)) {
+    return `#${trimmed.slice(1).split("").map((char) => char + char).join("")}`.toUpperCase();
+  }
+  return colors.black;
+}
+
+function hexToPickerRgb(value) {
+  const hex = normalizePickerHexColor(value).slice(1);
+  return {
+    r: parseInt(hex.slice(0, 2), 16),
+    g: parseInt(hex.slice(2, 4), 16),
+    b: parseInt(hex.slice(4, 6), 16),
+  };
+}
+
+function pickerRgbToHex(r, g, b) {
+  return `#${[r, g, b].map((channel) => Math.max(0, Math.min(255, Math.round(channel))).toString(16).padStart(2, "0")).join("")}`.toUpperCase();
+}
+
+function hexToHsv(value) {
+  const { r, g, b } = hexToPickerRgb(value);
+  const red = r / 255;
+  const green = g / 255;
+  const blue = b / 255;
+  const max = Math.max(red, green, blue);
+  const min = Math.min(red, green, blue);
+  const delta = max - min;
+  let h = 0;
+  if (delta) {
+    if (max === red) h = ((green - blue) / delta) % 6;
+    else if (max === green) h = (blue - red) / delta + 2;
+    else h = (red - green) / delta + 4;
+    h *= 60;
+    if (h < 0) h += 360;
+  }
+  return {
+    h,
+    s: max === 0 ? 0 : delta / max,
+    v: max,
+  };
+}
+
+function hsvToHex(h, s, v) {
+  const chroma = v * s;
+  const x = chroma * (1 - Math.abs(((h / 60) % 2) - 1));
+  const m = v - chroma;
+  let r = 0;
+  let g = 0;
+  let b = 0;
+  if (h < 60) [r, g, b] = [chroma, x, 0];
+  else if (h < 120) [r, g, b] = [x, chroma, 0];
+  else if (h < 180) [r, g, b] = [0, chroma, x];
+  else if (h < 240) [r, g, b] = [0, x, chroma];
+  else if (h < 300) [r, g, b] = [x, 0, chroma];
+  else [r, g, b] = [chroma, 0, x];
+  return pickerRgbToHex((r + m) * 255, (g + m) * 255, (b + m) * 255);
+}
+
 function ColorControl({ value, onChange }) {
-  const palette = [colors.black, colors.blue, colors.red, colors.green, colors.violet, colors.yellow];
+  const palette = ["#D8D8D8", "#9B9B9B", "#666666", "#333333", "#000000", "#FF6428", "#F59E32", "#FFF14A", "#5ADE3F", "#0E7C16", "#3A8EF6", "#14148B", "#E94472"];
+  const [isOpen, setIsOpen] = useState(false);
+  const [draftColor, setDraftColor] = useState(normalizePickerHexColor(value));
+  const hsv = hexToHsv(draftColor);
+  const hue = hsv.h;
+  const pureHue = `hsl(${hue} 100% 50%)`;
+
+  useEffect(() => {
+    if (!isOpen) setDraftColor(normalizePickerHexColor(value));
+  }, [isOpen, value]);
+
+  const updateFromSquare = (event) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    const s = Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width));
+    const v = Math.max(0, Math.min(1, 1 - (event.clientY - rect.top) / rect.height));
+    setDraftColor(hsvToHex(hue, s, v));
+  };
+
+  const updateFromHue = (event) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    const nextHue = Math.max(0, Math.min(359, ((event.clientX - rect.left) / rect.width) * 360));
+    const current = hexToHsv(draftColor);
+    setDraftColor(hsvToHex(nextHue, current.s || 1, current.v || 1));
+  };
+
+  const dragColor = (handler) => (event) => {
+    event.preventDefault();
+    handler(event);
+    const move = (moveEvent) => handler(moveEvent);
+    const stop = () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", stop);
+    };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", stop, { once: true });
+  };
+
+  const saveColor = () => {
+    const color = normalizePickerHexColor(draftColor);
+    setDraftColor(color);
+    onChange(color);
+    setIsOpen(false);
+  };
+
   return (
-    <div className="mini-swatches" aria-label="Color">
-      {palette.map((color) => (
-        <button key={color} type="button" className={value === color ? "is-selected" : ""} style={{ backgroundColor: color }} onClick={() => onChange(color)} />
-      ))}
+    <div className="color-control" onPointerDown={(event) => event.stopPropagation()}>
+      <button
+        type="button"
+        className="color-trigger"
+        aria-label="Choose color"
+        aria-expanded={isOpen}
+        onClick={() => {
+          setDraftColor(normalizePickerHexColor(value));
+          setIsOpen((open) => !open);
+        }}
+      >
+        <span style={{ backgroundColor: value }} />
+      </button>
+      {isOpen && (
+        <div className="color-popover" role="dialog" aria-label="Choose color">
+          <div
+            className="color-square"
+            style={{ background: `linear-gradient(to top, #000 0%, transparent 55%), linear-gradient(to right, #fff 0%, ${pureHue} 100%)` }}
+            onPointerDown={dragColor(updateFromSquare)}
+          >
+            <span
+              className="color-square-handle"
+              style={{ left: `${hsv.s * 100}%`, top: `${(1 - hsv.v) * 100}%`, backgroundColor: draftColor }}
+            />
+          </div>
+          <div className="color-hue" onPointerDown={dragColor(updateFromHue)}>
+            <span className="color-hue-handle" style={{ left: `${(hue / 360) * 100}%`, backgroundColor: hsvToHex(hue, 1, 1) }} />
+          </div>
+          <div className="color-palette" aria-label="Preset colors">
+            {palette.map((color) => (
+              <button
+                key={color}
+                type="button"
+                className={normalizePickerHexColor(draftColor) === color ? "is-selected" : ""}
+                style={{ backgroundColor: color }}
+                aria-label={`Use ${color}`}
+                onClick={() => setDraftColor(color)}
+              />
+            ))}
+          </div>
+          <div className="color-actions">
+            <button type="button" className="color-cancel" onClick={() => setIsOpen(false)}>Cancel</button>
+            <input
+              aria-label="Hex color"
+              value={draftColor}
+              onChange={(event) => setDraftColor(event.target.value.toUpperCase())}
+              onBlur={() => setDraftColor(normalizePickerHexColor(draftColor))}
+              maxLength={7}
+            />
+            <button type="button" className="color-save" onClick={saveColor}>Save</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
