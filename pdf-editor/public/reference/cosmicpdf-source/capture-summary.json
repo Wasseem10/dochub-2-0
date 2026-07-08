@@ -1,0 +1,717 @@
+{
+  "initial": {
+    "bodyText": "CosmicPDF All tools keyboard_arrow_down IRS Forms How it works Reviews Log in Upload PDF Edit a PDF online. AI-powered. Free to start. Ready in 3 seconds. Drop your PDF here to edit bolt Edit my PDF in 3 seconds lock 256-bit SSL auto_delete Auto-deleted in 1h verified_user GDPR & CCPA upload_file Drop your PDF here to edit Release to upload it securely Trustpilot TrustScore 4.8 · 5,247 reviews 3 STEPS · 30 SECONDS Edit your PDF in three clicks. No downloads, no accounts, no friction. 1 Upload your file Drag & drop or browse. PDFs up to 100 MB. Works on any device. 2 Edit, fill or sign Change text, fill fields, highlight, redact, sign — full control, no learning curve. 3 Download or share Save the new PDF, email it, or get a secure share link. Quality preserved. ONE WORKSPACE · 24+ TOOLS Need to do something else with your PDF? Convert, merge, compress, sign, redact, summarize — every PDF task in one place. All Edit & Sign Convert from PDF Convert to PDF Organize Optimize PDF Edit PDF POPULAR PDF Sign PDF PDF Annotate PDF Redact PDF PDF arrow_forward DOC PDF to Word TOP PDF arrow_forward XLS PDF to Excel PDF arrow_forward JPG PDF to JPG PDF arrow_forward PNG PDF to PNG PDF arrow_for",
+    "buttons": [
+      {
+        "href": "https://cosmicpdf.com/",
+        "role": "A",
+        "text": "CosmicPDF"
+      },
+      {
+        "href": "https://cosmicpdf.com/#tools",
+        "role": "A",
+        "text": "All tools keyboard_arrow_down"
+      },
+      {
+        "href": "https://cosmicpdf.com/#forms",
+        "role": "A",
+        "text": "IRS Forms"
+      },
+      {
+        "href": "https://cosmicpdf.com/#how",
+        "role": "A",
+        "text": "How it works"
+      },
+      {
+        "href": "https://cosmicpdf.com/#reviews",
+        "role": "A",
+        "text": "Reviews"
+      },
+      {
+        "href": "https://cosmicpdf.com/app",
+        "role": "A",
+        "text": "Log in"
+      },
+      {
+        "href": "https://cosmicpdf.com/#hero",
+        "role": "A",
+        "text": "Upload PDF"
+      },
+      {
+        "href": "",
+        "role": "BUTTON",
+        "text": "menu"
+      },
+      {
+        "href": "https://cosmicpdf.com/#tools",
+        "role": "A",
+        "text": "All toolschevron_right"
+      },
+      {
+        "href": "https://cosmicpdf.com/#forms",
+        "role": "A",
+        "text": "IRS Formschevron_right"
+      },
+      {
+        "href": "https://cosmicpdf.com/#how",
+        "role": "A",
+        "text": "How it workschevron_right"
+      },
+      {
+        "href": "https://cosmicpdf.com/#reviews",
+        "role": "A",
+        "text": "Reviewschevron_right"
+      },
+      {
+        "href": "https://cosmicpdf.com/app",
+        "role": "A",
+        "text": "Log inlogin"
+      },
+      {
+        "href": "https://cosmicpdf.com/#hero",
+        "role": "A",
+        "text": "Upload your PDF"
+      },
+      {
+        "href": "",
+        "role": "BUTTON",
+        "text": "bolt Edit my PDF in 3 seconds"
+      },
+      {
+        "href": "",
+        "role": "BUTTON",
+        "text": "All"
+      },
+      {
+        "href": "",
+        "role": "BUTTON",
+        "text": "Edit & Sign"
+      },
+      {
+        "href": "",
+        "role": "BUTTON",
+        "text": "Convert from PDF"
+      },
+      {
+        "href": "",
+        "role": "BUTTON",
+        "text": "Convert to PDF"
+      },
+      {
+        "href": "",
+        "role": "BUTTON",
+        "text": "Organize"
+      },
+      {
+        "href": "",
+        "role": "BUTTON",
+        "text": "Optimize"
+      },
+      {
+        "href": "https://cosmicpdf.com/edit-pdf/",
+        "role": "A",
+        "text": "PDFEdit PDFPopular"
+      },
+      {
+        "href": "https://cosmicpdf.com/sign-pdf/",
+        "role": "A",
+        "text": "PDFSign PDF"
+      },
+      {
+        "href": "https://cosmicpdf.com/annotate-pdf/",
+        "role": "A",
+        "text": "PDFAnnotate"
+      },
+      {
+        "href": "https://cosmicpdf.com/edit-pdf/",
+        "role": "A",
+        "text": "PDFRedact PDF"
+      },
+      {
+        "href": "https://cosmicpdf.com/pdf-to-word/",
+        "role": "A",
+        "text": "PDFarrow_forwardDOCPDF to WordTop"
+      },
+      {
+        "href": "https://cosmicpdf.com/pdf-to-excel/",
+        "role": "A",
+        "text": "PDFarrow_forwardXLSPDF to Excel"
+      },
+      {
+        "href": "https://cosmicpdf.com/pdf-to-jpg/",
+        "role": "A",
+        "text": "PDFarrow_forwardJPGPDF to JPG"
+      },
+      {
+        "href": "https://cosmicpdf.com/pdf-to-png/",
+        "role": "A",
+        "text": "PDFarrow_forwardPNGPDF to PNG"
+      },
+      {
+        "href": "https://cosmicpdf.com/pdf-to-powerpoint/",
+        "role": "A",
+        "text": "PDFarrow_forwardPPTPDF to PPTX"
+      },
+      {
+        "href": "https://cosmicpdf.com/pdf-to-text/",
+        "role": "A",
+        "text": "PDFarrow_forwardTXTPDF to Text"
+      },
+      {
+        "href": "https://cosmicpdf.com/word-to-pdf/",
+        "role": "A",
+        "text": "DOCarrow_forwardPDFWord to PDF"
+      },
+      {
+        "href": "https://cosmicpdf.com/jpg-to-pdf/",
+        "role": "A",
+        "text": "JPGarrow_forwardPDFJPG to PDF"
+      },
+      {
+        "href": "https://cosmicpdf.com/excel-to-pdf/",
+        "role": "A",
+        "text": "XLSarrow_forwardPDFExcel to PDF"
+      },
+      {
+        "href": "https://cosmicpdf.com/png-to-pdf/",
+        "role": "A",
+        "text": "PNGarrow_forwardPDFPNG to PDF"
+      },
+      {
+        "href": "https://cosmicpdf.com/powerpoint-to-pdf/",
+        "role": "A",
+        "text": "PPTarrow_forwardPDFPPTX to PDF"
+      },
+      {
+        "href": "https://cosmicpdf.com/merge-pdf/",
+        "role": "A",
+        "text": "PDFMerge PDFTop"
+      },
+      {
+        "href": "https://cosmicpdf.com/split-pdf/",
+        "role": "A",
+        "text": "PDFSplit PDF"
+      },
+      {
+        "href": "https://cosmicpdf.com/rotate-pdf/",
+        "role": "A",
+        "text": "PDFRotate PDF"
+      },
+      {
+        "href": "https://cosmicpdf.com/reorder-pdf/",
+        "role": "A",
+        "text": "PDFReorder pages"
+      },
+      {
+        "href": "https://cosmicpdf.com/delete-pages-pdf/",
+        "role": "A",
+        "text": "PDFDelete pages"
+      },
+      {
+        "href": "https://cosmicpdf.com/compress-pdf/",
+        "role": "A",
+        "text": "PDFCompress PDFPopular"
+      },
+      {
+        "href": "https://cosmicpdf.com/unlock-pdf/",
+        "role": "A",
+        "text": "PDFUnlock PDF"
+      },
+      {
+        "href": "https://cosmicpdf.com/protect-pdf/",
+        "role": "A",
+        "text": "PDFProtect PDF"
+      },
+      {
+        "href": "https://cosmicpdf.com/watermark-pdf/",
+        "role": "A",
+        "text": "PDFWatermark"
+      },
+      {
+        "href": "https://cosmicpdf.com/most-used-forms/",
+        "role": "A",
+        "text": "Built for the US.Fill 30+ tax & HR forms — W-9, 1099, 1040, W-4 and more.W-91099"
+      },
+      {
+        "href": "https://cosmicpdf.com/#",
+        "role": "A",
+        "text": "chat Chat with support"
+      },
+      {
+        "href": "",
+        "role": "BUTTON",
+        "text": "Is CosmicPDF really free to use? add"
+      },
+      {
+        "href": "",
+        "role": "BUTTON",
+        "text": "Are my documents safe and private? add"
+      },
+      {
+        "href": "",
+        "role": "BUTTON",
+        "text": "Do I need to install software? add"
+      },
+      {
+        "href": "",
+        "role": "BUTTON",
+        "text": "Can I edit a scanned PDF? add"
+      },
+      {
+        "href": "",
+        "role": "BUTTON",
+        "text": "Are eSignatures legally binding in the US? add"
+      },
+      {
+        "href": "",
+        "role": "BUTTON",
+        "text": "What file size can I upload? add"
+      },
+      {
+        "href": "",
+        "role": "BUTTON",
+        "text": "How do I cancel? add"
+      },
+      {
+        "href": "https://cosmicpdf.com/#hero",
+        "role": "A",
+        "text": "upload_file Upload your PDF — free"
+      },
+      {
+        "href": "https://cosmicpdf.com/",
+        "role": "A",
+        "text": "CosmicPDF"
+      },
+      {
+        "href": "https://cosmicpdf.com/#",
+        "role": "A",
+        "text": "alternate_email"
+      },
+      {
+        "href": "https://cosmicpdf.com/#",
+        "role": "A",
+        "text": "share"
+      },
+      {
+        "href": "https://cosmicpdf.com/#",
+        "role": "A",
+        "text": "smart_display"
+      },
+      {
+        "href": "https://cosmicpdf.com/#",
+        "role": "A",
+        "text": "groups"
+      },
+      {
+        "href": "https://cosmicpdf.com/edit-pdf/",
+        "role": "A",
+        "text": "Edit PDF"
+      },
+      {
+        "href": "https://cosmicpdf.com/sign-pdf/",
+        "role": "A",
+        "text": "Sign PDF"
+      },
+      {
+        "href": "https://cosmicpdf.com/annotate-pdf/",
+        "role": "A",
+        "text": "Annotate"
+      },
+      {
+        "href": "https://cosmicpdf.com/edit-pdf/",
+        "role": "A",
+        "text": "Redact PDF"
+      },
+      {
+        "href": "https://cosmicpdf.com/pdf-to-word/",
+        "role": "A",
+        "text": "PDF to Word"
+      },
+      {
+        "href": "https://cosmicpdf.com/pdf-to-excel/",
+        "role": "A",
+        "text": "PDF to Excel"
+      },
+      {
+        "href": "https://cosmicpdf.com/pdf-to-jpg/",
+        "role": "A",
+        "text": "PDF to JPG"
+      },
+      {
+        "href": "https://cosmicpdf.com/word-to-pdf/",
+        "role": "A",
+        "text": "Word to PDF"
+      },
+      {
+        "href": "https://cosmicpdf.com/jpg-to-pdf/",
+        "role": "A",
+        "text": "JPG to PDF"
+      },
+      {
+        "href": "https://cosmicpdf.com/w9-form/",
+        "role": "A",
+        "text": "W-9"
+      },
+      {
+        "href": "https://cosmicpdf.com/i9-form/",
+        "role": "A",
+        "text": "I-9"
+      },
+      {
+        "href": "https://cosmicpdf.com/1099-nec-form/",
+        "role": "A",
+        "text": "1099-NEC"
+      },
+      {
+        "href": "https://cosmicpdf.com/most-used-forms/",
+        "role": "A",
+        "text": "1040"
+      },
+      {
+        "href": "https://cosmicpdf.com/w4-form/",
+        "role": "A",
+        "text": "W-4"
+      },
+      {
+        "href": "https://cosmicpdf.com/about/",
+        "role": "A",
+        "text": "About"
+      },
+      {
+        "href": "https://cosmicpdf.com/#reviews",
+        "role": "A",
+        "text": "Reviews"
+      },
+      {
+        "href": "https://cosmicpdf.com/about/",
+        "role": "A",
+        "text": "Security"
+      },
+      {
+        "href": "https://cosmicpdf.com/contact/",
+        "role": "A",
+        "text": "Help center"
+      },
+      {
+        "href": "https://cosmicpdf.com/contact/",
+        "role": "A",
+        "text": "Contact"
+      },
+      {
+        "href": "",
+        "role": "BUTTON",
+        "text": "language English (US) expand_more"
+      }
+    ],
+    "headings": [
+      "Edit a PDF online.",
+      "Drop your PDF here to edit",
+      "Edit your PDF in three clicks.",
+      "Upload your file",
+      "Edit, fill or sign",
+      "Download or share",
+      "Need to do something else with your PDF?",
+      "For the moments the deadline won't wait.",
+      "\"My W-9 has a typo.\"",
+      "\"Sign this before 9 AM.\"",
+      "\"The SBA portal closes in 5.\"",
+      "\"The addendum, signed.\"",
+      "Real reviews from real Americans.",
+      "\"Saved me $20/month and 3 hours a week.\"",
+      "\"Filed my 1099s from my phone on a flight.\"",
+      "\"Finally a PDF editor my mom can use.\"",
+      "Questions, answered.",
+      "Stop printing. Stop emailing.Edit your PDF online."
+    ],
+    "images": [
+      {
+        "alt": "/",
+        "height": 1024,
+        "src": "https://cosmicpdf.com/design-assets/3d-upload.png",
+        "width": 1024
+      },
+      {
+        "alt": "/",
+        "height": 0,
+        "src": "https://randomuser.me/api/portraits/men/52.jpg",
+        "width": 0
+      },
+      {
+        "alt": "/",
+        "height": 0,
+        "src": "https://randomuser.me/api/portraits/women/68.jpg",
+        "width": 0
+      },
+      {
+        "alt": "/",
+        "height": 0,
+        "src": "https://randomuser.me/api/portraits/men/45.jpg",
+        "width": 0
+      }
+    ],
+    "scrollHeight": 5530,
+    "title": "Edit PDF Online — Free, Fast & Secure | CosmicPDF",
+    "url": "https://cosmicpdf.com/",
+    "viewport": {
+      "height": 900,
+      "width": 1440
+    }
+  },
+  "desktopCaptures": [
+    {
+      "visibleButtons": [
+        "CosmicPDF",
+        "All tools keyboard_arrow_down",
+        "IRS Forms",
+        "How it works",
+        "Reviews",
+        "Log in",
+        "Upload PDF",
+        "bolt Edit my PDF in 3 seconds"
+      ],
+      "visibleHeadings": [
+        "Edit a PDF online.",
+        "Drop your PDF here to edit",
+        "Edit your PDF in three clicks."
+      ],
+      "y": 0
+    },
+    {
+      "visibleButtons": [
+        "All",
+        "Edit & Sign",
+        "Convert from PDF",
+        "Convert to PDF",
+        "Organize",
+        "Optimize",
+        "PDFEdit PDFPopular",
+        "PDFSign PDF",
+        "PDFAnnotate",
+        "PDFRedact PDF",
+        "PDFarrow_forwardDOCPDF to WordTop",
+        "PDFarrow_forwardXLSPDF to Excel"
+      ],
+      "visibleHeadings": [
+        "Edit your PDF in three clicks.",
+        "Upload your file",
+        "Edit, fill or sign",
+        "Download or share",
+        "Need to do something else with your PDF?"
+      ],
+      "y": 760
+    },
+    {
+      "visibleButtons": [
+        "All",
+        "Edit & Sign",
+        "Convert from PDF",
+        "Convert to PDF",
+        "Organize",
+        "Optimize",
+        "PDFEdit PDFPopular",
+        "PDFSign PDF",
+        "PDFAnnotate",
+        "PDFRedact PDF",
+        "PDFarrow_forwardDOCPDF to WordTop",
+        "PDFarrow_forwardXLSPDF to Excel",
+        "PDFarrow_forwardJPGPDF to JPG",
+        "PDFarrow_forwardPNGPDF to PNG",
+        "PDFarrow_forwardPPTPDF to PPTX",
+        "PDFarrow_forwardTXTPDF to Text",
+        "DOCarrow_forwardPDFWord to PDF",
+        "JPGarrow_forwardPDFJPG to PDF",
+        "XLSarrow_forwardPDFExcel to PDF",
+        "PNGarrow_forwardPDFPNG to PDF",
+        "PPTarrow_forwardPDFPPTX to PDF",
+        "PDFMerge PDFTop",
+        "PDFSplit PDF",
+        "PDFRotate PDF",
+        "PDFReorder pages",
+        "PDFDelete pages",
+        "PDFCompress PDFPopular",
+        "PDFUnlock PDF",
+        "PDFProtect PDF",
+        "PDFWatermark",
+        "Built for the US.Fill 30+ tax & HR forms — W-9, 1099, 1040, W-4 and more.W-910991040W-4 See all arrow_forward"
+      ],
+      "visibleHeadings": [
+        "For the moments the deadline won't wait."
+      ],
+      "y": 1520
+    },
+    {
+      "visibleButtons": [],
+      "visibleHeadings": [
+        "For the moments the deadline won't wait.",
+        "\"My W-9 has a typo.\"",
+        "\"Sign this before 9 AM.\"",
+        "\"The SBA portal closes in 5.\"",
+        "\"The addendum, signed.\"",
+        "Real reviews from real Americans."
+      ],
+      "y": 2280
+    },
+    {
+      "visibleButtons": [
+        "chat Chat with support",
+        "Is CosmicPDF really free to use? add",
+        "Are my documents safe and private? add",
+        "Do I need to install software? add"
+      ],
+      "visibleHeadings": [
+        "Real reviews from real Americans.",
+        "\"Saved me $20/month and 3 hours a week.\"",
+        "\"Filed my 1099s from my phone on a flight.\"",
+        "\"Finally a PDF editor my mom can use.\"",
+        "Questions, answered."
+      ],
+      "y": 3040
+    },
+    {
+      "visibleButtons": [
+        "Is CosmicPDF really free to use? add",
+        "Are my documents safe and private? add",
+        "Do I need to install software? add",
+        "Can I edit a scanned PDF? add",
+        "Are eSignatures legally binding in the US? add",
+        "What file size can I upload? add",
+        "How do I cancel? add"
+      ],
+      "visibleHeadings": [
+        "Stop printing. Stop emailing.Edit your PDF online."
+      ],
+      "y": 3800
+    },
+    {
+      "visibleButtons": [
+        "upload_file Upload your PDF — free",
+        "CosmicPDF",
+        "Edit PDF",
+        "Sign PDF",
+        "Annotate",
+        "Redact PDF",
+        "PDF to Word",
+        "PDF to Excel",
+        "PDF to JPG",
+        "Word to PDF",
+        "JPG to PDF",
+        "W-9",
+        "I-9",
+        "1099-NEC",
+        "1040",
+        "W-4",
+        "About",
+        "Reviews",
+        "Security",
+        "Help center",
+        "Contact",
+        "language English (US) expand_more",
+        "English (US) EN-US",
+        "English (UK) EN-GB",
+        "Español ES-ES",
+        "Español (LATAM) ES-419",
+        "Deutsch DE-DE",
+        "Français FR-FR",
+        "Italiano IT-IT",
+        "Português PT-BR",
+        "Polski PL-PL",
+        "日本語 JA-JP"
+      ],
+      "visibleHeadings": [
+        "Stop printing. Stop emailing.Edit your PDF online."
+      ],
+      "y": 4560
+    }
+  ],
+  "mobile": {
+    "menuOpenButtons": [
+      "CosmicPDF",
+      "All tools keyboard_arrow_down",
+      "IRS Forms",
+      "How it works",
+      "Reviews",
+      "Log in",
+      "Upload PDF",
+      "menu",
+      "All toolschevron_right",
+      "IRS Formschevron_right",
+      "How it workschevron_right",
+      "Reviewschevron_right",
+      "Log inlogin",
+      "Upload your PDF",
+      "bolt Edit my PDF in 3 seconds",
+      "All",
+      "Edit & Sign",
+      "Convert from PDF",
+      "Convert to PDF",
+      "Organize",
+      "Optimize",
+      "PDFEdit PDFPopular",
+      "PDFSign PDF",
+      "PDFAnnotate",
+      "PDFRedact PDF",
+      "PDFarrow_forwardDOCPDF to WordTop",
+      "PDFarrow_forwardXLSPDF to Excel",
+      "PDFarrow_forwardJPGPDF to JPG",
+      "PDFarrow_forwardPNGPDF to PNG",
+      "PDFarrow_forwardPPTPDF to PPTX",
+      "PDFarrow_forwardTXTPDF to Text",
+      "DOCarrow_forwardPDFWord to PDF",
+      "JPGarrow_forwardPDFJPG to PDF",
+      "XLSarrow_forwardPDFExcel to PDF",
+      "PNGarrow_forwardPDFPNG to PDF",
+      "PPTarrow_forwardPDFPPTX to PDF",
+      "PDFMerge PDFTop",
+      "PDFSplit PDF",
+      "PDFRotate PDF",
+      "PDFReorder pages",
+      "PDFDelete pages",
+      "PDFCompress PDFPopular",
+      "PDFUnlock PDF",
+      "PDFProtect PDF",
+      "PDFWatermark",
+      "Built for the US.Fill 30+ tax & HR forms — W-9, 1099, 1040, W-4 and more.W-910991040W-4 See all arrow_forward",
+      "chat Chat with support",
+      "Is CosmicPDF really free to use? add",
+      "Are my documents safe and private? add",
+      "Do I need to install software? add",
+      "Can I edit a scanned PDF? add",
+      "Are eSignatures legally binding in the US? add",
+      "What file size can I upload? add",
+      "How do I cancel? add",
+      "upload_file Upload your PDF — free",
+      "CosmicPDF",
+      "alternate_email",
+      "share",
+      "smart_display",
+      "groups",
+      "Edit PDF",
+      "Sign PDF",
+      "Annotate",
+      "Redact PDF",
+      "PDF to Word",
+      "PDF to Excel",
+      "PDF to JPG",
+      "Word to PDF",
+      "JPG to PDF",
+      "W-9",
+      "I-9",
+      "1099-NEC",
+      "1040",
+      "W-4",
+      "About",
+      "Reviews",
+      "Security",
+      "Help center",
+      "Contact",
+      "language English (US) expand_more"
+    ],
+    "mobileText": "CosmicPDF Log in Upload PDF Edit a PDF online. AI-powered. Free to start. Ready in 3 seconds. Drop your PDF here to edit Edit my PDF in 3 seconds lock 256-bit SSL auto_delete Auto-deleted in 1h verified_user GDPR & CCPA upload_file Drop your PDF here to edit Release to upload it securely Trustpilot TrustScore 4.8 · 5,247 reviews 3 STEPS · 30 SECONDS Edit your PDF in three clicks. No downloads, no accounts, no friction. 1 Upload your file Drag & drop or browse. PDFs up to 100 MB. Works on any device. 2 Edit, fill or sign Change text, fill fields, highlight, redact, sign — full control, no learning curve. 3 Download or share Save the new PDF, email it, or get a secure share link. Quality preserved. ONE WORKSPACE · 24+ TOOLS Need to do something else with your PDF? Convert, merge, compress, sign, redact, summarize — every PDF task in one place. All Edit & Sign Convert from PDF Convert to PDF Organize Optimize PDF Edit PDF POPULAR PDF Sign PDF PDF Annotate PDF Redact PDF PDF arrow_forward ",
+    "scrollHeight": 8536,
+    "url": "https://cosmicpdf.com/",
+    "viewport": {
+      "height": 844,
+      "width": 390
+    }
+  }
+}

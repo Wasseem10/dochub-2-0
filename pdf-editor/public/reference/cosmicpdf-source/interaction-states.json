@@ -1,0 +1,25 @@
+{
+  "allTools": {
+    "hash": "#tools",
+    "topText": "CosmicPDF All tools keyboard_arrow_down IRS Forms How it works Reviews Log in Upload PDF Edit a PDF online. AI-powered. Free to start. Ready in 3 seconds. Drop your PDF here to edit bolt Edit my PDF in 3 seconds lock 256-bit SSL auto_delete Auto-deleted in 1h verified_user GDPR & CCPA upload_file Drop your PDF here to edit Release to upload it securely Trustpilot TrustScore 4.8 · 5,247 reviews 3 STEPS · 30 SECONDS Edit your PDF in three clicks. No downloads, no accounts, no friction. 1 Upload your file Drag & drop or browse. PDFs up to 100 MB. Works on any device. 2 Edit, fill or sign Change text, fill fields, highlight, redact, sign — full control, no learning curve. 3 Download or share Sav"
+  },
+  "filter": {
+    "activeButtons": [
+      {
+        "className": "tools__tab is-active",
+        "text": "Convert from PDF"
+      }
+    ],
+    "visibleTools": [
+      "PDFarrow_forwardDOCPDF to WordTop",
+      "PDFarrow_forwardXLSPDF to Excel",
+      "PDFarrow_forwardJPGPDF to JPG",
+      "PDFarrow_forwardPNGPDF to PNG",
+      "PDFarrow_forwardPPTPDF to PPTX",
+      "PDFarrow_forwardTXTPDF to Text"
+    ]
+  },
+  "faq": {
+    "visibleText": "rs a week.\" Cancelled Adobe after trying this. The AI redaction is worth it alone — I was manually black-boxing SSNs on tenant applications. Now it's one click. Marcus T. Property Manager · Atlanta, GA \"Filed my 1099s from my phone on a flight.\" I had to send 11 contractors their 1099-MISCs before Jan 31. Did it all from JFK boarding gate. Auto-fill recognized every field perfectly. Sarah K. Founder · Brooklyn, NY \"Finally a PDF editor my mom can use.\" I sent my 68-year-old mother a passport application. She filled out the DS-11 on her iPad without calling me once. That's the highest praise I can give. Daniel R. Software Engineer · Austin, TX Questions, answered. Everything you need to know before you upload. Don't see your question? Our team replies within 2 hours. chat Chat with support Is CosmicPDF really free to use? add Yes — you can edit, sign, and convert your first PDF for free, no signup required. We offer paid plans for unlimited use and team features, but the essentials are always free. Are my documents safe and private? add Every file is encrypted with 256-bit SSL during "
+  }
+}

@@ -1,0 +1,11 @@
+node_modules/
+node_modules.damaged*/
+dist/
+.npm-cache/
+.npmrc
+qa-implementation.png
+qa-comparison.png
+qa-upload-empty.png
+qa-premium-upload.png
+qa-landing-premium.png
+public/reference/qa-implementation.png

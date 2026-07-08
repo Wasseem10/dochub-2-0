@@ -1,0 +1,226 @@
+{
+  "colors": [
+    "rgb(1, 7, 12)",
+    "rgb(255, 255, 255)",
+    "rgba(0, 0, 0, 0)",
+    "rgb(248, 250, 252)",
+    "rgba(255, 255, 255, 0.92)",
+    "rgb(1, 7, 12) rgb(1, 7, 12) rgb(229, 233, 240)",
+    "rgb(11, 18, 32)",
+    "rgb(91, 100, 112)",
+    "rgb(0, 100, 224)",
+    "rgb(229, 233, 240)",
+    "rgba(255, 255, 255, 0.97)",
+    "rgba(196, 220, 255, 0.72)",
+    "rgb(5, 180, 134)",
+    "rgba(6, 214, 160, 0.15)",
+    "rgb(137, 147, 160)",
+    "rgb(238, 242, 247) rgb(137, 147, 160) rgb(137, 147, 160)",
+    "rgb(242, 245, 250)",
+    "rgba(93, 107, 128, 0.78)",
+    "rgb(21, 199, 155)",
+    "rgb(1, 67, 181)",
+    "rgb(25, 25, 25)",
+    "rgb(0, 182, 122)",
+    "rgb(229, 233, 240) rgb(1, 7, 12)",
+    "rgb(239, 71, 111)",
+    "rgb(6, 214, 160)",
+    "rgb(244, 162, 97)",
+    "rgb(139, 92, 246)",
+    "rgb(255, 209, 102)",
+    "rgb(148, 163, 184)",
+    "rgb(217, 119, 87)",
+    "rgba(0, 100, 224, 0.08)",
+    "rgb(238, 242, 247) rgb(1, 7, 12) rgb(1, 7, 12)"
+  ],
+  "fontLinks": [
+    {
+      "href": "https://fonts.googleapis.com/",
+      "rel": "preconnect"
+    },
+    {
+      "href": "https://fonts.gstatic.com/",
+      "rel": "preconnect"
+    },
+    {
+      "href": "https://fonts.googleapis.com/css2?family=Funnel+Display:wght@300;400;500;600;700;800&family=DM+Sans:wght@400;500;700&family=Inter:wght@400;500;600;700;800&family=Roboto:wght@400;500;700&display=swap",
+      "rel": "stylesheet"
+    },
+    {
+      "href": "https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200",
+      "rel": "stylesheet"
+    },
+    {
+      "href": "https://cosmicpdf.com/_astro/designFooterLinks.CO2Alfyn.css",
+      "rel": "stylesheet"
+    },
+    {
+      "href": "https://cosmicpdf.com/_astro/seoMetadata.Byzmu8VK.css",
+      "rel": "stylesheet"
+    },
+    {
+      "href": "https://cosmicpdf.com/_astro/LandingPage.C9wKRVpm.css",
+      "rel": "stylesheet"
+    }
+  ],
+  "samples": [
+    {
+      "background": "rgba(255, 255, 255, 0.92)",
+      "border": "",
+      "borderRadius": "0px",
+      "boxShadow": "none",
+      "color": "rgb(1, 7, 12)",
+      "fontFamily": "\"DM Sans\", system-ui, sans-serif",
+      "fontSize": "16px",
+      "fontWeight": "400",
+      "lineHeight": "24px",
+      "margin": "0px",
+      "padding": "0px",
+      "rect": {
+        "height": 73,
+        "width": 1440,
+        "x": 0,
+        "y": 0
+      },
+      "selector": "header",
+      "text": "CosmicPDF All tools keyboard_arrow_down IRS Forms How it works Reviews Log in Upload PDF menu"
+    },
+    {
+      "background": "rgba(0, 0, 0, 0)",
+      "border": "0px solid rgb(11, 18, 32)",
+      "borderRadius": "0px",
+      "boxShadow": "none",
+      "color": "rgb(11, 18, 32)",
+      "fontFamily": "\"Funnel Display\", Inter, system-ui, sans-serif",
+      "fontSize": "64px",
+      "fontWeight": "700",
+      "lineHeight": "65.28px",
+      "margin": "0px",
+      "padding": "0px",
+      "rect": {
+        "height": 65,
+        "width": 500,
+        "x": 470,
+        "y": 121
+      },
+      "selector": "h1",
+      "text": "Edit a PDF online."
+    },
+    {
+      "background": "rgba(0, 0, 0, 0)",
+      "border": "0px solid rgb(1, 7, 12)",
+      "borderRadius": "0px",
+      "boxShadow": "none",
+      "color": "rgb(1, 7, 12)",
+      "fontFamily": "\"DM Sans\", system-ui, sans-serif",
+      "fontSize": "16px",
+      "fontWeight": "400",
+      "lineHeight": "24px",
+      "margin": "0px",
+      "padding": "48px 0px 92px",
+      "rect": {
+        "height": 662,
+        "width": 1440,
+        "x": 0,
+        "y": 73
+      },
+      "selector": "main section",
+      "text": "Edit a PDF online.AI-powered. Free to start. Ready in 3 seconds.Drop your PDF here to editbolt Edit my PDF in 3 seconds "
+    },
+    {
+      "background": "rgb(0, 100, 224)",
+      "border": "0px none rgb(255, 255, 255)",
+      "borderRadius": "32px",
+      "boxShadow": "rgba(0, 100, 224, 0.25) 0px 2px 8px 0px",
+      "color": "rgb(255, 255, 255)",
+      "fontFamily": "\"DM Sans\", system-ui, sans-serif",
+      "fontSize": "14px",
+      "fontWeight": "700",
+      "lineHeight": "24px",
+      "margin": "0px",
+      "padding": "10px 18px",
+      "rect": {
+        "height": 44,
+        "width": 114,
+        "x": 1194,
+        "y": 14
+      },
+      "selector": "a[href=\"#hero\"]",
+      "text": "Upload PDF"
+    },
+    {
+      "background": "rgb(255, 255, 255)",
+      "border": "1px solid rgb(229, 233, 240)",
+      "borderRadius": "10px",
+      "boxShadow": "none",
+      "color": "rgb(11, 18, 32)",
+      "fontFamily": "\"DM Sans\", system-ui, sans-serif",
+      "fontSize": "16px",
+      "fontWeight": "400",
+      "lineHeight": "normal",
+      "margin": "0px",
+      "padding": "0px",
+      "rect": {
+        "height": 0,
+        "width": 0,
+        "x": 0,
+        "y": 0
+      },
+      "selector": "button",
+      "text": "menu"
+    },
+    {
+      "background": "rgba(0, 0, 0, 0)",
+      "border": "0px solid rgb(1, 7, 12)",
+      "borderRadius": "0px",
+      "boxShadow": "none",
+      "color": "rgb(1, 7, 12)",
+      "fontFamily": "\"DM Sans\", system-ui, sans-serif",
+      "fontSize": "16px",
+      "fontWeight": "400",
+      "lineHeight": "24px",
+      "margin": "0px",
+      "padding": "0px",
+      "rect": {
+        "height": 0,
+        "width": 0,
+        "x": 0,
+        "y": 0
+      },
+      "selector": "img",
+      "text": ""
+    },
+    {
+      "background": "rgba(0, 0, 0, 0)",
+      "border": "0px solid rgb(11, 18, 32)",
+      "borderRadius": "0px",
+      "boxShadow": "none",
+      "color": "rgb(11, 18, 32)",
+      "fontFamily": "\"Funnel Display\", Inter, system-ui, sans-serif",
+      "fontSize": "18px",
+      "fontWeight": "600",
+      "lineHeight": "21.6px",
+      "margin": "0px",
+      "padding": "0px",
+      "rect": {
+        "height": 22,
+        "width": 216,
+        "x": 612,
+        "y": 408
+      },
+      "selector": "h2",
+      "text": "Drop your PDF here to edit"
+    }
+  ],
+  "scripts": [
+    "https://cosmicpdf.com/gtganalytics/kRsNR25guaWvhFBORoCoo59gYK-UVUyDTQkH7CYcQfrSswQeYm_elPLGVRoSdZ8",
+    "https://cosmicpdf.com/gtganalytics/kRtVWm5ikZa_9D9RRoutpJhjY6iLAwGYTVdd-21GAfLZsFcYPWvImrCTDgwEjvnwdZ8",
+    "https://sdk.privacy-center.org/24d28144-b25f-4e80-8c73-22cc308dbdb0/loader.js?target_type=notice&target=ZUqn3iie",
+    "https://cosmicpdf.com/gtganalytics/gtm.js?id=GTM-NXLF7HLJ",
+    "https://sdk.privacy-center.org/24d28144-b25f-4e80-8c73-22cc308dbdb0/loader.js?target_type=notice&target=ZUqn3iie",
+    "https://sdk.privacy-center.org/sdk/be85b347cd99f804b5d7da0eaad5956b10f8581a/modern/sdk.be85b347cd99f804b5d7da0eaad5956b10f8581a.js",
+    "https://googleads.g.doubleclick.net/pagead/viewthroughconversion/18213764476/?random=1783399586831&cv=11&fst=1783399586831&bg=ffffff&guid=ON&async=1&en=gtag.config&gtm=45892e6760h2v9254834910z89255519908za20mzb9255519908zd9255519908xec&gcd=13t3t3Z3t5l1&dma=0&tcfd=10000&tag_exp=115616985~115938466~115938468~118826210~118897921~118897931~119027224~119576881~119576885~119576891~119576895&u_w=1470&u_h=956&url=https%3A%2F%2Fcosmicpdf.com%2F&rcb=13&frm=0&tiba=Edit%20PDF%20Online%20%E2%80%94%20Free%2C%20Fast%20%26%20Secure%20%7C%20CosmicPDF&did=dMTc4Zm&gdid=dMTc4Zm&hn=www.googleadservices.com&npa=0&pscdl=noapi&auid=402123613.1783399429&uaa=arm&uab=64&uafvl=Google%2520Chrome%3B149.0.7827.197%7CChromium%3B149.0.7827.197%7CNot)A%253BBrand%3B24.0.0.0&uamb=0&uam=&uap=macOS&uapv=15.1.0&uaw=0&_tu=CA&data=event%3Dgtag.config&gap.gtb=2&ept=9&rfmt=3&fmt=4",
+    "https://googleads.g.doubleclick.net/pagead/viewthroughconversion/18213741955/?random=1783399586839&cv=11&fst=1783399586839&bg=ffffff&guid=ON&async=1&en=gtag.config&gtm=45892e6760h2v9254834910z89255519908za20mzb9255519908zd9255519908xec&gcd=13t3t3Z3t5l1&dma=0&tcfd=10000&tag_exp=115616985~115938466~115938468~118826210~118897921~118897931~119027224~119576881~119576885~119576891~119576895&u_w=1470&u_h=956&url=https%3A%2F%2Fcosmicpdf.com%2F&rcb=13&frm=0&tiba=Edit%20PDF%20Online%20%E2%80%94%20Free%2C%20Fast%20%26%20Secure%20%7C%20CosmicPDF&did=dMTc4Zm&gdid=dMTc4Zm&hn=www.googleadservices.com&npa=0&pscdl=noapi&auid=402123613.1783399429&uaa=arm&uab=64&uafvl=Google%2520Chrome%3B149.0.7827.197%7CChromium%3B149.0.7827.197%7CNot)A%253BBrand%3B24.0.0.0&uamb=0&uam=&uap=macOS&uapv=15.1.0&uaw=0&_tu=CA&data=event%3Dgtag.config&gap.gtb=2&ept=9&rfmt=3&fmt=4",
+    "https://cosmicpdf.com/_astro/Interactions.astro_astro_type_script_index_0_lang.DciUkFY8.js"
+  ]
+}
