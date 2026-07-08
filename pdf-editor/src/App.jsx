@@ -80,6 +80,7 @@ const colors = {
 
 const toolConfig = [
   { id: "select", label: "Select", icon: MousePointer2 },
+  { id: "editText", label: "Edit PDF Text", icon: ScanText },
   { id: "text", label: "Text", icon: Type },
   { id: "highlight", label: "Highlight", icon: Highlighter },
   { id: "draw", label: "Draw", icon: Paintbrush },
@@ -712,6 +713,7 @@ export function App() {
   const currentPage = pages[pageIndex] || pages[0];
   const pageAnnotations = annotations.filter((annotation) => annotation.page === pageIndex);
   const pageDetectedTextItems = detectedTextItems.filter((item) => item.pageNumber === pageIndex && !item.isDeleted);
+  const detectedTextCount = useMemo(() => detectedTextItems.filter((item) => !item.isDeleted).length, [detectedTextItems]);
   const zoomOptions = useMemo(() => (
     Array.from(new Set([...ZOOM_PRESETS, zoom])).sort((a, b) => a - b)
   ), [zoom]);
@@ -964,7 +966,7 @@ export function App() {
     if (result.annotationId || result.detectedTextId) {
       setIsInspectorCollapsed(false);
     }
-    setTool("select");
+    setTool(result.detectedTextId ? "editText" : "select");
   };
 
   const goToComment = (comment) => {
@@ -1159,7 +1161,7 @@ export function App() {
       setRedoStack([]);
       setSelectedId(null);
       setSelectedDetectedTextId(null);
-      setTool("select");
+      setTool(detectedItems.length ? "editText" : "select");
       setScreen("editor");
       setSaved(true);
       setSaveState("saved");
@@ -1743,6 +1745,7 @@ export function App() {
     setRedoStack([]);
     setSelectedDetectedTextId(item.id);
     setSelectedId(null);
+    setTool("editText");
     const move = (moveEvent) => {
       setDetectedTextItems((items) => items.map((candidate) => (
         candidate.id === item.id
@@ -2166,7 +2169,7 @@ export function App() {
   }
 
   return (
-    <main className="editor-shell">
+    <main className={`editor-shell ${tool === "editText" ? "is-smart-text-mode" : ""}`}>
       <input ref={fileInputRef} className="hidden-input" type="file" accept="application/pdf" onChange={onUpload} />
       <input ref={imageInputRef} className="hidden-input" type="file" accept="image/png,image/jpeg" onChange={onImageUpload} />
       <header className="file-header">
@@ -2274,7 +2277,7 @@ export function App() {
       </header>
 
       <section className="tool-ribbon">
-        {toolConfig.filter(({ id }) => ["select", "text", "draw", "image", "field", "signature", "comment", "rectangle", "whiteout"].includes(id)).map(({ id, label, icon: Icon }) => (
+        {toolConfig.filter(({ id }) => ["select", "editText", "text", "draw", "image", "field", "signature", "comment", "rectangle", "whiteout"].includes(id)).map(({ id, label, icon: Icon }) => (
           <button
             key={id}
             type="button"
@@ -2289,13 +2292,20 @@ export function App() {
                 imageInputRef.current?.click();
                 showToast(pendingImage ? "Click the page to place the selected image." : "Choose a PNG or JPG to insert.");
               }
+              if (id === "editText") {
+                showToast(detectedTextCount ? `${detectedTextCount} original PDF text item${detectedTextCount === 1 ? "" : "s"} ready. Click a blue outline to edit.` : "Upload a text-based PDF to edit the original words.");
+              }
               setTool(id);
             }}
           >
             <Icon size={25} />
-            <span>{label === "Text field" ? "Field" : label === "Signature" ? "Sign" : label}</span>
+            <span>{label === "Text field" ? "Field" : label === "Signature" ? "Sign" : label === "Edit PDF Text" ? "Edit PDF" : label}</span>
           </button>
         ))}
+        <div className={`smart-text-chip ${tool === "editText" ? "is-active" : ""}`}>
+          <ScanText size={17} />
+          {detectedTextCount ? `${detectedTextCount} original text boxes detected` : "Original text edit works after uploading a text PDF"}
+        </div>
         <div className="ribbon-divider" />
         <button className="ribbon-tool" type="button" onClick={() => showToast("Auto-fill reads form fields from uploaded PDFs.")} title="Auto-Fill" aria-label="Auto-Fill"><FilePlus2 size={24} /><span>Auto-Fill</span></button>
         <button className="ribbon-tool" type="button" onClick={() => showToast("Ask AI is ready for document summary prompts.")} title="Ask AI" aria-label="Ask AI"><Zap size={24} /><span>Ask AI</span></button>
@@ -2378,6 +2388,12 @@ export function App() {
                   Scanned page detected. OCR is not enabled in this browser build yet.
                 </div>
               )}
+              {tool === "editText" && pageDetectedTextItems.length > 0 && (
+                <div className="smart-text-page-hint">
+                  <ScanText size={15} />
+                  Click any blue outline to edit the original PDF words.
+                </div>
+              )}
               <div className="annotation-layer">
                 {pageDetectedTextItems.map((item) => {
                   const isActive = item.id === selectedDetectedTextId;
@@ -2418,7 +2434,7 @@ export function App() {
                           event.stopPropagation();
                           setSelectedDetectedTextId(item.id);
                           setSelectedId(null);
-                          setTool("select");
+                          setTool("editText");
                         }}
                         onInput={(event) => updateDetectedTextContent(item.id, event.currentTarget)}
                         onBlur={(event) => updateDetectedTextContent(item.id, event.currentTarget)}
