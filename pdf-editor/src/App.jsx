@@ -63,7 +63,9 @@ import {
   signOut,
   updateProfile,
 } from "firebase/auth";
-import { auth, googleProvider, isFirebaseConfigured } from "./firebase";
+import { collection, deleteDoc, doc, getDocs, setDoc } from "firebase/firestore";
+import { deleteObject, getDownloadURL, ref as storageReference, uploadString } from "firebase/storage";
+import { auth, db, googleProvider, isCloudPersistenceConfigured, isFirebaseConfigured, storage } from "./firebase";
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
   "pdfjs-dist/build/pdf.worker.mjs",
@@ -167,6 +169,88 @@ function safeLoadDocuments() {
 
 function writeDocuments(documents) {
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(documents));
+}
+
+function cloudDocumentPayloadPath(userId, documentId) {
+  return `users/${userId}/documents/${documentId}/document.json`;
+}
+
+function toCloudDocumentMetadata(userId, documentRecord) {
+  const payloadPath = cloudDocumentPayloadPath(userId, documentRecord.id);
+  return {
+    id: documentRecord.id,
+    name: documentRecord.name || "Untitled document.pdf",
+    size: documentRecord.size || 0,
+    source: documentRecord.source || "blank",
+    pageCount: documentRecord.pageCount || documentRecord.pages?.length || 1,
+    status: documentRecord.status || "Ready",
+    location: documentRecord.location || "My documents",
+    favorite: !!documentRecord.favorite,
+    uploadedAt: documentRecord.uploadedAt || nowIso(),
+    updatedAt: documentRecord.updatedAt || nowIso(),
+    payloadPath,
+  };
+}
+
+function mergeDocumentsByUpdatedAt(localDocuments, cloudDocuments) {
+  const records = new Map();
+  [...localDocuments, ...cloudDocuments].forEach((documentRecord) => {
+    if (!documentRecord?.id) return;
+    const current = records.get(documentRecord.id);
+    const currentTime = current?.updatedAt ? new Date(current.updatedAt).getTime() : 0;
+    const nextTime = documentRecord.updatedAt ? new Date(documentRecord.updatedAt).getTime() : 0;
+    if (!current || nextTime >= currentTime) records.set(documentRecord.id, documentRecord);
+  });
+  return Array.from(records.values()).sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0));
+}
+
+async function uploadDocumentRecordToCloud(userId, documentRecord) {
+  if (!isCloudPersistenceConfigured || !userId || !documentRecord?.id) return;
+  const payloadPath = cloudDocumentPayloadPath(userId, documentRecord.id);
+  const payload = JSON.stringify({
+    ...documentRecord,
+    cloudBacked: true,
+    cloudPayloadPath: payloadPath,
+  });
+  await uploadString(storageReference(storage, payloadPath), payload, "raw", {
+    contentType: "application/json",
+  });
+  await setDoc(doc(db, "users", userId, "documents", documentRecord.id), toCloudDocumentMetadata(userId, documentRecord), { merge: true });
+}
+
+async function deleteDocumentRecordFromCloud(userId, documentId) {
+  if (!isCloudPersistenceConfigured || !userId || !documentId) return;
+  await deleteDoc(doc(db, "users", userId, "documents", documentId));
+  try {
+    await deleteObject(storageReference(storage, cloudDocumentPayloadPath(userId, documentId)));
+  } catch {
+    // The metadata delete is enough if the payload was never uploaded or was already removed.
+  }
+}
+
+async function loadCloudDocumentRecords(userId) {
+  if (!isCloudPersistenceConfigured || !userId) return [];
+  const snapshot = await getDocs(collection(db, "users", userId, "documents"));
+  const records = await Promise.all(snapshot.docs.map(async (metadataDoc) => {
+    const metadata = metadataDoc.data();
+    if (!metadata?.payloadPath) return { ...metadata, id: metadataDoc.id };
+
+    try {
+      const payloadUrl = await getDownloadURL(storageReference(storage, metadata.payloadPath));
+      const response = await fetch(payloadUrl);
+      const payload = await response.json();
+      return {
+        ...payload,
+        ...metadata,
+        id: metadataDoc.id,
+        cloudBacked: true,
+        cloudPayloadPath: metadata.payloadPath,
+      };
+    } catch {
+      return { ...metadata, id: metadataDoc.id, cloudBacked: true };
+    }
+  }));
+  return records;
 }
 
 function arrayBufferToDataUrl(buffer) {
@@ -698,6 +782,7 @@ export function App() {
   const [zoom, setZoom] = useState(80);
   const [saved, setSaved] = useState(true);
   const [saveState, setSaveState] = useState("saved");
+  const [cloudSyncStatus, setCloudSyncStatus] = useState(isCloudPersistenceConfigured ? "idle" : "local");
   const [lastSavedAt, setLastSavedAt] = useState(null);
   const [undoStack, setUndoStack] = useState([]);
   const [redoStack, setRedoStack] = useState([]);
@@ -713,6 +798,7 @@ export function App() {
   const [isInspectorCollapsed, setIsInspectorCollapsed] = useState(false);
   const [signatureModalOpen, setSignatureModalOpen] = useState(false);
   const [shareModalOpen, setShareModalOpen] = useState(false);
+  const [upgradeModalOpen, setUpgradeModalOpen] = useState(false);
   const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
   const [isZoomMenuOpen, setIsZoomMenuOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -813,6 +899,14 @@ export function App() {
       }))
       .sort((a, b) => a.page - b.page)
   ), [annotations]);
+  const saveStatusLabel = useMemo(() => {
+    if (saveState === "unsaved") return "Unsaved changes";
+    if (saveState === "saving") return "Saving...";
+    if (cloudSyncStatus === "syncing") return "Syncing to cloud...";
+    if (cloudSyncStatus === "error") return "Saved locally";
+    if (currentUser?.uid && cloudSyncStatus === "synced") return "Saved to cloud";
+    return lastSavedAt ? `Saved ${formatDateTime(lastSavedAt)}` : "Saved";
+  }, [cloudSyncStatus, currentUser?.uid, lastSavedAt, saveState]);
 
   useEffect(() => {
     if (!auth) {
@@ -826,18 +920,82 @@ export function App() {
     });
   }, []);
 
+  useEffect(() => {
+    if (!currentUser?.uid) {
+      setCloudSyncStatus(isCloudPersistenceConfigured ? "idle" : "local");
+      return undefined;
+    }
+
+    if (!isCloudPersistenceConfigured) {
+      setCloudSyncStatus("local");
+      return undefined;
+    }
+
+    let cancelled = false;
+    setCloudSyncStatus("syncing");
+    loadCloudDocumentRecords(currentUser.uid)
+      .then((cloudDocuments) => {
+        if (cancelled) return;
+        const localDocuments = safeLoadDocuments();
+        const mergedDocuments = mergeDocumentsByUpdatedAt(localDocuments, cloudDocuments);
+        if (mergedDocuments.length) {
+          writeDocuments(mergedDocuments);
+          setDocuments(mergedDocuments);
+          if (cloudDocuments.length) {
+            showToast(`Loaded ${cloudDocuments.length} cloud document${cloudDocuments.length === 1 ? "" : "s"}.`);
+          }
+          if (localDocuments.length) {
+            syncDocumentsToCloud([], mergedDocuments);
+          }
+        }
+        if (!localDocuments.length) setCloudSyncStatus("synced");
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setCloudSyncStatus("error");
+        showToast("Cloud sync is unavailable. Changes are saved locally.");
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [currentUser?.uid]);
+
   const showToast = (message) => {
     setToast(message);
     window.setTimeout(() => setToast(""), 2600);
+  };
+
+  const syncDocumentsToCloud = (previousDocuments, nextDocuments) => {
+    if (!currentUser?.uid || !isCloudPersistenceConfigured) {
+      setCloudSyncStatus(currentUser?.uid ? "local" : "idle");
+      return;
+    }
+
+    const nextIds = new Set(nextDocuments.map((documentRecord) => documentRecord.id));
+    const deletedDocuments = previousDocuments.filter((documentRecord) => documentRecord.id && !nextIds.has(documentRecord.id));
+    setCloudSyncStatus("syncing");
+
+    Promise.all([
+      ...nextDocuments.map((documentRecord) => uploadDocumentRecordToCloud(currentUser.uid, documentRecord)),
+      ...deletedDocuments.map((documentRecord) => deleteDocumentRecordFromCloud(currentUser.uid, documentRecord.id)),
+    ])
+      .then(() => setCloudSyncStatus("synced"))
+      .catch(() => {
+        setCloudSyncStatus("error");
+        showToast("Saved locally. Cloud sync needs Firebase Storage and Firestore permissions.");
+      });
   };
 
   const replaceDocuments = (nextDocuments) => {
     try {
       writeDocuments(nextDocuments);
       setDocuments(nextDocuments);
+      syncDocumentsToCloud(documents, nextDocuments);
       return true;
     } catch {
       setDocuments(nextDocuments);
+      syncDocumentsToCloud(documents, nextDocuments);
       setUploadError("This browser storage is full. The document is open, but it may not persist after refresh.");
       return false;
     }
@@ -2267,6 +2425,7 @@ export function App() {
         onMoveDocument={moveDocument}
         currentUser={currentUser}
         onLogout={logout}
+        onUpgrade={() => setUpgradeModalOpen(true)}
       />
     );
   }
@@ -2285,7 +2444,7 @@ export function App() {
         </button>
         <div className="file-meta">
           <button type="button" className="file-name" onClick={renameActiveDocument} title="Rename document">{fileName}</button>
-          <span className="save-state"><Info size={16} /> Edited {saveState === "saved" ? "just now" : "now"}</span>
+          <span className={`save-state ${saveState === "unsaved" ? "unsaved" : ""}`}><Info size={16} /> {saveStatusLabel}</span>
         </div>
         <div className="pdfnet-header-tools">
           <button type="button" className="icon-button" onClick={() => setIsSearchOpen((value) => !value)} title="Search"><Search size={22} /></button>
@@ -2375,6 +2534,7 @@ export function App() {
           </div>
           <button type="button" className="language-button" onClick={() => showToast("Language set to English.")}>◎ EN</button>
           <button type="button" className="share-button" onClick={() => setShareModalOpen(true)} title="Share"><Share2 size={18} /> Share</button>
+          <button type="button" className="upgrade-button editor-upgrade-button" onClick={() => setUpgradeModalOpen(true)}>Upgrade</button>
           <button type="button" className="sign-secure-button" onClick={() => setSignatureModalOpen(true)}><PenLine size={18} /> Sign securely <ChevronDown size={15} /></button>
         </div>
       </header>
@@ -2476,7 +2636,7 @@ export function App() {
               </button>
             ))}
           </div>
-          <div className="saved-foot"><CheckCircle2 size={22} /> Document is {saved ? "saved" : "not saved"}</div>
+          <div className="saved-foot"><CheckCircle2 size={22} /> {saveStatusLabel}</div>
         </aside>
 
         <div className="canvas-column" ref={canvasColumnRef}>
@@ -2638,9 +2798,10 @@ export function App() {
               pages={pages}
               annotations={annotations}
               saveState={saveState}
+              saveStatusLabel={saveStatusLabel}
               onSave={() => {
                 saveActiveDocument(true);
-                showToast("Saved locally.");
+                showToast(currentUser?.uid ? "Saved and queued for cloud sync." : "Saved locally.");
               }}
               onExport={exportPdf}
               onShare={() => setShareModalOpen(true)}
@@ -2735,6 +2896,15 @@ export function App() {
           fileName={fileName}
           onExport={exportPdf}
           onClose={() => setShareModalOpen(false)}
+        />
+      )}
+      {upgradeModalOpen && (
+        <UpgradeModal
+          onClose={() => setUpgradeModalOpen(false)}
+          onSelectPlan={(plan) => {
+            setUpgradeModalOpen(false);
+            showToast(`${plan} workspace selected. Billing checkout can be connected next.`);
+          }}
         />
       )}
       {toast && <div className="toast">{toast}</div>}
@@ -3426,6 +3596,7 @@ function UploadLanding({
   const [favoriteTrendingIds, setFavoriteTrendingIds] = useState([]);
   const [workspaceNotice, setWorkspaceNotice] = useState("");
   const [openDocumentMenuId, setOpenDocumentMenuId] = useState(null);
+  const [upgradeModalOpen, setUpgradeModalOpen] = useState(false);
   const userName = currentUser?.name || currentUser?.email || "Workspace owner";
   const userInitials = userName
     .split(/\s|@/)
@@ -3624,6 +3795,7 @@ function UploadLanding({
                         <button type="button" role="menuitem" onClick={(event) => runDocumentMenuAction(event, () => onRenameDocument(documentRecord))}><PenLine size={20} /> Rename</button>
                         <button type="button" role="menuitem" onClick={(event) => runDocumentMenuAction(event, () => copyDocumentLink(documentRecord))}><Link size={20} /> Copy link</button>
                         <button type="button" role="menuitem" onClick={(event) => runDocumentMenuAction(event, () => copyDocumentLink(documentRecord, "Share link copied."))}><Share2 size={20} /> Share</button>
+                        <button type="button" role="menuitem" onClick={(event) => runDocumentMenuAction(event, () => onDownloadDocument(documentRecord))}><Download size={20} /> Download</button>
                         <button type="button" role="menuitem" onClick={(event) => runDocumentMenuAction(event, () => onToggleFavorite(documentRecord))}><Star size={20} /> {documentRecord.favorite ? "Unstar" : "Star"}</button>
                         <button type="button" role="menuitem" onClick={(event) => runDocumentMenuAction(event, () => onMoveDocument(documentRecord))}><Move size={20} /> Move</button>
                         <span />
@@ -3879,6 +4051,7 @@ function UploadLanding({
           </label>
           <div className="upload-top-actions">
             <button type="button" className="invite-button" onClick={() => setOpenPanel(openPanel === "invite" ? null : "invite")}><Users size={18} /> Invite members</button>
+            <button type="button" className="upgrade-button" onClick={() => setUpgradeModalOpen(true)}>Upgrade</button>
             <button type="button" className="top-icon" onClick={() => setOpenPanel(openPanel === "help" ? null : "help")}><CircleHelp size={17} /></button>
             <button type="button" className="top-icon" onClick={() => setOpenPanel(openPanel === "notifications" ? null : "notifications")}><Bell size={17} /></button>
             <button type="button" className="top-avatar" onClick={() => setOpenPanel(openPanel === "account" ? null : "account")}>{userInitials}</button>
@@ -3938,6 +4111,15 @@ function UploadLanding({
           {renderWorkspaceSection()}
         </div>
       </section>
+      {upgradeModalOpen && (
+        <UpgradeModal
+          onClose={() => setUpgradeModalOpen(false)}
+          onSelectPlan={(plan) => {
+            setUpgradeModalOpen(false);
+            setWorkspaceNotice(`${plan} workspace selected. Billing checkout can be connected next.`);
+          }}
+        />
+      )}
     </main>
   );
 }
@@ -3959,6 +4141,7 @@ function Inspector({
   pages,
   annotations,
   saveState,
+  saveStatusLabel,
   onSave,
   onExport,
   onShare,
@@ -4100,7 +4283,7 @@ function Inspector({
             <span>Document</span>
             <strong>{fileName}</strong>
             <small>{pages.length} page{pages.length === 1 ? "" : "s"} · {annotations.length} annotation{annotations.length === 1 ? "" : "s"}</small>
-            <small>Status: {saveState === "saving" ? "saving" : saveState}</small>
+            <small>Status: {saveStatusLabel || (saveState === "saving" ? "saving" : saveState)}</small>
           </div>
           <label className="field">
             <span>Signature text</span>
@@ -4446,6 +4629,66 @@ function ShareModal({ fileName, onClose, onExport }) {
         <footer>
           <button type="button" className="modal-secondary" onClick={onClose}>Done</button>
           <button type="button" className="modal-primary" onClick={onExport}><Download size={16} /> Export PDF</button>
+        </footer>
+      </section>
+    </div>
+  );
+}
+
+function UpgradeModal({ onClose, onSelectPlan }) {
+  const plans = [
+    {
+      name: "Free",
+      price: "$0",
+      detail: "For quick edits and one-off forms.",
+      features: ["Edit and annotate PDFs", "Draw, sign, and export", "Local browser saves"],
+      action: "Stay on Free",
+    },
+    {
+      name: "Pro",
+      price: "$12",
+      detail: "For people editing and signing PDFs every week.",
+      features: ["Cloud document sync", "Reusable signatures", "Share links and invite drafts", "Larger export workflows"],
+      action: "Choose Pro",
+      featured: true,
+    },
+    {
+      name: "Business",
+      price: "$29",
+      detail: "For teams that need review, signing, and organization.",
+      features: ["Workspace members", "Team templates", "Advanced signing flows", "Admin-ready storage"],
+      action: "Choose Business",
+    },
+  ];
+
+  return (
+    <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="Upgrade workspace">
+      <section className="upgrade-modal">
+        <header>
+          <div>
+            <h2>Upgrade workspace</h2>
+            <p>Choose the workflow level that matches how often you edit, sign, share, and store PDFs.</p>
+          </div>
+          <button type="button" className="modal-close" onClick={onClose}><X size={18} /></button>
+        </header>
+
+        <div className="upgrade-plan-grid">
+          {plans.map((plan) => (
+            <article key={plan.name} className={plan.featured ? "is-featured" : ""}>
+              <span>{plan.name}</span>
+              <strong>{plan.price}<small>{plan.name === "Free" ? "" : "/mo"}</small></strong>
+              <p>{plan.detail}</p>
+              <ul>
+                {plan.features.map((feature) => <li key={feature}><CheckCircle2 size={15} /> {feature}</li>)}
+              </ul>
+              <button type="button" onClick={() => onSelectPlan(plan.name)}>{plan.action}</button>
+            </article>
+          ))}
+        </div>
+
+        <footer>
+          <button type="button" className="modal-secondary" onClick={onClose}>Not now</button>
+          <button type="button" className="modal-primary" onClick={() => onSelectPlan("Pro")}>Continue with Pro</button>
         </footer>
       </section>
     </div>
