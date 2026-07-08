@@ -358,6 +358,8 @@ function BlankDocument() {
 }
 
 function Annotation({ annotation, selected, zoom, onSelect, onDrag, onResize, onUpdate, onDelete }) {
+  const textContentRef = useRef(null);
+  const textWasFocusedRef = useRef(false);
   const displayScale = (zoom / 100) * EDITOR_PAGE_SCALE;
   const commonStyle = {
     left: `${annotation.x * 100}%`,
@@ -369,6 +371,7 @@ function Annotation({ annotation, selected, zoom, onSelect, onDrag, onResize, on
 
   const dragStart = (event) => {
     if (event.target.closest?.(".text-content")) {
+      event.stopPropagation();
       onSelect(annotation.id);
       return;
     }
@@ -390,6 +393,33 @@ function Annotation({ annotation, selected, zoom, onSelect, onDrag, onResize, on
     window.addEventListener("pointermove", move);
     window.addEventListener("pointerup", up);
   };
+
+  useEffect(() => {
+    if (annotation.type !== "text") return undefined;
+    if (!selected) {
+      textWasFocusedRef.current = false;
+      return undefined;
+    }
+    if (textWasFocusedRef.current) return undefined;
+
+    textWasFocusedRef.current = true;
+    const frame = window.requestAnimationFrame(() => {
+      const textElement = textContentRef.current;
+      if (!textElement) return;
+
+      textElement.focus({ preventScroll: true });
+      const selection = window.getSelection();
+      if (!selection) return;
+
+      const range = window.document.createRange();
+      range.selectNodeContents(textElement);
+      range.collapse(false);
+      selection.removeAllRanges();
+      selection.addRange(range);
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, [annotation.id, annotation.type, selected]);
 
   const resizeStart = (event) => {
     event.stopPropagation();
@@ -535,14 +565,14 @@ function Annotation({ annotation, selected, zoom, onSelect, onDrag, onResize, on
         </div>
       )}
       <div
+        ref={textContentRef}
         className="text-content"
         contentEditable={selected}
         suppressContentEditableWarning
         spellCheck="false"
         onPointerDown={(event) => {
-          if (selected) {
-            event.stopPropagation();
-          }
+          event.stopPropagation();
+          onSelect(annotation.id);
         }}
         onBlur={(event) => onUpdate(annotation.id, { content: event.currentTarget.innerText || " " })}
         onInput={(event) => onUpdate(annotation.id, { content: event.currentTarget.innerText || " " })}
@@ -1537,6 +1567,7 @@ export function App() {
       }
 
       if (isEditingText(event.target)) return;
+      if (!event.metaKey && !event.ctrlKey && !event.altKey && selected?.type === "text" && key.length === 1) return;
 
       if (key === "escape") {
         setSelectedId(null);
@@ -1558,7 +1589,7 @@ export function App() {
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [pages.length, selectedId, annotations, saveState]);
+  }, [pages.length, selectedId, selected?.type, annotations, saveState]);
 
   const exportPdf = async () => {
     setIsExporting(true);
