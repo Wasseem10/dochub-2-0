@@ -5940,6 +5940,45 @@ main.editor-shell .page-nav span {
   font-weight: 760 !important;
 }
 
+main.editor-shell .page-nav .page-nav-zoom {
+  width: 28px !important;
+  height: 28px !important;
+  border: 1px solid #d8e1ea !important;
+  border-radius: 999px !important;
+  background: #ffffff !important;
+  color: #3b566b !important;
+  font-size: 18px !important;
+  font-weight: 850 !important;
+  line-height: 1 !important;
+}
+
+main.editor-shell .page-nav .page-nav-zoom:hover {
+  background: #d8f5ff !important;
+  color: #0f5970 !important;
+}
+
+main.editor-shell .page-nav .page-nav-zoom-select {
+  width: 76px !important;
+  height: 34px !important;
+  padding: 0 24px 0 12px !important;
+  border: 0 !important;
+  border-radius: 9px !important;
+  background: #f2f4f6 !important;
+  color: #243746 !important;
+  font-size: 15px !important;
+  font-weight: 850 !important;
+  text-align: center !important;
+  cursor: pointer !important;
+}
+
+main.editor-shell .page-nav .page-nav-divider {
+  width: 1px !important;
+  height: 28px !important;
+  margin: 0 4px !important;
+  border-radius: 999px !important;
+  background: #dce4eb !important;
+}
+
 @media (max-width: 1180px) {
   main.editor-shell .file-header {
     grid-template-columns: 56px minmax(180px, 1fr) auto !important;

@@ -2694,6 +2694,12 @@ export function App() {
       <footer className="status-bar">
         <div />
         <div className="page-nav">
+          <button className="page-nav-zoom" type="button" onClick={() => setZoom((value) => clamp(value - 10, 60, 160))} title="Zoom out" aria-label="Zoom out">-</button>
+          <select className="page-nav-zoom-select" value={zoom} onChange={(event) => setZoom(Number(event.target.value))} aria-label="Zoom level">
+            {zoomOptions.map((value) => <option key={value} value={value}>{value}%</option>)}
+          </select>
+          <button className="page-nav-zoom" type="button" onClick={() => setZoom((value) => clamp(value + 10, 60, 160))} title="Zoom in" aria-label="Zoom in">+</button>
+          <span className="page-nav-divider" aria-hidden="true" />
           <button type="button" onClick={() => setPageIndex(0)}>‹</button>
           <input value={pageIndex + 1} onChange={(event) => setPageIndex(clamp(Number(event.target.value) - 1 || 0, 0, pages.length - 1))} />
           <span>/ {pages.length}</span>
