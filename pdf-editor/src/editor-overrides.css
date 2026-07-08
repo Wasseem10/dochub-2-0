@@ -10,6 +10,545 @@
   --premium-cyan: #c8f4ff;
 }
 
+/* pdf.net-style editor pass. Keep this last so it wins over prior editor skins. */
+main.editor-shell {
+  position: relative !important;
+  display: grid !important;
+  grid-template-rows: 64px minmax(0, 1fr) !important;
+  height: 100vh !important;
+  overflow: hidden !important;
+  background: #f5f6f8 !important;
+  color: #262b33 !important;
+  font-family: Inter, "DM Sans", Arial, sans-serif !important;
+}
+
+main.editor-shell .file-header {
+  display: grid !important;
+  grid-template-columns: 220px minmax(240px, 340px) minmax(360px, 1fr) auto !important;
+  align-items: center !important;
+  height: 64px !important;
+  gap: 16px !important;
+  padding: 0 20px 0 24px !important;
+  border: 0 !important;
+  border-bottom: 1px solid #e1e4e8 !important;
+  background: #ffffff !important;
+  color: #23272f !important;
+  box-shadow: none !important;
+}
+
+main.editor-shell .pdfnet-brand {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-self: start !important;
+  gap: 8px !important;
+  min-width: 0 !important;
+  height: 54px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  color: #16191f !important;
+  font-size: 30px !important;
+  font-weight: 900 !important;
+  letter-spacing: -0.04em !important;
+  cursor: pointer !important;
+}
+
+main.editor-shell .pdfnet-logo-mark {
+  display: grid !important;
+  width: 28px !important;
+  height: 34px !important;
+  place-items: center !important;
+  border: 3px solid #16191f !important;
+  border-radius: 999px !important;
+  color: #16191f !important;
+  font-size: 20px !important;
+  font-weight: 900 !important;
+  line-height: 1 !important;
+}
+
+main.editor-shell .file-meta {
+  display: flex !important;
+  align-items: center !important;
+  min-width: 0 !important;
+  height: 64px !important;
+  border-right: 1px solid #e2e5e9 !important;
+}
+
+main.editor-shell .file-name {
+  display: block !important;
+  max-width: 100% !important;
+  overflow: hidden !important;
+  border: 0 !important;
+  background: transparent !important;
+  color: #252a32 !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  font-size: 16px !important;
+  font-weight: 750 !important;
+  letter-spacing: 0 !important;
+}
+
+main.editor-shell .pdfnet-header-tools {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 18px !important;
+  min-width: 0 !important;
+}
+
+main.editor-shell .header-actions {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: end !important;
+  gap: 10px !important;
+  margin: 0 !important;
+}
+
+main.editor-shell .more-menu-wrap {
+  display: none !important;
+}
+
+main.editor-shell .icon-button,
+main.editor-shell .toolbar-icon {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 36px !important;
+  height: 36px !important;
+  border: 0 !important;
+  border-radius: 8px !important;
+  background: transparent !important;
+  color: #28313d !important;
+  box-shadow: none !important;
+}
+
+main.editor-shell .toolbar-icon {
+  font-size: 26px !important;
+  font-weight: 500 !important;
+}
+
+main.editor-shell .toolbar-chip {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  height: 48px !important;
+  min-width: 108px !important;
+  justify-content: center !important;
+  border: 0 !important;
+  border-radius: 7px !important;
+  background: #f0f1f5 !important;
+  color: #667085 !important;
+  font-size: 18px !important;
+  font-weight: 650 !important;
+}
+
+main.editor-shell .language-button,
+main.editor-shell .share-button,
+main.editor-shell .download-button {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 9px !important;
+  height: 48px !important;
+  border-radius: 5px !important;
+  font-size: 17px !important;
+  font-weight: 750 !important;
+}
+
+main.editor-shell .language-button {
+  width: auto !important;
+  min-width: 62px !important;
+  padding: 0 8px !important;
+  border: 0 !important;
+  background: transparent !important;
+  color: #222831 !important;
+}
+
+main.editor-shell .share-button {
+  min-width: 86px !important;
+  padding: 0 16px !important;
+  border: 1px solid #d7dce3 !important;
+  background: #ffffff !important;
+  color: #252a32 !important;
+  box-shadow: none !important;
+}
+
+main.editor-shell .download-button {
+  min-width: 156px !important;
+  padding: 0 18px !important;
+  border: 0 !important;
+  border-radius: 5px !important;
+  background: #635bff !important;
+  color: #ffffff !important;
+  box-shadow: none !important;
+}
+
+main.editor-shell .tool-ribbon {
+  position: fixed !important;
+  top: 78px !important;
+  left: max(250px, calc(50vw - 520px)) !important;
+  z-index: 40 !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+  width: min(1040px, calc(100vw - 330px)) !important;
+  height: 78px !important;
+  min-width: 0 !important;
+  overflow-x: auto !important;
+  overflow-y: visible !important;
+  padding: 8px 18px !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 8px !important;
+  background: #ffffff !important;
+  box-shadow: 0 10px 28px rgba(18, 24, 36, 0.14) !important;
+}
+
+main.editor-shell .ribbon-tool {
+  display: grid !important;
+  grid-template-rows: 28px 19px !important;
+  align-content: center !important;
+  justify-items: center !important;
+  gap: 4px !important;
+  min-width: 62px !important;
+  height: 60px !important;
+  padding: 5px 8px !important;
+  border: 0 !important;
+  border-radius: 5px !important;
+  background: transparent !important;
+  color: #242a33 !important;
+  box-shadow: none !important;
+  font-size: 14px !important;
+  font-weight: 650 !important;
+}
+
+main.editor-shell .ribbon-tool span {
+  display: block !important;
+  max-width: 78px !important;
+  overflow: hidden !important;
+  color: #242a33 !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  font-size: 14px !important;
+  line-height: 1.1 !important;
+  font-weight: 650 !important;
+}
+
+main.editor-shell .ribbon-tool svg {
+  width: 27px !important;
+  height: 27px !important;
+  stroke-width: 2.1 !important;
+}
+
+main.editor-shell .ribbon-tool.is-active {
+  background: #e9eaee !important;
+  color: #222832 !important;
+  box-shadow: inset 0 0 0 1px #dde0e5 !important;
+}
+
+main.editor-shell .ribbon-divider {
+  width: 1px !important;
+  height: 48px !important;
+  flex: 0 0 auto !important;
+  margin: 0 8px !important;
+  background: #e1e4e8 !important;
+}
+
+main.editor-shell .tool-settings {
+  position: fixed !important;
+  top: 154px !important;
+  left: 50% !important;
+  z-index: 38 !important;
+  transform: translateX(-50%) !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 0 !important;
+  height: 58px !important;
+  max-width: min(900px, calc(100vw - 420px)) !important;
+  overflow-x: auto !important;
+  padding: 0 !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 8px !important;
+  background: #ffffff !important;
+  box-shadow: 0 12px 34px rgba(18, 24, 36, 0.13) !important;
+}
+
+main.editor-shell .tool-settings > *,
+main.editor-shell .tool-settings label,
+main.editor-shell .format-toggle-group,
+main.editor-shell .align-group {
+  min-height: 58px !important;
+  border-right: 1px solid #eceff3 !important;
+}
+
+main.editor-shell .tool-settings label {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  padding: 0 14px !important;
+  color: transparent !important;
+  font-size: 0 !important;
+}
+
+main.editor-shell .tool-settings select {
+  height: 40px !important;
+  min-width: 86px !important;
+  border: 0 !important;
+  background: transparent !important;
+  color: #252a32 !important;
+  font-size: 17px !important;
+  font-weight: 650 !important;
+}
+
+main.editor-shell .add-text-control {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  height: 58px !important;
+  min-width: 150px !important;
+  padding: 0 22px !important;
+  border: 0 !important;
+  background: #ffffff !important;
+  color: #252a32 !important;
+  font-size: 18px !important;
+  font-weight: 760 !important;
+}
+
+main.editor-shell .color-control {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 86px !important;
+  min-height: 58px !important;
+  border-right: 1px solid #eceff3 !important;
+}
+
+main.editor-shell .color-control button {
+  width: 24px !important;
+  height: 24px !important;
+  border-radius: 999px !important;
+}
+
+main.editor-shell .format-toggle-group,
+main.editor-shell .align-group {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 2px !important;
+  overflow: visible !important;
+  border-top: 0 !important;
+  border-left: 0 !important;
+  border-bottom: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+}
+
+main.editor-shell .format-toggle-group button,
+main.editor-shell .align-group button {
+  width: 44px !important;
+  height: 44px !important;
+  border: 0 !important;
+  border-radius: 4px !important;
+  background: transparent !important;
+  color: #252a32 !important;
+  font-size: 18px !important;
+  font-weight: 800 !important;
+}
+
+main.editor-shell .format-toggle-group button:nth-child(2) {
+  font-style: italic !important;
+}
+
+main.editor-shell .format-toggle-group button:nth-child(3) {
+  text-decoration: underline !important;
+}
+
+main.editor-shell .format-toggle-group button.is-active,
+main.editor-shell .align-group button.is-active {
+  background: #e8eaee !important;
+}
+
+main.editor-shell .workspace {
+  display: grid !important;
+  grid-template-columns: 232px minmax(0, 1fr) !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+  background: #f5f6f8 !important;
+}
+
+main.editor-shell .lumin-editor-rail,
+main.editor-shell .inspector-wrap,
+main.editor-shell .lumin-right-rail,
+main.editor-shell .status-bar {
+  display: none !important;
+}
+
+main.editor-shell .pages-panel {
+  display: grid !important;
+  grid-template-rows: 78px 0 minmax(0, 1fr) 0 !important;
+  min-width: 232px !important;
+  border: 0 !important;
+  border-right: 1px solid #e1e4e8 !important;
+  background: #ffffff !important;
+}
+
+main.editor-shell .pdfnet-page-title {
+  display: flex !important;
+  align-items: center !important;
+  height: 78px !important;
+  padding: 10px 12px !important;
+  border: 0 !important;
+  background: #ffffff !important;
+}
+
+main.editor-shell .pdfnet-add-page {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 10px !important;
+  width: 100% !important;
+  height: 48px !important;
+  border: 1px solid #dfe3e8 !important;
+  border-radius: 5px !important;
+  background: #ffffff !important;
+  color: #252a32 !important;
+  font-size: 19px !important;
+  font-weight: 760 !important;
+}
+
+main.editor-shell .page-actions,
+main.editor-shell .saved-foot {
+  display: none !important;
+}
+
+main.editor-shell .thumbnail-list {
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  align-content: start !important;
+  gap: 18px !important;
+  min-height: 0 !important;
+  padding: 10px 40px 32px 52px !important;
+  overflow: auto !important;
+  background: #ffffff !important;
+}
+
+main.editor-shell .thumbnail {
+  position: relative !important;
+  width: 136px !important;
+  height: 174px !important;
+  overflow: visible !important;
+  border: 3px solid transparent !important;
+  border-radius: 6px !important;
+  background: #ffffff !important;
+  box-shadow: none !important;
+}
+
+main.editor-shell .thumbnail.is-selected {
+  border-color: #594cff !important;
+  box-shadow: none !important;
+}
+
+main.editor-shell .thumbnail-preview,
+main.editor-shell .thumb-page {
+  width: 100% !important;
+  height: 100% !important;
+  overflow: hidden !important;
+  border-radius: 3px !important;
+  background: #ffffff !important;
+}
+
+main.editor-shell .thumbnail-label,
+main.editor-shell .thumbnail span {
+  position: absolute !important;
+  left: -23px !important;
+  bottom: 2px !important;
+  display: block !important;
+  min-width: 18px !important;
+  height: auto !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  color: #252a32 !important;
+  font-size: 16px !important;
+  font-weight: 650 !important;
+}
+
+main.editor-shell .thumbnail.is-selected span {
+  background: transparent !important;
+  color: #252a32 !important;
+}
+
+main.editor-shell .canvas-column {
+  min-width: 0 !important;
+  min-height: 0 !important;
+  overflow: auto !important;
+  background: #f5f6f8 !important;
+}
+
+main.editor-shell .document-stage {
+  display: flex !important;
+  justify-content: center !important;
+  align-items: flex-start !important;
+  min-width: fit-content !important;
+  min-height: 100% !important;
+  padding: 178px 44px 90px !important;
+}
+
+main.editor-shell .page-surface {
+  background: #ffffff !important;
+  box-shadow: 0 8px 22px rgba(27, 35, 48, 0.12), 0 32px 80px rgba(27, 35, 48, 0.10) !important;
+}
+
+main.editor-shell .page-surface:focus {
+  box-shadow: 0 0 0 2px rgba(99, 91, 255, 0.16), 0 8px 22px rgba(27, 35, 48, 0.12), 0 32px 80px rgba(27, 35, 48, 0.10) !important;
+}
+
+@media (max-width: 1180px) {
+  main.editor-shell .file-header {
+    grid-template-columns: 190px minmax(180px, 1fr) auto !important;
+  }
+
+  main.editor-shell .pdfnet-header-tools {
+    display: none !important;
+  }
+
+  main.editor-shell .tool-ribbon {
+    left: 246px !important;
+    width: calc(100vw - 270px) !important;
+  }
+
+  main.editor-shell .tool-settings {
+    left: 246px !important;
+    transform: none !important;
+    max-width: calc(100vw - 270px) !important;
+  }
+}
+
+@media (max-width: 780px) {
+  main.editor-shell .file-header {
+    grid-template-columns: 1fr auto !important;
+  }
+
+  main.editor-shell .file-meta,
+  main.editor-shell .language-button,
+  main.editor-shell .share-button {
+    display: none !important;
+  }
+
+  main.editor-shell .workspace {
+    grid-template-columns: 1fr !important;
+  }
+
+  main.editor-shell .pages-panel {
+    display: none !important;
+  }
+
+  main.editor-shell .tool-ribbon,
+  main.editor-shell .tool-settings {
+    left: 12px !important;
+    right: 12px !important;
+    width: auto !important;
+    max-width: none !important;
+  }
+}
+
 /* Lumin dashboard one-to-one pass. */
 .lumin-home.upload-shell {
   display: grid;
@@ -4244,4 +4783,240 @@ textarea:focus-visible,
     gap: 8px !important;
     padding: 12px 0 !important;
   }
+}
+
+/* pdf.net final editor guard. Keep physically last. */
+main.editor-shell {
+  display: grid !important;
+  grid-template-rows: 64px minmax(0, 1fr) !important;
+  background: #f5f6f8 !important;
+}
+
+main.editor-shell .file-header {
+  display: grid !important;
+  grid-template-columns: 220px minmax(240px, 340px) minmax(360px, 1fr) auto !important;
+  align-items: center !important;
+  height: 64px !important;
+  padding: 0 20px 0 24px !important;
+  border-bottom: 1px solid #e1e4e8 !important;
+  background: #ffffff !important;
+  color: #252a32 !important;
+  box-shadow: none !important;
+}
+
+main.editor-shell .pdfnet-brand {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  border: 0 !important;
+  background: transparent !important;
+  color: #16191f !important;
+  font-size: 30px !important;
+  font-weight: 900 !important;
+  letter-spacing: -0.04em !important;
+}
+
+main.editor-shell .pdfnet-logo-mark {
+  display: grid !important;
+  width: 28px !important;
+  height: 34px !important;
+  place-items: center !important;
+  border: 3px solid #16191f !important;
+  border-radius: 999px !important;
+  font-size: 20px !important;
+}
+
+main.editor-shell .file-meta {
+  height: 64px !important;
+  border-right: 1px solid #e2e5e9 !important;
+}
+
+main.editor-shell .file-name {
+  color: #252a32 !important;
+  font-size: 16px !important;
+  font-weight: 750 !important;
+}
+
+main.editor-shell .pdfnet-header-tools,
+main.editor-shell .header-actions {
+  display: flex !important;
+  align-items: center !important;
+}
+
+main.editor-shell .pdfnet-header-tools {
+  justify-content: center !important;
+  gap: 18px !important;
+}
+
+main.editor-shell .header-actions {
+  justify-content: end !important;
+  gap: 10px !important;
+}
+
+main.editor-shell .more-menu-wrap {
+  display: none !important;
+}
+
+main.editor-shell .share-button {
+  height: 48px !important;
+  min-width: 86px !important;
+  border: 1px solid #d7dce3 !important;
+  border-radius: 5px !important;
+  background: #ffffff !important;
+  color: #252a32 !important;
+  box-shadow: none !important;
+}
+
+main.editor-shell .download-button {
+  height: 48px !important;
+  min-width: 156px !important;
+  border-radius: 5px !important;
+  background: #635bff !important;
+  color: #ffffff !important;
+  box-shadow: none !important;
+}
+
+main.editor-shell .tool-ribbon {
+  position: fixed !important;
+  top: 78px !important;
+  left: max(250px, calc(50vw - 520px)) !important;
+  z-index: 40 !important;
+  width: min(1040px, calc(100vw - 330px)) !important;
+  height: 78px !important;
+  overflow: visible !important;
+  padding: 8px 18px !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 8px !important;
+  background: #ffffff !important;
+  box-shadow: 0 10px 28px rgba(18, 24, 36, 0.14) !important;
+}
+
+main.editor-shell .ribbon-tool {
+  display: grid !important;
+  grid-template-rows: 28px 19px !important;
+  min-width: 76px !important;
+  height: 60px !important;
+  border: 0 !important;
+  border-radius: 5px !important;
+  background: transparent !important;
+  color: #242a33 !important;
+}
+
+main.editor-shell .ribbon-tool span {
+  display: block !important;
+  max-width: 92px !important;
+  overflow: hidden !important;
+  color: #242a33 !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  font-size: 14px !important;
+  font-weight: 650 !important;
+}
+
+main.editor-shell .ribbon-tool.is-active {
+  background: #e9eaee !important;
+  color: #222832 !important;
+  box-shadow: inset 0 0 0 1px #dde0e5 !important;
+}
+
+main.editor-shell .tool-settings {
+  position: fixed !important;
+  top: 154px !important;
+  left: 50% !important;
+  z-index: 38 !important;
+  transform: translateX(-50%) !important;
+  display: flex !important;
+  align-items: center !important;
+  height: 58px !important;
+  max-height: none !important;
+  overflow-x: auto !important;
+  overflow-y: visible !important;
+  padding: 0 !important;
+  max-width: min(900px, calc(100vw - 420px)) !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 8px !important;
+  background: #ffffff !important;
+  box-shadow: 0 12px 34px rgba(18, 24, 36, 0.13) !important;
+}
+
+main.editor-shell .workspace {
+  display: grid !important;
+  grid-template-columns: 232px minmax(0, 1fr) !important;
+  background: #f5f6f8 !important;
+}
+
+main.editor-shell .lumin-editor-rail,
+main.editor-shell .inspector-wrap,
+main.editor-shell .lumin-right-rail,
+main.editor-shell .status-bar {
+  display: none !important;
+}
+
+main.editor-shell .pages-panel {
+  display: grid !important;
+  grid-template-rows: 78px 0 minmax(0, 1fr) 0 !important;
+  min-width: 232px !important;
+  border-right: 1px solid #e1e4e8 !important;
+  background: #ffffff !important;
+}
+
+main.editor-shell .pdfnet-page-title {
+  height: 78px !important;
+  padding: 10px 12px !important;
+  border: 0 !important;
+  background: #ffffff !important;
+}
+
+main.editor-shell .pdfnet-add-page {
+  width: 100% !important;
+  height: 48px !important;
+  border: 1px solid #dfe3e8 !important;
+  border-radius: 5px !important;
+  background: #ffffff !important;
+  color: #252a32 !important;
+  font-size: 19px !important;
+  font-weight: 760 !important;
+}
+
+main.editor-shell .page-actions,
+main.editor-shell .saved-foot {
+  display: none !important;
+}
+
+main.editor-shell .thumbnail-list {
+  grid-template-columns: 1fr !important;
+  gap: 18px !important;
+  padding: 10px 40px 32px 52px !important;
+  background: #ffffff !important;
+}
+
+main.editor-shell .thumbnail {
+  width: 136px !important;
+  height: 174px !important;
+  overflow: visible !important;
+  border: 3px solid transparent !important;
+  border-radius: 6px !important;
+  box-shadow: none !important;
+}
+
+main.editor-shell .thumbnail.is-selected {
+  border-color: #594cff !important;
+}
+
+main.editor-shell .canvas-column {
+  background: #f5f6f8 !important;
+}
+
+main.editor-shell .document-stage {
+  justify-content: center !important;
+  align-items: flex-start !important;
+  background: #f5f6f8 !important;
+  padding: 178px 44px 90px !important;
+}
+
+main.editor-shell .tool-settings > *,
+main.editor-shell .tool-settings label,
+main.editor-shell .format-toggle-group,
+main.editor-shell .align-group {
+  min-height: 58px !important;
 }

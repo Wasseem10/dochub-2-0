@@ -619,7 +619,7 @@ export function App() {
   const [pageIndex, setPageIndex] = useState(0);
   const [annotations, setAnnotations] = useState([]);
   const [selectedId, setSelectedId] = useState(null);
-  const [zoom, setZoom] = useState(80);
+  const [zoom, setZoom] = useState(100);
   const [saved, setSaved] = useState(true);
   const [saveState, setSaveState] = useState("saved");
   const [lastSavedAt, setLastSavedAt] = useState(null);
@@ -651,6 +651,9 @@ export function App() {
     fontFamily: "PP Agrandir",
     textAlign: "left",
     lineHeight: 1.25,
+    textBold: false,
+    textItalic: false,
+    textUnderline: false,
     drawColor: colors.blue,
     drawStroke: 4,
     highlightColor: colors.yellow,
@@ -883,9 +886,9 @@ export function App() {
       fontFamily: toolSettings.fontFamily,
       textAlign: toolSettings.textAlign,
       lineHeight: toolSettings.lineHeight,
-      bold: false,
-      italic: false,
-      underline: false,
+      bold: toolSettings.textBold,
+      italic: toolSettings.textItalic,
+      underline: toolSettings.textUnderline,
       opacity: 1,
     });
   };
@@ -1898,17 +1901,55 @@ export function App() {
       <input ref={fileInputRef} className="hidden-input" type="file" accept="application/pdf" onChange={onUpload} />
       <input ref={imageInputRef} className="hidden-input" type="file" accept="image/png,image/jpeg" onChange={onImageUpload} />
       <header className="file-header">
-        <button type="button" className="lumin-menu-button" onClick={() => {
+        <button type="button" className="pdfnet-brand" onClick={() => {
           saveActiveDocument(true);
           setPages([]);
           setScreen("upload");
-        }} title="Back to dashboard"><List size={28} /></button>
+        }} title="Back to dashboard">
+          <span className="pdfnet-logo-mark">C</span>
+          <span>CosmicPDF</span>
+        </button>
         <div className="file-meta">
-          <button type="button" className="file-name" onClick={renameActiveDocument} title="Rename document">{fileName}<PenLine size={16} /></button>
-          <div className={`save-state ${saveState}`}>
-            <Info size={16} />
-            {saveState === "saving" ? "Saving..." : saved ? "Edited just now" : "Unsaved changes"}
+          <button type="button" className="file-name" onClick={renameActiveDocument} title="Rename document">{fileName}</button>
+        </div>
+        <div className="pdfnet-header-tools">
+          <button type="button" className="icon-button" onClick={() => setIsSearchOpen((value) => !value)} title="Search"><Search size={22} /></button>
+          <button type="button" className="icon-button" onClick={undo} disabled={!undoStack.length} title="Undo"><Undo2 size={21} /></button>
+          <button type="button" className="icon-button" onClick={redo} disabled={!redoStack.length} title="Redo"><Redo2 size={21} /></button>
+          <button className="toolbar-icon" type="button" onClick={() => setZoom((value) => clamp(value - 10, 60, 160))} title="Zoom out">-</button>
+          <div className="zoom-menu-wrap" ref={zoomMenuRef}>
+            <button
+              className={`toolbar-chip ${isZoomMenuOpen ? "is-active" : ""}`}
+              type="button"
+              title="Zoom presets"
+              aria-haspopup="menu"
+              aria-expanded={isZoomMenuOpen}
+              onClick={() => setIsZoomMenuOpen((value) => !value)}
+            >
+              {zoom}% <ChevronDown size={15} />
+            </button>
+            {isZoomMenuOpen && (
+              <div className="zoom-preset-menu" role="menu" aria-label="Zoom presets">
+                {zoomOptions.map((value) => (
+                  <button
+                    key={value}
+                    type="button"
+                    role="menuitemradio"
+                    aria-checked={zoom === value}
+                    className={zoom === value ? "is-selected" : ""}
+                    onClick={() => {
+                      setZoom(value);
+                      setIsZoomMenuOpen(false);
+                    }}
+                  >
+                    <span>{value}%</span>
+                    {value === 100 ? <small>Actual size</small> : value === 80 ? <small>Comfort view</small> : !ZOOM_PRESETS.includes(value) ? <small>Fit width</small> : null}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
+          <button className="toolbar-icon" type="button" onClick={() => setZoom((value) => clamp(value + 10, 60, 160))} title="Zoom in">+</button>
         </div>
         <div className="header-actions">
           <div className="more-menu-wrap" ref={moreMenuRef}>
@@ -1957,62 +1998,14 @@ export function App() {
               </div>
             )}
           </div>
-          <button type="button" className="icon-button" onClick={undo} disabled={!undoStack.length} title="Undo"><Undo2 size={20} /></button>
-          <button type="button" className="icon-button" onClick={redo} disabled={!redoStack.length} title="Redo"><Redo2 size={20} /></button>
-          <span className="header-divider" />
-          <button type="button" className="share-button" onClick={() => setShareModalOpen(true)} title="Share"><Share2 size={19} /> Share <ChevronDown size={18} /></button>
-          <button type="button" className="icon-button" onClick={() => {
-            saveActiveDocument(true);
-            showToast("Saved locally.");
-          }} title="Save"><Save size={18} /> Save</button>
-          <button type="button" className="sign-secure-button" onClick={() => setSignatureModalOpen(true)} title="Create signature"><PenLine size={19} /> Sign securely <ChevronDown size={18} /></button>
-          <button type="button" className="icon-button" onClick={() => window.print()} title="Print"><Printer size={19} /></button>
+          <button type="button" className="language-button" onClick={() => showToast("Language set to English.")}>◎ EN</button>
+          <button type="button" className="share-button" onClick={() => setShareModalOpen(true)} title="Share">Share</button>
           <button type="button" className="download-button" onClick={exportPdf} disabled={isExporting}><Download size={18} /> {isExporting ? "Exporting" : "Download"}</button>
-          <div className="top-avatar editor-avatar">WD</div>
         </div>
       </header>
 
       <section className="tool-ribbon">
-        <button className="toolbar-icon" type="button" onClick={() => setIsPagesCollapsed((value) => !value)} title="Pages"><FileText size={25} /><ChevronDown size={15} /></button>
-        <span className="toolbar-separator" />
-        <button className="toolbar-icon" type="button" onClick={() => setZoom((value) => clamp(value - 10, 60, 160))} title="Zoom out">-</button>
-        <div className="zoom-menu-wrap" ref={zoomMenuRef}>
-          <button
-            className={`toolbar-chip ${isZoomMenuOpen ? "is-active" : ""}`}
-            type="button"
-            title="Zoom presets"
-            aria-haspopup="menu"
-            aria-expanded={isZoomMenuOpen}
-            onClick={() => setIsZoomMenuOpen((value) => !value)}
-          >
-            {zoom}% <ChevronDown size={14} />
-          </button>
-          {isZoomMenuOpen && (
-            <div className="zoom-preset-menu" role="menu" aria-label="Zoom presets">
-              {zoomOptions.map((value) => (
-                <button
-                  key={value}
-                  type="button"
-                  role="menuitemradio"
-                  aria-checked={zoom === value}
-                  className={zoom === value ? "is-selected" : ""}
-                  onClick={() => {
-                    setZoom(value);
-                    setIsZoomMenuOpen(false);
-                  }}
-                >
-                  <span>{value}%</span>
-                  {value === 100 ? <small>Actual size</small> : value === 80 ? <small>Comfort view</small> : !ZOOM_PRESETS.includes(value) ? <small>Fit width</small> : null}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-        <button className="toolbar-icon" type="button" onClick={() => setZoom((value) => clamp(value + 10, 60, 160))} title="Zoom in">+</button>
-        <span className="toolbar-separator" />
-        <button className="ribbon-tool" type="button" onClick={() => fileInputRef.current?.click()} title="Upload" aria-label="Upload"><Upload size={24} /></button>
-        <div className="ribbon-divider" />
-        {toolConfig.map(({ id, label, icon: Icon }) => (
+        {toolConfig.filter(({ id }) => ["select", "text", "draw", "image", "field", "signature", "comment", "rectangle", "whiteout"].includes(id)).map(({ id, label, icon: Icon }) => (
           <button
             key={id}
             type="button"
@@ -2031,14 +2024,17 @@ export function App() {
             }}
           >
             <Icon size={25} />
+            <span>{label === "Text field" ? "Field" : label === "Signature" ? "Sign" : label}</span>
           </button>
         ))}
         <div className="ribbon-divider" />
-        <button className="ribbon-tool" type="button" onClick={undo} disabled={!undoStack.length} title="Undo" aria-label="Undo"><Undo2 size={24} /></button>
-        <button className="ribbon-tool is-muted" type="button" onClick={redo} disabled={!redoStack.length} title="Redo" aria-label="Redo"><Redo2 size={24} /></button>
-        <div className="ribbon-divider" />
-        <button className="ribbon-tool" type="button" onClick={() => setIsZoomMenuOpen(true)} title="Zoom presets" aria-label="Zoom presets"><Search size={24} /></button>
-        <button className="ribbon-tool" type="button" onClick={fitPageToWidth} title="Fit width" aria-label="Fit width"><ArrowDownToLine size={24} /></button>
+        <button className="ribbon-tool" type="button" onClick={() => showToast("Auto-fill reads form fields from uploaded PDFs.")} title="Auto-Fill" aria-label="Auto-Fill"><FilePlus2 size={24} /><span>Auto-Fill</span></button>
+        <button className="ribbon-tool" type="button" onClick={() => showToast("Ask AI is ready for document summary prompts.")} title="Ask AI" aria-label="Ask AI"><Zap size={24} /><span>Ask AI</span></button>
+        <button className="ribbon-tool" type="button" onClick={() => fileInputRef.current?.click()} title="Merge" aria-label="Merge"><Copy size={24} /><span>Merge</span></button>
+        <button className="ribbon-tool" type="button" onClick={() => setIsPagesCollapsed(false)} title="Rearrange" aria-label="Rearrange"><Grid2X2 size={24} /><span>Rearrange</span></button>
+        <button className="ribbon-tool" type="button" onClick={addBlankPage} title="Page numbers" aria-label="Page numbers"><FileText size={24} /><span>Page numbers</span></button>
+        <button className="ribbon-tool" type="button" onClick={() => showToast("Conversion tools will use the exported PDF.")} title="Convert" aria-label="Convert"><Redo2 size={24} /><span>Convert</span></button>
+        <button className="ribbon-tool" type="button" onClick={() => showToast("Compression runs when exporting optimized PDFs.")} title="Compress" aria-label="Compress"><Box size={24} /><span>Compress</span></button>
         <ToolSettingsPanel tool={tool} settings={toolSettings} setSettings={setToolSettings} />
       </section>
 
@@ -2065,13 +2061,8 @@ export function App() {
           ))}
         </aside>
         <aside className={`pages-panel ${isPagesCollapsed ? "is-collapsed" : ""}`}>
-          <div className="panel-title">
-            <span>Pages</span>
-            <div>
-              <button type="button" title={isPagesCollapsed ? "Expand pages" : "Collapse pages"} onClick={() => setIsPagesCollapsed((value) => !value)}>{isPagesCollapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}</button>
-              <button type="button" title="Grid view" onClick={() => setViewMode("grid")}><Grid2X2 size={16} /></button>
-              <button type="button" title="List view" onClick={() => setViewMode("list")}><List size={16} /></button>
-            </div>
+          <div className="panel-title pdfnet-page-title">
+            <button type="button" className="pdfnet-add-page" onClick={addBlankPage}><Plus size={19} /> Add page <ChevronDown size={17} /></button>
           </div>
           <div className="page-actions">
             <button type="button" onClick={addBlankPage}><Plus size={15} /> Add</button>
@@ -2624,6 +2615,9 @@ function ToolSettingsPanel({ tool, settings, setSettings }) {
     return (
       <div className="tool-settings">
         {tool === "text" && (
+          <button type="button" className="add-text-control" onClick={() => update({ textSize: settings.textSize })}><Plus size={17} /> Add Text</button>
+        )}
+        {tool === "text" && (
           <label>Font
             <select value={settings.fontFamily} onChange={(event) => update({ fontFamily: event.target.value })}>
               <option>PP Agrandir</option>
@@ -2641,6 +2635,11 @@ function ToolSettingsPanel({ tool, settings, setSettings }) {
         <ColorControl value={settings.textColor} onChange={(color) => update({ textColor: color })} />
         {tool === "text" && (
           <>
+            <div className="format-toggle-group" aria-label="Text format">
+              <button type="button" className={settings.textBold ? "is-active" : ""} onClick={() => update({ textBold: !settings.textBold })}>B</button>
+              <button type="button" className={settings.textItalic ? "is-active" : ""} onClick={() => update({ textItalic: !settings.textItalic })}>I</button>
+              <button type="button" className={settings.textUnderline ? "is-active" : ""} onClick={() => update({ textUnderline: !settings.textUnderline })}>U</button>
+            </div>
             <label>Line
               <select value={settings.lineHeight} onChange={(event) => update({ lineHeight: Number(event.target.value) })}>
                 {[1, 1.15, 1.25, 1.5, 2].map((size) => <option key={size} value={size}>{size}</option>)}

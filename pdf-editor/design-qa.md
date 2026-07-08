@@ -22,6 +22,8 @@ Final result: passed
 - One-to-one mobile capture: `public/reference/cosmicpdf-local/mobile-one-to-one-pass-1.png`
 - Dashboard source image: `/var/folders/y5/5nxfxhk97_9fmsmdf8tqj81r0000gn/T/TemporaryItems/NSIRD_screencaptureui_Qdmymo/Screenshot 2026-07-07 at 6.34.20 PM.png`
 - Dashboard local capture: `public/reference/lumin-dashboard-local/dashboard-pass-3.png`
+- Editor source image: `/var/folders/y5/5nxfxhk97_9fmsmdf8tqj81r0000gn/T/TemporaryItems/NSIRD_screencaptureui_z9y02h/Screenshot 2026-07-08 at 3.09.33 PM.png`
+- Editor local route verified: `http://127.0.0.1:4173/?view=dashboard&v=pdfnet-editor-pass-3`
 
 ## Checks
 
@@ -36,6 +38,8 @@ Final result: passed
 - Browser console showed no errors during mobile QA.
 - Dashboard direct URL renders at `?view=dashboard` for fast design iteration.
 - Dashboard matches the reference structure: left rail, Lumin wordmark, centered search, invite/help/bell/avatar actions, five quick action tiles, suggested documents tabs, source-like document row, and zoomed-out whitespace.
+- Editor pass matches the pdf.net reference structure: white top bar, brand/title, centered search/undo/redo/zoom controls, right-side language/share/download controls, left Add page rail, selected page thumbnail, floating primary tool ribbon, contextual text toolbar, plain canvas, and 100% page view.
+- Editor controls remain wired to existing app behavior: text placement, draw/image/sign tools, add page, zoom menu, share, export/download, page thumbnails, and undo/redo.
 
 ## Notes
 
