@@ -745,6 +745,7 @@ export function App() {
   const currentPage = pages[pageIndex] || pages[0];
   const pageAnnotations = annotations.filter((annotation) => annotation.page === pageIndex);
   const pageDetectedTextItems = detectedTextItems.filter((item) => item.pageNumber === pageIndex && !item.isDeleted);
+  const pageDeletedTextItems = detectedTextItems.filter((item) => item.pageNumber === pageIndex && item.isDeleted);
   const detectedTextCount = useMemo(() => detectedTextItems.filter((item) => !item.isDeleted).length, [detectedTextItems]);
   const zoomOptions = useMemo(() => (
     Array.from(new Set([...ZOOM_PRESETS, zoom])).sort((a, b) => a - b)
@@ -1020,7 +1021,7 @@ export function App() {
       item.id === id ? { ...item, isDeleted: true, isEdited: true, updatedAt: nowIso() } : item
     )));
     setSelectedDetectedTextId(null);
-    showToast("Detected text removed from export.");
+    showToast("Original PDF text deleted.");
   };
 
   const duplicateDetectedTextItem = (item) => {
@@ -1714,7 +1715,7 @@ export function App() {
     commitAnnotations([...annotations, finalized]);
     setDraft(null);
     setSelectedId(finalized.id);
-    setTool("select");
+    setTool(finalized.type === "draw" ? "draw" : "select");
   };
 
   const undo = () => {
@@ -1903,6 +1904,13 @@ export function App() {
       if ((event.metaKey || event.ctrlKey) && key === "f") {
         event.preventDefault();
         setIsSearchOpen(true);
+        return;
+      }
+
+      const editingDetectedText = event.target?.closest?.(".detected-text-content");
+      if (editingDetectedText && selectedDetectedTextId && (key === "delete" || (key === "backspace" && (event.metaKey || event.ctrlKey)))) {
+        event.preventDefault();
+        deleteSelected();
         return;
       }
 
@@ -2495,6 +2503,19 @@ export function App() {
                 </div>
               )}
               <div className="annotation-layer">
+                {pageDeletedTextItems.map((item) => (
+                  <div
+                    key={`deleted-${item.id}`}
+                    className="detected-text-whiteout"
+                    style={{
+                      left: `${Math.max(0, item.x * 100 - 0.25)}%`,
+                      top: `${Math.max(0, item.y * 100 - 0.18)}%`,
+                      width: `${Math.min(100, item.w * 100 + 0.5)}%`,
+                      height: `${Math.min(100, item.h * 100 + 0.36)}%`,
+                    }}
+                    aria-hidden="true"
+                  />
+                ))}
                 {pageDetectedTextItems.map((item) => {
                   const isActive = item.id === selectedDetectedTextId;
                   const displayScale = (zoom / 100) * EDITOR_PAGE_SCALE;
@@ -3143,10 +3164,24 @@ function ToolSettingsPanel({ tool, settings, setSettings }) {
 
   if (tool === "draw") {
     return (
-      <div className="tool-settings">
+      <div className="tool-settings draw-tool-settings">
+        <span className="settings-title">Pen</span>
         <ColorControl value={settings.drawColor} onChange={(color) => update({ drawColor: color })} />
-        <label>Stroke
-          <input type="range" min="1" max="16" value={settings.drawStroke} onChange={(event) => update({ drawStroke: Number(event.target.value) })} />
+        <div className="stroke-size-group" aria-label="Pen size">
+          {[2, 4, 8, 12, 16].map((size) => (
+            <button
+              key={size}
+              type="button"
+              className={settings.drawStroke === size ? "is-active" : ""}
+              onClick={() => update({ drawStroke: size })}
+            >
+              <span style={{ width: size + 6, height: size + 6 }} />
+              {size}
+            </button>
+          ))}
+        </div>
+        <label className="stroke-slider">Size
+          <input type="range" min="1" max="20" value={settings.drawStroke} onChange={(event) => update({ drawStroke: Number(event.target.value) })} />
         </label>
         <output>{settings.drawStroke}px</output>
       </div>

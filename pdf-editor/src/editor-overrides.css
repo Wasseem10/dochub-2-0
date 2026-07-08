@@ -5574,6 +5574,89 @@ main.editor-shell .tool-settings {
   transform: translateX(-50%) !important;
 }
 
+main.editor-shell .draw-tool-settings {
+  gap: 12px !important;
+  height: 60px !important;
+  min-height: 60px !important;
+  padding: 0 14px !important;
+}
+
+main.editor-shell .settings-title {
+  color: #1f3547 !important;
+  font-size: 13px !important;
+  font-weight: 850 !important;
+}
+
+main.editor-shell .draw-tool-settings .mini-swatches {
+  display: inline-flex !important;
+  gap: 8px !important;
+}
+
+main.editor-shell .draw-tool-settings .mini-swatches button {
+  width: 30px !important;
+  height: 30px !important;
+  border: 2px solid #ffffff !important;
+  border-radius: 999px !important;
+  box-shadow: 0 0 0 1px #c7d3df !important;
+}
+
+main.editor-shell .draw-tool-settings .mini-swatches button.is-selected {
+  box-shadow: 0 0 0 2px #ffffff, 0 0 0 5px #1683ff !important;
+}
+
+main.editor-shell .stroke-size-group {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  padding: 4px !important;
+  border: 1px solid #d7e0e8 !important;
+  border-radius: 10px !important;
+  background: #f6f9fb !important;
+}
+
+main.editor-shell .stroke-size-group button {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 5px !important;
+  height: 34px !important;
+  min-width: 46px !important;
+  padding: 0 8px !important;
+  border: 0 !important;
+  border-radius: 8px !important;
+  background: transparent !important;
+  color: #344b5e !important;
+  font-size: 12px !important;
+  font-weight: 820 !important;
+}
+
+main.editor-shell .stroke-size-group button span {
+  display: block !important;
+  max-width: 20px !important;
+  max-height: 20px !important;
+  border-radius: 999px !important;
+  background: currentColor !important;
+}
+
+main.editor-shell .stroke-size-group button.is-active {
+  background: #d8f5ff !important;
+  color: #0f5970 !important;
+}
+
+main.editor-shell .draw-tool-settings .stroke-slider {
+  gap: 8px !important;
+}
+
+main.editor-shell .draw-tool-settings input[type="range"] {
+  width: 116px !important;
+}
+
+main.editor-shell .draw-tool-settings output {
+  min-width: 42px !important;
+  color: #1f3547 !important;
+  font-size: 13px !important;
+}
+
 main.editor-shell .workspace {
   display: grid !important;
   grid-template-columns: 92px 324px minmax(0, 1fr) 62px !important;
