@@ -57,6 +57,7 @@ import "pdfjs-dist/build/pdf.worker.mjs";
 import {
   createUserWithEmailAndPassword,
   onAuthStateChanged,
+  sendPasswordResetEmail,
   signInWithEmailAndPassword,
   signInWithPopup,
   signOut,
@@ -864,6 +865,23 @@ export function App() {
 
       setCurrentUser(mapFirebaseUser(auth.currentUser || credential.user));
       setScreen("upload");
+      return { ok: true };
+    } catch (error) {
+      return { ok: false, error: formatAuthError(error) };
+    }
+  };
+
+  const sendAuthPasswordReset = async (email) => {
+    if (!auth) {
+      return { ok: false, error: "Firebase is not configured yet. Add the VITE_FIREBASE_* env vars first." };
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      return { ok: false, error: "Enter your email address first." };
+    }
+
+    try {
+      await sendPasswordResetEmail(auth, email.trim());
       return { ok: true };
     } catch (error) {
       return { ok: false, error: formatAuthError(error) };
@@ -2211,6 +2229,7 @@ export function App() {
         setMode={setAuthMode}
         onBack={() => setScreen("landing")}
         onComplete={completeAuth}
+        onPasswordReset={sendAuthPasswordReset}
         authReady={authReady}
         isFirebaseConfigured={isFirebaseConfigured}
       />
@@ -2954,16 +2973,18 @@ function LandingPage({ fileInputRef, onUpload, onSelectFiles, onLogin }) {
   );
 }
 
-function AuthPage({ mode, setMode, onBack, onComplete, authReady, isFirebaseConfigured }) {
+function AuthPage({ mode, setMode, onBack, onComplete, onPasswordReset, authReady, isFirebaseConfigured }) {
   const isSignup = mode === "signup";
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const submitAuth = async (event) => {
     event.preventDefault();
+    setNotice("");
     if (!isFirebaseConfigured) {
       setError("Firebase is not configured yet. Add your VITE_FIREBASE_* env vars.");
       return;
@@ -2984,6 +3005,7 @@ function AuthPage({ mode, setMode, onBack, onComplete, authReady, isFirebaseConf
   };
 
   const submitGoogleAuth = async () => {
+    setNotice("");
     if (!isFirebaseConfigured) {
       setError("Firebase is not configured yet. Add your VITE_FIREBASE_* env vars.");
       return;
@@ -2995,33 +3017,39 @@ function AuthPage({ mode, setMode, onBack, onComplete, authReady, isFirebaseConf
     if (!result?.ok) setError(result?.error || "Google sign-in failed.");
   };
 
+  const requestPasswordReset = async () => {
+    setNotice("");
+    setError("");
+    const result = await onPasswordReset(email);
+    if (result?.ok) {
+      setNotice("Password reset email sent.");
+    } else {
+      setError(result?.error || "Could not send a password reset email.");
+    }
+  };
+
+  const switchMode = () => {
+    setError("");
+    setNotice("");
+    setMode(isSignup ? "login" : "signup");
+  };
+
   return (
     <main className="auth-shell">
-      <section className="auth-brand-panel">
-        <button type="button" className="landing-brand auth-brand blank-brand" onClick={onBack}><span aria-hidden="true" /></button>
-        <div>
-          <p className="eyebrow">Secure document workspace</p>
-          <h1>{isSignup ? "Create your workspace and upload your first PDF." : "Welcome back to your document workspace."}</h1>
-          <p>Use Firebase Authentication to upload PDFs, fill forms, place signatures, manage templates, and export final documents from the browser.</p>
-        </div>
-        <div className="auth-proof-list">
-          <span><CheckCircle2 size={17} /> Firebase email/password accounts</span>
-          <span><CheckCircle2 size={17} /> Google sign-in ready</span>
-          <span><CheckCircle2 size={17} /> Session restored on refresh</span>
-        </div>
-      </section>
-
       <section className="auth-card" aria-label={isSignup ? "Create account" : "Log in"}>
-        <button type="button" className="auth-back" onClick={onBack}>Back</button>
-        <h2>{isSignup ? "Create free account" : "Log in"}</h2>
-        <p>{isSignup ? "Start with a local workspace, then upload or create a document." : "Continue to your dashboard and recent documents."}</p>
+        <button type="button" className="auth-back" onClick={onBack}>Back to home</button>
+        <button type="button" className="auth-mark blank-brand" onClick={onBack} aria-label="Back to home"><span aria-hidden="true" /></button>
+        <h2>{isSignup ? "Create account" : "Sign in"}</h2>
         {!isFirebaseConfigured && (
           <div className="auth-error">
             Firebase config is missing. Add `VITE_FIREBASE_API_KEY`, `VITE_FIREBASE_AUTH_DOMAIN`, `VITE_FIREBASE_PROJECT_ID`, and `VITE_FIREBASE_APP_ID`.
           </div>
         )}
-        <button type="button" className="sso-button" onClick={submitGoogleAuth} disabled={!authReady || isSubmitting || !isFirebaseConfigured}><Users size={18} /> Continue with Google</button>
-        <div className="auth-divider"><span /> or use email <span /></div>
+        <button type="button" className="sso-button google-button" onClick={submitGoogleAuth} disabled={!authReady || isSubmitting || !isFirebaseConfigured}>
+          <span aria-hidden="true">G</span>
+          Sign in with Google
+        </button>
+        <div className="auth-divider"><span /> Or continue with <span /></div>
         <form onSubmit={submitAuth}>
           {isSignup && (
             <label>
@@ -3030,21 +3058,25 @@ function AuthPage({ mode, setMode, onBack, onComplete, authReady, isFirebaseConf
             </label>
           )}
           <label>
-            Email
-            <input type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@company.com" />
+            Email address
+            <input type="email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" />
           </label>
           <label>
-            Password
-            <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder={isSignup ? "Create a password" : "Enter your password"} />
+            <span className="auth-label-row">
+              Password
+              {!isSignup && <button type="button" onClick={requestPasswordReset}>Forgot password?</button>}
+            </span>
+            <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete={isSignup ? "new-password" : "current-password"} />
           </label>
           {error && <div className="auth-error">{error}</div>}
+          {notice && <div className="auth-notice">{notice}</div>}
           <button type="submit" className="auth-submit" disabled={!authReady || isSubmitting || !isFirebaseConfigured}>
-            {isSubmitting ? "Connecting..." : isSignup ? "Create account and continue" : "Log in and continue"}
+            {isSubmitting ? "Connecting..." : isSignup ? "Create account" : "Sign in with password"}
           </button>
         </form>
+        <p className="auth-privacy">Check our <button type="button">Privacy Notice</button>.</p>
         <div className="auth-switch">
-          {isSignup ? "Already have an account?" : "Need an account?"}
-          <button type="button" onClick={() => setMode(isSignup ? "login" : "signup")}>{isSignup ? "Log in" : "Create account"}</button>
+          <button type="button" onClick={switchMode}>{isSignup ? "sign in instead" : "create new account"}</button>
         </div>
       </section>
     </main>
