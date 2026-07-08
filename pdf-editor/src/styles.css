@@ -5242,7 +5242,8 @@ button {
   outline: none;
   cursor: text;
   white-space: pre-wrap;
-  overflow-wrap: anywhere;
+  overflow-wrap: normal;
+  word-break: normal;
 }
 
 .text-content[contenteditable="true"] {

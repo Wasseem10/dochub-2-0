@@ -439,6 +439,20 @@ function Annotation({ annotation, selected, zoom, onSelect, onDrag, onResize, on
     window.addEventListener("pointerup", up);
   };
 
+  const updateTextContent = (event) => {
+    const textElement = event.currentTarget;
+    const pageRect = textElement.closest(".page-surface")?.getBoundingClientRect();
+    const content = textElement.innerText;
+    const patch = { content: content || " " };
+
+    if (pageRect?.width && pageRect?.height) {
+      patch.w = clamp((textElement.scrollWidth + 28) / pageRect.width, 0.12, 0.5);
+      patch.h = clamp((textElement.scrollHeight + 12) / pageRect.height, 0.04, 0.28);
+    }
+
+    onUpdate(annotation.id, patch);
+  };
+
   if (annotation.type === "draw") {
     const points = annotation.points.map((point) => `${point.x * 100},${point.y * 100}`).join(" ");
     const normalizedStrokeWidth = Math.max(0.15, (annotation.strokeWidth / BASE_PAGE_WIDTH) * 100);
@@ -574,8 +588,8 @@ function Annotation({ annotation, selected, zoom, onSelect, onDrag, onResize, on
           event.stopPropagation();
           onSelect(annotation.id);
         }}
-        onBlur={(event) => onUpdate(annotation.id, { content: event.currentTarget.innerText || " " })}
-        onInput={(event) => onUpdate(annotation.id, { content: event.currentTarget.innerText || " " })}
+        onBlur={updateTextContent}
+        onInput={updateTextContent}
       >
         {annotation.content}
       </div>
@@ -849,10 +863,10 @@ export function App() {
 
   const addTextAnnotation = (content, point) => {
     const isBlankInsertion = !content.trim();
-    const cleanContent = isBlankInsertion ? " " : content.trimEnd();
+    const cleanContent = isBlankInsertion ? "" : content.trimEnd();
     const lines = cleanContent.split("\n");
     const longestLine = Math.max(...lines.map((line) => line.length), isBlankInsertion ? 1 : 9);
-    const width = isBlankInsertion ? 0.042 : clamp(longestLine * 0.0095, 0.11, 0.42);
+    const width = isBlankInsertion ? 0.24 : clamp(longestLine * 0.0095, 0.11, 0.42);
     const height = isBlankInsertion ? 0.052 : clamp(lines.length * 0.028 + 0.026, 0.052, 0.28);
 
     addAnnotation({
