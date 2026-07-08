@@ -6038,6 +6038,27 @@ main.editor-shell .workspace.pages-collapsed .canvas-column {
   min-width: 0 !important;
 }
 
+main.editor-shell .draw-color-field {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  height: 42px !important;
+  padding: 0 10px 0 12px !important;
+  border: 1px solid #d7e0e8 !important;
+  border-radius: 10px !important;
+  background: #ffffff !important;
+  color: #1f3547 !important;
+  font-size: 13px !important;
+  font-weight: 850 !important;
+  box-shadow: 0 1px 2px rgba(31, 41, 55, 0.06) !important;
+}
+
+main.editor-shell .draw-color-field .color-control {
+  width: auto !important;
+  min-height: 0 !important;
+  border-right: 0 !important;
+}
+
 main.editor-shell .color-control {
   position: relative !important;
   display: inline-flex !important;

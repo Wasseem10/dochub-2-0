@@ -3166,7 +3166,10 @@ function ToolSettingsPanel({ tool, settings, setSettings }) {
     return (
       <div className="tool-settings draw-tool-settings">
         <span className="settings-title">Pen</span>
-        <ColorControl value={settings.drawColor} onChange={(color) => update({ drawColor: color })} />
+        <div className="draw-color-field">
+          <span>Color</span>
+          <ColorControl value={settings.drawColor} onChange={(color) => update({ drawColor: color })} />
+        </div>
         <div className="stroke-size-group" aria-label="Pen size">
           {[2, 4, 8, 12, 16].map((size) => (
             <button
