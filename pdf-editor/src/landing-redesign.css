@@ -1,14 +1,22 @@
 .cosmic-page {
-  --report-black: #050505;
-  --report-cream: #f1f0ec;
-  --report-blue: #4570ff;
-  --report-green: #c8ff6a;
-  --report-pink: #ffd4e2;
-  --report-purple: #ebdcff;
+  --lp-ink: #0f172a;
+  --lp-muted: #5f6f85;
+  --lp-subtle: #8491a5;
+  --lp-line: #d9e2ec;
+  --lp-soft-line: #e8eef5;
+  --lp-bg: #f7f9fc;
+  --lp-surface: #ffffff;
+  --lp-panel: #f1f6fb;
+  --lp-blue: #2563eb;
+  --lp-blue-dark: #1d4ed8;
+  --lp-blue-soft: #eaf1ff;
+  --lp-green: #16a34a;
+  --lp-green-soft: #eaf8ef;
   min-height: 100vh;
   overflow-x: hidden;
-  background: var(--report-cream);
-  color: #050505;
+  background:
+    linear-gradient(180deg, #ffffff 0%, #f7f9fc 44%, #ffffff 100%);
+  color: var(--lp-ink);
   font-family: "DM Sans", Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
@@ -20,18 +28,21 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 9px;
-  min-height: 40px;
+  gap: 8px;
+  min-height: 38px;
   padding: 0 18px;
-  background: #050505;
-  color: #ffffff;
-  font-size: 14px;
-  font-weight: 850;
+  border-bottom: 1px solid var(--lp-soft-line);
+  background: #f8fbff;
+  color: #31577f;
+  font-size: 13px;
+  font-weight: 760;
   text-align: center;
   text-decoration: none;
 }
 
 .cosmic-topline svg {
+  width: 13px;
+  height: 13px;
   transform: rotate(-90deg);
 }
 
@@ -42,41 +53,40 @@
   display: grid;
   grid-template-columns: auto 1fr auto;
   align-items: center;
-  gap: 28px;
-  min-height: 78px;
+  gap: 24px;
+  min-height: 74px;
   padding: 0 clamp(20px, 5vw, 64px);
-  border: 0;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
-  border-radius: 0 0 22px 22px;
-  background: rgba(241, 240, 236, 0.96);
+  border-bottom: 1px solid rgba(217, 226, 236, 0.8);
+  background: rgba(255, 255, 255, 0.9);
   backdrop-filter: blur(18px);
 }
 
 .cosmic-page .cosmic-brand.blank-brand {
   display: inline-flex;
+  align-items: center;
   width: 116px;
-  height: 46px;
-  color: #000000;
+  height: 42px;
+  color: var(--lp-ink);
   text-decoration: none;
 }
 
 .cosmic-page .cosmic-brand.blank-brand span {
   display: grid;
-  width: 46px;
-  height: 46px;
+  width: 38px;
+  height: 38px;
   place-items: center;
-  border: 2px solid #000000;
-  border-radius: 14px;
+  border: 1px solid #c9d7e8;
+  border-radius: 10px;
   background: #ffffff;
-  color: #000000;
-  box-shadow: 5px 5px 0 #000000;
+  color: var(--lp-blue);
+  box-shadow: 0 8px 22px rgba(37, 99, 235, 0.12);
 }
 
 .cosmic-page .cosmic-nav,
 .cosmic-page .cosmic-header-actions {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
 }
 
 .cosmic-page .cosmic-nav {
@@ -89,34 +99,51 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  min-height: 42px;
-  padding: 0 18px;
-  border: 0;
-  border-radius: 999px;
-  background: #ffffff;
-  color: #000000;
-  font-size: 15px;
-  font-weight: 850;
+  gap: 7px;
+  min-height: 38px;
+  padding: 0 14px;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  background: transparent;
+  color: #40536b;
+  font-size: 14px;
+  font-weight: 780;
   text-decoration: none;
-  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.08);
   cursor: pointer;
 }
 
+.cosmic-page .cosmic-nav a:hover,
+.cosmic-page .cosmic-login:hover {
+  border-color: var(--lp-soft-line);
+  background: #f6f9fd;
+  color: var(--lp-ink);
+}
+
+.cosmic-page .cosmic-login {
+  border-color: var(--lp-line);
+  background: #ffffff;
+}
+
 .cosmic-page .cosmic-upload-small {
-  background: var(--report-blue);
+  border-color: var(--lp-blue);
+  background: var(--lp-blue);
   color: #ffffff;
+  box-shadow: 0 10px 24px rgba(37, 99, 235, 0.2);
+}
+
+.cosmic-page .cosmic-upload-small:hover {
+  background: var(--lp-blue-dark);
 }
 
 .cosmic-page .cosmic-menu {
   display: none;
-  width: 44px;
-  height: 44px;
+  width: 40px;
+  height: 40px;
   place-items: center;
-  border: 0;
-  border-radius: 999px;
+  border: 1px solid var(--lp-line);
+  border-radius: 10px;
   background: #ffffff;
-  color: #000000;
+  color: var(--lp-ink);
 }
 
 .cosmic-page .cosmic-mobile-panel {
@@ -126,11 +153,11 @@
   display: grid;
   gap: 8px;
   width: min(340px, calc(100vw - 36px));
-  padding: 12px;
-  border: 2px solid #000000;
-  border-radius: 22px;
+  padding: 10px;
+  border: 1px solid var(--lp-line);
+  border-radius: 14px;
   background: #ffffff;
-  box-shadow: 9px 9px 0 #000000;
+  box-shadow: 0 24px 70px rgba(15, 23, 42, 0.16);
 }
 
 .cosmic-page .cosmic-mobile-panel a,
@@ -138,24 +165,23 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  min-height: 48px;
-  padding: 0 14px;
+  min-height: 46px;
+  padding: 0 12px;
   border: 0;
-  border-radius: 14px;
-  background: var(--report-cream);
-  color: #000000;
+  border-radius: 10px;
+  background: #f7f9fc;
+  color: var(--lp-ink);
   text-decoration: none;
-  font-weight: 850;
+  font-weight: 780;
 }
 
 .cosmic-page .cosmic-hero {
   position: relative;
-  min-height: auto;
-  padding: 48px 0 58px;
+  padding: clamp(46px, 6vw, 74px) 0 clamp(50px, 6vw, 72px);
   background:
-    radial-gradient(circle, rgba(255, 255, 255, 0.13) 1.4px, transparent 1.6px) 0 0 / 28px 28px,
-    #050505;
-  color: #ffffff;
+    radial-gradient(circle at 16% 16%, rgba(37, 99, 235, 0.08), transparent 30%),
+    linear-gradient(180deg, #ffffff 0%, #f7f9fc 100%);
+  color: var(--lp-ink);
 }
 
 .cosmic-page .cosmic-hero-inner,
@@ -184,16 +210,15 @@
   align-items: center;
   justify-content: center;
   width: max-content;
-  min-height: 34px;
-  margin: 0 auto 22px;
-  padding: 0 18px;
-  border: 1px solid rgba(255, 255, 255, 0.24);
+  min-height: 32px;
+  margin: 0 auto 18px;
+  padding: 0 12px;
+  border: 1px solid #cfe0ff;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.08);
-  color: var(--report-green);
-  font-family: "Funnel Display", "DM Sans", sans-serif;
-  font-size: 16px;
-  font-weight: 700;
+  background: var(--lp-blue-soft);
+  color: #1e4fb5;
+  font-size: 13px;
+  font-weight: 850;
   letter-spacing: 0;
   text-transform: none;
 }
@@ -206,17 +231,16 @@
 .cosmic-page .cosmic-faq h2,
 .cosmic-page .cosmic-final-cta h2 {
   margin: 0;
-  color: #000000;
+  color: var(--lp-ink);
   font-family: "Funnel Display", "DM Sans", Inter, ui-sans-serif, system-ui, sans-serif;
-  font-weight: 600;
-  letter-spacing: -0.04em;
+  font-weight: 700;
+  letter-spacing: -0.02em;
 }
 
 .cosmic-page .cosmic-hero h1 {
-  max-width: 1060px;
-  color: #ffffff;
-  font-size: clamp(54px, 8vw, 102px);
-  line-height: 0.92;
+  max-width: 840px;
+  font-size: clamp(42px, 5.4vw, 68px);
+  line-height: 1.02;
 }
 
 .cosmic-page .cosmic-hero > div > p:not(.cosmic-kicker),
@@ -224,73 +248,74 @@
 .cosmic-page .cosmic-tools > p:not(.cosmic-pill),
 .cosmic-page .cosmic-scenarios > p:not(.cosmic-pill),
 .cosmic-page .cosmic-faq > p {
-  max-width: 720px;
+  max-width: 710px;
   margin: 18px auto 0;
-  color: rgba(255, 255, 255, 0.76);
-  font-size: clamp(18px, 2vw, 24px);
-  font-weight: 650;
-  line-height: 1.34;
+  color: var(--lp-muted);
+  font-size: clamp(17px, 1.8vw, 21px);
+  font-weight: 560;
+  line-height: 1.5;
 }
 
 .cosmic-page .cosmic-dropzone {
   display: grid;
-  grid-template-columns: minmax(0, 0.92fr) minmax(300px, 0.58fr);
-  gap: 28px;
-  width: min(960px, 100%);
-  min-height: 318px;
-  margin-top: 24px;
-  padding: 24px;
-  border: 2px dashed rgba(255, 255, 255, 0.42);
-  border-radius: 28px;
-  background: #ffffff;
-  color: #000000;
-  box-shadow: 12px 12px 0 var(--report-green);
-  transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 0.55fr);
+  gap: 22px;
+  width: min(920px, 100%);
+  min-height: 292px;
+  margin-top: 30px;
+  padding: 18px;
+  border: 1px solid var(--lp-line);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.96);
+  color: var(--lp-ink);
+  box-shadow: 0 24px 70px rgba(15, 23, 42, 0.11);
+  transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
 }
 
 .cosmic-page .cosmic-dropzone:hover,
 .cosmic-page .cosmic-dropzone.is-active {
-  border-color: var(--report-blue);
-  transform: translateY(-2px);
-  box-shadow: 16px 16px 0 var(--report-green);
+  border-color: #9fbaff;
+  box-shadow: 0 28px 80px rgba(37, 99, 235, 0.16);
+  transform: translateY(-1px);
 }
 
 .cosmic-page .cosmic-drop-copy {
   display: grid;
   align-content: center;
   justify-items: start;
-  gap: 16px;
-  padding: clamp(18px, 4vw, 42px);
+  gap: 14px;
+  padding: clamp(18px, 4vw, 34px);
   text-align: left;
 }
 
 .cosmic-page .cosmic-upload-icon {
   display: grid;
-  width: 64px;
-  height: 64px;
+  width: 54px;
+  height: 54px;
   place-items: center;
-  border-radius: 999px;
-  background: var(--report-purple);
-  color: #000000;
+  border: 1px solid #cfe0ff;
+  border-radius: 14px;
+  background: var(--lp-blue-soft);
+  color: var(--lp-blue);
 }
 
 .cosmic-page .cosmic-dropzone h2 {
   margin: 0;
   max-width: 470px;
-  color: #000000;
+  color: var(--lp-ink);
   font-family: "Funnel Display", "DM Sans", sans-serif;
-  font-size: clamp(34px, 4vw, 56px);
-  line-height: 0.95;
-  letter-spacing: -0.035em;
+  font-size: clamp(30px, 3vw, 42px);
+  line-height: 1.02;
+  letter-spacing: -0.02em;
 }
 
 .cosmic-page .cosmic-dropzone p {
-  max-width: 490px;
+  max-width: 500px;
   margin: 0;
-  color: #3a3a3a;
-  font-size: 17px;
-  font-weight: 650;
-  line-height: 1.45;
+  color: var(--lp-muted);
+  font-size: 16px;
+  font-weight: 560;
+  line-height: 1.5;
 }
 
 .cosmic-page .cosmic-dropzone button,
@@ -299,16 +324,23 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 9px;
-  min-height: 48px;
-  padding: 0 22px;
-  border: 0;
-  border-radius: 999px;
-  background: var(--report-blue);
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 18px;
+  border: 1px solid var(--lp-blue);
+  border-radius: 10px;
+  background: var(--lp-blue);
   color: #ffffff;
-  font-size: 16px;
-  font-weight: 900;
+  font-size: 15px;
+  font-weight: 850;
   cursor: pointer;
+  box-shadow: 0 10px 24px rgba(37, 99, 235, 0.18);
+}
+
+.cosmic-page .cosmic-dropzone button:hover,
+.cosmic-page .cosmic-scenarios article button:hover,
+.cosmic-page .cosmic-final-cta button:hover {
+  background: var(--lp-blue-dark);
 }
 
 .cosmic-page .cosmic-document-stack {
@@ -316,46 +348,46 @@
   align-content: center;
   gap: 14px;
   padding: 18px;
-  border-radius: 22px;
-  background: var(--report-cream);
+  border: 1px solid var(--lp-soft-line);
+  border-radius: 14px;
+  background: #f8fbff;
 }
 
 .cosmic-page .cosmic-document-stack img {
-  width: min(240px, 100%);
+  width: min(190px, 100%);
   margin: 0 auto;
   object-fit: contain;
+  filter: saturate(0.88);
 }
 
 .cosmic-page .cosmic-document-stack div {
   display: grid;
   gap: 4px;
-  padding: 18px;
-  border: 2px solid #000000;
-  border-radius: 18px;
+  padding: 16px;
+  border: 1px solid var(--lp-line);
+  border-radius: 12px;
   background: #ffffff;
   text-align: left;
 }
 
 .cosmic-page .cosmic-document-stack span,
 .cosmic-page .cosmic-document-stack small {
-  color: #5f5f5f;
-  font-size: 13px;
-  font-weight: 800;
+  color: var(--lp-subtle);
+  font-size: 12px;
+  font-weight: 780;
 }
 
 .cosmic-page .cosmic-document-stack strong {
-  color: #000000;
-  font-size: 21px;
-  font-weight: 950;
+  color: var(--lp-ink);
+  font-size: 18px;
+  font-weight: 900;
 }
 
 .cosmic-page .cosmic-hand-note {
-  margin-top: 32px;
-  color: var(--report-green);
-  font-family: "Funnel Display", "DM Sans", sans-serif;
-  font-size: clamp(22px, 3vw, 34px);
-  font-weight: 700;
-  transform: rotate(-2deg);
+  margin-top: 18px;
+  color: #51647a;
+  font-size: 14px;
+  font-weight: 760;
 }
 
 .cosmic-page .cosmic-trustpilot,
@@ -365,14 +397,14 @@
   align-items: center;
   justify-content: center;
   flex-wrap: wrap;
-  gap: 14px;
+  gap: 12px;
 }
 
 .cosmic-page .cosmic-trustpilot {
-  margin-top: 24px;
-  color: #ffffff;
+  margin-top: 18px;
+  color: var(--lp-ink);
   font-size: 14px;
-  font-weight: 850;
+  font-weight: 800;
 }
 
 .cosmic-page .cosmic-trustpilot strong,
@@ -380,14 +412,20 @@
 .cosmic-page .cosmic-compliance span {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
+  gap: 6px;
+}
+
+.cosmic-page .cosmic-trustpilot svg,
+.cosmic-page .cosmic-security svg,
+.cosmic-page .cosmic-compliance svg {
+  color: var(--lp-green);
 }
 
 .cosmic-page .cosmic-security {
-  margin-top: 16px;
-  color: rgba(255, 255, 255, 0.64);
+  margin-top: 14px;
+  color: var(--lp-muted);
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 740;
 }
 
 .cosmic-page .cosmic-steps,
@@ -396,7 +434,7 @@
 .cosmic-page .cosmic-reviews,
 .cosmic-page .cosmic-faq,
 .cosmic-page .cosmic-final-cta {
-  padding: clamp(70px, 9vw, 128px) 0;
+  padding: clamp(58px, 8vw, 104px) 0;
 }
 
 .cosmic-page .cosmic-steps,
@@ -409,9 +447,9 @@
 .cosmic-page .cosmic-steps .cosmic-pill,
 .cosmic-page .cosmic-tools .cosmic-pill,
 .cosmic-page .cosmic-scenarios .cosmic-pill {
-  border-color: #000000;
+  border-color: #d5e2f4;
   background: #ffffff;
-  color: #000000;
+  color: #31577f;
 }
 
 .cosmic-page .cosmic-steps h2,
@@ -420,16 +458,15 @@
 .cosmic-page .cosmic-reviews h2,
 .cosmic-page .cosmic-faq h2,
 .cosmic-page .cosmic-final-cta h2 {
-  color: #000000;
-  font-size: clamp(44px, 6vw, 84px);
-  line-height: 0.95;
+  font-size: clamp(34px, 4.8vw, 60px);
+  line-height: 1.04;
 }
 
 .cosmic-page .cosmic-steps > p:not(.cosmic-pill),
 .cosmic-page .cosmic-tools > p:not(.cosmic-pill),
 .cosmic-page .cosmic-scenarios > p:not(.cosmic-pill),
 .cosmic-page .cosmic-faq > p {
-  color: #4a4a4a;
+  color: var(--lp-muted);
 }
 
 .cosmic-page .cosmic-step-grid,
@@ -437,8 +474,8 @@
 .cosmic-page .cosmic-reviews > div {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 18px;
-  margin-top: 38px;
+  gap: 16px;
+  margin-top: 34px;
 }
 
 .cosmic-page .cosmic-scenarios > div {
@@ -450,29 +487,15 @@
 .cosmic-page .cosmic-reviews article {
   display: grid;
   align-content: start;
-  gap: 14px;
-  min-height: 220px;
-  padding: 24px;
-  border: 2px solid #000000;
-  border-radius: 24px;
+  gap: 12px;
+  min-height: 190px;
+  padding: 22px;
+  border: 1px solid var(--lp-line);
+  border-radius: 14px;
   background: #ffffff;
-  color: #000000;
-  box-shadow: 8px 8px 0 #000000;
+  color: var(--lp-ink);
+  box-shadow: 0 12px 34px rgba(15, 23, 42, 0.06);
   text-align: left;
-}
-
-.cosmic-page .cosmic-step-grid article:nth-child(2),
-.cosmic-page .cosmic-scenarios article:nth-child(2) {
-  background: var(--report-purple);
-}
-
-.cosmic-page .cosmic-step-grid article:nth-child(3),
-.cosmic-page .cosmic-scenarios article:nth-child(3) {
-  background: var(--report-pink);
-}
-
-.cosmic-page .cosmic-scenarios article:nth-child(4) {
-  background: var(--report-green);
 }
 
 .cosmic-page .cosmic-step-grid small,
@@ -481,28 +504,29 @@
   align-items: center;
   justify-content: center;
   width: max-content;
-  min-height: 30px;
-  padding: 0 12px;
-  border: 2px solid #000000;
+  min-height: 28px;
+  padding: 0 10px;
+  border: 1px solid #d5e2f4;
   border-radius: 999px;
-  background: var(--report-green);
-  color: #000000;
-  font-weight: 950;
+  background: #f7fbff;
+  color: #31577f;
+  font-size: 12px;
+  font-weight: 850;
 }
 
 .cosmic-page .cosmic-step-grid h3,
 .cosmic-page .cosmic-scenarios h3,
 .cosmic-page .cosmic-reviews h3 {
   margin: 0;
-  color: #000000;
+  color: var(--lp-ink);
   font-family: "Funnel Display", "DM Sans", sans-serif;
-  font-size: clamp(25px, 3vw, 38px);
-  line-height: 0.98;
-  letter-spacing: -0.03em;
+  font-size: clamp(22px, 2.3vw, 30px);
+  line-height: 1.08;
+  letter-spacing: -0.015em;
 }
 
 .cosmic-page .cosmic-scenarios article h3 {
-  font-size: clamp(44px, 5vw, 68px);
+  font-size: clamp(28px, 3.2vw, 42px);
 }
 
 .cosmic-page .cosmic-step-grid p,
@@ -511,10 +535,10 @@
 .cosmic-page .cosmic-forms p,
 .cosmic-page .cosmic-faq article p {
   margin: 0;
-  color: #3d3d3d;
-  font-size: 16px;
-  font-weight: 650;
-  line-height: 1.48;
+  color: var(--lp-muted);
+  font-size: 15px;
+  font-weight: 540;
+  line-height: 1.52;
 }
 
 .cosmic-page .cosmic-tools {
@@ -522,63 +546,66 @@
   padding-right: max(24px, calc((100vw - 1180px) / 2));
   padding-left: max(24px, calc((100vw - 1180px) / 2));
   background: #ffffff;
-  box-shadow: 0 -1px 0 rgba(0, 0, 0, 0.08), 0 1px 0 rgba(0, 0, 0, 0.08);
+  box-shadow: inset 0 1px 0 var(--lp-soft-line), inset 0 -1px 0 var(--lp-soft-line);
 }
 
 .cosmic-page .cosmic-filters {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 10px;
-  margin: 34px 0 24px;
+  gap: 8px;
+  margin: 30px 0 22px;
 }
 
 .cosmic-page .cosmic-filters button {
-  min-height: 42px;
-  padding: 0 17px;
-  border: 2px solid #000000;
-  border-radius: 999px;
-  background: var(--report-cream);
-  color: #000000;
-  font-weight: 900;
+  min-height: 38px;
+  padding: 0 14px;
+  border: 1px solid var(--lp-line);
+  border-radius: 9px;
+  background: #ffffff;
+  color: #40536b;
+  font-weight: 820;
   cursor: pointer;
 }
 
 .cosmic-page .cosmic-filters button.is-active {
-  background: var(--report-blue);
-  color: #ffffff;
+  border-color: #bcd0ff;
+  background: var(--lp-blue-soft);
+  color: var(--lp-blue-dark);
 }
 
 .cosmic-page .cosmic-tool-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 14px;
+  gap: 12px;
 }
 
 .cosmic-page .cosmic-tool-card {
   position: relative;
   display: grid;
-  gap: 16px;
-  min-height: 150px;
-  padding: 20px;
-  border: 2px solid #000000;
-  border-radius: 22px;
-  background: var(--report-cream);
-  color: #000000;
+  gap: 14px;
+  min-height: 134px;
+  padding: 18px;
+  border: 1px solid var(--lp-line);
+  border-radius: 14px;
+  background: #ffffff;
+  color: var(--lp-ink);
   text-align: left;
   cursor: pointer;
+  transition: border-color 140ms ease, box-shadow 140ms ease, transform 140ms ease;
 }
 
 .cosmic-page .cosmic-tool-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 6px 6px 0 #000000;
+  border-color: #b8c8dd;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.08);
+  transform: translateY(-1px);
 }
 
 .cosmic-page .cosmic-chip-row,
 .cosmic-page .cosmic-form-tags {
   display: flex;
   flex-wrap: wrap;
-  gap: 7px;
+  gap: 6px;
 }
 
 .cosmic-page .cosmic-file-chip,
@@ -587,28 +614,29 @@
   display: inline-flex;
   align-items: center;
   width: max-content;
-  min-height: 27px;
-  padding: 0 10px;
-  border: 1.5px solid #000000;
+  min-height: 25px;
+  padding: 0 9px;
+  border: 1px solid #d5e2f4;
   border-radius: 999px;
-  background: #ffffff;
-  color: #000000;
-  font-size: 12px;
+  background: #f7fbff;
+  color: #31577f;
+  font-size: 11px;
   font-style: normal;
-  font-weight: 900;
+  font-weight: 850;
 }
 
 .cosmic-page .cosmic-tool-card strong {
   align-self: end;
-  font-size: 22px;
-  font-weight: 950;
+  font-size: 19px;
+  font-weight: 900;
 }
 
 .cosmic-page .cosmic-tool-card em {
   position: absolute;
-  right: 14px;
-  bottom: 14px;
-  background: var(--report-green);
+  right: 12px;
+  bottom: 12px;
+  background: var(--lp-green-soft);
+  color: #137a38;
 }
 
 .cosmic-page .cosmic-scenarios {
@@ -621,36 +649,46 @@
 }
 
 .cosmic-page .cosmic-scenarios h2 {
-  max-width: 900px;
+  max-width: 840px;
+}
+
+.cosmic-page .cosmic-scenarios article button {
+  width: max-content;
+  min-height: 38px;
+  padding: 0 13px;
+  border-radius: 9px;
+  font-size: 13px;
+  box-shadow: none;
 }
 
 .cosmic-page .cosmic-forms {
   display: grid;
   grid-template-columns: auto 1fr auto auto;
   align-items: center;
-  gap: 22px;
-  padding: 26px;
-  border: 2px solid #000000;
-  border-radius: 28px;
+  gap: 18px;
+  padding: 22px;
+  border: 1px solid var(--lp-line);
+  border-radius: 16px;
   background: #ffffff;
-  box-shadow: 8px 8px 0 #000000;
+  box-shadow: 0 18px 44px rgba(15, 23, 42, 0.07);
 }
 
 .cosmic-page .cosmic-us-flag {
   display: grid;
-  width: 58px;
-  height: 58px;
+  width: 52px;
+  height: 52px;
   place-items: center;
-  border-radius: 18px;
-  background: var(--report-purple);
-  color: #000000;
+  border: 1px solid #cfe0ff;
+  border-radius: 13px;
+  background: var(--lp-blue-soft);
+  color: var(--lp-blue);
 }
 
 .cosmic-page .cosmic-forms strong {
   display: block;
   margin-bottom: 5px;
-  font-size: 22px;
-  font-weight: 950;
+  font-size: 20px;
+  font-weight: 900;
 }
 
 .cosmic-page .cosmic-forms a {
@@ -659,13 +697,13 @@
   gap: 6px;
   min-height: 36px;
   padding: 0 12px;
-  border: 1.5px solid #000000;
-  border-radius: 999px;
-  background: var(--report-blue);
-  color: #ffffff;
+  border: 1px solid var(--lp-line);
+  border-radius: 9px;
+  background: #ffffff;
+  color: var(--lp-blue-dark);
   text-decoration: none;
   font-size: 13px;
-  font-weight: 900;
+  font-weight: 850;
 }
 
 .cosmic-page .cosmic-review-heading {
@@ -673,40 +711,35 @@
   grid-template-columns: minmax(0, 1fr) 300px;
   gap: 28px;
   align-items: end;
-  margin-bottom: 34px;
+  margin-bottom: 30px;
 }
 
 .cosmic-page .cosmic-review-heading aside {
-  padding: 22px;
-  border: 2px solid #000000;
-  border-radius: 22px;
-  background: var(--report-green);
-  box-shadow: 7px 7px 0 #000000;
+  padding: 20px;
+  border: 1px solid #cfe0ff;
+  border-radius: 14px;
+  background: #f7fbff;
 }
 
 .cosmic-page .cosmic-review-heading aside strong {
   display: inline-flex;
   align-items: center;
   gap: 8px;
+  color: #31577f;
 }
 
 .cosmic-page .cosmic-review-heading aside p {
   margin: 8px 0 0;
-  color: #222222;
-  font-weight: 750;
+  color: var(--lp-muted);
+  font-weight: 650;
 }
 
 .cosmic-page .cosmic-review-photo {
-  width: 86px;
-  height: 86px;
-  border: 2px solid #000000;
-  border-radius: 18px;
-  object-fit: cover;
-  transform: rotate(-3deg);
+  display: none;
 }
 
 .cosmic-page .cosmic-reviews footer {
-  margin-top: 12px;
+  margin-top: 10px;
 }
 
 .cosmic-page .cosmic-reviews footer span {
@@ -715,8 +748,8 @@
 }
 
 .cosmic-page .cosmic-reviews footer small {
-  color: #666666;
-  font-weight: 800;
+  color: var(--lp-subtle);
+  font-weight: 750;
 }
 
 .cosmic-page .cosmic-faq {
@@ -727,37 +760,37 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  min-height: 42px;
-  margin: 24px 0;
-  padding: 0 18px;
-  border: 2px solid #000000;
-  border-radius: 999px;
-  background: var(--report-green);
-  color: #000000;
-  font-weight: 900;
+  min-height: 40px;
+  margin: 22px 0;
+  padding: 0 15px;
+  border: 1px solid #cfe0ff;
+  border-radius: 9px;
+  background: var(--lp-blue-soft);
+  color: var(--lp-blue-dark);
+  font-weight: 850;
   cursor: pointer;
 }
 
 .cosmic-page .cosmic-support {
   margin: 0 auto 18px;
-  padding: 16px 18px;
-  border: 2px solid #000000;
-  border-radius: 18px;
+  padding: 14px 16px;
+  border: 1px solid var(--lp-line);
+  border-radius: 12px;
   background: #ffffff;
-  color: #000000;
-  font-weight: 750;
+  color: var(--lp-muted);
+  font-weight: 650;
 }
 
 .cosmic-page .cosmic-faq > div {
   display: grid;
-  gap: 12px;
-  margin-top: 10px;
+  gap: 10px;
+  margin-top: 8px;
 }
 
 .cosmic-page .cosmic-faq article {
   overflow: hidden;
-  border: 2px solid #000000;
-  border-radius: 20px;
+  border: 1px solid var(--lp-line);
+  border-radius: 12px;
   background: #ffffff;
 }
 
@@ -766,81 +799,83 @@
   align-items: center;
   justify-content: space-between;
   width: 100%;
-  min-height: 64px;
-  padding: 0 22px;
+  min-height: 60px;
+  padding: 0 18px;
   border: 0;
   background: transparent;
-  color: #000000;
-  font-size: 18px;
-  font-weight: 950;
+  color: var(--lp-ink);
+  font-size: 17px;
+  font-weight: 850;
   text-align: left;
   cursor: pointer;
 }
 
 .cosmic-page .cosmic-faq article p {
-  padding: 0 22px 20px;
+  padding: 0 18px 18px;
 }
 
 .cosmic-page .cosmic-compliance {
-  padding: 28px 0;
-  border-top: 2px solid #000000;
-  border-bottom: 2px solid #000000;
+  padding: 24px 0;
+  border-top: 1px solid var(--lp-soft-line);
+  border-bottom: 1px solid var(--lp-soft-line);
 }
 
 .cosmic-page .cosmic-compliance strong {
-  font-weight: 950;
-}
-
-.cosmic-page .cosmic-compliance span {
-  min-height: 34px;
-  padding: 0 12px;
-  border: 1.5px solid #000000;
-  border-radius: 999px;
-  background: #ffffff;
-  font-size: 13px;
   font-weight: 900;
 }
 
+.cosmic-page .cosmic-compliance span {
+  min-height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--lp-line);
+  border-radius: 999px;
+  background: #ffffff;
+  color: #40536b;
+  font-size: 12px;
+  font-weight: 820;
+}
+
 .cosmic-page .cosmic-final-cta {
-  width: min(1040px, calc(100% - 48px));
+  width: min(980px, calc(100% - 48px));
   text-align: center;
 }
 
 .cosmic-page .cosmic-final-cta h2 {
-  font-size: clamp(54px, 8vw, 108px);
+  font-size: clamp(42px, 6vw, 76px);
 }
 
 .cosmic-page .cosmic-final-cta p {
   max-width: 620px;
-  margin: 22px auto 28px;
-  color: #434343;
-  font-size: 20px;
-  font-weight: 700;
-  line-height: 1.4;
+  margin: 20px auto 26px;
+  color: var(--lp-muted);
+  font-size: 18px;
+  font-weight: 580;
+  line-height: 1.5;
 }
 
 .cosmic-page .cosmic-final-cta > div {
   display: flex;
   justify-content: center;
   flex-wrap: wrap;
-  gap: 16px;
-  margin-top: 22px;
+  gap: 14px;
+  margin-top: 20px;
 }
 
 .cosmic-page .cosmic-final-cta > div span {
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  color: #333333;
-  font-weight: 850;
+  color: var(--lp-muted);
+  font-size: 13px;
+  font-weight: 800;
 }
 
 .cosmic-page .cosmic-footer {
   display: grid;
   grid-template-columns: 1.35fr repeat(4, 1fr);
   gap: 28px;
-  padding: 48px 0 32px;
-  border-top: 2px solid #000000;
+  padding: 44px 0 30px;
+  border-top: 1px solid var(--lp-soft-line);
 }
 
 .cosmic-page .cosmic-footer div {
@@ -850,18 +885,19 @@
 }
 
 .cosmic-page .cosmic-footer strong {
-  color: #000000;
-  font-weight: 950;
+  color: var(--lp-ink);
+  font-weight: 900;
 }
 
 .cosmic-page .cosmic-footer a,
 .cosmic-page .cosmic-footer p,
 .cosmic-page .cosmic-footer span,
 .cosmic-page .cosmic-footer em {
-  color: #474747;
+  color: var(--lp-muted);
   text-decoration: none;
+  font-size: 14px;
   font-style: normal;
-  font-weight: 750;
+  font-weight: 650;
 }
 
 .cosmic-page .cosmic-footer-bottom {
@@ -869,18 +905,19 @@
   display: flex !important;
   flex-wrap: wrap;
   gap: 10px;
-  padding-top: 24px;
-  border-top: 1px solid rgba(0, 0, 0, 0.14);
+  padding-top: 22px;
+  border-top: 1px solid var(--lp-soft-line);
 }
 
 .cosmic-page .cosmic-footer-bottom span,
 .cosmic-page .cosmic-footer-bottom em {
   display: inline-flex;
-  min-height: 32px;
+  min-height: 30px;
   align-items: center;
   padding: 0 10px;
-  border: 1px solid rgba(0, 0, 0, 0.18);
+  border: 1px solid var(--lp-line);
   border-radius: 999px;
+  background: #ffffff;
 }
 
 @media (max-width: 980px) {
@@ -898,11 +935,6 @@
 
   .cosmic-page .cosmic-menu {
     display: grid;
-  }
-
-  .cosmic-page .cosmic-hero {
-    min-height: auto;
-    padding: 64px 0;
   }
 
   .cosmic-page .cosmic-dropzone,
@@ -932,7 +964,6 @@
   .cosmic-page .cosmic-header {
     min-height: 66px;
     padding: 0 16px;
-    border-radius: 0 0 16px 16px;
   }
 
   .cosmic-page .cosmic-brand.blank-brand {
@@ -952,18 +983,21 @@
     width: min(100% - 28px, 1180px);
   }
 
+  .cosmic-page .cosmic-hero {
+    padding: 42px 0 48px;
+  }
+
   .cosmic-page .cosmic-hero h1 {
-    font-size: clamp(48px, 18vw, 76px);
+    font-size: clamp(40px, 13vw, 58px);
   }
 
   .cosmic-page .cosmic-dropzone {
-    padding: 16px;
-    border-radius: 22px;
-    box-shadow: 7px 7px 0 var(--report-green);
+    padding: 14px;
+    border-radius: 14px;
   }
 
   .cosmic-page .cosmic-drop-copy {
-    padding: 12px;
+    padding: 10px;
   }
 
   .cosmic-page .cosmic-steps h2,
@@ -972,6 +1006,6 @@
   .cosmic-page .cosmic-reviews h2,
   .cosmic-page .cosmic-faq h2,
   .cosmic-page .cosmic-final-cta h2 {
-    font-size: clamp(38px, 13vw, 58px);
+    font-size: clamp(32px, 10vw, 48px);
   }
 }

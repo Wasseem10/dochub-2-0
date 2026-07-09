@@ -2,18 +2,19 @@
 
 final result: passed
 
-Reference reviewed: https://www.7shifts.com/what-restaurant-employees-want/
+Latest request reviewed: make the landing page light, simple, and enterprise-grade.
 
-Prototype reviewed: http://127.0.0.1:4173/?v=editorial-landing-local
+Prototype reviewed: http://127.0.0.1:4173/?v=light-enterprise-local
 
 Checks completed:
-- Desktop landing captures the reference direction: black dotted editorial hero, light pill navigation, large display type, blue CTA, green accent, and report-style cards.
-- Content is original to the PDF editor and does not use the restaurant study copy, brand, or page structure.
+- Desktop landing now uses a light SaaS visual system: white surfaces, restrained blue accents, subtle borders, slate text, and softer shadows.
+- Removed the dark editorial/report direction, heavy black blocks, chunky borders, loud cards, and oversized gimmick styling.
+- Content is original to the PDF editor and avoids fake study-style metrics in the capabilities section.
 - Desktop has no horizontal overflow at 1280px.
 - Mobile has no horizontal overflow at 390px; nav collapses to the menu and cards stack cleanly.
 - Tool filters work; selecting Sign shows Type signature, Request signature, and Comments.
-- Support toggle and FAQ accordion open correctly.
+- FAQ accordion opens correctly.
 - Production build passes.
 
 Residual P3 polish:
-- The hero is intentionally oversized like the reference. Future pass can tune exact headline line breaks after a final company name is chosen.
+- A future pass can add a real brand mark and product screenshots once the company name and visual identity are chosen.

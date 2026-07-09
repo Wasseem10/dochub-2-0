@@ -2999,15 +2999,15 @@ function LandingPage({ fileInputRef, onUpload, onSelectFiles, onLogin }) {
     ["Security", "#security"],
   ];
   const workflow = [
-    ["01", "Bring in the document", "Upload a PDF, start blank, or continue from recent files.", Upload],
-    ["02", "Work directly on the page", "Edit words, add text, mark up, draw, whiteout, and place images.", PenLine],
-    ["03", "Finish the packet", "Sign, download, print, or share without leaving the workspace.", Download],
+    ["01", "Upload or start blank", "Open a PDF from your device or begin with a clean document.", Upload],
+    ["02", "Edit on the page", "Update text, add fields, annotate, draw, whiteout, and place images.", PenLine],
+    ["03", "Send the final PDF", "Sign, download, print, or share from the same workspace.", Download],
   ];
   const insights = [
-    ["82%", "of document work is still review, correction, and signature prep.", "Editing"],
-    ["4 min", "average target from upload to finished export for common forms.", "Speed"],
-    ["9 tools", "available in the editor toolbar before the user opens a menu.", "Coverage"],
-    ["0 installs", "required to annotate, sign, and download from the browser.", "Access"],
+    ["Edit", "Change existing words, add new text, highlight important details, or whiteout content.", "Document editing"],
+    ["Sign", "Create a typed or drawn signature and place it exactly where it belongs.", "Approvals"],
+    ["Organize", "Reorder pages, merge packets, delete extras, and keep the file clean.", "Page control"],
+    ["Export", "Download, print, or share a finished PDF without leaving the browser.", "Delivery"],
   ];
 
   const uploadClick = () => {
@@ -3018,7 +3018,7 @@ function LandingPage({ fileInputRef, onUpload, onSelectFiles, onLogin }) {
   return (
     <main className="cosmic-page">
       <input ref={fileInputRef} className="hidden-input" type="file" accept="application/pdf" onChange={onUpload} />
-      <a className="cosmic-topline" href="#insights">New workflow study: what document teams need next <ArrowDownToLine size={14} /></a>
+      <a className="cosmic-topline" href="#security">Secure browser-based PDF editing for teams <ArrowDownToLine size={14} /></a>
       <header className="cosmic-header">
         <a className="cosmic-brand blank-brand" href="#hero" onClick={() => setMobileMenuOpen(false)}><span><Box size={17} /></span></a>
         <nav className="cosmic-nav" aria-label="Primary">
@@ -3026,7 +3026,7 @@ function LandingPage({ fileInputRef, onUpload, onSelectFiles, onLogin }) {
         </nav>
         <div className="cosmic-header-actions">
           <button type="button" className="cosmic-login" onClick={onLogin}>Log in</button>
-          <button type="button" className="cosmic-upload-small" onClick={uploadClick}>Start free</button>
+          <button type="button" className="cosmic-upload-small" onClick={uploadClick}>Upload PDF</button>
           <button type="button" className="cosmic-menu" onClick={() => setMobileMenuOpen((value) => !value)} aria-expanded={mobileMenuOpen} aria-label="Open menu"><List size={20} /></button>
         </div>
         {mobileMenuOpen && (
@@ -3040,9 +3040,9 @@ function LandingPage({ fileInputRef, onUpload, onSelectFiles, onLogin }) {
 
       <section id="hero" className="cosmic-hero">
         <div className="cosmic-hero-inner">
-          <p className="cosmic-kicker">Free browser workspace</p>
-          <h1>Documents should move as fast as your team.</h1>
-          <p>Upload, edit, sign, and export PDFs from one calm workspace built for real deadline pressure.</p>
+          <p className="cosmic-kicker">PDF editing workspace</p>
+          <h1>Edit, sign, and manage PDFs in one secure workspace.</h1>
+          <p>A clean browser editor for text changes, signatures, fields, page organization, and finished PDF exports.</p>
           <div
             className={`cosmic-dropzone ${uploadActive ? "is-active" : ""}`}
             onDragEnter={(event) => {
@@ -3059,20 +3059,20 @@ function LandingPage({ fileInputRef, onUpload, onSelectFiles, onLogin }) {
           >
             <div className="cosmic-drop-copy">
               <div className="cosmic-upload-icon"><Upload size={34} /></div>
-              <h2>{uploadActive ? "Release to open your PDF" : "Drop a PDF and start editing"}</h2>
-              <p>Text edits, signatures, fields, pages, comments, and export are ready inside the editor.</p>
+              <h2>{uploadActive ? "Release to open your PDF" : "Upload a PDF to start editing"}</h2>
+              <p>Open the editor with text tools, drawing, comments, signatures, page controls, and export actions ready.</p>
               <button type="button" onClick={uploadClick}><Zap size={17} fill="currentColor" /> Upload your PDF</button>
             </div>
             <div className="cosmic-document-stack" aria-hidden="true">
               <img src="/cosmic-assets/3d-upload.png" alt="" />
               <div>
-                <span>Ready for review</span>
-                <strong>Agreement.pdf</strong>
-                <small>Text edited · signed · export ready</small>
+                <span>Secure workspace</span>
+                <strong>Document.pdf</strong>
+                <small>Edit text · sign · export</small>
               </div>
             </div>
           </div>
-          <div className="cosmic-hand-note">Designed for the messy middle of paperwork</div>
+          <div className="cosmic-hand-note">No install. No clutter. Just the tools to finish.</div>
           <div className="cosmic-trustpilot" id="security">
             <strong><CheckCircle2 size={15} /> Secure upload</strong>
             <b>Browser-first editor</b>
@@ -3088,8 +3088,8 @@ function LandingPage({ fileInputRef, onUpload, onSelectFiles, onLogin }) {
 
       <section id="workflow" className="cosmic-steps">
         <p className="cosmic-pill">Workflow</p>
-        <h2>From first upload to final packet.</h2>
-        <p>The page stays centered on the document while every common PDF action stays within reach.</p>
+        <h2>A straightforward path from upload to final PDF.</h2>
+        <p>The document stays centered while the tools stay close enough to work quickly.</p>
         <div className="cosmic-step-grid">
           {workflow.map(([num, title, copy, Icon]) => (
             <article key={title}><small>{num}</small><Icon size={24} /><h3>{title}</h3><p>{copy}</p></article>
@@ -3099,8 +3099,8 @@ function LandingPage({ fileInputRef, onUpload, onSelectFiles, onLogin }) {
 
       <section id="tools" className="cosmic-tools">
         <p className="cosmic-pill">Toolbar</p>
-        <h2>Everything the editor needs, organized by job.</h2>
-        <p>Filter the workspace by what you are trying to finish, then jump straight into the editor.</p>
+        <h2>Core PDF tools, grouped around the work.</h2>
+        <p>Choose the job you need to finish and jump straight into the editor.</p>
         <div className="cosmic-filters">
           {categories.map((category) => (
             <button key={category} type="button" className={activeCategory === category ? "is-active" : ""} onClick={() => setActiveCategory(category)}>{category}</button>
@@ -3122,16 +3122,16 @@ function LandingPage({ fileInputRef, onUpload, onSelectFiles, onLogin }) {
       </section>
 
       <section id="insights" className="cosmic-scenarios">
-        <p className="cosmic-pill">Document operations</p>
-        <h2>The new document problem is speed without chaos.</h2>
-        <p>Teams do not need another file viewer. They need a workspace that gets paperwork finished.</p>
+        <p className="cosmic-pill">Capabilities</p>
+        <h2>Built for the document tasks teams repeat every day.</h2>
+        <p>Each workflow is designed to be understandable before the user opens a menu.</p>
         <div>
           {insights.map(([value, copy, label]) => (
             <article key={label}>
               <small>{label}</small>
               <h3>{value}</h3>
               <p>{copy}</p>
-              <button type="button" onClick={uploadClick}><Zap size={14} /> Try it</button>
+              <button type="button" onClick={uploadClick}><Zap size={14} /> Start</button>
             </article>
           ))}
         </div>
@@ -3139,25 +3139,25 @@ function LandingPage({ fileInputRef, onUpload, onSelectFiles, onLogin }) {
 
       <section className="cosmic-forms">
         <span className="cosmic-us-flag" aria-hidden="true"><FileText size={22} /></span>
-        <div><strong>Made for contracts, resumes, packets, forms, and quick corrections.</strong><p>Drop in the file, make the exact edit, finish the PDF, and keep moving.</p></div>
+        <div><strong>Made for contracts, resumes, packets, forms, and quick corrections.</strong><p>Upload the file, make the exact edit, and export the finished PDF.</p></div>
         <div className="cosmic-form-tags"><span>Edit text</span><span>Sign</span><span>Draw</span><span>Export</span></div>
         <a href="#tools">See tools <ChevronDown size={14} /></a>
       </section>
 
       <section className="cosmic-reviews">
         <div className="cosmic-review-heading">
-          <h2>A calmer way to finish PDFs.</h2>
+          <h2>A cleaner way to finish PDFs.</h2>
           <aside>
-            <strong><Star size={13} fill="currentColor" /> Product notes</strong>
-            <b>Built around the editor</b>
-            <p>Upload first. Edit second. Export cleanly.</p>
+            <strong><Star size={13} fill="currentColor" /> Product principles</strong>
+            <b>Focused on the file</b>
+            <p>Every surface supports editing, signing, review, or export.</p>
           </aside>
         </div>
         <div>
           {[
-            ["/cosmic-assets/review-men-52.jpg", "Operations", "Contract packets", "Review packets without losing the page.", "Thumbnails, page controls, comments, and signing tools sit around the document instead of burying it."],
-            ["/cosmic-assets/review-women-68.jpg", "Founders", "Hiring forms", "Fix names, dates, fields, and signatures fast.", "Edit existing text where possible, add new content anywhere, and export the final PDF from the same screen."],
-            ["/cosmic-assets/review-men-45.jpg", "Students", "Resumes and forms", "Small corrections should not require desktop software.", "The browser editor keeps text, draw, highlight, image, field, and page tools in a focused workspace."],
+            ["/cosmic-assets/review-men-52.jpg", "Operations", "Contract packets", "Keep document review organized.", "Thumbnails, page controls, comments, and signing tools sit around the document instead of hiding behind disconnected menus."],
+            ["/cosmic-assets/review-women-68.jpg", "Founders", "Hiring forms", "Fix details without switching tools.", "Edit existing text where possible, add new content anywhere, and export the final PDF from the same screen."],
+            ["/cosmic-assets/review-men-45.jpg", "Students", "Resumes and forms", "Make small corrections quickly.", "Text, draw, highlight, image, field, and page tools stay in one focused browser workspace."],
           ].map(([src, name, role, title, copy]) => (
             <article key={title}>
               <img className="cosmic-review-photo" src={src} alt="" />
