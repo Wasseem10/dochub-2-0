@@ -89,6 +89,27 @@ const colors = {
   yellow: "#ffe66d",
 };
 
+const TEXT_FONT_OPTIONS = [
+  "PP Agrandir",
+  "Inter",
+  "Arial",
+  "Helvetica",
+  "Times New Roman",
+  "Georgia",
+  "Courier New",
+  "Verdana",
+];
+
+const SIGNATURE_FONT_OPTIONS = [
+  { label: "Classic Script", value: '"Brush Script MT", "Segoe Script", cursive' },
+  { label: "Elegant Script", value: '"Snell Roundhand", "Apple Chancery", cursive' },
+  { label: "Handwritten", value: '"Bradley Hand", "Segoe Print", cursive' },
+  { label: "Formal Cursive", value: '"Lucida Handwriting", "Segoe Script", cursive' },
+  { label: "Clean Italic", value: 'Georgia, "Times New Roman", serif' },
+];
+
+const DEFAULT_SIGNATURE_FONT = SIGNATURE_FONT_OPTIONS[0].value;
+
 const toolConfig = [
   { id: "select", label: "Select", icon: MousePointer2 },
   { id: "editText", label: "Edit PDF Text", icon: ScanText },
@@ -425,6 +446,7 @@ function initialAnnotations() {
       content: "Jane Smith",
       color: "#0f172a",
       fontSize: 25,
+      fontFamily: DEFAULT_SIGNATURE_FONT,
       opacity: 1,
     },
   ];
@@ -738,7 +760,16 @@ function Annotation({ annotation, selected, zoom, onSelect, onDrag, onResize, on
 
   if (annotation.type === "signature" || annotation.type === "initials") {
     return (
-      <div className={`annotation signature ${annotation.type === "initials" ? "initials" : ""} ${selected ? "is-selected" : ""}`} style={{ ...commonStyle, color: annotation.color, fontSize: `${annotation.fontSize * displayScale}px` }} onPointerDown={dragStart}>
+      <div
+        className={`annotation signature ${annotation.type === "initials" ? "initials" : ""} ${selected ? "is-selected" : ""}`}
+        style={{
+          ...commonStyle,
+          color: annotation.color,
+          fontFamily: annotation.fontFamily || (annotation.type === "signature" ? DEFAULT_SIGNATURE_FONT : '"PP Agrandir", Inter, Arial, sans-serif'),
+          fontSize: `${annotation.fontSize * displayScale}px`,
+        }}
+        onPointerDown={dragStart}
+      >
         {annotation.imageDataUrl ? <img src={annotation.imageDataUrl} alt="Signature" /> : annotation.content}
         {selected && <span className="resize-handle" onPointerDown={resizeStart} />}
       </div>
@@ -853,7 +884,7 @@ export function App() {
   const [isCommentsOpen, setIsCommentsOpen] = useState(false);
   const [documentSearchQuery, setDocumentSearchQuery] = useState("");
   const [activeSearchIndex, setActiveSearchIndex] = useState(0);
-  const [activeSignature, setActiveSignature] = useState({ content: "Jane Smith", imageDataUrl: "" });
+  const [activeSignature, setActiveSignature] = useState({ content: "Jane Smith", imageDataUrl: "", fontFamily: DEFAULT_SIGNATURE_FONT });
   const [pendingImage, setPendingImage] = useState(null);
   const [toolSettings, setToolSettings] = useState({
     textColor: colors.black,
@@ -1805,6 +1836,7 @@ export function App() {
         imageDataUrl: activeSignature.imageDataUrl,
         color: "#0f172a",
         fontSize: 27,
+        fontFamily: activeSignature.fontFamily || DEFAULT_SIGNATURE_FONT,
         opacity: 1,
       });
       return;
@@ -2164,7 +2196,16 @@ export function App() {
 
     const helvetica = await pdfDoc.embedFont(StandardFonts.Helvetica);
     const helveticaBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+    const courier = await pdfDoc.embedFont(StandardFonts.Courier);
     const timesItalic = await pdfDoc.embedFont(StandardFonts.TimesRomanItalic);
+    const timesRoman = await pdfDoc.embedFont(StandardFonts.TimesRoman);
+    const pickPdfFont = (fontFamily = "", isBold = false) => {
+      const lowerFont = String(fontFamily).toLowerCase();
+      if (isBold) return helveticaBold;
+      if (lowerFont.includes("courier")) return courier;
+      if (lowerFont.includes("times") || lowerFont.includes("georgia")) return timesRoman;
+      return helvetica;
+    };
 
     for (const item of detectedTextItems.filter((candidate) => candidate.isEdited || candidate.isDeleted)) {
       const page = pdfDoc.getPages()[item.pageNumber];
@@ -2177,7 +2218,7 @@ export function App() {
       const y = height - item.y * height - boxHeight;
       const boxWidth = item.w * width;
       const fontSize = clamp((item.fontSize || 11) * pdfScale, 4, 54);
-      const font = item.fontFamily?.toLowerCase().includes("times") ? timesItalic : helvetica;
+      const font = pickPdfFont(item.fontFamily);
       const color = hexToRgb(item.color || colors.black);
 
       page.drawRectangle({
@@ -2343,7 +2384,7 @@ export function App() {
       if (annotation.type === "text") {
         const lines = annotation.content.split("\n");
         lines.forEach((line, index) => {
-          const font = annotation.bold ? helveticaBold : annotation.fontFamily === "Times New Roman" ? timesItalic : helvetica;
+          const font = pickPdfFont(annotation.fontFamily, annotation.bold);
           const textWidth = font.widthOfTextAtSize(line, annotation.fontSize);
           const boxWidth = annotation.w * width;
           const alignOffset = annotation.textAlign === "center" ? Math.max(0, (boxWidth - textWidth) / 2) : annotation.textAlign === "right" ? Math.max(0, boxWidth - textWidth - 8) : 0;
@@ -2839,6 +2880,8 @@ export function App() {
               duplicateSelected={duplicateSelected}
               deleteSelected={deleteSelected}
               activeTool={tool}
+              toolSettings={toolSettings}
+              setToolSettings={setToolSettings}
               fileName={fileName}
               pages={pages}
               annotations={annotations}
@@ -3336,10 +3379,7 @@ function ToolSettingsPanel({ tool, settings, setSettings }) {
         {tool === "text" && (
           <label>Font
             <select value={settings.fontFamily} onChange={(event) => update({ fontFamily: event.target.value })}>
-              <option>PP Agrandir</option>
-              <option>Inter</option>
-              <option>Arial</option>
-              <option>Times New Roman</option>
+              {TEXT_FONT_OPTIONS.map((font) => <option key={font} value={font}>{font}</option>)}
             </select>
           </label>
         )}
@@ -4162,6 +4202,8 @@ function Inspector({
   selected,
   signatureText,
   setSignatureText,
+  toolSettings,
+  setToolSettings,
   updateAnnotation,
   clearSelection,
   bringSelectedToFront,
@@ -4185,6 +4227,7 @@ function Inspector({
   const title = selected?.type ? selected.type[0].toUpperCase() + selected.type.slice(1) : activeTool === "signature" ? "Signature" : "Properties";
   const [isCustomColorOpen, setIsCustomColorOpen] = useState(false);
   const [customColorDraft, setCustomColorDraft] = useState(selected?.color || colors.black);
+  const updateToolSettings = (patch) => setToolSettings?.((current) => ({ ...current, ...patch }));
 
   useEffect(() => {
     setCustomColorDraft(selected?.color || colors.black);
@@ -4226,7 +4269,7 @@ function Inspector({
           {(selected.type === "text" || selected.type === "field") && (
             <>
               <div className="field-row">
-                {selected.type === "text" && <label className="field"><span>Font</span><select value={selected.fontFamily || "PP Agrandir"} onChange={(event) => updateAnnotation(selected.id, { fontFamily: event.target.value })}><option>PP Agrandir</option><option>Inter</option><option>Arial</option><option>Times New Roman</option></select></label>}
+                {selected.type === "text" && <label className="field"><span>Font</span><select value={selected.fontFamily || "PP Agrandir"} onChange={(event) => updateAnnotation(selected.id, { fontFamily: event.target.value })}>{TEXT_FONT_OPTIONS.map((font) => <option key={font} value={font}>{font}</option>)}</select></label>}
                 <label className="field small"><span>Size</span><select value={selected.fontSize} onChange={(event) => updateAnnotation(selected.id, { fontSize: Number(event.target.value) })}>{[10, 12, 14, 16, 18, 20, 24, 32].map((size) => <option key={size}>{size}</option>)}</select></label>
               </div>
               {selected.type === "text" && (
@@ -4243,6 +4286,21 @@ function Inspector({
                 </>
               )}
             </>
+          )}
+
+          {selected.type === "signature" && !selected.imageDataUrl && (
+            <div className="field-row">
+              <label className="field">
+                <span>Cursive font</span>
+                <select value={selected.fontFamily || DEFAULT_SIGNATURE_FONT} onChange={(event) => updateAnnotation(selected.id, { fontFamily: event.target.value })}>
+                  {SIGNATURE_FONT_OPTIONS.map((font) => <option key={font.value} value={font.value}>{font.label}</option>)}
+                </select>
+              </label>
+              <label className="field small">
+                <span>Size</span>
+                <select value={selected.fontSize} onChange={(event) => updateAnnotation(selected.id, { fontSize: Number(event.target.value) })}>{[18, 22, 26, 30, 36, 44, 52].map((size) => <option key={size}>{size}</option>)}</select>
+              </label>
+            </div>
           )}
 
           {selected.type === "checkbox" && (
@@ -4313,6 +4371,29 @@ function Inspector({
       ) : (
         <div className="empty-inspector">
           <p>Select an annotation to edit its properties, or use quick actions below.</p>
+          {activeTool === "draw" && (
+            <div className="document-info inspector-tool-settings">
+              <span>Draw tool</span>
+              <strong>Pen settings</strong>
+              <label className="field">
+                <span>Pen color</span>
+                <ColorControl value={toolSettings?.drawColor || colors.blue} onChange={(color) => updateToolSettings({ drawColor: color })} />
+              </label>
+              <label className="field">
+                <span>Pen size</span>
+                <input type="range" min="1" max="20" value={toolSettings?.drawStroke || 4} onChange={(event) => updateToolSettings({ drawStroke: Number(event.target.value) })} />
+              </label>
+              <div className="stroke-size-group inspector-stroke-sizes" aria-label="Pen size presets">
+                {[2, 4, 8, 12, 16].map((size) => (
+                  <button key={size} type="button" className={(toolSettings?.drawStroke || 4) === size ? "is-active" : ""} onClick={() => updateToolSettings({ drawStroke: size })}>
+                    <span style={{ width: size + 6, height: size + 6 }} />
+                    {size}px
+                  </button>
+                ))}
+              </div>
+              <small>Current pen: {toolSettings?.drawStroke || 4}px</small>
+            </div>
+          )}
           <div className="document-info">
             <span>Document</span>
             <strong>{fileName}</strong>
@@ -4429,6 +4510,7 @@ function SignatureModal({ defaultName, onClose, onSave }) {
   const fileRef = useRef(null);
   const [tab, setTab] = useState("draw");
   const [typedName, setTypedName] = useState(defaultName || "Jane Smith");
+  const [signatureFont, setSignatureFont] = useState(DEFAULT_SIGNATURE_FONT);
   const [uploadedImage, setUploadedImage] = useState("");
   const [hasInk, setHasInk] = useState(false);
   const drawingRef = useRef(false);
@@ -4484,14 +4566,14 @@ function SignatureModal({ defaultName, onClose, onSave }) {
 
   const saveSignature = () => {
     if (tab === "upload" && uploadedImage) {
-      onSave({ content: typedName || "Signature", imageDataUrl: uploadedImage });
+      onSave({ content: typedName || "Signature", imageDataUrl: uploadedImage, fontFamily: signatureFont });
       return;
     }
     if (tab === "draw" && hasInk) {
-      onSave({ content: typedName || "Signature", imageDataUrl: canvasRef.current.toDataURL("image/png") });
+      onSave({ content: typedName || "Signature", imageDataUrl: canvasRef.current.toDataURL("image/png"), fontFamily: signatureFont });
       return;
     }
-    onSave({ content: typedName || "Signature", imageDataUrl: "" });
+    onSave({ content: typedName || "Signature", imageDataUrl: "", fontFamily: signatureFont });
   };
 
   return (
@@ -4532,7 +4614,13 @@ function SignatureModal({ defaultName, onClose, onSave }) {
           <label className="field signature-type">
             <span>Typed signature</span>
             <input value={typedName} onChange={(event) => setTypedName(event.target.value)} />
-            <strong>{typedName || "Signature"}</strong>
+            <label className="signature-font-picker">
+              <span>Cursive font</span>
+              <select value={signatureFont} onChange={(event) => setSignatureFont(event.target.value)}>
+                {SIGNATURE_FONT_OPTIONS.map((font) => <option key={font.value} value={font.value}>{font.label}</option>)}
+              </select>
+            </label>
+            <strong style={{ fontFamily: signatureFont }}>{typedName || "Signature"}</strong>
           </label>
         )}
 

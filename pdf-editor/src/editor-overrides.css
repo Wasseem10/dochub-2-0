@@ -6250,3 +6250,100 @@ main.editor-shell .color-save {
     width: 286px !important;
   }
 }
+
+/* Explicit editor controls for pen settings, text fonts, and typed signature fonts. */
+main.editor-shell .tool-settings.draw-tool-settings {
+  max-width: min(980px, calc(100vw - 360px)) !important;
+}
+
+main.editor-shell .draw-color-field {
+  min-width: 132px !important;
+}
+
+main.editor-shell .draw-tool-settings .settings-title::after {
+  content: " color + size" !important;
+  color: #64748b !important;
+  font-weight: 760 !important;
+}
+
+main.editor-shell .inspector-tool-settings {
+  gap: 12px !important;
+  border-color: #b9d7ff !important;
+  background: #f7fbff !important;
+}
+
+main.editor-shell .inspector-tool-settings .color-control {
+  width: 100% !important;
+}
+
+main.editor-shell .inspector-tool-settings .color-trigger {
+  width: 100% !important;
+  justify-content: flex-start !important;
+}
+
+main.editor-shell .inspector-stroke-sizes {
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  gap: 6px !important;
+  padding: 6px !important;
+  border: 1px solid #d7e0e8 !important;
+  border-radius: 10px !important;
+  background: #ffffff !important;
+}
+
+main.editor-shell .inspector-stroke-sizes button {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 5px !important;
+  min-height: 34px !important;
+  border: 0 !important;
+  border-radius: 8px !important;
+  background: transparent !important;
+  color: #344b5e !important;
+  font-size: 12px !important;
+  font-weight: 820 !important;
+  cursor: pointer !important;
+}
+
+main.editor-shell .inspector-stroke-sizes button span {
+  display: block !important;
+  max-width: 20px !important;
+  max-height: 20px !important;
+  border-radius: 999px !important;
+  background: currentColor !important;
+}
+
+main.editor-shell .inspector-stroke-sizes button.is-active {
+  background: #d8f5ff !important;
+  color: #0f5970 !important;
+}
+
+.signature-font-picker {
+  display: grid;
+  gap: 7px;
+}
+
+.signature-font-picker span {
+  color: #334155;
+  font-size: 13px;
+  font-weight: 850;
+}
+
+.signature-font-picker select {
+  height: 40px;
+  padding: 0 11px;
+  border: 1px solid #d3dce8;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #243247;
+  font: inherit;
+  font-weight: 760;
+}
+
+.signature-type strong {
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  word-break: break-word;
+}
