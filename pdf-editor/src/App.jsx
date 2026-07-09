@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { forwardRef, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import ArrowDownToLine from "lucide-react/dist/esm/icons/arrow-down-to-line.mjs";
 import Bell from "lucide-react/dist/esm/icons/bell.mjs";
 import Box from "lucide-react/dist/esm/icons/box.mjs";
@@ -514,6 +514,58 @@ function BlankDocument() {
   return <div className="blank-doc" aria-label="Blank PDF page" />;
 }
 
+const EditableTextContent = forwardRef(function EditableTextContent({
+  className,
+  editable,
+  onBlur,
+  onChange,
+  onPointerDown,
+  spellCheck = "false",
+  value,
+}, forwardedRef) {
+  const elementRef = useRef(null);
+
+  const setElementRef = useCallback((element) => {
+    elementRef.current = element;
+    if (typeof forwardedRef === "function") {
+      forwardedRef(element);
+    } else if (forwardedRef) {
+      forwardedRef.current = element;
+    }
+  }, [forwardedRef]);
+
+  useLayoutEffect(() => {
+    const element = elementRef.current;
+    if (!element) return;
+
+    const nextValue = value || "";
+    if (document.activeElement === element) return;
+    if (element.innerText !== nextValue) {
+      element.innerText = nextValue;
+    }
+  }, [value]);
+
+  const emitChange = (event) => {
+    onChange?.(event.currentTarget);
+  };
+
+  return (
+    <div
+      ref={setElementRef}
+      className={className}
+      contentEditable={editable}
+      suppressContentEditableWarning
+      spellCheck={spellCheck}
+      onPointerDown={onPointerDown}
+      onInput={emitChange}
+      onBlur={(event) => {
+        emitChange(event);
+        onBlur?.(event);
+      }}
+    />
+  );
+});
+
 function Annotation({ annotation, selected, zoom, onSelect, onDrag, onResize, onUpdate, onDelete }) {
   const textContentRef = useRef(null);
   const textWasFocusedRef = useRef(false);
@@ -596,8 +648,7 @@ function Annotation({ annotation, selected, zoom, onSelect, onDrag, onResize, on
     window.addEventListener("pointerup", up);
   };
 
-  const updateTextContent = (event) => {
-    const textElement = event.currentTarget;
+  const updateTextContent = (textElement) => {
     const pageRect = textElement.closest(".page-surface")?.getBoundingClientRect();
     const content = textElement.innerText;
     const patch = { content: content || " " };
@@ -735,21 +786,18 @@ function Annotation({ annotation, selected, zoom, onSelect, onDrag, onResize, on
           <button type="button" title="Delete" onClick={() => onDelete(annotation.id)}><Trash2 size={15} /></button>
         </div>
       )}
-      <div
+      <EditableTextContent
         ref={textContentRef}
         className="text-content"
-        contentEditable={selected}
-        suppressContentEditableWarning
+        editable={selected}
         spellCheck="false"
+        value={annotation.content}
         onPointerDown={(event) => {
           event.stopPropagation();
           onSelect(annotation.id);
         }}
-        onBlur={updateTextContent}
-        onInput={updateTextContent}
-      >
-        {annotation.content}
-      </div>
+        onChange={updateTextContent}
+      />
       {selected && <span className="resize-handle" onPointerDown={resizeStart} />}
     </div>
   );
@@ -2706,22 +2754,19 @@ export function App() {
                           <button type="button" title="Done" onClick={() => setSelectedDetectedTextId(null)}><CheckCircle2 size={15} /></button>
                         </div>
                       )}
-                      <div
+                      <EditableTextContent
                         className="detected-text-content"
-                        contentEditable={isActive}
-                        suppressContentEditableWarning
+                        editable={isActive}
                         spellCheck="false"
+                        value={item.currentText}
                         onPointerDown={(event) => {
                           event.stopPropagation();
                           setSelectedDetectedTextId(item.id);
                           setSelectedId(null);
                           setTool("editText");
                         }}
-                        onInput={(event) => updateDetectedTextContent(item.id, event.currentTarget)}
-                        onBlur={(event) => updateDetectedTextContent(item.id, event.currentTarget)}
-                      >
-                        {item.currentText}
-                      </div>
+                        onChange={(element) => updateDetectedTextContent(item.id, element)}
+                      />
                       {isActive && <span className="resize-handle" onPointerDown={(event) => startDetectedTextResize(event, item)} />}
                     </div>
                   );
