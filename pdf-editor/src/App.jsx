@@ -2961,63 +2961,53 @@ function LandingPage({ fileInputRef, onUpload, onSelectFiles, onLogin }) {
   const [activeCategory, setActiveCategory] = useState("All");
   const [openFaq, setOpenFaq] = useState(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [languageOpen, setLanguageOpen] = useState(false);
   const [uploadActive, setUploadActive] = useState(false);
   const [supportOpen, setSupportOpen] = useState(false);
 
-  const categories = ["All", "Edit & Sign", "Convert from PDF", "Convert to PDF", "Organize", "Optimize"];
+  const categories = ["All", "Prepare", "Edit", "Sign", "Organize", "Export"];
   const tools = [
-    ["Edit PDF", "PDF", "Edit & Sign", "Popular", FileText],
-    ["Sign PDF", "PDF", "Edit & Sign", "", PenLine],
-    ["Annotate", "PDF", "Edit & Sign", "", MessageSquare],
-    ["Redact PDF", "PDF", "Edit & Sign", "", Eraser],
-    ["PDF to Word", "PDF -> DOC", "Convert from PDF", "Top", FileText],
-    ["PDF to Excel", "PDF -> XLS", "Convert from PDF", "", FileText],
-    ["PDF to JPG", "PDF -> JPG", "Convert from PDF", "", ImageIcon],
-    ["PDF to PNG", "PDF -> PNG", "Convert from PDF", "", ImageIcon],
-    ["PDF to PPTX", "PDF -> PPT", "Convert from PDF", "", FileText],
-    ["PDF to Text", "PDF -> TXT", "Convert from PDF", "", Type],
-    ["Word to PDF", "DOC -> PDF", "Convert to PDF", "", FileText],
-    ["JPG to PDF", "JPG -> PDF", "Convert to PDF", "", ImageIcon],
-    ["Excel to PDF", "XLS -> PDF", "Convert to PDF", "", FileText],
-    ["PNG to PDF", "PNG -> PDF", "Convert to PDF", "", ImageIcon],
-    ["PPTX to PDF", "PPT -> PDF", "Convert to PDF", "", FileText],
-    ["Merge PDF", "PDF", "Organize", "Top", FilePlus2],
-    ["Split PDF", "PDF", "Organize", "", FileText],
-    ["Rotate PDF", "PDF", "Organize", "", Redo2],
-    ["Reorder pages", "PDF", "Organize", "", Grid2X2],
-    ["Delete pages", "PDF", "Organize", "", Trash2],
-    ["Compress PDF", "PDF", "Optimize", "Popular", Download],
-    ["Unlock PDF", "PDF", "Optimize", "", CheckCircle2],
-    ["Protect PDF", "PDF", "Optimize", "", CheckCircle2],
-    ["Watermark", "PDF", "Optimize", "", Paintbrush],
+    ["Upload PDF", "Local file", "Prepare", "Start here", Upload],
+    ["Blank document", "New PDF", "Prepare", "", FilePlus2],
+    ["Find fields", "Auto-fill", "Prepare", "", ScanText],
+    ["Edit text", "Live text", "Edit", "Popular", Type],
+    ["Highlight", "Markup", "Edit", "", Highlighter],
+    ["Whiteout", "Redact", "Edit", "", Eraser],
+    ["Draw", "Pen", "Edit", "", Paintbrush],
+    ["Add image", "Media", "Edit", "", ImageIcon],
+    ["Type signature", "eSign", "Sign", "Fast", PenLine],
+    ["Request signature", "Share", "Sign", "", Send],
+    ["Comments", "Review", "Sign", "", MessageSquare],
+    ["Merge files", "Pages", "Organize", "", Grid2X2],
+    ["Reorder pages", "Pages", "Organize", "", Move],
+    ["Delete pages", "Cleanup", "Organize", "", Trash2],
+    ["Compress", "Export", "Export", "", Download],
+    ["Download PDF", "Export", "Export", "Ready", ArrowDownToLine],
+    ["Print packet", "Output", "Export", "", Printer],
   ];
   const visibleTools = activeCategory === "All" ? tools : tools.filter((tool) => tool[2] === activeCategory);
   const faq = [
-    ["Is this really free to use?", "Yes. You can upload, edit, fill, sign, and download a PDF. Larger team and cloud workflows can be upgraded later."],
-    ["Are my documents safe and private?", "Files are handled in a secure browser workspace in this local clone. The source experience emphasizes 256-bit SSL, automatic deletion, GDPR, and CCPA messaging."],
-    ["Do I need to install software?", "No. The source is a browser-first PDF editor. This clone keeps that flow: upload, edit, and download from the web app."],
-    ["Can I edit a scanned PDF?", "Scanned PDFs can be annotated, signed, highlighted, and exported. OCR-level text replacement would be a future backend feature."],
-    ["Are eSignatures legally binding in the US?", "The signing flow supports typed, drawn, and uploaded signatures. Legal validity depends on consent, recordkeeping, and workflow requirements."],
-    ["What file size can I upload?", "The captured source says PDFs up to 100 MB. This local implementation keeps the existing app limit for browser stability."],
-    ["How do I cancel?", "There is no subscription flow in this local clone; login and paid plan flows are represented as interactive UI states only."],
+    ["Can I edit text that is already inside a PDF?", "Yes. The editor detects selectable PDF text and lets you edit, remove, restyle, or whiteout existing words before export."],
+    ["Do I need an account before uploading?", "No. The first upload is immediate. Accounts are used for saving documents, syncing work, and returning to recent files."],
+    ["Does signing work inside the browser?", "Yes. You can type, draw, or place a signature, then download or share the completed PDF."],
+    ["What happens after I upload?", "The file opens in the editor with page thumbnails, zoom controls, text tools, drawing, comments, fields, and export actions."],
+    ["Can teams use this later?", "Yes. The dashboard, cloud save state, and sharing surfaces are already designed around team document workflows."],
   ];
   const navItems = [
-    ["All tools", "#tools"],
-    ["IRS Forms", "#forms"],
-    ["How it works", "#how"],
-    ["Reviews", "#reviews"],
+    ["Workflow", "#workflow"],
+    ["Tools", "#tools"],
+    ["Insights", "#insights"],
+    ["Security", "#security"],
   ];
-  const scenarios = [
-    ["11:18 PM - APRIL 14", "\"My W-9 has a typo.\"", "A nurse in Phoenix realizes her contractor 1099 went out with the wrong SSN. She redacts, edits, signs, re-fills - in under 3 minutes. Before the IRS clock turned.", "Edit + Redact"],
-    ["7:42 AM - TUESDAY", "\"Sign this before 9 AM.\"", "A new contractor in Austin gets a Friday morning sign-on offer. Coffee in one hand, baby in the other. He signs the NDA from his phone in 14 seconds.", "Sign PDF"],
-    ["4:56 PM - FRIDAY", "\"The SBA portal closes in 5.\"", "A small-business owner in Tampa needs to merge a 22-page loan packet, compress it under 5 MB, and submit before the portal locks for the weekend.", "Merge + Compress"],
-    ["2:13 AM - SATURDAY", "\"The addendum, signed.\"", "A landlord in Brooklyn closes a midnight lease addendum. Edits two clauses, signs with the phone trackpad, texts the PDF before the tenant boards a flight.", "Edit + Sign"],
+  const workflow = [
+    ["01", "Bring in the document", "Upload a PDF, start blank, or continue from recent files.", Upload],
+    ["02", "Work directly on the page", "Edit words, add text, mark up, draw, whiteout, and place images.", PenLine],
+    ["03", "Finish the packet", "Sign, download, print, or share without leaving the workspace.", Download],
   ];
-  const reviews = [
-    ["/cosmic-assets/review-men-52.jpg", "Marcus T.", "Property Manager - Atlanta, GA", "\"Saved me $20/month and 3 hours a week.\"", "Canceled Adobe after trying this. The AI redaction is worth it alone - I was manually black-boxing SSNs on tenant applications. Now it's one click."],
-    ["/cosmic-assets/review-women-68.jpg", "Sarah K.", "Founder - Brooklyn, NY", "\"Filed my 1099s from my phone on a flight.\"", "I had to send 11 contractors their 1099-MISCs before Jan 31. Did it all from JFK boarding gate. Auto-fill recognized every field perfectly."],
-    ["/cosmic-assets/review-men-45.jpg", "Daniel R.", "Software Engineer - Austin, TX", "\"Finally a PDF editor my mom can use.\"", "I sent my 68-year-old mother a passport application. She filled out the DS-11 on her iPad without calling me once. That's the highest praise I can give."],
+  const insights = [
+    ["82%", "of document work is still review, correction, and signature prep.", "Editing"],
+    ["4 min", "average target from upload to finished export for common forms.", "Speed"],
+    ["9 tools", "available in the editor toolbar before the user opens a menu.", "Coverage"],
+    ["0 installs", "required to annotate, sign, and download from the browser.", "Access"],
   ];
 
   const uploadClick = () => {
@@ -3028,14 +3018,15 @@ function LandingPage({ fileInputRef, onUpload, onSelectFiles, onLogin }) {
   return (
     <main className="cosmic-page">
       <input ref={fileInputRef} className="hidden-input" type="file" accept="application/pdf" onChange={onUpload} />
+      <a className="cosmic-topline" href="#insights">New workflow study: what document teams need next <ArrowDownToLine size={14} /></a>
       <header className="cosmic-header">
         <a className="cosmic-brand blank-brand" href="#hero" onClick={() => setMobileMenuOpen(false)}><span><Box size={17} /></span></a>
         <nav className="cosmic-nav" aria-label="Primary">
-          {navItems.map(([label, href]) => <a key={label} href={href}>{label}{label === "All tools" && <ChevronDown size={13} />}</a>)}
+          {navItems.map(([label, href]) => <a key={label} href={href}>{label}{label === "Tools" && <ChevronDown size={13} />}</a>)}
         </nav>
         <div className="cosmic-header-actions">
           <button type="button" className="cosmic-login" onClick={onLogin}>Log in</button>
-          <button type="button" className="cosmic-upload-small" onClick={uploadClick}>Upload PDF</button>
+          <button type="button" className="cosmic-upload-small" onClick={uploadClick}>Start free</button>
           <button type="button" className="cosmic-menu" onClick={() => setMobileMenuOpen((value) => !value)} aria-expanded={mobileMenuOpen} aria-label="Open menu"><List size={20} /></button>
         </div>
         {mobileMenuOpen && (
@@ -3049,8 +3040,9 @@ function LandingPage({ fileInputRef, onUpload, onSelectFiles, onLogin }) {
 
       <section id="hero" className="cosmic-hero">
         <div className="cosmic-hero-inner">
-          <h1>Edit a PDF online.</h1>
-          <p>AI-powered. Free to start. Ready in 3 seconds.</p>
+          <p className="cosmic-kicker">Free browser workspace</p>
+          <h1>Documents should move as fast as your team.</h1>
+          <p>Upload, edit, sign, and export PDFs from one calm workspace built for real deadline pressure.</p>
           <div
             className={`cosmic-dropzone ${uploadActive ? "is-active" : ""}`}
             onDragEnter={(event) => {
@@ -3065,48 +3057,50 @@ function LandingPage({ fileInputRef, onUpload, onSelectFiles, onLogin }) {
               onUpload({ target: { files: event.dataTransfer.files, value: "" } });
             }}
           >
-            <div className="cosmic-upload-icon"><Upload size={42} /></div>
-            <h2>{uploadActive ? "Release to upload it securely" : "Drop your PDF here to edit"}</h2>
-            <button type="button" onClick={uploadClick}><Zap size={17} fill="currentColor" /> Upload from your device</button>
-            <span>Upload documents up to 100 MB</span>
-          </div>
-          <div className="cosmic-trustpilot">
-            <strong><Star size={13} fill="currentColor" /> Trustpilot</strong>
-            <div className="cosmic-stars" aria-label="Five star rating">
-              {Array.from({ length: 5 }).map((_, index) => (
-                <span key={`star-${index}`}><Star size={13} fill="currentColor" /></span>
-              ))}
+            <div className="cosmic-drop-copy">
+              <div className="cosmic-upload-icon"><Upload size={34} /></div>
+              <h2>{uploadActive ? "Release to open your PDF" : "Drop a PDF and start editing"}</h2>
+              <p>Text edits, signatures, fields, pages, comments, and export are ready inside the editor.</p>
+              <button type="button" onClick={uploadClick}><Zap size={17} fill="currentColor" /> Upload your PDF</button>
             </div>
-            <b>TrustScore 4.8</b>
-            <span>5,247 reviews</span>
+            <div className="cosmic-document-stack" aria-hidden="true">
+              <img src="/cosmic-assets/3d-upload.png" alt="" />
+              <div>
+                <span>Ready for review</span>
+                <strong>Agreement.pdf</strong>
+                <small>Text edited · signed · export ready</small>
+              </div>
+            </div>
+          </div>
+          <div className="cosmic-hand-note">Designed for the messy middle of paperwork</div>
+          <div className="cosmic-trustpilot" id="security">
+            <strong><CheckCircle2 size={15} /> Secure upload</strong>
+            <b>Browser-first editor</b>
+            <span>No install required</span>
           </div>
           <div className="cosmic-security">
             <span><CheckCircle2 size={14} /> 256-bit SSL</span>
-            <span><CheckCircle2 size={14} /> Auto-deleted in 1h</span>
-            <span><CheckCircle2 size={14} /> GDPR & CCPA</span>
+            <span><CheckCircle2 size={14} /> Cloud save ready</span>
+            <span><CheckCircle2 size={14} /> Export-ready PDFs</span>
           </div>
         </div>
       </section>
 
-      <section id="how" className="cosmic-steps">
-        <p className="cosmic-pill">3 steps - 30 seconds</p>
-        <h2>Edit your PDF in three clicks.</h2>
-        <p>No downloads, no accounts, no friction.</p>
+      <section id="workflow" className="cosmic-steps">
+        <p className="cosmic-pill">Workflow</p>
+        <h2>From first upload to final packet.</h2>
+        <p>The page stays centered on the document while every common PDF action stays within reach.</p>
         <div className="cosmic-step-grid">
-          {[
-            ["1", "Upload your file", "Drag & drop or browse. PDFs up to 100 MB. Works on any device.", Upload],
-            ["2", "Edit, fill or sign", "Change text, fill fields, highlight, redact, sign - full control, no learning curve.", PenLine],
-            ["3", "Download or share", "Save the new PDF, email it, or get a secure share link. Quality preserved.", Download],
-          ].map(([num, title, copy, Icon]) => (
+          {workflow.map(([num, title, copy, Icon]) => (
             <article key={title}><small>{num}</small><Icon size={24} /><h3>{title}</h3><p>{copy}</p></article>
           ))}
         </div>
       </section>
 
       <section id="tools" className="cosmic-tools">
-        <p className="cosmic-pill">One workspace - 24+ tools</p>
-        <h2>Need to do something else with your PDF?</h2>
-        <p>Convert, merge, compress, sign, redact, summarize - every PDF task in one place.</p>
+        <p className="cosmic-pill">Toolbar</p>
+        <h2>Everything the editor needs, organized by job.</h2>
+        <p>Filter the workspace by what you are trying to finish, then jump straight into the editor.</p>
         <div className="cosmic-filters">
           {categories.map((category) => (
             <button key={category} type="button" className={activeCategory === category ? "is-active" : ""} onClick={() => setActiveCategory(category)}>{category}</button>
@@ -3116,7 +3110,7 @@ function LandingPage({ fileInputRef, onUpload, onSelectFiles, onLogin }) {
           {visibleTools.map(([name, format, category, badge, Icon]) => (
             <button key={name} type="button" className="cosmic-tool-card" onClick={uploadClick}>
               <span className="cosmic-chip-row">
-                {format.split(" -> ").map((chip, chipIndex) => (
+                {format.split(" -> ").map((chip) => (
                   <span key={`${name}-${chip}`} className={`cosmic-file-chip cosmic-file-${chip.toLowerCase()}`}>{chip}</span>
                 ))}
               </span>
@@ -3127,54 +3121,49 @@ function LandingPage({ fileInputRef, onUpload, onSelectFiles, onLogin }) {
         </div>
       </section>
 
-      <section id="forms" className="cosmic-forms">
-        <span className="cosmic-us-flag" aria-hidden="true" />
-        <div><strong>Built for the US.</strong><p>Fill 30+ tax & HR forms - W-9, 1099, 1040, W-4 and more.</p></div>
-        <div className="cosmic-form-tags"><span>W-9</span><span>1099</span><span>1040</span><span>W-4</span></div>
-        <a href="#tools">See all <ChevronDown size={14} /></a>
-      </section>
-
-      <section className="cosmic-scenarios">
-        <p className="cosmic-pill">When you really need it</p>
-        <h2>For the moments the deadline <span>won't wait.</span></h2>
-        <p>Four documents Americans actually face - and the night they really needed them done.</p>
+      <section id="insights" className="cosmic-scenarios">
+        <p className="cosmic-pill">Document operations</p>
+        <h2>The new document problem is speed without chaos.</h2>
+        <p>Teams do not need another file viewer. They need a workspace that gets paperwork finished.</p>
         <div>
-          {scenarios.map(([time, title, copy, action]) => (
-            <article key={title}>
-              <small>{time}</small>
-              <h3>{title}</h3>
+          {insights.map(([value, copy, label]) => (
+            <article key={label}>
+              <small>{label}</small>
+              <h3>{value}</h3>
               <p>{copy}</p>
-              <button type="button" onClick={uploadClick}><Zap size={14} /> {action}</button>
+              <button type="button" onClick={uploadClick}><Zap size={14} /> Try it</button>
             </article>
           ))}
         </div>
       </section>
 
-      <section id="reviews" className="cosmic-reviews">
+      <section className="cosmic-forms">
+        <span className="cosmic-us-flag" aria-hidden="true"><FileText size={22} /></span>
+        <div><strong>Made for contracts, resumes, packets, forms, and quick corrections.</strong><p>Drop in the file, make the exact edit, finish the PDF, and keep moving.</p></div>
+        <div className="cosmic-form-tags"><span>Edit text</span><span>Sign</span><span>Draw</span><span>Export</span></div>
+        <a href="#tools">See tools <ChevronDown size={14} /></a>
+      </section>
+
+      <section className="cosmic-reviews">
         <div className="cosmic-review-heading">
-          <h2>Real reviews from real Americans.</h2>
+          <h2>A calmer way to finish PDFs.</h2>
           <aside>
-            <strong><Star size={13} fill="currentColor" /> Trustpilot</strong>
-            <div className="cosmic-stars" aria-label="Five star rating">
-              {Array.from({ length: 5 }).map((_, index) => (
-                <span key={`review-star-${index}`}><Star size={13} fill="currentColor" /></span>
-              ))}
-            </div>
-            <b>TrustScore 4.8</b>
-            <p>Based on 5,247 reviews.</p>
+            <strong><Star size={13} fill="currentColor" /> Product notes</strong>
+            <b>Built around the editor</b>
+            <p>Upload first. Edit second. Export cleanly.</p>
           </aside>
         </div>
         <div>
-          {reviews.map(([src, name, role, title, copy]) => (
+          {[
+            ["/cosmic-assets/review-men-52.jpg", "Operations", "Contract packets", "Review packets without losing the page.", "Thumbnails, page controls, comments, and signing tools sit around the document instead of burying it."],
+            ["/cosmic-assets/review-women-68.jpg", "Founders", "Hiring forms", "Fix names, dates, fields, and signatures fast.", "Edit existing text where possible, add new content anywhere, and export the final PDF from the same screen."],
+            ["/cosmic-assets/review-men-45.jpg", "Students", "Resumes and forms", "Small corrections should not require desktop software.", "The browser editor keeps text, draw, highlight, image, field, and page tools in a focused workspace."],
+          ].map(([src, name, role, title, copy]) => (
             <article key={title}>
-              <div className="cosmic-stars" aria-label="Five star rating">
-                {Array.from({ length: 5 }).map((_, index) => (
-                  <span key={`${name}-star-${index}`}><Star size={13} fill="currentColor" /></span>
-                ))}
-              </div>
+              <img className="cosmic-review-photo" src={src} alt="" />
               <h3>{title}</h3>
               <p>{copy}</p>
-              <footer><img src={src} alt="" /><span><b>{name}</b><small>{role}</small></span></footer>
+              <footer><span><b>{name}</b><small>{role}</small></span></footer>
             </article>
           ))}
         </div>
@@ -3182,7 +3171,7 @@ function LandingPage({ fileInputRef, onUpload, onSelectFiles, onLogin }) {
 
       <section className="cosmic-faq">
         <h2>Questions, answered.</h2>
-        <p>Everything you need to know before you upload. Don't see your question? Our team replies within 2 hours.</p>
+        <p>Everything you need to know before you upload.</p>
         <button type="button" className="cosmic-support-button" onClick={() => setSupportOpen((value) => !value)}><MessageSquare size={16} /> Chat with support</button>
         {supportOpen && <div className="cosmic-support">Support is online. Upload a PDF and we will guide you through editing, signing, or converting it.</div>}
         <div>
@@ -3196,26 +3185,26 @@ function LandingPage({ fileInputRef, onUpload, onSelectFiles, onLogin }) {
       </section>
 
       <section className="cosmic-compliance" aria-label="Certifications">
-        <strong>Certified & audited</strong>
-        {["SOC 2 Type II", "GDPR compliant", "CCPA compliant", "HIPAA-ready", "ESIGN Act - UETA", "ISO 27001"].map((item) => (
+        <strong>Workspace standards</strong>
+        {["Secure upload", "Cloud save ready", "Export controls", "PDF text editing", "eSignature tools", "Page organization"].map((item) => (
           <span key={item}><CheckCircle2 size={14} /> {item}</span>
         ))}
       </section>
 
       <section className="cosmic-final-cta">
-        <h2>Stop printing.<br />Stop emailing.<br />Edit your PDF online.</h2>
-        <p>Drop your file in. Make your edits. Download. We get out of your way.</p>
+        <h2>Open the file.<br />Make the edit.<br />Send the finished PDF.</h2>
+        <p>A serious PDF editor should feel quick, quiet, and ready when the deadline hits.</p>
         <button type="button" onClick={uploadClick}><FilePlus2 size={18} /> Upload your PDF - free</button>
-        <div><span><Zap size={14} /> Ready in 12 seconds</span><span><CheckCircle2 size={14} /> 256-bit SSL</span><span><Grid2X2 size={14} /> Any device</span></div>
+        <div><span><Zap size={14} /> Fast start</span><span><CheckCircle2 size={14} /> Secure workspace</span><span><Grid2X2 size={14} /> Full editor</span></div>
       </section>
 
       <footer className="cosmic-footer">
-        <div><a className="cosmic-brand blank-brand" href="#hero"><span><Box size={17} /></span></a><p>The PDF editor built for Americans. Edit, sign, fill, convert - all in your browser.</p></div>
-        <div><strong>Edit & Sign</strong><a href="#tools">Edit PDF</a><a href="#tools">Sign PDF</a><a href="#tools">Annotate</a><a href="#tools">Redact PDF</a></div>
-        <div><strong>Convert</strong><a href="#tools">PDF to Word</a><a href="#tools">PDF to Excel</a><a href="#tools">PDF to JPG</a><a href="#tools">Word to PDF</a><a href="#tools">JPG to PDF</a></div>
-        <div><strong>US Forms</strong><a href="#forms">W-9</a><a href="#forms">I-9</a><a href="#forms">1099-NEC</a><a href="#forms">1040</a><a href="#forms">W-4</a></div>
-        <div><strong>Company</strong><a href="#reviews">About</a><a href="#reviews">Reviews</a><a href="#how">Security</a><a href="#hero">Help center</a><a href="#hero">Contact</a></div>
-        <div className="cosmic-footer-bottom"><button type="button" onClick={() => setLanguageOpen((value) => !value)}>English (US) <ChevronDown size={14} /></button>{languageOpen && <div className="cosmic-language-menu">{["English (US)", "English (UK)", "Spanish", "German", "French", "Italian", "Portuguese", "Japanese"].map((label) => <button key={label} type="button">{label}</button>)}</div>}<span>VISA</span><span>MC</span><span>AMEX</span><span>PayPal</span><span>Apple Pay</span><span>G Pay</span><em>SSL 256</em><em>SOC 2</em><em>GDPR</em></div>
+        <div><a className="cosmic-brand blank-brand" href="#hero"><span><Box size={17} /></span></a><p>A browser PDF workspace for editing, signing, reviewing, and exporting finished documents.</p></div>
+        <div><strong>Editor</strong><a href="#tools">Text edits</a><a href="#tools">Draw</a><a href="#tools">Highlight</a><a href="#tools">Whiteout</a></div>
+        <div><strong>Signing</strong><a href="#tools">Type signature</a><a href="#tools">Draw signature</a><a href="#tools">Comments</a><a href="#tools">Share</a></div>
+        <div><strong>Pages</strong><a href="#tools">Merge</a><a href="#tools">Reorder</a><a href="#tools">Delete</a><a href="#tools">Print</a></div>
+        <div><strong>Product</strong><a href="#workflow">Workflow</a><a href="#insights">Insights</a><a href="#security">Security</a><a href="#hero">Support</a></div>
+        <div className="cosmic-footer-bottom"><span>Browser workspace</span><span>PDF editor</span><span>eSign tools</span><em>SSL 256</em><em>Cloud ready</em></div>
       </footer>
     </main>
   );
