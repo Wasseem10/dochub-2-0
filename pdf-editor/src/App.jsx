@@ -79,6 +79,7 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
 const BASE_PAGE_WIDTH = 760;
 const BASE_PAGE_HEIGHT = 984;
 const EDITOR_PAGE_SCALE = 0.74;
+const TEXT_SCREEN_SCALE = 1 / EDITOR_PAGE_SCALE;
 const STORAGE_KEY = "paperflow.documents.v1";
 const MAX_FILE_BYTES = 8 * 1024 * 1024;
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
@@ -714,6 +715,7 @@ function Annotation({ annotation, selected, zoom, onSelect, onDrag, onResize, on
   const textContentRef = useRef(null);
   const textWasFocusedRef = useRef(false);
   const displayScale = (zoom / 100) * EDITOR_PAGE_SCALE;
+  const textDisplayScale = displayScale * TEXT_SCREEN_SCALE;
   const commonStyle = {
     left: `${annotation.x * 100}%`,
     top: `${annotation.y * 100}%`,
@@ -798,8 +800,12 @@ function Annotation({ annotation, selected, zoom, onSelect, onDrag, onResize, on
     const patch = { content: content || " " };
 
     if (pageRect?.width && pageRect?.height) {
-      patch.w = clamp((textElement.scrollWidth + 28) / pageRect.width, 0.12, 0.5);
-      patch.h = clamp((textElement.scrollHeight + 12) / pageRect.height, 0.04, 0.28);
+      const hasContent = content.trim().length > 0;
+      const fontPx = Math.max(8, (annotation.fontSize || 16) * textDisplayScale);
+      const measuredWidth = hasContent ? textElement.scrollWidth + 10 : fontPx * 3.25;
+      const measuredHeight = hasContent ? textElement.scrollHeight + 6 : fontPx * 1.6;
+      patch.w = clamp(measuredWidth / pageRect.width, 0.055, 0.5);
+      patch.h = clamp(measuredHeight / pageRect.height, 0.028, 0.28);
     }
 
     onUpdate(annotation.id, patch);
@@ -923,8 +929,8 @@ function Annotation({ annotation, selected, zoom, onSelect, onDrag, onResize, on
         ...commonStyle,
         color: annotation.color,
         fontFamily: annotation.fontFamily || '"PP Agrandir", Inter, Arial, sans-serif',
-        fontSize: `${annotation.fontSize * displayScale}px`,
-        fontWeight: annotation.bold ? 700 : 500,
+        fontSize: `${annotation.fontSize * textDisplayScale}px`,
+        fontWeight: annotation.bold ? 850 : 500,
         fontStyle: annotation.italic ? "italic" : "normal",
         textDecoration: annotation.underline ? "underline" : "none",
         textAlign: annotation.textAlign || "left",
@@ -1457,8 +1463,8 @@ export function App() {
     const cleanContent = isBlankInsertion ? "" : content.trimEnd();
     const lines = cleanContent.split("\n");
     const longestLine = Math.max(...lines.map((line) => line.length), isBlankInsertion ? 1 : 9);
-    const width = isBlankInsertion ? 0.24 : clamp(longestLine * 0.0095, 0.11, 0.42);
-    const height = isBlankInsertion ? 0.052 : clamp(lines.length * 0.028 + 0.026, 0.052, 0.28);
+    const width = isBlankInsertion ? 0.11 : clamp(longestLine * 0.0085, 0.075, 0.42);
+    const height = isBlankInsertion ? 0.038 : clamp(lines.length * 0.024 + 0.02, 0.038, 0.28);
 
     addAnnotation({
       id: makeId("text"),
