@@ -7032,3 +7032,250 @@ main.editor-shell .text-box.is-selected,
   background: transparent !important;
   box-shadow: none !important;
 }
+
+/* Screenshot-style text toolbar: A tool, font search menu, size, color, alignment, style. */
+main.editor-shell .ribbon-tool .text-tool-glyph,
+.editor-shell .ribbon-tool .text-tool-glyph {
+  display: grid !important;
+  width: 25px !important;
+  height: 25px !important;
+  place-items: center !important;
+  color: currentColor !important;
+  font-family: Georgia, "Times New Roman", serif !important;
+  font-size: 29px !important;
+  font-weight: 900 !important;
+  line-height: 1 !important;
+}
+
+main.editor-shell .text-format-settings,
+.editor-shell .text-format-settings {
+  top: 118px !important;
+  left: 50% !important;
+  gap: 0 !important;
+  height: 54px !important;
+  min-height: 54px !important;
+  max-width: min(1120px, calc(100vw - 280px)) !important;
+  padding: 0 !important;
+  overflow: visible !important;
+  border-radius: 0 !important;
+  border-color: #d6dce4 !important;
+  background: #f7f8fa !important;
+  box-shadow: 0 10px 24px rgba(32, 44, 58, 0.12) !important;
+}
+
+main.editor-shell .text-format-settings > *,
+.editor-shell .text-format-settings > * {
+  height: 54px !important;
+  border-right: 1px solid #d5dbe3 !important;
+}
+
+main.editor-shell .text-format-add,
+.editor-shell .text-format-add {
+  display: grid !important;
+  width: 58px !important;
+  min-width: 58px !important;
+  place-items: center !important;
+  border: 0 !important;
+  background: #e9edf2 !important;
+  color: #050505 !important;
+}
+
+main.editor-shell .text-format-add span,
+.editor-shell .text-format-add span {
+  font-family: Georgia, "Times New Roman", serif !important;
+  font-size: 32px !important;
+  font-weight: 900 !important;
+  line-height: 1 !important;
+}
+
+main.editor-shell .font-menu-wrap,
+.editor-shell .font-menu-wrap {
+  position: relative !important;
+  display: block !important;
+  min-width: 290px !important;
+  border-right: 1px solid #d5dbe3 !important;
+}
+
+main.editor-shell .font-menu-trigger,
+.editor-shell .font-menu-trigger {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 14px !important;
+  width: 100% !important;
+  height: 54px !important;
+  padding: 0 16px !important;
+  border: 0 !important;
+  background: transparent !important;
+  color: #111827 !important;
+  font-size: 19px !important;
+  font-weight: 560 !important;
+}
+
+main.editor-shell .font-menu-trigger span,
+.editor-shell .font-menu-trigger span {
+  max-width: 230px !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+main.editor-shell .editor-font-menu,
+.editor-shell .editor-font-menu {
+  position: absolute !important;
+  top: 58px !important;
+  left: 0 !important;
+  z-index: 80 !important;
+  display: grid !important;
+  width: 320px !important;
+  max-height: 520px !important;
+  overflow: auto !important;
+  padding: 10px 0 !important;
+  border: 1px solid #d9dfe7 !important;
+  border-radius: 8px !important;
+  background: #ffffff !important;
+  box-shadow: 0 22px 48px rgba(30, 42, 58, 0.22) !important;
+}
+
+main.editor-shell .editor-font-menu input,
+.editor-shell .editor-font-menu input {
+  height: 44px !important;
+  margin: 0 14px 10px !important;
+  padding: 0 14px !important;
+  border: 1px solid #d7dde6 !important;
+  border-radius: 6px !important;
+  color: #344054 !important;
+  font-size: 18px !important;
+  outline: none !important;
+}
+
+main.editor-shell .editor-font-menu strong,
+.editor-shell .editor-font-menu strong {
+  padding: 10px 14px !important;
+  border-top: 1px solid #e1e6ed !important;
+  color: #4b5563 !important;
+  font-size: 14px !important;
+  font-weight: 900 !important;
+  letter-spacing: 0 !important;
+}
+
+main.editor-shell .editor-font-menu button,
+.editor-shell .editor-font-menu button {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  width: 100% !important;
+  height: 54px !important;
+  padding: 0 28px !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: #ffffff !important;
+  color: #374151 !important;
+  font-size: 21px !important;
+  font-weight: 500 !important;
+  text-align: left !important;
+}
+
+main.editor-shell .editor-font-menu button:hover,
+.editor-shell .editor-font-menu button:hover {
+  background: #f1f5f9 !important;
+}
+
+main.editor-shell .editor-font-menu button[aria-checked="true"],
+.editor-shell .editor-font-menu button[aria-checked="true"] {
+  background: #eaf8ff !important;
+  color: #0f5970 !important;
+}
+
+main.editor-shell .editor-font-menu button.is-locked svg,
+.editor-shell .editor-font-menu button.is-locked svg {
+  color: #f59e0b !important;
+  flex: 0 0 auto !important;
+}
+
+main.editor-shell .text-size-select,
+main.editor-shell .line-height-select,
+.editor-shell .text-size-select,
+.editor-shell .line-height-select {
+  width: 84px !important;
+  min-width: 84px !important;
+  padding: 0 24px 0 16px !important;
+  border: 0 !important;
+  background: transparent !important;
+  color: #111827 !important;
+  font-size: 21px !important;
+  font-weight: 540 !important;
+}
+
+main.editor-shell .text-format-settings .color-control,
+.editor-shell .text-format-settings .color-control {
+  display: grid !important;
+  width: 74px !important;
+  min-width: 74px !important;
+  place-items: center !important;
+  border-right: 1px solid #d5dbe3 !important;
+}
+
+main.editor-shell .text-format-settings .color-trigger,
+.editor-shell .text-format-settings .color-trigger {
+  width: 42px !important;
+  height: 42px !important;
+  padding: 0 !important;
+  border: 1px solid #c8ced8 !important;
+  border-radius: 6px !important;
+  background: transparent !important;
+}
+
+main.editor-shell .text-format-settings .color-trigger span,
+.editor-shell .text-format-settings .color-trigger span {
+  width: 34px !important;
+  height: 34px !important;
+  border-radius: 5px !important;
+}
+
+main.editor-shell .line-height-select,
+.editor-shell .line-height-select {
+  width: 92px !important;
+  min-width: 92px !important;
+  font-size: 18px !important;
+}
+
+main.editor-shell .text-format-settings .align-group,
+main.editor-shell .text-format-settings .format-toggle-group,
+.editor-shell .text-format-settings .align-group,
+.editor-shell .text-format-settings .format-toggle-group {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 0 !important;
+  padding: 0 8px !important;
+  border-right: 1px solid #d5dbe3 !important;
+}
+
+main.editor-shell .text-format-settings .align-group button,
+main.editor-shell .text-format-settings .format-toggle-group button,
+.editor-shell .text-format-settings .align-group button,
+.editor-shell .text-format-settings .format-toggle-group button {
+  display: grid !important;
+  width: 45px !important;
+  height: 42px !important;
+  place-items: center !important;
+  border: 0 !important;
+  border-radius: 5px !important;
+  background: transparent !important;
+  color: #0f172a !important;
+  font-size: 27px !important;
+  font-family: Georgia, "Times New Roman", serif !important;
+  font-weight: 900 !important;
+}
+
+main.editor-shell .text-format-settings .format-toggle-group button:nth-child(2),
+.editor-shell .text-format-settings .format-toggle-group button:nth-child(2) {
+  font-style: italic !important;
+}
+
+main.editor-shell .text-format-settings .align-group button.is-active,
+main.editor-shell .text-format-settings .format-toggle-group button.is-active,
+.editor-shell .text-format-settings .align-group button.is-active,
+.editor-shell .text-format-settings .format-toggle-group button.is-active {
+  background: #dfe5ec !important;
+}

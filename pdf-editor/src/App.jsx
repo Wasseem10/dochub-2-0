@@ -1,5 +1,8 @@
 import { forwardRef, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import ArrowDownToLine from "lucide-react/dist/esm/icons/arrow-down-to-line.mjs";
+import AlignCenter from "lucide-react/dist/esm/icons/align-center.mjs";
+import AlignLeft from "lucide-react/dist/esm/icons/align-left.mjs";
+import AlignRight from "lucide-react/dist/esm/icons/align-right.mjs";
 import Bell from "lucide-react/dist/esm/icons/bell.mjs";
 import Box from "lucide-react/dist/esm/icons/box.mjs";
 import Building2 from "lucide-react/dist/esm/icons/building-2.mjs";
@@ -37,6 +40,7 @@ import Send from "lucide-react/dist/esm/icons/send.mjs";
 import Settings from "lucide-react/dist/esm/icons/settings.mjs";
 import Share2 from "lucide-react/dist/esm/icons/share-2.mjs";
 import Link from "lucide-react/dist/esm/icons/link.mjs";
+import Lock from "lucide-react/dist/esm/icons/lock.mjs";
 import Circle from "lucide-react/dist/esm/icons/circle.mjs";
 import Minus from "lucide-react/dist/esm/icons/minus.mjs";
 import Move from "lucide-react/dist/esm/icons/move.mjs";
@@ -91,6 +95,9 @@ const colors = {
 
 const TEXT_FONT_OPTIONS = [
   "PP Agrandir",
+  "Noto Sans",
+  "Noto Serif",
+  "Noto Sans Mono",
   "Inter",
   "Arial",
   "Helvetica",
@@ -98,6 +105,33 @@ const TEXT_FONT_OPTIONS = [
   "Georgia",
   "Courier New",
   "Verdana",
+];
+
+const TEXT_STANDARD_FONTS = [
+  "Noto Sans",
+  "Noto Serif",
+  "Noto Sans Mono",
+  "Courier New",
+  "Helvetica",
+  "Times New Roman",
+  "Arial",
+  "Georgia",
+  "Verdana",
+  "Inter",
+  "PP Agrandir",
+];
+
+const TEXT_GOOGLE_FONTS = [
+  "Amaranth",
+  "Archivo Narrow",
+  "Bitter",
+  "Cabin",
+  "Cormorant Garamond",
+  "Lora",
+  "Montserrat",
+  "Nunito",
+  "Oswald",
+  "Roboto Slab",
 ];
 
 const SIGNATURE_FONT_OPTIONS = [
@@ -2859,7 +2893,7 @@ export function App() {
               setTool(id);
             }}
           >
-            <Icon size={25} />
+            {id === "text" ? <span className="text-tool-glyph" aria-hidden="true">A</span> : <Icon size={25} />}
             <span>{label === "Text field" ? "Field" : label === "Signature" ? "Sign" : label === "Edit PDF Text" ? "Edit PDF" : label}</span>
           </button>
         ))}
@@ -3588,7 +3622,20 @@ function AuthPage({ mode, setMode, onBack, onComplete, onPasswordReset, authRead
 }
 
 function ToolSettingsPanel({ tool, settings, setSettings }) {
+  const [isFontMenuOpen, setIsFontMenuOpen] = useState(false);
+  const [fontSearch, setFontSearch] = useState("");
   const update = (patch) => setSettings((current) => ({ ...current, ...patch }));
+  const visibleStandardFonts = TEXT_STANDARD_FONTS.filter((font) => font.toLowerCase().includes(fontSearch.trim().toLowerCase()));
+  const visibleGoogleFonts = TEXT_GOOGLE_FONTS.filter((font) => font.toLowerCase().includes(fontSearch.trim().toLowerCase()));
+  const selectFont = (font) => {
+    update({ fontFamily: font });
+    setIsFontMenuOpen(false);
+    setFontSearch("");
+  };
+  const showLockedFontToast = () => {
+    setIsFontMenuOpen(false);
+    setFontSearch("");
+  };
 
   if (!["text", "field", "draw", "highlight", "whiteout", "rectangle", "circle", "line", "arrow"].includes(tool)) {
     return null;
@@ -3596,39 +3643,65 @@ function ToolSettingsPanel({ tool, settings, setSettings }) {
 
   if (tool === "text" || tool === "field") {
     return (
-      <div className="tool-settings">
+      <div className={`tool-settings ${tool === "text" ? "text-format-settings" : "field-format-settings"}`}>
         {tool === "text" && (
-          <button type="button" className="add-text-control" onClick={() => update({ textSize: settings.textSize })}><Plus size={17} /> Add Text</button>
+          <button type="button" className="text-format-add" onClick={() => update({ textSize: settings.textSize })}><span>A</span></button>
         )}
         {tool === "text" && (
-          <label>Font
-            <select value={settings.fontFamily} onChange={(event) => update({ fontFamily: event.target.value })}>
-              {TEXT_FONT_OPTIONS.map((font) => <option key={font} value={font}>{font}</option>)}
-            </select>
-          </label>
+          <div className="font-menu-wrap">
+            <button
+              type="button"
+              className="font-menu-trigger"
+              aria-haspopup="menu"
+              aria-expanded={isFontMenuOpen}
+              onClick={() => setIsFontMenuOpen((value) => !value)}
+            >
+              <span style={{ fontFamily: settings.fontFamily }}>{settings.fontFamily}</span>
+              <ChevronDown size={15} />
+            </button>
+            {isFontMenuOpen && (
+              <div className="editor-font-menu" role="menu" aria-label="Fonts">
+                <input
+                  type="search"
+                  value={fontSearch}
+                  onChange={(event) => setFontSearch(event.target.value)}
+                  placeholder="Search fonts..."
+                />
+                <strong>STANDARD FONTS</strong>
+                {visibleStandardFonts.map((font) => (
+                  <button key={font} type="button" role="menuitemradio" aria-checked={settings.fontFamily === font} onClick={() => selectFont(font)} style={{ fontFamily: font }}>
+                    {font}
+                  </button>
+                ))}
+                <strong>POPULAR GOOGLE FONTS</strong>
+                {visibleGoogleFonts.map((font) => (
+                  <button key={font} type="button" role="menuitem" className="is-locked" onClick={() => showLockedFontToast(font)} style={{ fontFamily: font }}>
+                    {font}
+                    <Lock size={15} />
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         )}
-        <label>Size
-          <select value={settings.textSize} onChange={(event) => update({ textSize: Number(event.target.value) })}>
-            {[10, 12, 14, 16, 18, 24, 32].map((size) => <option key={size}>{size}</option>)}
-          </select>
-        </label>
+        <select className="text-size-select" aria-label="Font size" value={settings.textSize} onChange={(event) => update({ textSize: Number(event.target.value) })}>
+          {[8, 9, 10, 11, 12, 14, 16, 18, 24, 32, 48, 64].map((size) => <option key={size}>{size}</option>)}
+        </select>
         <ColorControl value={settings.textColor} onChange={(color) => update({ textColor: color })} />
         {tool === "text" && (
           <>
+            <select className="line-height-select" aria-label="Line height" value={settings.lineHeight} onChange={(event) => update({ lineHeight: Number(event.target.value) })}>
+              {[1, 1.15, 1.25, 1.5, 2].map((size) => <option key={size} value={size}>T↕ {size}</option>)}
+            </select>
+            <div className="align-group" aria-label="Text alignment">
+              <button type="button" title="Align left" className={settings.textAlign === "left" ? "is-active" : ""} onClick={() => update({ textAlign: "left" })}><AlignLeft size={20} /></button>
+              <button type="button" title="Align center" className={settings.textAlign === "center" ? "is-active" : ""} onClick={() => update({ textAlign: "center" })}><AlignCenter size={20} /></button>
+              <button type="button" title="Align right" className={settings.textAlign === "right" ? "is-active" : ""} onClick={() => update({ textAlign: "right" })}><AlignRight size={20} /></button>
+            </div>
             <div className="format-toggle-group" aria-label="Text format">
               <button type="button" className={settings.textBold ? "is-active" : ""} onClick={() => update({ textBold: !settings.textBold })}>B</button>
               <button type="button" className={settings.textItalic ? "is-active" : ""} onClick={() => update({ textItalic: !settings.textItalic })}>I</button>
               <button type="button" className={settings.textUnderline ? "is-active" : ""} onClick={() => update({ textUnderline: !settings.textUnderline })}>U</button>
-            </div>
-            <label>Line
-              <select value={settings.lineHeight} onChange={(event) => update({ lineHeight: Number(event.target.value) })}>
-                {[1, 1.15, 1.25, 1.5, 2].map((size) => <option key={size} value={size}>{size}</option>)}
-              </select>
-            </label>
-            <div className="align-group" aria-label="Text alignment">
-              {["left", "center", "right"].map((align) => (
-                <button key={align} type="button" className={settings.textAlign === align ? "is-active" : ""} onClick={() => update({ textAlign: align })}>{align[0].toUpperCase()}</button>
-              ))}
             </div>
           </>
         )}
