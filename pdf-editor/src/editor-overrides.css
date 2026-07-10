@@ -6791,3 +6791,77 @@ main.editor-shell .inspector-stroke-sizes button.is-active {
     padding: 12px !important;
   }
 }
+
+/* Sidebar containment fix: keep long labels inside the rail at normal and zoomed browser scales. */
+.lumin-home.upload-shell {
+  grid-template-columns: 126px minmax(0, 1fr) !important;
+}
+
+.lumin-home .lumin-home-rail {
+  width: 126px !important;
+  padding: 18px 14px !important;
+  overflow: hidden !important;
+}
+
+.lumin-home .rail-brand-tile,
+.lumin-home .rail-mini-action {
+  justify-self: center !important;
+}
+
+.lumin-home .upload-nav {
+  justify-items: center !important;
+}
+
+.lumin-home .upload-nav button {
+  width: 98px !important;
+  min-width: 0 !important;
+  box-sizing: border-box !important;
+  padding: 8px 6px !important;
+  overflow: hidden !important;
+  text-align: center !important;
+}
+
+.lumin-home .upload-nav button span {
+  display: block !important;
+  width: 100% !important;
+  max-width: 90px !important;
+  overflow: hidden !important;
+  color: inherit !important;
+  font-size: 13px !important;
+  font-weight: 780 !important;
+  line-height: 1.12 !important;
+  letter-spacing: 0 !important;
+  text-align: center !important;
+  text-overflow: clip !important;
+  white-space: normal !important;
+}
+
+.lumin-home .upload-content {
+  padding-left: 26px !important;
+}
+
+@media (max-width: 1180px) {
+  .lumin-home.upload-shell {
+    grid-template-columns: 112px minmax(0, 1fr) !important;
+  }
+
+  .lumin-home .lumin-home-rail {
+    width: 112px !important;
+    padding-inline: 12px !important;
+  }
+
+  .lumin-home .upload-nav button {
+    width: 88px !important;
+  }
+
+  .lumin-home .upload-nav button span {
+    max-width: 82px !important;
+    font-size: 12px !important;
+  }
+}
+
+@media (max-width: 760px) {
+  .lumin-home.upload-shell {
+    grid-template-columns: 1fr !important;
+  }
+}
