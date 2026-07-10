@@ -200,6 +200,10 @@ function formatAuthError(error) {
   return error?.message || "Authentication failed. Try again.";
 }
 
+function isEditableTarget(target) {
+  return Boolean(target?.closest?.("textarea, input, select, [contenteditable], .text-content, .detected-text-content"));
+}
+
 function formatDateTime(value) {
   if (!value) return "Just now";
   return new Intl.DateTimeFormat("en", {
@@ -1007,7 +1011,7 @@ export function App() {
   const [detectedTextItems, setDetectedTextItems] = useState([]);
   const [selectedId, setSelectedId] = useState(null);
   const [selectedDetectedTextId, setSelectedDetectedTextId] = useState(null);
-  const [zoom, setZoom] = useState(80);
+  const [zoom, setZoom] = useState(100);
   const [saved, setSaved] = useState(true);
   const [saveState, setSaveState] = useState("saved");
   const [cloudSyncStatus, setCloudSyncStatus] = useState(isCloudPersistenceConfigured ? "idle" : "local");
@@ -1521,7 +1525,7 @@ export function App() {
 
     const onPaste = (event) => {
       const target = event.target;
-      if (target?.closest?.("textarea, input, select, [contenteditable='true']")) return;
+      if (isEditableTarget(target)) return;
 
       const pastedText = event.clipboardData?.getData("text/plain");
       if (!pastedText?.trim()) return;
@@ -2294,7 +2298,7 @@ export function App() {
   const fitPageToWidth = () => {
     const availableWidth = (canvasColumnRef.current?.clientWidth || 0) - 96;
     if (!currentPage?.width || availableWidth <= 0) {
-      setZoom(80);
+      setZoom(100);
       return;
     }
     const nextZoom = Math.round((availableWidth / (currentPage.width * EDITOR_PAGE_SCALE)) * 100);
@@ -2314,7 +2318,7 @@ export function App() {
   };
 
   const startDetectedTextDrag = (event, item) => {
-    if (event.target.closest?.("[contenteditable='true'], .detected-text-toolbar, .resize-handle")) return;
+    if (isEditableTarget(event.target) || event.target.closest?.(".detected-text-toolbar, .resize-handle")) return;
     event.stopPropagation();
     event.currentTarget.setPointerCapture?.(event.pointerId);
     const pageRect = event.currentTarget.closest(".page-surface").getBoundingClientRect();
@@ -2394,7 +2398,6 @@ export function App() {
   useEffect(() => {
     if (!pages.length) return undefined;
 
-    const isEditingText = (target) => target?.closest?.("textarea, input, select, [contenteditable='true']");
     const onKeyDown = (event) => {
       const key = event.key.toLowerCase();
 
@@ -2411,7 +2414,7 @@ export function App() {
         return;
       }
 
-      if (isEditingText(event.target)) return;
+      if (isEditableTarget(event.target)) return;
       if ((event.metaKey || event.ctrlKey) && key === "z") {
         event.preventDefault();
         if (event.shiftKey) redo();
