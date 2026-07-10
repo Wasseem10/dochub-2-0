@@ -2909,14 +2909,15 @@ export function App() {
         <button className="ribbon-tool" type="button" onClick={addBlankPage} title="Page numbers" aria-label="Page numbers"><FileText size={24} /><span>Page numbers</span></button>
         <button className="ribbon-tool" type="button" onClick={() => showToast("Conversion tools will use the exported PDF.")} title="Convert" aria-label="Convert"><Redo2 size={24} /><span>Convert</span></button>
         <button className="ribbon-tool" type="button" onClick={() => showToast("Compression runs when exporting optimized PDFs.")} title="Compress" aria-label="Compress"><Box size={24} /><span>Compress</span></button>
-        <ToolSettingsPanel
-          tool={tool}
-          settings={toolSettings}
-          setSettings={setToolSettings}
-          selectedTextAnnotation={selected?.type === "text" ? selected : null}
-          updateAnnotation={updateAnnotation}
-        />
       </section>
+
+      <ToolSettingsPanel
+        tool={tool}
+        settings={toolSettings}
+        setSettings={setToolSettings}
+        selectedTextAnnotation={selected?.type === "text" ? selected : null}
+        updateAnnotation={updateAnnotation}
+      />
 
       <section className={`workspace ${isPagesCollapsed ? "pages-collapsed" : ""}`}>
         <aside className="lumin-editor-rail">

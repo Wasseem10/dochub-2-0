@@ -7279,3 +7279,22 @@ main.editor-shell .text-format-settings .format-toggle-group button.is-active,
 .editor-shell .text-format-settings .format-toggle-group button.is-active {
   background: #dfe5ec !important;
 }
+
+/* Keep the text formatting bar visible outside the clipped ribbon. */
+main.editor-shell > .text-format-settings,
+.editor-shell > .text-format-settings {
+  position: fixed !important;
+  top: 152px !important;
+  left: 50% !important;
+  z-index: 120 !important;
+  transform: translateX(-50%) !important;
+}
+
+@media (max-width: 1180px) {
+  main.editor-shell > .text-format-settings,
+  .editor-shell > .text-format-settings {
+    top: 142px !important;
+    max-width: calc(100vw - 48px) !important;
+    overflow-x: auto !important;
+  }
+}
