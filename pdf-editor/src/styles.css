@@ -5547,6 +5547,7 @@ button {
   background: transparent;
   line-height: 1.12;
   cursor: text;
+  direction: ltr;
   user-select: none;
 }
 
@@ -5594,9 +5595,12 @@ button {
   width: 100%;
   height: 100%;
   outline: none;
+  direction: ltr;
   white-space: pre-wrap;
   overflow-wrap: normal;
   word-break: normal;
+  text-align: left;
+  unicode-bidi: plaintext;
   line-height: inherit;
   caret-color: #1683ff;
 }

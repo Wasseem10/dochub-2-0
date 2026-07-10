@@ -345,7 +345,7 @@ function pointerToNormalized(event, pageElement) {
 }
 
 function extractDetectedTextItems(textContent, viewport, pageRecord, pageIndex) {
-  const items = textContent.items
+  const rawItems = textContent.items
     .filter((item) => item.str?.trim())
     .map((item, index) => {
       const transform = pdfjsLib.Util.transform(viewport.transform, item.transform);
@@ -353,6 +353,8 @@ function extractDetectedTextItems(textContent, viewport, pageRecord, pageIndex) 
       const rawWidth = Math.max(item.width || 0, item.str.length * rawHeight * 0.42);
       const left = transform[4];
       const top = transform[5] - rawHeight;
+      const right = left + rawWidth;
+      const bottom = top + rawHeight;
       const x = clamp(left / viewport.width, 0, 0.98);
       const y = clamp(top / viewport.height, 0, 0.98);
       const w = clamp(rawWidth / viewport.width, 0.012, 0.86);
@@ -368,6 +370,13 @@ function extractDetectedTextItems(textContent, viewport, pageRecord, pageIndex) 
         y,
         w: Math.min(w, 0.98 - x),
         h: Math.min(h, 0.98 - y),
+        left,
+        right,
+        top,
+        bottom,
+        rawHeight,
+        rawWidth,
+        centerY: top + rawHeight / 2,
         fontSize,
         fontFamily: item.fontName || "Helvetica",
         color: colors.black,
@@ -381,7 +390,78 @@ function extractDetectedTextItems(textContent, viewport, pageRecord, pageIndex) 
       };
     });
 
-  return items.filter((item) => item.w > 0.006 && item.h > 0.006);
+  const lines = [];
+  rawItems
+    .slice()
+    .sort((a, b) => (a.centerY - b.centerY) || (a.left - b.left))
+    .forEach((item) => {
+      const line = lines.find((candidate) => Math.abs(candidate.centerY - item.centerY) <= Math.max(candidate.avgHeight, item.rawHeight) * 0.62);
+      if (!line) {
+        lines.push({ centerY: item.centerY, avgHeight: item.rawHeight, items: [item] });
+        return;
+      }
+      line.items.push(item);
+      line.avgHeight = line.items.reduce((total, candidate) => total + candidate.rawHeight, 0) / line.items.length;
+      line.centerY = line.items.reduce((total, candidate) => total + candidate.centerY, 0) / line.items.length;
+    });
+
+  const mergedItems = [];
+  lines.forEach((line) => {
+    const sorted = line.items.slice().sort((a, b) => a.left - b.left);
+    let segment = [];
+    const flushSegment = () => {
+      if (!segment.length) return;
+      const left = Math.min(...segment.map((item) => item.left));
+      const right = Math.max(...segment.map((item) => item.right));
+      const top = Math.min(...segment.map((item) => item.top));
+      const bottom = Math.max(...segment.map((item) => item.bottom));
+      const avgHeight = segment.reduce((total, item) => total + item.rawHeight, 0) / segment.length;
+      const fontSize = segment.reduce((total, item) => total + item.fontSize, 0) / segment.length;
+      const originalText = segment.reduce((text, item, index) => {
+        if (index === 0) return item.originalText;
+        const previous = segment[index - 1];
+        const gap = item.left - previous.right;
+        const needsSpace = gap > Math.max(2, avgHeight * 0.22) && !/\s$/.test(text) && !/^\s/.test(item.originalText);
+        return `${text}${needsSpace ? " " : ""}${item.originalText}`;
+      }, "").replace(/\s+/g, " ").trim();
+      const boxHeight = Math.max(bottom - top, avgHeight) * 1.32;
+      const boxTop = top - Math.max(0, (boxHeight - (bottom - top)) / 2);
+      const x = clamp(left / viewport.width, 0, 0.98);
+      const y = clamp(boxTop / viewport.height, 0, 0.98);
+      const w = clamp((right - left) / viewport.width, 0.014, 0.94);
+      const h = clamp(boxHeight / viewport.height, 0.014, 0.22);
+
+      if (originalText && w > 0.006 && h > 0.006) {
+        mergedItems.push({
+          ...segment[0],
+          id: makeId("detected-text"),
+          originalText,
+          currentText: originalText,
+          x,
+          y,
+          w: Math.min(w, 0.98 - x),
+          h: Math.min(h, 0.98 - y),
+          fontSize,
+          fontFamily: segment[0].fontFamily,
+          source: "pdf-text-line",
+        });
+      }
+      segment = [];
+    };
+
+    sorted.forEach((item) => {
+      const previous = segment[segment.length - 1];
+      const gap = previous ? item.left - previous.right : 0;
+      const maxInlineGap = Math.max(line.avgHeight * 3.2, viewport.width * 0.045);
+      if (previous && gap > maxInlineGap) {
+        flushSegment();
+      }
+      segment.push(item);
+    });
+    flushSegment();
+  });
+
+  return mergedItems;
 }
 
 function samplePages() {
@@ -541,6 +621,7 @@ const EditableTextContent = forwardRef(function EditableTextContent({
   editable,
   onBlur,
   onChange,
+  onFocus,
   onPointerDown,
   spellCheck = "false",
   value,
@@ -575,11 +656,18 @@ const EditableTextContent = forwardRef(function EditableTextContent({
     <div
       ref={setElementRef}
       className={className}
-      contentEditable={editable}
+      contentEditable={editable ? "plaintext-only" : false}
       suppressContentEditableWarning
       spellCheck={spellCheck}
       onPointerDown={onPointerDown}
       onInput={emitChange}
+      onFocus={onFocus}
+      onPaste={(event) => {
+        if (!editable) return;
+        event.preventDefault();
+        const text = event.clipboardData?.getData("text/plain") || "";
+        document.execCommand("insertText", false, text);
+      }}
       onBlur={(event) => {
         emitChange(event);
         onBlur?.(event);
@@ -2126,6 +2214,25 @@ export function App() {
   };
 
   useEffect(() => {
+    if (!selectedDetectedTextId || tool !== "editText") return;
+    const wrapper = Array.from(document.querySelectorAll("[data-detected-text-id]"))
+      .find((element) => element.dataset.detectedTextId === selectedDetectedTextId);
+    const editable = wrapper?.querySelector(".detected-text-content");
+    if (!editable || document.activeElement === editable) return;
+
+    requestAnimationFrame(() => {
+      editable.focus({ preventScroll: true });
+      const selection = window.getSelection?.();
+      if (!selection) return;
+      const range = document.createRange();
+      range.selectNodeContents(editable);
+      range.collapse(false);
+      selection.removeAllRanges();
+      selection.addRange(range);
+    });
+  }, [selectedDetectedTextId, tool]);
+
+  useEffect(() => {
     if (!pages.length) return undefined;
 
     const isEditingText = (target) => target?.closest?.("textarea, input, select, [contenteditable='true']");
@@ -2142,13 +2249,6 @@ export function App() {
       if ((event.metaKey || event.ctrlKey) && key === "f") {
         event.preventDefault();
         setIsSearchOpen(true);
-        return;
-      }
-
-      const editingDetectedText = event.target?.closest?.(".detected-text-content");
-      if (editingDetectedText && selectedDetectedTextId && (key === "delete" || (key === "backspace" && (event.metaKey || event.ctrlKey)))) {
-        event.preventDefault();
-        deleteSelected();
         return;
       }
 
@@ -2771,6 +2871,7 @@ export function App() {
                   return (
                     <div
                       key={item.id}
+                      data-detected-text-id={item.id}
                       className={`detected-text-item ${item.isEdited ? "is-edited" : ""} ${isActive ? "is-selected" : ""} ${item.source === "ocr" && item.confidence < 0.75 ? "is-low-confidence" : ""}`}
                       style={{
                         left: `${item.x * 100}%`,
@@ -2802,6 +2903,11 @@ export function App() {
                         value={item.currentText}
                         onPointerDown={(event) => {
                           event.stopPropagation();
+                          setSelectedDetectedTextId(item.id);
+                          setSelectedId(null);
+                          setTool("editText");
+                        }}
+                        onFocus={() => {
                           setSelectedDetectedTextId(item.id);
                           setSelectedId(null);
                           setTool("editText");
