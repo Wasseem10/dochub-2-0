@@ -2909,7 +2909,13 @@ export function App() {
         <button className="ribbon-tool" type="button" onClick={addBlankPage} title="Page numbers" aria-label="Page numbers"><FileText size={24} /><span>Page numbers</span></button>
         <button className="ribbon-tool" type="button" onClick={() => showToast("Conversion tools will use the exported PDF.")} title="Convert" aria-label="Convert"><Redo2 size={24} /><span>Convert</span></button>
         <button className="ribbon-tool" type="button" onClick={() => showToast("Compression runs when exporting optimized PDFs.")} title="Compress" aria-label="Compress"><Box size={24} /><span>Compress</span></button>
-        <ToolSettingsPanel tool={tool} settings={toolSettings} setSettings={setToolSettings} />
+        <ToolSettingsPanel
+          tool={tool}
+          settings={toolSettings}
+          setSettings={setToolSettings}
+          selectedTextAnnotation={selected?.type === "text" ? selected : null}
+          updateAnnotation={updateAnnotation}
+        />
       </section>
 
       <section className={`workspace ${isPagesCollapsed ? "pages-collapsed" : ""}`}>
@@ -3621,10 +3627,38 @@ function AuthPage({ mode, setMode, onBack, onComplete, onPasswordReset, authRead
   );
 }
 
-function ToolSettingsPanel({ tool, settings, setSettings }) {
+function ToolSettingsPanel({ tool, settings, setSettings, selectedTextAnnotation, updateAnnotation }) {
   const [isFontMenuOpen, setIsFontMenuOpen] = useState(false);
   const [fontSearch, setFontSearch] = useState("");
-  const update = (patch) => setSettings((current) => ({ ...current, ...patch }));
+  const isEditingSelectedText = selectedTextAnnotation?.type === "text";
+  const effectiveTool = isEditingSelectedText ? "text" : tool;
+  const activeSettings = isEditingSelectedText
+    ? {
+      ...settings,
+      textColor: selectedTextAnnotation.color || settings.textColor,
+      textSize: selectedTextAnnotation.fontSize || settings.textSize,
+      fontFamily: selectedTextAnnotation.fontFamily || settings.fontFamily,
+      textAlign: selectedTextAnnotation.textAlign || settings.textAlign,
+      lineHeight: selectedTextAnnotation.lineHeight || settings.lineHeight,
+      textBold: !!selectedTextAnnotation.bold,
+      textItalic: !!selectedTextAnnotation.italic,
+      textUnderline: !!selectedTextAnnotation.underline,
+    }
+    : settings;
+  const update = (patch) => {
+    setSettings((current) => ({ ...current, ...patch }));
+    if (!isEditingSelectedText || !updateAnnotation) return;
+    const annotationPatch = {};
+    if (Object.prototype.hasOwnProperty.call(patch, "textColor")) annotationPatch.color = patch.textColor;
+    if (Object.prototype.hasOwnProperty.call(patch, "textSize")) annotationPatch.fontSize = patch.textSize;
+    if (Object.prototype.hasOwnProperty.call(patch, "fontFamily")) annotationPatch.fontFamily = patch.fontFamily;
+    if (Object.prototype.hasOwnProperty.call(patch, "textAlign")) annotationPatch.textAlign = patch.textAlign;
+    if (Object.prototype.hasOwnProperty.call(patch, "lineHeight")) annotationPatch.lineHeight = patch.lineHeight;
+    if (Object.prototype.hasOwnProperty.call(patch, "textBold")) annotationPatch.bold = patch.textBold;
+    if (Object.prototype.hasOwnProperty.call(patch, "textItalic")) annotationPatch.italic = patch.textItalic;
+    if (Object.prototype.hasOwnProperty.call(patch, "textUnderline")) annotationPatch.underline = patch.textUnderline;
+    updateAnnotation(selectedTextAnnotation.id, annotationPatch);
+  };
   const visibleStandardFonts = TEXT_STANDARD_FONTS.filter((font) => font.toLowerCase().includes(fontSearch.trim().toLowerCase()));
   const visibleGoogleFonts = TEXT_GOOGLE_FONTS.filter((font) => font.toLowerCase().includes(fontSearch.trim().toLowerCase()));
   const selectFont = (font) => {
@@ -3637,17 +3671,17 @@ function ToolSettingsPanel({ tool, settings, setSettings }) {
     setFontSearch("");
   };
 
-  if (!["text", "field", "draw", "highlight", "whiteout", "rectangle", "circle", "line", "arrow"].includes(tool)) {
+  if (!["text", "field", "draw", "highlight", "whiteout", "rectangle", "circle", "line", "arrow"].includes(effectiveTool)) {
     return null;
   }
 
-  if (tool === "text" || tool === "field") {
+  if (effectiveTool === "text" || effectiveTool === "field") {
     return (
-      <div className={`tool-settings ${tool === "text" ? "text-format-settings" : "field-format-settings"}`}>
-        {tool === "text" && (
-          <button type="button" className="text-format-add" onClick={() => update({ textSize: settings.textSize })}><span>A</span></button>
+      <div className={`tool-settings ${effectiveTool === "text" ? "text-format-settings" : "field-format-settings"}`}>
+        {effectiveTool === "text" && (
+          <button type="button" className="text-format-add" onClick={() => update({ textSize: activeSettings.textSize })}><span>A</span></button>
         )}
-        {tool === "text" && (
+        {effectiveTool === "text" && (
           <div className="font-menu-wrap">
             <button
               type="button"
@@ -3656,7 +3690,7 @@ function ToolSettingsPanel({ tool, settings, setSettings }) {
               aria-expanded={isFontMenuOpen}
               onClick={() => setIsFontMenuOpen((value) => !value)}
             >
-              <span style={{ fontFamily: settings.fontFamily }}>{settings.fontFamily}</span>
+              <span style={{ fontFamily: activeSettings.fontFamily }}>{activeSettings.fontFamily}</span>
               <ChevronDown size={15} />
             </button>
             {isFontMenuOpen && (
@@ -3669,7 +3703,7 @@ function ToolSettingsPanel({ tool, settings, setSettings }) {
                 />
                 <strong>STANDARD FONTS</strong>
                 {visibleStandardFonts.map((font) => (
-                  <button key={font} type="button" role="menuitemradio" aria-checked={settings.fontFamily === font} onClick={() => selectFont(font)} style={{ fontFamily: font }}>
+                  <button key={font} type="button" role="menuitemradio" aria-checked={activeSettings.fontFamily === font} onClick={() => selectFont(font)} style={{ fontFamily: font }}>
                     {font}
                   </button>
                 ))}
@@ -3684,24 +3718,24 @@ function ToolSettingsPanel({ tool, settings, setSettings }) {
             )}
           </div>
         )}
-        <select className="text-size-select" aria-label="Font size" value={settings.textSize} onChange={(event) => update({ textSize: Number(event.target.value) })}>
+        <select className="text-size-select" aria-label="Font size" value={activeSettings.textSize} onChange={(event) => update({ textSize: Number(event.target.value) })}>
           {[8, 9, 10, 11, 12, 14, 16, 18, 24, 32, 48, 64].map((size) => <option key={size}>{size}</option>)}
         </select>
-        <ColorControl value={settings.textColor} onChange={(color) => update({ textColor: color })} />
-        {tool === "text" && (
+        <ColorControl value={activeSettings.textColor} onChange={(color) => update({ textColor: color })} />
+        {effectiveTool === "text" && (
           <>
-            <select className="line-height-select" aria-label="Line height" value={settings.lineHeight} onChange={(event) => update({ lineHeight: Number(event.target.value) })}>
+            <select className="line-height-select" aria-label="Line height" value={activeSettings.lineHeight} onChange={(event) => update({ lineHeight: Number(event.target.value) })}>
               {[1, 1.15, 1.25, 1.5, 2].map((size) => <option key={size} value={size}>T↕ {size}</option>)}
             </select>
             <div className="align-group" aria-label="Text alignment">
-              <button type="button" title="Align left" className={settings.textAlign === "left" ? "is-active" : ""} onClick={() => update({ textAlign: "left" })}><AlignLeft size={20} /></button>
-              <button type="button" title="Align center" className={settings.textAlign === "center" ? "is-active" : ""} onClick={() => update({ textAlign: "center" })}><AlignCenter size={20} /></button>
-              <button type="button" title="Align right" className={settings.textAlign === "right" ? "is-active" : ""} onClick={() => update({ textAlign: "right" })}><AlignRight size={20} /></button>
+              <button type="button" title="Align left" className={activeSettings.textAlign === "left" ? "is-active" : ""} onClick={() => update({ textAlign: "left" })}><AlignLeft size={20} /></button>
+              <button type="button" title="Align center" className={activeSettings.textAlign === "center" ? "is-active" : ""} onClick={() => update({ textAlign: "center" })}><AlignCenter size={20} /></button>
+              <button type="button" title="Align right" className={activeSettings.textAlign === "right" ? "is-active" : ""} onClick={() => update({ textAlign: "right" })}><AlignRight size={20} /></button>
             </div>
             <div className="format-toggle-group" aria-label="Text format">
-              <button type="button" className={settings.textBold ? "is-active" : ""} onClick={() => update({ textBold: !settings.textBold })}>B</button>
-              <button type="button" className={settings.textItalic ? "is-active" : ""} onClick={() => update({ textItalic: !settings.textItalic })}>I</button>
-              <button type="button" className={settings.textUnderline ? "is-active" : ""} onClick={() => update({ textUnderline: !settings.textUnderline })}>U</button>
+              <button type="button" className={activeSettings.textBold ? "is-active" : ""} onClick={() => update({ textBold: !activeSettings.textBold })}>B</button>
+              <button type="button" className={activeSettings.textItalic ? "is-active" : ""} onClick={() => update({ textItalic: !activeSettings.textItalic })}>I</button>
+              <button type="button" className={activeSettings.textUnderline ? "is-active" : ""} onClick={() => update({ textUnderline: !activeSettings.textUnderline })}>U</button>
             </div>
           </>
         )}
