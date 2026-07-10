@@ -924,6 +924,7 @@ function Annotation({ annotation, selected, zoom, onSelect, onDrag, onResize, on
 
 export function App() {
   const fileInputRef = useRef(null);
+  const appendFileInputRef = useRef(null);
   const imageInputRef = useRef(null);
   const moreMenuRef = useRef(null);
   const zoomMenuRef = useRef(null);
@@ -962,6 +963,7 @@ export function App() {
   const [isDraggingFile, setIsDraggingFile] = useState(false);
   const [toast, setToast] = useState("");
   const [isPagesCollapsed, setIsPagesCollapsed] = useState(false);
+  const [isPageAppendMenuOpen, setIsPageAppendMenuOpen] = useState(false);
   const [isInspectorCollapsed, setIsInspectorCollapsed] = useState(false);
   const [signatureModalOpen, setSignatureModalOpen] = useState(false);
   const [shareModalOpen, setShareModalOpen] = useState(false);
@@ -1308,15 +1310,38 @@ export function App() {
     showToast("Document duplicated.");
   };
 
+  const getHistorySnapshot = () => ({
+    pages,
+    annotations,
+    detectedTextItems,
+    pageIndex,
+  });
+
+  const pushHistorySnapshot = () => {
+    setUndoStack((stack) => [...stack.slice(-24), getHistorySnapshot()]);
+    setRedoStack([]);
+  };
+
+  const restoreHistorySnapshot = (snapshot) => {
+    if (Array.isArray(snapshot)) {
+      setAnnotations(snapshot);
+      return;
+    }
+    setPages((snapshot.pages || []).map((page, index) => ({ ...page, number: index + 1 })));
+    setAnnotations(snapshot.annotations || []);
+    setDetectedTextItems(snapshot.detectedTextItems || []);
+    setPageIndex(clamp(snapshot.pageIndex || 0, 0, Math.max(0, (snapshot.pages || []).length - 1)));
+  };
+
   const commitAnnotations = (next) => {
-    setUndoStack((stack) => [...stack.slice(-24), { annotations, detectedTextItems }]);
+    pushHistorySnapshot();
     setRedoStack([]);
     setAnnotations(next);
     markUnsaved();
   };
 
   const commitDetectedTextItems = (next) => {
-    setUndoStack((stack) => [...stack.slice(-24), { annotations, detectedTextItems }]);
+    pushHistorySnapshot();
     setRedoStack([]);
     setDetectedTextItems(next);
     markUnsaved();
@@ -1490,16 +1515,67 @@ export function App() {
     };
   }, [isZoomMenuOpen]);
 
+  const validatePdfFile = (file) => {
+    if (!file) return "No file selected.";
+    if (file.type !== "application/pdf" && !file.name.toLowerCase().endsWith(".pdf")) {
+      return "Please upload a PDF file.";
+    }
+    if (file.size > MAX_FILE_BYTES) {
+      return `For this local MVP, PDFs must be under ${formatBytes(MAX_FILE_BYTES)}.`;
+    }
+    return "";
+  };
+
+  const parsePdfFile = async (file, { startPercent = 18, endPercent = 80, stagePrefix = "Rendering page" } = {}) => {
+    const buffer = await file.arrayBuffer();
+    const document = await pdfjsLib.getDocument({ data: buffer.slice(0) }).promise;
+    const loadedPages = [];
+    const detectedItems = [];
+
+    for (let index = 1; index <= document.numPages; index += 1) {
+      setUploadStage({
+        status: `${stagePrefix} ${index} of ${document.numPages}`,
+        percent: Math.round(startPercent + (index / document.numPages) * (endPercent - startPercent)),
+        fileName: file.name,
+      });
+      const page = await document.getPage(index);
+      const textContent = await page.getTextContent();
+      const pageText = textContent.items.map((item) => item.str).join(" ").replace(/\s+/g, " ").trim();
+      const textViewport = page.getViewport({ scale: 1 });
+      const viewport = page.getViewport({ scale: 1.35 });
+      const canvas = window.document.createElement("canvas");
+      const context = canvas.getContext("2d");
+      canvas.width = viewport.width;
+      canvas.height = viewport.height;
+      await page.render({ canvasContext: context, viewport }).promise;
+      const displayWidth = BASE_PAGE_WIDTH;
+      const displayHeight = Math.round(BASE_PAGE_WIDTH * (viewport.height / viewport.width));
+      const pageRecord = {
+        id: makeId("page"),
+        number: index,
+        originalIndex: index - 1,
+        width: displayWidth,
+        height: displayHeight,
+        image: canvas.toDataURL("image/png"),
+        text: pageText,
+        source: "pdf",
+      };
+      detectedItems.push(...extractDetectedTextItems(textContent, textViewport, pageRecord, index - 1));
+      loadedPages.push({
+        ...pageRecord,
+        hasDetectedText: pageText.length > 0,
+      });
+    }
+
+    return { buffer, loadedPages, detectedItems };
+  };
+
   const loadPdfFile = async (file) => {
     if (!file) return;
     setUploadStage({ status: "validating", percent: 8, fileName: file.name });
-    if (file.type !== "application/pdf" && !file.name.toLowerCase().endsWith(".pdf")) {
-      setUploadError("Please upload a PDF file.");
-      setUploadStage({ status: "error", percent: 0, fileName: file.name });
-      return;
-    }
-    if (file.size > MAX_FILE_BYTES) {
-      setUploadError(`For this local MVP, PDFs must be under ${formatBytes(MAX_FILE_BYTES)}.`);
+    const validationError = validatePdfFile(file);
+    if (validationError) {
+      setUploadError(validationError);
       setUploadStage({ status: "error", percent: 0, fileName: file.name });
       return;
     }
@@ -1507,45 +1583,11 @@ export function App() {
     try {
       setUploadError("");
       setUploadStage({ status: "reading", percent: 18, fileName: file.name });
-      const buffer = await file.arrayBuffer();
-      const document = await pdfjsLib.getDocument({ data: buffer.slice(0) }).promise;
-      const loadedPages = [];
-      const detectedItems = [];
-
-      for (let index = 1; index <= document.numPages; index += 1) {
-        setUploadStage({
-          status: `Rendering page ${index} of ${document.numPages}`,
-          percent: Math.round(24 + (index / document.numPages) * 56),
-          fileName: file.name,
-        });
-        const page = await document.getPage(index);
-        const textContent = await page.getTextContent();
-        const pageText = textContent.items.map((item) => item.str).join(" ").replace(/\s+/g, " ").trim();
-        const textViewport = page.getViewport({ scale: 1 });
-        const viewport = page.getViewport({ scale: 1.35 });
-        const canvas = window.document.createElement("canvas");
-        const context = canvas.getContext("2d");
-        canvas.width = viewport.width;
-        canvas.height = viewport.height;
-        await page.render({ canvasContext: context, viewport }).promise;
-        const displayWidth = BASE_PAGE_WIDTH;
-        const displayHeight = Math.round(BASE_PAGE_WIDTH * (viewport.height / viewport.width));
-        const pageRecord = {
-          id: makeId("page"),
-          number: index,
-          originalIndex: index - 1,
-          width: displayWidth,
-          height: displayHeight,
-          image: canvas.toDataURL("image/png"),
-          text: pageText,
-          source: "pdf",
-        };
-        detectedItems.push(...extractDetectedTextItems(textContent, textViewport, pageRecord, index - 1));
-        loadedPages.push({
-          ...pageRecord,
-          hasDetectedText: pageText.length > 0,
-        });
-      }
+      const { buffer, loadedPages, detectedItems } = await parsePdfFile(file, {
+        startPercent: 24,
+        endPercent: 80,
+        stagePrefix: "Rendering page",
+      });
 
       setUploadStage({ status: "Saving workspace copy", percent: 88, fileName: file.name });
       const stamp = nowIso();
@@ -1593,6 +1635,62 @@ export function App() {
 
   const onUpload = async (event) => {
     await loadPdfFile(event.target.files?.[0]);
+    event.target.value = "";
+  };
+
+  const mergeAndAppendPdfFile = async (file) => {
+    if (!file) return;
+    setIsPageAppendMenuOpen(false);
+    setUploadStage({ status: "validating", percent: 8, fileName: file.name });
+    const validationError = validatePdfFile(file);
+    if (validationError) {
+      setUploadError(validationError);
+      setUploadStage({ status: "error", percent: 0, fileName: file.name });
+      return;
+    }
+
+    try {
+      setUploadError("");
+      setUploadStage({ status: "reading append file", percent: 18, fileName: file.name });
+      const { loadedPages, detectedItems } = await parsePdfFile(file, {
+        startPercent: 24,
+        endPercent: 82,
+        stagePrefix: "Rendering append page",
+      });
+      const pageOffset = pages.length;
+      const appendedPages = loadedPages.map((page, index) => ({
+        ...page,
+        id: makeId("page"),
+        number: pageOffset + index + 1,
+        originalIndex: null,
+        source: "image",
+      }));
+      const appendedDetectedItems = detectedItems.map((item) => ({
+        ...item,
+        id: makeId("detected-text"),
+        pageNumber: item.pageNumber + pageOffset,
+      }));
+
+      pushHistorySnapshot();
+      setPages((items) => [...items, ...appendedPages].map((page, index) => ({ ...page, number: index + 1 })));
+      setDetectedTextItems((items) => [...items, ...appendedDetectedItems]);
+      setPageIndex(pageOffset);
+      setSelectedId(null);
+      setSelectedDetectedTextId(null);
+      setIsPagesCollapsed(false);
+      setTool(appendedDetectedItems.length ? "editText" : "select");
+      markUnsaved();
+      setUploadStage({ status: "complete", percent: 100, fileName: file.name });
+      showToast(`Appended ${appendedPages.length} page${appendedPages.length === 1 ? "" : "s"} from ${file.name}.`);
+      window.setTimeout(() => setUploadStage({ status: "idle", percent: 0, fileName: "" }), 900);
+    } catch {
+      setUploadError("We could not append that PDF. Try a smaller or unprotected PDF file.");
+      setUploadStage({ status: "error", percent: 0, fileName: file.name });
+    }
+  };
+
+  const onAppendUpload = async (event) => {
+    await mergeAndAppendPdfFile(event.target.files?.[0]);
     event.target.value = "";
   };
 
@@ -1681,10 +1779,12 @@ export function App() {
       height: currentPage?.height || BASE_PAGE_HEIGHT,
       source: "blank",
     };
+    pushHistorySnapshot();
     setPages((items) => [...items.slice(0, insertionIndex), blankPage, ...items.slice(insertionIndex)].map((page, index) => ({ ...page, number: index + 1 })));
     setAnnotations((items) => items.map((annotation) => (annotation.page >= insertionIndex ? { ...annotation, page: annotation.page + 1 } : annotation)));
     setDetectedTextItems((items) => items.map((item) => (item.pageNumber >= insertionIndex ? { ...item, pageNumber: item.pageNumber + 1 } : item)));
     setPageIndex(insertionIndex);
+    setIsPageAppendMenuOpen(false);
     markUnsaved();
     showToast("Blank page added.");
   };
@@ -1695,6 +1795,7 @@ export function App() {
       return;
     }
     const removedIndex = pageIndex;
+    pushHistorySnapshot();
     setPages((items) => items.filter((_, index) => index !== removedIndex).map((page, index) => ({ ...page, number: index + 1 })));
     setAnnotations((items) => items
       .filter((annotation) => annotation.page !== removedIndex)
@@ -1711,6 +1812,7 @@ export function App() {
   const moveCurrentPage = (direction) => {
     const nextIndex = pageIndex + direction;
     if (nextIndex < 0 || nextIndex >= pages.length) return;
+    pushHistorySnapshot();
     setPages((items) => {
       const next = [...items];
       [next[pageIndex], next[nextIndex]] = [next[nextIndex], next[pageIndex]];
@@ -2047,14 +2149,9 @@ export function App() {
   const undo = () => {
     if (!undoStack.length) return;
     const previous = undoStack[undoStack.length - 1];
-    setRedoStack((stack) => [{ annotations, detectedTextItems }, ...stack].slice(0, 25));
+    setRedoStack((stack) => [getHistorySnapshot(), ...stack].slice(0, 25));
     setUndoStack((stack) => stack.slice(0, -1));
-    if (Array.isArray(previous)) {
-      setAnnotations(previous);
-    } else {
-      setAnnotations(previous.annotations || []);
-      setDetectedTextItems(previous.detectedTextItems || []);
-    }
+    restoreHistorySnapshot(previous);
     setSelectedId(null);
     setSelectedDetectedTextId(null);
     markUnsaved();
@@ -2063,14 +2160,9 @@ export function App() {
   const redo = () => {
     if (!redoStack.length) return;
     const [next, ...rest] = redoStack;
-    setUndoStack((stack) => [...stack, { annotations, detectedTextItems }].slice(-25));
+    setUndoStack((stack) => [...stack, getHistorySnapshot()].slice(-25));
     setRedoStack(rest);
-    if (Array.isArray(next)) {
-      setAnnotations(next);
-    } else {
-      setAnnotations(next.annotations || []);
-      setDetectedTextItems(next.detectedTextItems || []);
-    }
+    restoreHistorySnapshot(next);
     setSelectedId(null);
     setSelectedDetectedTextId(null);
     markUnsaved();
@@ -2158,8 +2250,7 @@ export function App() {
     event.currentTarget.setPointerCapture?.(event.pointerId);
     const pageRect = event.currentTarget.closest(".page-surface").getBoundingClientRect();
     const origin = { clientX: event.clientX, clientY: event.clientY, x: item.x, y: item.y };
-    setUndoStack((stack) => [...stack.slice(-24), { annotations, detectedTextItems }]);
-    setRedoStack([]);
+    pushHistorySnapshot();
     setSelectedDetectedTextId(item.id);
     setSelectedId(null);
     setTool("editText");
@@ -2189,8 +2280,7 @@ export function App() {
     event.stopPropagation();
     const pageRect = event.currentTarget.closest(".page-surface").getBoundingClientRect();
     const origin = { clientX: event.clientX, clientY: event.clientY, w: item.w, h: item.h };
-    setUndoStack((stack) => [...stack.slice(-24), { annotations, detectedTextItems }]);
-    setRedoStack([]);
+    pushHistorySnapshot();
     const move = (moveEvent) => {
       setDetectedTextItems((items) => items.map((candidate) => (
         candidate.id === item.id
@@ -2253,6 +2343,12 @@ export function App() {
       }
 
       if (isEditingText(event.target)) return;
+      if ((event.metaKey || event.ctrlKey) && key === "z") {
+        event.preventDefault();
+        if (event.shiftKey) redo();
+        else undo();
+        return;
+      }
       if (!event.metaKey && !event.ctrlKey && !event.altKey && selected?.type === "text" && key.length === 1) return;
 
       if (key === "escape") {
@@ -2276,7 +2372,7 @@ export function App() {
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [pages.length, selectedId, selectedDetectedTextId, selected?.type, annotations, detectedTextItems, saveState]);
+  }, [pages, pageIndex, selectedId, selectedDetectedTextId, selected?.type, annotations, detectedTextItems, undoStack, redoStack, saveState]);
 
   const exportPdf = async () => {
     setIsExporting(true);
@@ -2290,7 +2386,19 @@ export function App() {
         const [copiedPage] = await pdfDoc.copyPages(sourcePdf, [pageRecord.originalIndex]);
         pdfDoc.addPage(copiedPage);
       } else {
-        pdfDoc.addPage([612, Math.round(612 * ((pageRecord.height || BASE_PAGE_HEIGHT) / (pageRecord.width || BASE_PAGE_WIDTH)))]);
+        const fallbackPage = pdfDoc.addPage([612, Math.round(612 * ((pageRecord.height || BASE_PAGE_HEIGHT) / (pageRecord.width || BASE_PAGE_WIDTH)))]);
+        if (pageRecord.image) {
+          const pageImage = await embedDataUrlImage(pdfDoc, pageRecord.image);
+          if (pageImage) {
+            const { width, height } = fallbackPage.getSize();
+            fallbackPage.drawImage(pageImage, {
+              x: 0,
+              y: 0,
+              width,
+              height,
+            });
+          }
+        }
       }
     }
 
@@ -2622,6 +2730,7 @@ export function App() {
   return (
     <main className={`editor-shell ${tool === "editText" ? "is-smart-text-mode" : ""}`}>
       <input ref={fileInputRef} className="hidden-input" type="file" accept="application/pdf" onChange={onUpload} />
+      <input ref={appendFileInputRef} className="hidden-input" type="file" accept="application/pdf" onChange={onAppendUpload} />
       <input ref={imageInputRef} className="hidden-input" type="file" accept="image/png,image/jpeg" onChange={onImageUpload} />
       <header className="file-header">
         <button type="button" className="pdfnet-brand" onClick={() => {
@@ -2761,7 +2870,7 @@ export function App() {
         <div className="ribbon-divider" />
         <button className="ribbon-tool" type="button" onClick={() => showToast("Auto-fill reads form fields from uploaded PDFs.")} title="Auto-Fill" aria-label="Auto-Fill"><FilePlus2 size={24} /><span>Auto-Fill</span></button>
         <button className="ribbon-tool" type="button" onClick={() => showToast("Ask AI is ready for document summary prompts.")} title="Ask AI" aria-label="Ask AI"><Zap size={24} /><span>Ask AI</span></button>
-        <button className="ribbon-tool" type="button" onClick={() => fileInputRef.current?.click()} title="Merge" aria-label="Merge"><Copy size={24} /><span>Merge</span></button>
+        <button className="ribbon-tool" type="button" onClick={() => appendFileInputRef.current?.click()} title="Merge and append file" aria-label="Merge and append file"><Copy size={24} /><span>Merge</span></button>
         <button className="ribbon-tool" type="button" onClick={() => setIsPagesCollapsed(false)} title="Rearrange" aria-label="Rearrange"><Grid2X2 size={24} /><span>Rearrange</span></button>
         <button className="ribbon-tool" type="button" onClick={addBlankPage} title="Page numbers" aria-label="Page numbers"><FileText size={24} /><span>Page numbers</span></button>
         <button className="ribbon-tool" type="button" onClick={() => showToast("Conversion tools will use the exported PDF.")} title="Convert" aria-label="Convert"><Redo2 size={24} /><span>Convert</span></button>
@@ -2801,7 +2910,16 @@ export function App() {
             </div>
           </div>
           <div className="page-actions">
-            <button type="button" onClick={addBlankPage}><Plus size={15} /> Add</button>
+            <button type="button" onClick={() => setIsPageAppendMenuOpen((value) => !value)} aria-haspopup="menu" aria-expanded={isPageAppendMenuOpen}><FilePlus2 size={15} /> Append</button>
+            {isPageAppendMenuOpen && (
+              <div className="page-append-menu" role="menu" aria-label="Append pages">
+                <button type="button" role="menuitem" onClick={addBlankPage}>Append Blank Page</button>
+                <button type="button" role="menuitem" onClick={() => {
+                  setIsPageAppendMenuOpen(false);
+                  appendFileInputRef.current?.click();
+                }}>Merge and Append File... (+)</button>
+              </div>
+            )}
             <button type="button" onClick={() => moveCurrentPage(-1)} disabled={pageIndex === 0}><GripVertical size={15} /> Up</button>
             <button type="button" onClick={() => moveCurrentPage(1)} disabled={pageIndex === pages.length - 1}><GripVertical size={15} /> Down</button>
             <button type="button" onClick={deleteCurrentPage} disabled={pages.length <= 1}><Trash2 size={15} /> Delete</button>
