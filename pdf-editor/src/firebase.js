@@ -1,5 +1,5 @@
 import { initializeApp } from "firebase/app";
-import { getAuth, GoogleAuthProvider } from "firebase/auth";
+import { browserLocalPersistence, getAuth, GoogleAuthProvider, setPersistence } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 
@@ -22,6 +22,11 @@ export const isFirebaseConfigured = Boolean(
 
 export const firebaseApp = isFirebaseConfigured ? initializeApp(firebaseConfig) : null;
 export const auth = firebaseApp ? getAuth(firebaseApp) : null;
+if (auth) {
+  setPersistence(auth, browserLocalPersistence).catch(() => {
+    // Auth still works without this, but refresh persistence may depend on browser settings.
+  });
+}
 export const googleProvider = firebaseApp ? new GoogleAuthProvider() : null;
 export const db = firebaseApp ? getFirestore(firebaseApp) : null;
 export const storage = firebaseApp ? getStorage(firebaseApp) : null;

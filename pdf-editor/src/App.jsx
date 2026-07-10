@@ -81,6 +81,7 @@ const BASE_PAGE_HEIGHT = 984;
 const EDITOR_PAGE_SCALE = 0.74;
 const TEXT_SCREEN_SCALE = 1 / EDITOR_PAGE_SCALE;
 const STORAGE_KEY = "paperflow.documents.v1";
+const APP_SCREEN_KEY = "paperflow.lastScreen.v1";
 const MAX_FILE_BYTES = 8 * 1024 * 1024;
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 const ZOOM_PRESETS = [60, 80, 90, 100, 120, 140, 160];
@@ -225,6 +226,27 @@ function safeLoadDocuments() {
 
 function writeDocuments(documents) {
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(documents));
+}
+
+function safeLoadScreen() {
+  const urlView = new URLSearchParams(window.location.search).get("view");
+  if (urlView === "dashboard") return "upload";
+
+  try {
+    const savedScreen = window.localStorage.getItem(APP_SCREEN_KEY);
+    return savedScreen === "upload" || savedScreen === "editor" ? "upload" : "landing";
+  } catch {
+    return "landing";
+  }
+}
+
+function writeLastScreen(screen) {
+  try {
+    if (screen === "auth") return;
+    window.localStorage.setItem(APP_SCREEN_KEY, screen === "editor" ? "upload" : screen);
+  } catch {
+    // Ignore private browsing or disabled storage; Firebase auth still owns login state.
+  }
 }
 
 function cloudDocumentPayloadPath(userId, documentId) {
@@ -970,9 +992,7 @@ export function App() {
   const zoomMenuRef = useRef(null);
   const canvasColumnRef = useRef(null);
   const lastPagePointRef = useRef({ x: 0.52, y: 0.28 });
-  const [screen, setScreen] = useState(() => (
-    new URLSearchParams(window.location.search).get("view") === "dashboard" ? "upload" : "landing"
-  ));
+  const [screen, setScreen] = useState(() => safeLoadScreen());
   const [authMode, setAuthMode] = useState("signup");
   const [currentUser, setCurrentUser] = useState(null);
   const [authReady, setAuthReady] = useState(!isFirebaseConfigured);
@@ -1128,6 +1148,15 @@ export function App() {
       setAuthReady(true);
     });
   }, []);
+
+  useEffect(() => {
+    writeLastScreen(screen);
+  }, [screen]);
+
+  useEffect(() => {
+    if (!authReady || !currentUser || pages.length || screen !== "landing") return;
+    setScreen("upload");
+  }, [authReady, currentUser, pages.length, screen]);
 
   useEffect(() => {
     if (!currentUser?.uid) {
@@ -2709,6 +2738,18 @@ export function App() {
     setIsExporting(false);
     }
   };
+
+  if (!authReady) {
+    return (
+      <main className="auth-shell">
+        <section className="auth-card" aria-label="Restoring session">
+          <button type="button" className="auth-mark blank-brand" aria-label="Loading workspace"><span aria-hidden="true" /></button>
+          <h2>Opening workspace</h2>
+          <p className="auth-privacy">Checking your saved sign-in before loading the app.</p>
+        </section>
+      </main>
+    );
+  }
 
   if (!pages.length && screen === "landing") {
     return (
