@@ -71,6 +71,7 @@ import {
 import { collection, deleteDoc, doc, getDocs, setDoc } from "firebase/firestore";
 import { deleteObject, getDownloadURL, ref as storageReference, uploadString } from "firebase/storage";
 import { auth, db, googleProvider, isCloudPersistenceConfigured, isFirebaseConfigured, storage } from "./firebase";
+import { LatticePdfLanding } from "./LatticePdfLanding.jsx";
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
   "pdfjs-dist/build/pdf.worker.mjs",
@@ -2786,13 +2787,13 @@ export function App() {
 
   if (!pages.length && screen === "landing") {
     return (
-      <LandingPage
+      <LatticePdfLanding
         fileInputRef={fileInputRef}
         onUpload={onUpload}
-        onStart={() => (currentUser ? setScreen("upload") : openAuth("signup"))}
         onLogin={() => openAuth("login")}
         onSignup={() => openAuth("signup")}
         onSelectFiles={() => (currentUser ? fileInputRef.current?.click() : openAuth("signup"))}
+        onDropFiles={(files) => (currentUser ? onUpload({ target: { files, value: "" } }) : openAuth("signup"))}
         onBlankPage={startBlankDocument}
         documentCount={documents.length}
       />

@@ -6,6 +6,7 @@ console.log("creating vite server");
 const server = await createServer({
   configFile: false,
   root: process.cwd(),
+  publicDir: "runtime-public",
   optimizeDeps: {
     entries: ["index.html"],
     include: ["react", "react-dom/client"],
