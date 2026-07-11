@@ -4,6 +4,7 @@ import { App } from "./App.jsx";
 import "./styles.css";
 import "./editor-overrides.css";
 import "./landing-redesign.css";
+import "./lattice-pdf.css";
 
 createRoot(document.getElementById("root")).render(
   <React.StrictMode>
