@@ -33,6 +33,7 @@ import PenLine from "lucide-react/dist/esm/icons/pen-line.mjs";
 import Printer from "lucide-react/dist/esm/icons/printer.mjs";
 import Plus from "lucide-react/dist/esm/icons/plus.mjs";
 import Redo2 from "lucide-react/dist/esm/icons/redo-2.mjs";
+import RotateCw from "lucide-react/dist/esm/icons/rotate-cw.mjs";
 import Save from "lucide-react/dist/esm/icons/save.mjs";
 import ScanText from "lucide-react/dist/esm/icons/scan-text.mjs";
 import Search from "lucide-react/dist/esm/icons/search.mjs";
@@ -1882,6 +1883,35 @@ export function App() {
     showToast("Page deleted.");
   };
 
+  const rotateCurrentPage = () => {
+    const targetIndex = pageIndex;
+    const page = pages[targetIndex];
+    if (!page?.image) {
+      showToast("This blank page has no content to rotate.");
+      return;
+    }
+
+    const image = new Image();
+    image.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = image.naturalHeight;
+      canvas.height = image.naturalWidth;
+      const context = canvas.getContext("2d");
+      context.translate(canvas.width, 0);
+      context.rotate(Math.PI / 2);
+      context.drawImage(image, 0, 0);
+      setPages((items) => items.map((item, index) => (
+        index === targetIndex
+          ? { ...item, image: canvas.toDataURL("image/png"), width: item.height, height: item.width }
+          : item
+      )));
+      markUnsaved();
+      showToast("Page rotated clockwise.");
+    };
+    image.onerror = () => showToast("This page could not be rotated.");
+    image.src = page.image;
+  };
+
   const moveCurrentPage = (direction) => {
     const nextIndex = pageIndex + direction;
     if (nextIndex < 0 || nextIndex >= pages.length) return;
@@ -3025,14 +3055,25 @@ export function App() {
                 title={`Page ${index + 1}`}
                 onClick={() => setPageIndex(index)}
               >
-                <div className="thumbnail-preview">
+                <div className="thumbnail-preview" style={{ "--thumbnail-aspect": `${page.width || BASE_PAGE_WIDTH} / ${page.height || BASE_PAGE_HEIGHT}` }}>
                   <div className="thumb-page">
                     {page.image ? <img src={page.image} alt={`Page ${index + 1}`} /> : page.source === "blank" ? <BlankDocument /> : <SampleDocument pageIndex={index} />}
                   </div>
                 </div>
-                <span className="thumbnail-label">Page {index + 1}</span>
+                <span className="thumbnail-label">{index + 1}</span>
               </button>
             ))}
+          </div>
+          <div className="thumbnail-footer" aria-label="Page actions">
+            <button type="button" title="Delete page" aria-label="Delete page" onClick={deleteCurrentPage} disabled={pages.length <= 1}>
+              <Trash2 size={31} strokeWidth={3} />
+            </button>
+            <button type="button" title="Rotate page clockwise" aria-label="Rotate page clockwise" onClick={rotateCurrentPage}>
+              <RotateCw size={35} strokeWidth={3} />
+            </button>
+            <button type="button" title="Add page" aria-label="Add page" onClick={addBlankPage}>
+              <FilePlus2 size={34} strokeWidth={2.6} />
+            </button>
           </div>
           <div className="saved-foot"><CheckCircle2 size={22} /> {saveStatusLabel}</div>
         </aside>

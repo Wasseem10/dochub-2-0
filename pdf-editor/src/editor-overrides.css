@@ -6068,7 +6068,6 @@ main.editor-shell .page-nav .page-nav-divider {
     padding-left: 80px !important;
   }
 }
-
 /* Final editor behavior fixes: color wheel and collapsed thumbnails layout. */
 main.editor-shell .workspace.pages-collapsed {
   grid-template-columns: 92px minmax(0, 1fr) 62px !important;
@@ -7364,4 +7363,149 @@ main.editor-shell .color-actions input,
   height: 44px !important;
   font-size: 17px !important;
   font-weight: 850 !important;
+}
+
+/* Screenshot-matched page thumbnail strip. Keep these rules last: this file
+   contains an older thumbnail treatment above that must not win the cascade. */
+main.editor-shell .pages-panel,
+.editor-shell .pages-panel {
+  grid-template-rows: 64px minmax(0, 1fr) 66px !important;
+  background: #f7f8fa !important;
+}
+
+main.editor-shell .thumbnail-list,
+.editor-shell .thumbnail-list,
+main.editor-shell .thumbnail-list.grid,
+.editor-shell .thumbnail-list.grid {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  gap: 34px !important;
+  padding: 14px 24px 36px !important;
+  background: #f7f8fa !important;
+}
+
+main.editor-shell .thumbnail,
+.editor-shell .thumbnail,
+main.editor-shell .thumbnail-list.grid .thumbnail,
+.editor-shell .thumbnail-list.grid .thumbnail {
+  display: flex !important;
+  flex: 0 0 auto !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  gap: 11px !important;
+  width: 180px !important;
+  height: auto !important;
+  min-height: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+main.editor-shell .thumbnail:hover,
+.editor-shell .thumbnail:hover,
+main.editor-shell .thumbnail.is-selected,
+.editor-shell .thumbnail.is-selected {
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+main.editor-shell .thumbnail-preview,
+.editor-shell .thumbnail-preview {
+  box-sizing: border-box !important;
+  width: 180px !important;
+  height: auto !important;
+  aspect-ratio: var(--thumbnail-aspect, 760 / 984) !important;
+  border: 1px solid #eceef1 !important;
+  border-radius: 0 !important;
+  background: #ffffff !important;
+  box-shadow: 0 2px 5px rgba(25, 31, 39, 0.18) !important;
+}
+
+main.editor-shell .thumbnail.is-selected .thumbnail-preview,
+.editor-shell .thumbnail.is-selected .thumbnail-preview {
+  border: 4px solid #555d68 !important;
+  border-radius: 11px !important;
+  box-shadow: none !important;
+}
+
+main.editor-shell .thumb-page,
+.editor-shell .thumb-page {
+  display: grid !important;
+  width: 100% !important;
+  height: 100% !important;
+  place-items: center !important;
+  border-radius: inherit !important;
+  background: #ffffff !important;
+}
+
+main.editor-shell .thumb-page img,
+.editor-shell .thumb-page img {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: contain !important;
+  object-position: center !important;
+}
+
+main.editor-shell .thumb-page .sample-doc,
+.editor-shell .thumb-page .sample-doc {
+  transform: scale(0.237) !important;
+}
+
+main.editor-shell .thumbnail-label,
+.editor-shell .thumbnail-label,
+main.editor-shell .thumbnail span.thumbnail-label,
+.editor-shell .thumbnail span.thumbnail-label {
+  position: static !important;
+  color: #6b7280 !important;
+  font-family: Arial, Helvetica, sans-serif !important;
+  font-size: 31px !important;
+  font-weight: 400 !important;
+  line-height: 1 !important;
+}
+
+main.editor-shell .thumbnail.is-selected .thumbnail-label,
+.editor-shell .thumbnail.is-selected .thumbnail-label {
+  color: #6b7280 !important;
+  font-weight: 400 !important;
+}
+
+main.editor-shell .thumbnail-footer,
+.editor-shell .thumbnail-footer {
+  z-index: 4;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  align-items: center;
+  height: 66px;
+  border-top: 1px solid #dfe2e6;
+  background: #ffffff;
+  box-shadow: 0 -2px 8px rgba(24, 30, 38, 0.05);
+}
+
+main.editor-shell .thumbnail-footer button,
+.editor-shell .thumbnail-footer button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #0b0b0b;
+  cursor: pointer;
+}
+
+main.editor-shell .thumbnail-footer button:hover,
+.editor-shell .thumbnail-footer button:hover {
+  background: #f1f2f4;
+}
+
+main.editor-shell .thumbnail-footer button:disabled,
+.editor-shell .thumbnail-footer button:disabled {
+  color: #aeb3ba;
+  cursor: not-allowed;
 }
