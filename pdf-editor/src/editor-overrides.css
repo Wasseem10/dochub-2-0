@@ -7365,12 +7365,42 @@ main.editor-shell .color-actions input,
   font-weight: 850 !important;
 }
 
-/* Screenshot-matched page thumbnail strip. Keep these rules last: this file
-   contains an older thumbnail treatment above that must not win the cascade. */
+/* Reference-matched thumbnail rail. The source screenshot is Retina,
+   so these are CSS-pixel measurements rather than raw screenshot pixels. */
+main.editor-shell .workspace,
+.editor-shell .workspace {
+  grid-template-columns: 144px minmax(0, 1fr) 62px !important;
+}
+
+main.editor-shell .workspace.pages-collapsed,
+.editor-shell .workspace.pages-collapsed {
+  grid-template-columns: minmax(0, 1fr) 62px !important;
+}
+
 main.editor-shell .pages-panel,
 .editor-shell .pages-panel {
-  grid-template-rows: 64px minmax(0, 1fr) 66px !important;
-  background: #f7f8fa !important;
+  display: grid !important;
+  grid-template-rows: minmax(0, 1fr) 34px !important;
+  width: 144px !important;
+  min-width: 144px !important;
+  overflow: hidden !important;
+  border-right: 1px solid #d5dbe2 !important;
+  background: #fafbfd !important;
+  box-shadow: none !important;
+}
+
+main.editor-shell .pages-panel.is-collapsed,
+.editor-shell .pages-panel.is-collapsed {
+  display: none !important;
+}
+
+main.editor-shell .pdfnet-page-title,
+.editor-shell .pdfnet-page-title,
+main.editor-shell .pages-panel .page-actions,
+.editor-shell .pages-panel .page-actions,
+main.editor-shell .pages-panel .saved-foot,
+.editor-shell .pages-panel .saved-foot {
+  display: none !important;
 }
 
 main.editor-shell .thumbnail-list,
@@ -7380,9 +7410,12 @@ main.editor-shell .thumbnail-list.grid,
   display: flex !important;
   flex-direction: column !important;
   align-items: center !important;
-  gap: 34px !important;
-  padding: 14px 24px 36px !important;
-  background: #f7f8fa !important;
+  gap: 14px !important;
+  padding: 8px 24px 18px !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  background: #fafbfd !important;
+  scrollbar-width: thin !important;
 }
 
 main.editor-shell .thumbnail,
@@ -7393,8 +7426,8 @@ main.editor-shell .thumbnail-list.grid .thumbnail,
   flex: 0 0 auto !important;
   flex-direction: column !important;
   align-items: center !important;
-  gap: 11px !important;
-  width: 180px !important;
+  gap: 6px !important;
+  width: 72px !important;
   height: auto !important;
   min-height: 0 !important;
   padding: 0 !important;
@@ -7416,7 +7449,7 @@ main.editor-shell .thumbnail.is-selected,
 main.editor-shell .thumbnail-preview,
 .editor-shell .thumbnail-preview {
   box-sizing: border-box !important;
-  width: 180px !important;
+  width: 72px !important;
   height: auto !important;
   aspect-ratio: var(--thumbnail-aspect, 760 / 984) !important;
   border: 1px solid #eceef1 !important;
@@ -7427,9 +7460,19 @@ main.editor-shell .thumbnail-preview,
 
 main.editor-shell .thumbnail.is-selected .thumbnail-preview,
 .editor-shell .thumbnail.is-selected .thumbnail-preview {
-  border: 4px solid #555d68 !important;
-  border-radius: 11px !important;
+  border: 2px solid #535e6c !important;
+  border-radius: 5px !important;
   box-shadow: none !important;
+}
+
+main.editor-shell .thumbnail.is-dragging,
+.editor-shell .thumbnail.is-dragging {
+  opacity: 0.52 !important;
+}
+
+main.editor-shell .thumbnail.is-drop-target .thumbnail-preview,
+.editor-shell .thumbnail.is-drop-target .thumbnail-preview {
+  box-shadow: 0 0 0 2px rgba(83, 94, 108, 0.38) !important;
 }
 
 main.editor-shell .thumb-page,
@@ -7438,6 +7481,7 @@ main.editor-shell .thumb-page,
   width: 100% !important;
   height: 100% !important;
   place-items: center !important;
+  overflow: hidden !important;
   border-radius: inherit !important;
   background: #ffffff !important;
 }
@@ -7452,7 +7496,7 @@ main.editor-shell .thumb-page img,
 
 main.editor-shell .thumb-page .sample-doc,
 .editor-shell .thumb-page .sample-doc {
-  transform: scale(0.237) !important;
+  transform: scale(0.0947) !important;
 }
 
 main.editor-shell .thumbnail-label,
@@ -7462,9 +7506,9 @@ main.editor-shell .thumbnail span.thumbnail-label,
   position: static !important;
   color: #6b7280 !important;
   font-family: Arial, Helvetica, sans-serif !important;
-  font-size: 31px !important;
+  font-size: 14px !important;
   font-weight: 400 !important;
-  line-height: 1 !important;
+  line-height: 1.2 !important;
 }
 
 main.editor-shell .thumbnail.is-selected .thumbnail-label,
@@ -7477,10 +7521,10 @@ main.editor-shell .thumbnail-footer,
 .editor-shell .thumbnail-footer {
   z-index: 4;
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   align-items: center;
-  height: 66px;
-  border-top: 1px solid #dfe2e6;
+  height: 34px;
+  border-top: 1px solid #cfd5dc;
   background: #ffffff;
   box-shadow: 0 -2px 8px rgba(24, 30, 38, 0.05);
 }
@@ -7506,6 +7550,20 @@ main.editor-shell .thumbnail-footer button:hover,
 
 main.editor-shell .thumbnail-footer button:disabled,
 .editor-shell .thumbnail-footer button:disabled {
-  color: #aeb3ba;
+  color: #858b90;
   cursor: not-allowed;
+}
+
+main.editor-shell .thumbnail-footer button:nth-child(2),
+.editor-shell .thumbnail-footer button:nth-child(2),
+main.editor-shell .thumbnail-footer button:last-child,
+.editor-shell .thumbnail-footer button:last-child {
+  color: #747c84;
+}
+
+@media (max-width: 820px) {
+  main.editor-shell .more-menu-wrap,
+  .editor-shell .more-menu-wrap {
+    display: inline-flex !important;
+  }
 }

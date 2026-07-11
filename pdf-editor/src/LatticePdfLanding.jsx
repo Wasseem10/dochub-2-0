@@ -24,6 +24,7 @@ import {
   Upload,
   Users,
   X,
+  Zap,
 } from "lucide-react";
 
 export function LatticePdfLanding({
@@ -34,6 +35,8 @@ export function LatticePdfLanding({
   onLogin,
   onSignup,
   onBlankPage,
+  uploadError = "",
+  uploadStage = { status: "idle", percent: 0, fileName: "" },
   documentCount = 0,
 }) {
   const [announcementVisible, setAnnouncementVisible] = useState(true);
@@ -48,6 +51,7 @@ export function LatticePdfLanding({
   const [assistantOpen, setAssistantOpen] = useState(false);
   const [assistantInput, setAssistantInput] = useState("");
   const [assistantReply, setAssistantReply] = useState("");
+  const isUploading = Boolean(uploadStage?.status && !["idle", "complete", "error"].includes(uploadStage.status));
 
   const productGroups = [
     {
@@ -78,9 +82,9 @@ export function LatticePdfLanding({
 
   const whyGroups = [
     {
-      title: "The DocHub advantage",
+      title: "The RealPDF advantage",
       links: [
-        ["Why DocHub", "A focused workspace built around the document", "#smart-tools"],
+        ["Why RealPDF", "A focused workspace built around the document", "#smart-tools"],
         ["Browser-first", "No desktop install or setup", "#security"],
         ["One workflow", "Edit through delivery without switching tools", "#platform"],
       ],
@@ -136,12 +140,12 @@ export function LatticePdfLanding({
 
   const resourceCards = [
     ["Document library", "Practical guides for editing, signing, organizing, and delivering PDFs.", FileText, "aqua"],
-    ["DocHub academy", "Short walkthroughs that help your team build a faster document workflow.", ScanText, "pink"],
+    ["RealPDF academy", "Short walkthroughs that help your team build a faster document workflow.", ScanText, "pink"],
     ["Template center", "Start with useful contracts, forms, packets, and approval-ready documents.", FolderPlus, "green"],
     ["Live support", "Get a clear answer when a document or deadline needs extra attention.", MessageSquare, "purple"],
   ];
 
-  const menuMap = { Product: productGroups, "Why DocHub": whyGroups, Resources: resourceGroups };
+  const menuMap = { Product: productGroups, "Why RealPDF": whyGroups, Resources: resourceGroups };
 
   useEffect(() => {
     if (storyPaused) return undefined;
@@ -199,7 +203,7 @@ export function LatticePdfLanding({
       )}
 
       <header className="lpdf-header">
-        <a className="lpdf-brand" href="#top" onClick={closeMenus} aria-label="DocHub home"><span><FileText size={22} /></span><strong>DocHub</strong></a>
+        <a className="lpdf-brand" href="#top" onClick={closeMenus} aria-label="RealPDF home"><span><FileText size={22} /></span><strong>RealPDF</strong></a>
         <nav className="lpdf-desktop-nav" aria-label="Primary navigation">
           {Object.keys(menuMap).map((label) => (
             <button key={label} type="button" className={activeMenu === label ? "is-active" : ""} aria-expanded={activeMenu === label} onClick={() => setActiveMenu(activeMenu === label ? null : label)}>{label}<ChevronDown size={14} /></button>
@@ -240,23 +244,36 @@ export function LatticePdfLanding({
       <section id="top" className="lpdf-hero">
         <div className="lpdf-hero-copy">
           <h1>PDFs + AI:<br />Working better together</h1>
-          <p>Join fast-moving teams using DocHub to edit, sign, organize, and deliver every PDF from one trusted workspace.</p>
+          <p>Join fast-moving teams using RealPDF to edit, sign, organize, and deliver every PDF from one trusted workspace.</p>
           <div className="lpdf-hero-actions"><button type="button" className="lpdf-primary" onClick={uploadClick}><Upload size={17} /> Upload a PDF</button><button type="button" className="lpdf-secondary" onClick={scrollToPlatform}>Take a tour</button></div>
         </div>
-        <div className={`lpdf-hero-preview ${uploadActive ? "is-active" : ""}`} onDragEnter={(event) => { event.preventDefault(); setUploadActive(true); }} onDragOver={(event) => event.preventDefault()} onDragLeave={() => setUploadActive(false)} onDrop={(event) => { event.preventDefault(); setUploadActive(false); const { files } = event.dataTransfer; if (onDropFiles) onDropFiles(files); else onUpload({ target: { files, value: "" } }); }}>
-          <div className="lpdf-preview-window"><div className="lpdf-preview-titlebar"><i /><i /><i /><span>workspace.pdf</span></div><img src="/product-assets/dashboard-pass-3.png" alt="DocHub PDF workspace dashboard" /><button type="button" onClick={uploadClick}><Upload size={18} /> {uploadActive ? "Drop to open" : "Open your PDF"}</button></div>
-        </div>
+        <section
+          className={`lpdf-hero-dropzone ${uploadActive ? "is-active" : ""}`}
+          aria-label="Upload a PDF"
+          onDragEnter={(event) => { event.preventDefault(); setUploadActive(true); }}
+          onDragOver={(event) => { event.preventDefault(); event.dataTransfer.dropEffect = "copy"; }}
+          onDragLeave={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setUploadActive(false); }}
+          onDrop={(event) => { event.preventDefault(); setUploadActive(false); const { files } = event.dataTransfer; if (onDropFiles) onDropFiles(files); else onUpload({ target: { files, value: "" } }); }}
+        >
+          <Upload className="lpdf-drop-icon" size={58} strokeWidth={1.8} aria-hidden="true" />
+          <h2>{uploadActive ? "Drop your PDF to open it" : isUploading ? "Opening your PDF" : "Drop your PDF here to get started"}</h2>
+          <button type="button" className="lpdf-drop-button" onClick={uploadClick} disabled={isUploading}><Zap size={25} strokeWidth={2.2} aria-hidden="true" /> {isUploading ? "Opening PDF…" : "Upload from your device"}</button>
+          <div className={`lpdf-drop-feedback ${uploadError ? "is-error" : ""}`} aria-live="polite">
+            <p role={uploadError ? "alert" : undefined}>{uploadError || (isUploading ? `${uploadStage.status}${uploadStage.fileName ? ` · ${uploadStage.fileName}` : ""}` : "PDF documents up to 8 MB")}</p>
+            {isUploading && <div className="lpdf-drop-progress" role="progressbar" aria-label="PDF upload progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow={uploadStage.percent || 0}><span style={{ width: `${uploadStage.percent || 0}%` }} /></div>}
+          </div>
+        </section>
       </section>
 
       <div className="lpdf-trust-strip" aria-label="Popular PDF workflows">{["Contracts", "Offer letters", "Invoices", "Forms", "Resumes", "Approval packets"].map((item) => <span key={item}>{item}</span>)}</div>
 
       <section id="platform" className="lpdf-section lpdf-platform">
-        <div className="lpdf-section-heading lpdf-split-heading"><div><a className="lpdf-pill" href="#platform">Platform overview <ChevronDown size={14} /></a><h2>High-performing documents are built here</h2></div><p>DocHub is your team’s daily destination for PDFs, combining focused editing and smart tools to move every file from draft to done. <button type="button" onClick={scrollToPlatform}>Take a tour</button></p></div>
+        <div className="lpdf-section-heading lpdf-split-heading"><div><a className="lpdf-pill" href="#platform">Platform overview <ChevronDown size={14} /></a><h2>High-performing documents are built here</h2></div><p>RealPDF is your team’s daily destination for PDFs, combining focused editing and smart tools to move every file from draft to done. <button type="button" onClick={scrollToPlatform}>Take a tour</button></p></div>
         <div className="lpdf-platform-grid">
           {platformCards.map(([title, copy, Icon, tone, visual, wide]) => (
             <article key={title} className={`lpdf-platform-card tone-${tone} ${wide ? "is-wide" : ""}`}>
               <header><span><Icon size={23} /></span><button type="button" onClick={uploadClick} aria-label={`Start with ${title}`}><ChevronDown size={18} /></button></header><h3>{title}</h3><p>{copy}</p>
-              {visual === "editor" && <img src="/product-assets/dashboard-pass-3.png" alt="DocHub editing dashboard" />}
+              {visual === "editor" && <img src="/product-assets/dashboard-pass-3.png" alt="RealPDF editing dashboard" />}
               {visual === "sign" && <div className="lpdf-feature-panel"><PenLine size={36} /><strong>Signature ready</strong><span>Place and send</span></div>}
               {visual === "pages" && <div className="lpdf-page-stack"><FileText size={48} /><FileText size={48} /><FileText size={48} /></div>}
               {visual === "review" && <div className="lpdf-feature-panel"><MessageSquare size={36} /><strong>2 comments resolved</strong><span>Ready for approval</span></div>}
@@ -267,7 +284,7 @@ export function LatticePdfLanding({
 
       <section id="smart-tools" className="lpdf-ai-section">
         <div className="lpdf-section-heading lpdf-centered-heading"><a className="lpdf-pill lpdf-purple-pill" href="#smart-tools"><ScanText size={15} /> Smart document tools <ChevronDown size={14} /></a><h2>Unblock edits and unlock answers with document intelligence</h2><p>Find text, surface fields, and get clear guidance without losing your place in the PDF.</p></div>
-        <div className="lpdf-ai-workspace"><header><ScanText size={21} /><strong>Ask DocHub</strong><span>Document assistant</span></header><div className="lpdf-ai-conversation"><p className="is-question">Which fields still need to be completed before this agreement is ready?</p><p className="is-answer">I found three open fields: signature, effective date, and billing address. I highlighted each one on the page.</p></div><button type="button" onClick={uploadClick}>Try it with your PDF <ChevronDown size={15} /></button></div>
+        <div className="lpdf-ai-workspace"><header><ScanText size={21} /><strong>Ask RealPDF</strong><span>Document assistant</span></header><div className="lpdf-ai-conversation"><p className="is-question">Which fields still need to be completed before this agreement is ready?</p><p className="is-answer">I found three open fields: signature, effective date, and billing address. I highlighted each one on the page.</p></div><button type="button" onClick={uploadClick}>Try it with your PDF <ChevronDown size={15} /></button></div>
       </section>
 
       <section id="habits" className="lpdf-section lpdf-habits">
@@ -302,15 +319,15 @@ export function LatticePdfLanding({
           <section><small>Platform overview</small><a href="#platform">Explore the editor</a><a href="#smart-tools">Smart PDF tools</a><a href="#habits">Everyday workflow</a><button type="button" onClick={uploadClick}>Upload a PDF</button></section>
           <section><small>Products</small><a href="#platform">Edit text</a><a href="#platform">Sign & fill</a><a href="#platform">Organize pages</a><a href="#integrations">Export & share</a></section>
           <section><small>Solutions</small><a href="#stories">Operations</a><a href="#stories">Legal teams</a><a href="#stories">People teams</a><a href="#stories">Independent work</a></section>
-          <section><small>Resources</small><a href="#resources">Document library</a><a href="#resources">DocHub academy</a><a href="#resources">Templates</a><button type="button" onClick={() => setAssistantOpen(true)}>Help center</button></section>
+          <section><small>Resources</small><a href="#resources">Document library</a><a href="#resources">RealPDF academy</a><a href="#resources">Templates</a><button type="button" onClick={() => setAssistantOpen(true)}>Help center</button></section>
           <section><small>Company</small><button type="button" onClick={onSignup}>Create account</button><button type="button" onClick={onLogin}>Log in</button><a href="#security">Security</a><a href="#top">Back to top</a></section>
         </div>
-        <div className="lpdf-footer-bottom"><a className="lpdf-brand" href="#top"><span><FileText size={20} /></span><strong>DocHub</strong></a><p>{documentCount ? `${documentCount} document${documentCount === 1 ? "" : "s"} in your workspace` : "Edit, sign, and finish PDFs in one workspace."}</p><span>© 2026 DocHub</span></div>
+        <div className="lpdf-footer-bottom"><a className="lpdf-brand" href="#top"><span><FileText size={20} /></span><strong>RealPDF</strong></a><p>{documentCount ? `${documentCount} document${documentCount === 1 ? "" : "s"} in your workspace` : "Edit, sign, and finish PDFs in one workspace."}</p><span>© 2026 RealPDF</span></div>
       </footer>
 
       <aside id="assistant" className={`lpdf-assistant ${assistantOpen ? "is-open" : ""}`}>
-        {assistantOpen && <div id="lpdf-assistant-panel" className="lpdf-assistant-panel"><header><span><MessageSquare size={18} /></span><div><strong>Ask DocHub</strong><small>Document support</small></div><button type="button" aria-label="Close assistant" onClick={() => setAssistantOpen(false)}><X size={18} /></button></header><p>I see you’re exploring DocHub. What would help you finish your PDF faster?</p>{assistantReply && <p className="is-reply">{assistantReply}</p>}<form onSubmit={submitAssistant}><input aria-label="Ask a PDF question" value={assistantInput} onChange={(event) => setAssistantInput(event.target.value)} placeholder="Ask a PDF question" /><button type="submit" aria-label="Send question"><Send size={17} /></button></form></div>}
-        <button type="button" className="lpdf-assistant-trigger" aria-expanded={assistantOpen} aria-controls="lpdf-assistant-panel" onClick={() => setAssistantOpen((value) => !value)}><span><MessageSquare size={18} /></span> Ask DocHub</button>
+        {assistantOpen && <div id="lpdf-assistant-panel" className="lpdf-assistant-panel"><header><span><MessageSquare size={18} /></span><div><strong>Ask RealPDF</strong><small>Document support</small></div><button type="button" aria-label="Close assistant" onClick={() => setAssistantOpen(false)}><X size={18} /></button></header><p>I see you’re exploring RealPDF. What would help you finish your PDF faster?</p>{assistantReply && <p className="is-reply">{assistantReply}</p>}<form onSubmit={submitAssistant}><input aria-label="Ask a PDF question" value={assistantInput} onChange={(event) => setAssistantInput(event.target.value)} placeholder="Ask a PDF question" /><button type="submit" aria-label="Send question"><Send size={17} /></button></form></div>}
+        <button type="button" className="lpdf-assistant-trigger" aria-expanded={assistantOpen} aria-controls="lpdf-assistant-panel" onClick={() => setAssistantOpen((value) => !value)}><span><MessageSquare size={18} /></span> Ask RealPDF</button>
       </aside>
     </main>
   );

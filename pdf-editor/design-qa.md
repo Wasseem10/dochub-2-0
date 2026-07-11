@@ -1,65 +1,58 @@
-# Design QA — Lattice-inspired DocHub landing page
+# Design QA — site-matched RealPDF upload hero
 
 ## Comparison target
 
-- Source visual truth path: `design-evidence/lattice-source/`
-  - Desktop full-page sequence: `desktop-00-top.png` through `desktop-10.png`
-  - Mobile full-page sequence: `mobile-00-top.png` through `mobile-13.png`
-  - Captured interaction states: desktop Product, Why Lattice, and Resources menus; primary CTA hover; assistant states; mobile menu and Product submenu; announcement dismissed
-- Source URL: `https://lattice.com/`
-- Browser-rendered implementation screenshot path: unavailable — the approved in-app browser rejected `http://127.0.0.1:4173/` under its URL-security policy and explicitly prohibited an alternate browser/control workaround
-- Intended implementation URL: `http://127.0.0.1:4173/`
-- Implementation files: `src/LatticePdfLanding.jsx`, `src/lattice-pdf.css`, `src/App.jsx`, and `src/main.jsx`
-
-## Viewport and state
-
-- Source desktop viewport: 1440 × 900; top state, full-page scroll sequence, menu states, CTA hover, and assistant states captured
-- Source mobile viewport: 390 × 844; top state, full-page scroll sequence, mobile menu/submenu, and announcement-dismissed state captured
-- Implementation desktop/mobile viewport: not captured because the approved browser blocked the local URL
-- Implementation state: local server responds with HTTP 200 and the production build succeeds, but no browser-rendered state is available for visual judgment
-
-## Verification completed
-
-- Production build: passed (`npm run build`, Vite 6.4.3, 2,001 modules transformed)
-- Static diff check: passed (`git diff --check`)
-- Local server health: passed (HTTP 200)
-- Static interaction/accessibility review: passed after correcting auth-gated upload/drop callbacks, carousel motion controls, mobile mega-menu containment, button intent, file-picker cancel state, and assistant labels
-- Primary interactions tested in the rendered implementation: unavailable because browser capture was blocked
-- Console errors checked in the rendered implementation: unavailable because browser capture was blocked
+- Interaction/anatomy example: `/var/folders/y5/5nxfxhk97_9fmsmdf8tqj81r0000gn/T/TemporaryItems/NSIRD_screencaptureui_bTnojs/Screenshot 2026-07-11 at 3.16.15 PM.png`
+- Visual source of truth: the existing RealPDF landing page design system in `src/lattice-pdf.css` — green/mint actions, cream cards, large rounded corners, dark green typography, and soft green-tinted elevation
+- Browser-rendered implementation: `design-evidence/landing-realpdf-site/implementation-hero.png`
+- Viewport: in-app browser, 1280 × 720 at DPR 2
+- State: signed-out RealPDF landing page, upload zone idle, announcement visible
+- Local URL: `http://127.0.0.1:4173/`
 
 ## Full-view comparison evidence
 
-The source desktop and mobile full-page captures exist, but there is no browser-rendered implementation screenshot to place beside them. Overall composition, hierarchy, section rhythm, responsive structure, and above-the-fold fidelity therefore cannot be compared or certified.
+The example screenshot and the final browser-rendered landing hero were opened together in one comparison input. The implementation preserves the example's functional hierarchy — upload icon, drag/drop heading, primary device-upload action, and file-limit feedback — while intentionally replacing the example's blue, dashed, edge-to-edge styling with the site's own cream card, mint icon tile, green button, 44px radius, and dark-green typography.
 
-## Focused-region comparison evidence
+The rendered upload card now reads as part of the same product as the announcement, logo mark, header CTA, hero actions, platform cards, and other landing sections. It no longer looks pasted in from the external example.
 
-No focused comparison could be performed for typography, navigation, hero layout, cards, imagery, carousel controls, footer, or mobile menu because the implementation screenshot is missing. Focused comparison was not skipped as unnecessary; the missing rendered artifact is the blocking condition.
+## Focused-region evidence
+
+A separate normalized crop was not needed for this pass because the user explicitly rejected exact screenshot matching, and the complete upload component is fully legible at the 1280 × 720 full-view scale. The important comparison is the component's relationship to the surrounding RealPDF UI, which is visible only in the full hero capture.
+
+## Required fidelity surfaces
+
+- Fonts and typography: the card uses the landing page's existing DM Sans/system stack, dark `var(--ink)` heading, compact supporting copy, and the same optical weight used by nearby product headings and CTAs.
+- Spacing and layout rhythm: the 440px card balances the left hero copy, aligns within the existing two-column grid, and uses the site's established 44px radius and generous centered spacing.
+- Colors and tokens: the card uses `var(--cream)`, `var(--mint)`, `var(--green)`, `var(--ink)`, and `var(--muted)` instead of importing the example's blue palette.
+- Image quality and asset fidelity: upload and lightning symbols use the project's existing Lucide icon system. No screenshot raster, custom SVG, placeholder, or stretched asset is used in the interface.
+- Copy and content: the module says “Drop your PDF here to get started,” keeps the example's clear device-upload action, shows the real 8 MB product limit, and retains inline progress/error feedback.
 
 ## Findings
 
-- [Blocker] Mandatory rendered implementation evidence is unavailable.
-  - Evidence: the source page was captured at the required desktop/mobile viewports, while the approved in-app browser rejected the local preview URL.
-  - Impact: fonts/typography, spacing/layout rhythm, colors/tokens, image quality, copy wrapping, overflow, and visible interaction states cannot be evaluated against the source.
-  - Fix: capture the local app in the approved browser at 1440 × 900 and 390 × 844, then run side-by-side full-view and focused-region comparisons.
+- No actionable P0, P1, or P2 mismatch remains for the clarified site-matched direction.
+- P3 test gap: the supplied example and final visual capture are desktop-only. The existing mobile breakpoint retains a full-width cream upload card, 56px action, and larger touch-safe spacing, but there is no mobile source frame for pixel comparison.
 
-## Known substitutions requiring visual review
+## Interaction and console verification
 
-- Font: locally bundled DM Sans replaces Lattice’s proprietary Matter font.
-- Icons: the project’s open-source Lucide set replaces the source icon/glyph set.
-- Content: navigation labels, calls to action, product imagery, and copy are intentionally tailored to the DocHub PDF editor.
+- Clicking “Upload from your device” opened the native file-selection path without showing an authentication gate.
+- Picker and drag/drop callbacks both use the existing PDF loader directly for signed-out visitors.
+- Processing progress and file failures remain visible and announced inside the card.
+- Browser console: no errors or warnings.
+- Production build and static diff check: passed.
 
 ## Comparison history
 
-1. Source evidence captured: desktop, mobile, and key source interaction states completed.
-2. Implementation capture attempted: blocked by the approved browser’s local-URL security policy.
-3. Post-fix visual evidence: unavailable; no visual QA iteration can begin without the first implementation capture.
+1. The first implementation treated the screenshot as a literal visual target and reproduced its blue button, dashed blue rules, and proportional geometry. The user clarified this was only an example; the exact treatment was therefore a P2 off-brand mismatch against the surrounding site.
+2. Fix applied: removed the screenshot-specific blue/dashed styling, restored the landing page's cream surface and 44px radius, placed the upload icon in a mint tile, changed the action to the site's green/mint button treatment, and reused the site's typography and shadow language.
+3. Post-fix evidence: the final 1280 × 720 browser capture shows the upload card balanced with the hero copy and visually consistent with the header and hero CTAs. No P0/P1/P2 issue remains.
 
 ## Implementation checklist
 
-- Capture the implementation at 1440 × 900 and 390 × 844 in the approved browser.
-- Compare full-page composition at matching scroll positions.
-- Compare focused regions for header/menus, hero, platform cards, smart-tools section, carousel, integrations, resources, outro, footer, and mobile navigation.
-- Check every captured interaction state and browser console.
-- Fix any P0/P1/P2 visual mismatches and repeat the comparison.
+- [x] Keep the example's drag/drop and device-upload anatomy
+- [x] Match the existing RealPDF landing-page visual system
+- [x] Preserve direct signed-out upload behavior
+- [x] Preserve progress and error feedback
+- [x] Keep responsive mobile sizing
+- [x] Verify browser rendering, interaction path, console, build, and static diff
 
-final result: blocked
+final result: passed
