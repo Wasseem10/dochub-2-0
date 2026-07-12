@@ -6,6 +6,7 @@ import "./editor-overrides.css";
 import "./landing-redesign.css";
 import "./lattice-pdf.css";
 import "./dashboard-redesign.css";
+import "./editor-quality.css";
 
 createRoot(document.getElementById("root")).render(
   <React.StrictMode>

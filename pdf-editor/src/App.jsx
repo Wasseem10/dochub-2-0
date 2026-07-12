@@ -10,6 +10,10 @@ import CalendarDays from "lucide-react/dist/esm/icons/calendar-days.mjs";
 import CheckCircle2 from "lucide-react/dist/esm/icons/check-circle-2.mjs";
 import CheckSquare from "lucide-react/dist/esm/icons/check-square.mjs";
 import ChevronDown from "lucide-react/dist/esm/icons/chevron-down.mjs";
+import ChevronLeft from "lucide-react/dist/esm/icons/chevron-left.mjs";
+import ChevronRight from "lucide-react/dist/esm/icons/chevron-right.mjs";
+import ChevronsLeft from "lucide-react/dist/esm/icons/chevrons-left.mjs";
+import ChevronsRight from "lucide-react/dist/esm/icons/chevrons-right.mjs";
 import CircleHelp from "lucide-react/dist/esm/icons/circle-help.mjs";
 import Copy from "lucide-react/dist/esm/icons/copy.mjs";
 import Download from "lucide-react/dist/esm/icons/download.mjs";
@@ -2968,7 +2972,11 @@ export function App() {
           </div>
           <button type="button" className="language-button" onClick={() => showToast("Language set to English.")}>◎ EN</button>
           <button type="button" className="share-button" onClick={() => setShareModalOpen(true)} title="Share"><Share2 size={18} /> Share</button>
-          <button type="button" className="upgrade-button editor-upgrade-button" onClick={() => setUpgradeModalOpen(true)}>Upgrade</button>
+          <button type="button" className="editor-save-button" onClick={() => {
+            saveActiveDocument(true);
+            showToast(currentUser?.uid ? "Saved and queued for cloud sync." : "Saved locally.");
+          }}><Save size={18} /> Save</button>
+          <button type="button" className="editor-download-button" onClick={exportPdf} disabled={isExporting}><Download size={18} /> {isExporting ? "Exporting…" : "Download"}</button>
           <button type="button" className="sign-secure-button" onClick={() => setSignatureModalOpen(true)}><PenLine size={18} /> Sign securely <ChevronDown size={15} /></button>
         </div>
       </header>
@@ -3003,14 +3011,23 @@ export function App() {
           <ScanText size={17} />
           {detectedTextCount ? `${detectedTextCount} original text boxes detected` : "Original text edit works after uploading a text PDF"}
         </div>
+        <div className="editor-mode-hint" role="status">
+          {({
+            select: "Select, move, or resize an item",
+            editText: detectedTextCount ? "Click outlined PDF text to edit it" : "Upload a text-based PDF to edit original text",
+            text: "Click anywhere on the page to add text",
+            draw: "Drag on the page to draw",
+            rectangle: "Drag to add a rectangle",
+            comment: "Click the page to place a comment",
+            image: pendingImage ? "Click the page to place your image" : "Choose an image, then place it on the page",
+            field: "Click the page to add a fillable field",
+            whiteout: "Drag over content to cover it",
+            signature: "Click the page to place your signature",
+          })[tool] || "Choose a tool, then work directly on the page"}
+        </div>
         <div className="ribbon-divider" />
-        <button className="ribbon-tool" type="button" onClick={() => showToast("Auto-fill reads form fields from uploaded PDFs.")} title="Auto-Fill" aria-label="Auto-Fill"><FilePlus2 size={24} /><span>Auto-Fill</span></button>
-        <button className="ribbon-tool" type="button" onClick={() => showToast("Ask AI is ready for document summary prompts.")} title="Ask AI" aria-label="Ask AI"><Zap size={24} /><span>Ask AI</span></button>
         <button className="ribbon-tool" type="button" onClick={() => appendFileInputRef.current?.click()} title="Merge and append file" aria-label="Merge and append file"><Copy size={24} /><span>Merge</span></button>
         <button className="ribbon-tool" type="button" onClick={() => setIsPagesCollapsed(false)} title="Rearrange" aria-label="Rearrange"><Grid2X2 size={24} /><span>Rearrange</span></button>
-        <button className="ribbon-tool" type="button" onClick={addBlankPage} title="Page numbers" aria-label="Page numbers"><FileText size={24} /><span>Page numbers</span></button>
-        <button className="ribbon-tool" type="button" onClick={() => showToast("Conversion tools will use the exported PDF.")} title="Convert" aria-label="Convert"><Redo2 size={24} /><span>Convert</span></button>
-        <button className="ribbon-tool" type="button" onClick={() => showToast("Compression runs when exporting optimized PDFs.")} title="Compress" aria-label="Compress"><Box size={24} /><span>Compress</span></button>
       </section>
 
       <ToolSettingsPanel
@@ -3313,18 +3330,18 @@ export function App() {
           <button type="button" title="Search" className={isSearchOpen ? "is-active" : ""} onClick={() => {
             setIsSearchOpen((value) => !value);
             setIsCommentsOpen(false);
-          }}><Search size={25} /></button>
+          }} aria-label="Search document"><Search size={25} /></button>
           <button type="button" title="Comments" className={isCommentsOpen ? "is-active" : ""} onClick={() => {
             setTool("comment");
             setIsCommentsOpen((value) => !value);
             setIsSearchOpen(false);
-          }}><MessageSquare size={24} /></button>
+          }} aria-label="Open comments"><MessageSquare size={24} /></button>
           <span />
-          <button type="button" title="Download" onClick={exportPdf}><Download size={25} /></button>
-          <button type="button" title="Print" onClick={() => window.print()}><Printer size={25} /></button>
-          <button type="button" title="Share link" onClick={() => setShareModalOpen(true)}><Share2 size={25} /></button>
+          <button type="button" title="Download" aria-label="Download PDF" onClick={exportPdf} disabled={isExporting}><Download size={25} /></button>
+          <button type="button" title="Print" aria-label="Print PDF" onClick={() => window.print()}><Printer size={25} /></button>
+          <button type="button" title="Share link" aria-label="Share PDF" onClick={() => setShareModalOpen(true)}><Share2 size={25} /></button>
           <span />
-          <button type="button" title="Add page" onClick={addBlankPage}><Plus size={25} /></button>
+          <button type="button" title="Add page" aria-label="Add blank page" onClick={addBlankPage}><Plus size={25} /></button>
         </aside>
         {isSearchOpen && (
           <DocumentSearchPanel
@@ -3360,12 +3377,12 @@ export function App() {
           </select>
           <button className="page-nav-zoom" type="button" onClick={() => setZoom((value) => clamp(value + 10, 60, 160))} title="Zoom in" aria-label="Zoom in">+</button>
           <span className="page-nav-divider" aria-hidden="true" />
-          <button type="button" onClick={() => setPageIndex(0)}>‹</button>
-          <input value={pageIndex + 1} onChange={(event) => setPageIndex(clamp(Number(event.target.value) - 1 || 0, 0, pages.length - 1))} />
-          <span>/ {pages.length}</span>
-          <button type="button" onClick={() => setPageIndex((value) => clamp(value - 1, 0, pages.length - 1))}>⌃</button>
-          <button type="button" onClick={() => setPageIndex((value) => clamp(value + 1, 0, pages.length - 1))}>⌄</button>
-          <button type="button" onClick={() => setPageIndex(pages.length - 1)}>›</button>
+          <button type="button" aria-label="First page" title="First page" disabled={pageIndex === 0} onClick={() => setPageIndex(0)}><ChevronsLeft size={17} /></button>
+          <button type="button" aria-label="Previous page" title="Previous page" disabled={pageIndex === 0} onClick={() => setPageIndex((value) => clamp(value - 1, 0, pages.length - 1))}><ChevronLeft size={18} /></button>
+          <input type="number" min="1" max={pages.length} aria-label="Current page" value={pageIndex + 1} onChange={(event) => setPageIndex(clamp(Number(event.target.value) - 1 || 0, 0, pages.length - 1))} />
+          <span className="page-count">of {pages.length}</span>
+          <button type="button" aria-label="Next page" title="Next page" disabled={pageIndex === pages.length - 1} onClick={() => setPageIndex((value) => clamp(value + 1, 0, pages.length - 1))}><ChevronRight size={18} /></button>
+          <button type="button" aria-label="Last page" title="Last page" disabled={pageIndex === pages.length - 1} onClick={() => setPageIndex(pages.length - 1)}><ChevronsRight size={17} /></button>
         </div>
         <div className="status-tools">
           <button type="button" onClick={() => setZoom((value) => clamp(value - 10, 60, 160))}>-</button>
