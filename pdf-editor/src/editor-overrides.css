@@ -6068,6 +6068,265 @@ main.editor-shell .page-nav .page-nav-divider {
     padding-left: 80px !important;
   }
 }
+
+/* RealPDF auth screen — aligned with the landing page design system. */
+.auth-shell {
+  --auth-ink: #001f1f;
+  --auth-body: #243737;
+  --auth-muted: #657474;
+  --auth-green: #046645;
+  --auth-mint: #cdface;
+  --auth-cream: #f7f6f2;
+  --auth-line: #e1e5e2;
+  display: grid !important;
+  min-height: 100vh !important;
+  place-items: center !important;
+  padding: 32px 20px !important;
+  background: var(--auth-cream) !important;
+  color: var(--auth-ink) !important;
+  font-family: "DM Sans", Inter, ui-sans-serif, system-ui, sans-serif !important;
+}
+
+.auth-shell .auth-card {
+  position: relative !important;
+  display: grid !important;
+  width: min(560px, 100%) !important;
+  gap: 13px !important;
+  padding: 42px 46px 38px !important;
+  border: 1px solid rgba(4, 102, 69, 0.1) !important;
+  border-radius: 36px !important;
+  background: #ffffff !important;
+  box-shadow: 0 26px 58px rgba(0, 31, 31, 0.12) !important;
+}
+
+.auth-shell .auth-back {
+  justify-self: start !important;
+  min-height: 38px !important;
+  margin: -8px 0 8px !important;
+  padding: 0 14px !important;
+  border: 1px solid var(--auth-line) !important;
+  border-radius: 12px !important;
+  background: var(--auth-cream) !important;
+  color: var(--auth-body) !important;
+  font-size: 13px !important;
+  font-weight: 650 !important;
+}
+
+.auth-shell .auth-back:hover {
+  border-color: #b9d9c4 !important;
+  background: #effceb !important;
+  color: var(--auth-green) !important;
+}
+
+.auth-shell .auth-realpdf-brand {
+  display: inline-flex !important;
+  width: max-content !important;
+  height: auto !important;
+  min-width: 0 !important;
+  align-items: center !important;
+  justify-self: center !important;
+  gap: 10px !important;
+  margin: 3px auto 5px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  color: var(--auth-ink) !important;
+  cursor: pointer !important;
+}
+
+.auth-shell .auth-realpdf-brand > span {
+  display: grid !important;
+  width: 38px !important;
+  height: 38px !important;
+  place-items: center !important;
+  border-radius: 11px !important;
+  background: var(--auth-mint) !important;
+  color: var(--auth-green) !important;
+  box-shadow: 0 9px 18px rgba(4, 102, 69, 0.1) !important;
+}
+
+.auth-shell .auth-realpdf-brand > span::after {
+  content: none !important;
+}
+
+.auth-shell .auth-realpdf-brand strong {
+  color: var(--auth-ink) !important;
+  font-size: 23px !important;
+  font-weight: 650 !important;
+  letter-spacing: -0.04em !important;
+}
+
+.auth-shell .auth-card h2 {
+  margin: 8px 0 0 !important;
+  color: var(--auth-ink) !important;
+  font-size: clamp(36px, 4vw, 44px) !important;
+  font-weight: 500 !important;
+  letter-spacing: -0.05em !important;
+  line-height: 0.98 !important;
+  text-align: center !important;
+}
+
+.auth-shell .auth-intro {
+  max-width: 430px !important;
+  margin: 3px auto 16px !important;
+  color: var(--auth-muted) !important;
+  font-size: 16px !important;
+  line-height: 1.42 !important;
+  text-align: center !important;
+}
+
+.auth-shell .sso-button,
+.auth-shell input,
+.auth-shell .auth-submit {
+  width: 100% !important;
+  height: 52px !important;
+  border-radius: 14px !important;
+  font-size: 15px !important;
+}
+
+.auth-shell .sso-button {
+  gap: 11px !important;
+  border: 1px solid var(--auth-line) !important;
+  background: #ffffff !important;
+  color: var(--auth-body) !important;
+  font-weight: 650 !important;
+  box-shadow: 0 5px 14px rgba(0, 31, 31, 0.05) !important;
+}
+
+.auth-shell .sso-button:hover {
+  border-color: #b9d9c4 !important;
+  background: #fbfdfb !important;
+}
+
+.auth-shell .google-button span {
+  color: #4285f4 !important;
+  font-size: 20px !important;
+}
+
+.auth-shell .auth-divider {
+  gap: 13px !important;
+  margin: 15px 0 3px !important;
+  color: var(--auth-muted) !important;
+  font-size: 13px !important;
+  font-weight: 550 !important;
+}
+
+.auth-shell .auth-divider span {
+  background: var(--auth-line) !important;
+}
+
+.auth-shell form {
+  gap: 17px !important;
+}
+
+.auth-shell label {
+  gap: 8px !important;
+  color: var(--auth-body) !important;
+  font-size: 14px !important;
+  font-weight: 650 !important;
+}
+
+.auth-shell input {
+  padding: 0 15px !important;
+  border: 1px solid #d5ded8 !important;
+  background: #ffffff !important;
+  color: var(--auth-ink) !important;
+  font-weight: 500 !important;
+  box-shadow: inset 0 1px 2px rgba(0, 31, 31, 0.03) !important;
+}
+
+.auth-shell input:focus {
+  border-color: #78ca92 !important;
+  box-shadow: 0 0 0 4px rgba(205, 250, 206, 0.72) !important;
+}
+
+.auth-shell .auth-label-row button,
+.auth-shell .auth-privacy button,
+.auth-shell .auth-switch button {
+  color: var(--auth-green) !important;
+  font-weight: 700 !important;
+}
+
+.auth-shell .auth-label-row button:hover,
+.auth-shell .auth-privacy button:hover,
+.auth-shell .auth-switch button:hover {
+  color: #035438 !important;
+}
+
+.auth-shell .auth-submit {
+  margin-top: 8px !important;
+  border: 1px solid var(--auth-green) !important;
+  background: var(--auth-green) !important;
+  color: var(--auth-mint) !important;
+  font-weight: 700 !important;
+  box-shadow: 0 0 0 5px rgba(205, 250, 206, 0.72), 0 10px 22px rgba(4, 102, 69, 0.15) !important;
+}
+
+.auth-shell .auth-submit:hover:not(:disabled) {
+  background: #035438 !important;
+  transform: translateY(-1px) !important;
+}
+
+.auth-shell .auth-submit:disabled,
+.auth-shell .sso-button:disabled {
+  opacity: 0.52 !important;
+  cursor: not-allowed !important;
+}
+
+.auth-shell .auth-error,
+.auth-shell .auth-notice {
+  border-radius: 13px !important;
+  font-size: 13px !important;
+}
+
+.auth-shell .auth-notice {
+  border-color: #b9d9c4 !important;
+  background: #effceb !important;
+  color: var(--auth-green) !important;
+}
+
+.auth-shell .auth-privacy {
+  margin: 16px 0 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  color: var(--auth-muted) !important;
+  font-size: 13px !important;
+  text-align: center !important;
+}
+
+.auth-shell .auth-switch {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+  margin-top: 5px !important;
+  color: var(--auth-muted) !important;
+  font-size: 14px !important;
+}
+
+.auth-shell .auth-switch button {
+  font-size: 14px !important;
+}
+
+@media (max-width: 620px) {
+  .auth-shell {
+    place-items: start center !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+  }
+
+  .auth-shell .auth-card {
+    min-height: 100vh !important;
+    padding: 24px 22px 40px !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+
+  .auth-shell .auth-card h2 {
+    font-size: 36px !important;
+  }
+}
 /* Final editor behavior fixes: color wheel and collapsed thumbnails layout. */
 main.editor-shell .workspace.pages-collapsed {
   grid-template-columns: 92px minmax(0, 1fr) 62px !important;
