@@ -9,3 +9,5 @@ When implementing from a selected generated mock, treat that image as the source
 For the editor page rail, use a narrow 144px white thumbnail sidebar with compact 72px portrait previews, no cropping or stretching, a dark rounded selected outline, bare gray page numbers, and a four-button footer ordered trash, clockwise rotate, add page, then download. The top-left list button must toggle this rail and must not navigate to the dashboard.
 
 The product name is RealPDF. The landing hero’s right column must remain a functional PDF drag-and-drop upload zone; the supplied upload screenshot is an interaction/anatomy example, while the visual treatment must use the site’s own green, mint, cream, rounded-card design language. Selecting or dropping a PDF should open the editor without first forcing authentication.
+
+The dashboard must feel like the same product as the landing site: reuse the site's RealPDF branding, Funnel Display/DM Sans typography, blue-and-white palette, compact rounded controls, soft blue panels, and restrained borders rather than introducing a separate dashboard aesthetic.
