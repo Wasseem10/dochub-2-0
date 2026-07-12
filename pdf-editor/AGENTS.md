@@ -5,3 +5,7 @@ Run the local server yourself and open the preview in the in-app browser. Do not
 Before making substantial visual changes, use the Product Design plugin's `get-context` skill when the visual source is unclear or no longer matches the current goal. When the user gives durable prototype-specific design feedback, preferences, or decisions, record them in `AGENTS.md`.
 
 When implementing from a selected generated mock, treat that image as the source of truth for layout, component anatomy, density, spacing, color, typography, visible content, and hierarchy.
+
+For the editor page rail, use a narrow 144px white thumbnail sidebar with compact 72px portrait previews, no cropping or stretching, a dark rounded selected outline, bare gray page numbers, and a four-button footer ordered trash, clockwise rotate, add page, then download. The top-left list button must toggle this rail and must not navigate to the dashboard.
+
+The product name is RealPDF. The landing hero’s right column must remain a functional PDF drag-and-drop upload zone; the supplied upload screenshot is an interaction/anatomy example, while the visual treatment must use the site’s own green, mint, cream, rounded-card design language. Selecting or dropping a PDF should open the editor without first forcing authentication.

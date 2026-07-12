@@ -1023,6 +1023,8 @@ export function App() {
   const [draft, setDraft] = useState(null);
   const [signatureText, setSignatureText] = useState("Jane Smith");
   const [viewMode, setViewMode] = useState("list");
+  const [draggedPageIndex, setDraggedPageIndex] = useState(null);
+  const [pageDropIndex, setPageDropIndex] = useState(null);
   const [isExporting, setIsExporting] = useState(false);
   const [uploadError, setUploadError] = useState("");
   const [uploadStage, setUploadStage] = useState({ status: "idle", percent: 0, fileName: "" });
@@ -1901,6 +1903,7 @@ export function App() {
       context.translate(canvas.width, 0);
       context.rotate(Math.PI / 2);
       context.drawImage(image, 0, 0);
+      pushHistorySnapshot();
       setPages((items) => items.map((item, index) => (
         index === targetIndex
           ? { ...item, image: canvas.toDataURL("image/png"), width: item.height, height: item.width }
@@ -1913,27 +1916,32 @@ export function App() {
     image.src = page.image;
   };
 
-  const moveCurrentPage = (direction) => {
-    const nextIndex = pageIndex + direction;
-    if (nextIndex < 0 || nextIndex >= pages.length) return;
+  const reorderPage = (fromIndex, toIndex) => {
+    if (fromIndex < 0 || fromIndex >= pages.length || toIndex < 0 || toIndex >= pages.length || fromIndex === toIndex) return;
+    const remapIndex = (index) => {
+      if (index === fromIndex) return toIndex;
+      if (fromIndex < toIndex && index > fromIndex && index <= toIndex) return index - 1;
+      if (toIndex < fromIndex && index >= toIndex && index < fromIndex) return index + 1;
+      return index;
+    };
     pushHistorySnapshot();
     setPages((items) => {
       const next = [...items];
-      [next[pageIndex], next[nextIndex]] = [next[nextIndex], next[pageIndex]];
+      const [movedPage] = next.splice(fromIndex, 1);
+      next.splice(toIndex, 0, movedPage);
       return next.map((page, index) => ({ ...page, number: index + 1 }));
     });
-    setAnnotations((items) => items.map((annotation) => {
-      if (annotation.page === pageIndex) return { ...annotation, page: nextIndex };
-      if (annotation.page === nextIndex) return { ...annotation, page: pageIndex };
-      return annotation;
-    }));
-    setDetectedTextItems((items) => items.map((item) => {
-      if (item.pageNumber === pageIndex) return { ...item, pageNumber: nextIndex };
-      if (item.pageNumber === nextIndex) return { ...item, pageNumber: pageIndex };
-      return item;
-    }));
-    setPageIndex(nextIndex);
+    setAnnotations((items) => items.map((annotation) => ({ ...annotation, page: remapIndex(annotation.page) })));
+    setDetectedTextItems((items) => items.map((item) => ({ ...item, pageNumber: remapIndex(item.pageNumber) })));
+    setSelectedId(null);
+    setSelectedDetectedTextId(null);
+    setPageIndex(toIndex);
     markUnsaved();
+    showToast(`Moved page ${fromIndex + 1} to position ${toIndex + 1}.`);
+  };
+
+  const moveCurrentPage = (direction) => {
+    reorderPage(pageIndex, pageIndex + direction);
   };
 
   const openDocument = async (documentRecord) => {
@@ -2792,9 +2800,11 @@ export function App() {
         onUpload={onUpload}
         onLogin={() => openAuth("login")}
         onSignup={() => openAuth("signup")}
-        onSelectFiles={() => (currentUser ? fileInputRef.current?.click() : openAuth("signup"))}
-        onDropFiles={(files) => (currentUser ? onUpload({ target: { files, value: "" } }) : openAuth("signup"))}
+        onSelectFiles={() => fileInputRef.current?.click()}
+        onDropFiles={(files) => onUpload({ target: { files, value: "" } })}
         onBlankPage={startBlankDocument}
+        uploadError={uploadError}
+        uploadStage={uploadStage}
         documentCount={documents.length}
       />
     );
@@ -2848,11 +2858,15 @@ export function App() {
       <input ref={appendFileInputRef} className="hidden-input" type="file" accept="application/pdf" onChange={onAppendUpload} />
       <input ref={imageInputRef} className="hidden-input" type="file" accept="image/png,image/jpeg" onChange={onImageUpload} />
       <header className="file-header">
-        <button type="button" className="pdfnet-brand" onClick={() => {
-          saveActiveDocument(true);
-          setPages([]);
-          setScreen("upload");
-        }} title="Back to dashboard">
+        <button
+          type="button"
+          className="pdfnet-brand"
+          onClick={() => setIsPagesCollapsed((value) => !value)}
+          title={isPagesCollapsed ? "Open thumbnails" : "Close thumbnails"}
+          aria-label={isPagesCollapsed ? "Open thumbnails" : "Close thumbnails"}
+          aria-controls="page-thumbnails"
+          aria-expanded={!isPagesCollapsed}
+        >
           <List size={27} aria-hidden="true" />
         </button>
         <div className="file-meta">
@@ -2912,6 +2926,12 @@ export function App() {
             </button>
             {isMoreMenuOpen && (
               <div className="document-more-menu" role="menu" aria-label="Document actions">
+                <button type="button" role="menuitem" onClick={() => {
+                  saveActiveDocument(true);
+                  setPages([]);
+                  setScreen("upload");
+                  setIsMoreMenuOpen(false);
+                }}><Home size={16} /> Dashboard</button>
                 <button type="button" role="menuitem" onClick={() => {
                   renameActiveDocument();
                   setIsMoreMenuOpen(false);
@@ -3022,7 +3042,7 @@ export function App() {
             </button>
           ))}
         </aside>
-        <aside className={`pages-panel ${isPagesCollapsed ? "is-collapsed" : ""}`}>
+        <aside id="page-thumbnails" className={`pages-panel ${isPagesCollapsed ? "is-collapsed" : ""}`}>
           <div className="panel-title pdfnet-page-title">
             <strong>Thumbnails</strong>
             <div>
@@ -3051,10 +3071,40 @@ export function App() {
               <button
                 key={page.id}
                 type="button"
-                className={`thumbnail ${pageIndex === index ? "is-selected" : ""}`}
+                className={`thumbnail ${pageIndex === index ? "is-selected" : ""} ${draggedPageIndex === index ? "is-dragging" : ""} ${pageDropIndex === index && draggedPageIndex !== index ? "is-drop-target" : ""}`}
                 aria-current={pageIndex === index ? "page" : undefined}
+                aria-label={`Page ${index + 1}. Use Alt+Arrow Up or Alt+Arrow Down to reorder.`}
+                aria-keyshortcuts="Alt+ArrowUp Alt+ArrowDown"
                 title={`Page ${index + 1}`}
                 onClick={() => setPageIndex(index)}
+                draggable
+                onDragStart={(event) => {
+                  event.dataTransfer.effectAllowed = "move";
+                  event.dataTransfer.setData("text/plain", String(index));
+                  setDraggedPageIndex(index);
+                  setPageDropIndex(index);
+                }}
+                onDragEnter={() => setPageDropIndex(index)}
+                onDragOver={(event) => {
+                  event.preventDefault();
+                  event.dataTransfer.dropEffect = "move";
+                }}
+                onDrop={(event) => {
+                  event.preventDefault();
+                  const fromIndex = Number.parseInt(event.dataTransfer.getData("text/plain"), 10);
+                  if (Number.isInteger(fromIndex)) reorderPage(fromIndex, index);
+                  setDraggedPageIndex(null);
+                  setPageDropIndex(null);
+                }}
+                onDragEnd={() => {
+                  setDraggedPageIndex(null);
+                  setPageDropIndex(null);
+                }}
+                onKeyDown={(event) => {
+                  if (!event.altKey || (event.key !== "ArrowUp" && event.key !== "ArrowDown")) return;
+                  event.preventDefault();
+                  reorderPage(index, clamp(index + (event.key === "ArrowUp" ? -1 : 1), 0, pages.length - 1));
+                }}
               >
                 <div className="thumbnail-preview" style={{ "--thumbnail-aspect": `${page.width || BASE_PAGE_WIDTH} / ${page.height || BASE_PAGE_HEIGHT}` }}>
                   <div className="thumb-page">
@@ -3067,13 +3117,16 @@ export function App() {
           </div>
           <div className="thumbnail-footer" aria-label="Page actions">
             <button type="button" title="Delete page" aria-label="Delete page" onClick={deleteCurrentPage} disabled={pages.length <= 1}>
-              <Trash2 size={31} strokeWidth={3} />
+              <Trash2 size={18} strokeWidth={2.6} />
             </button>
             <button type="button" title="Rotate page clockwise" aria-label="Rotate page clockwise" onClick={rotateCurrentPage}>
-              <RotateCw size={35} strokeWidth={3} />
+              <RotateCw size={20} strokeWidth={2.6} />
             </button>
             <button type="button" title="Add page" aria-label="Add page" onClick={addBlankPage}>
-              <FilePlus2 size={34} strokeWidth={2.6} />
+              <FilePlus2 size={20} strokeWidth={2.4} />
+            </button>
+            <button type="button" title="Download PDF" aria-label="Download PDF" onClick={exportPdf} disabled={isExporting}>
+              <Download size={19} strokeWidth={2.5} />
             </button>
           </div>
           <div className="saved-foot"><CheckCircle2 size={22} /> {saveStatusLabel}</div>

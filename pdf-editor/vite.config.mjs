@@ -6,8 +6,8 @@ export default defineConfig({
   publicDir: "runtime-public",
   optimizeDeps: {
     entries: ["index.html"],
-    include: ["react", "react-dom/client"],
-    exclude: ["pdfjs-dist", "pdf-lib"],
+    include: ["react", "react-dom/client", "pdf-lib"],
+    exclude: ["pdfjs-dist"],
   },
   server: {
     watch: {
