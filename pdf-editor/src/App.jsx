@@ -2785,8 +2785,9 @@ export function App() {
     return (
       <main className="auth-shell">
         <section className="auth-card" aria-label="Restoring session">
-          <button type="button" className="auth-mark blank-brand" aria-label="Loading workspace"><span aria-hidden="true" /></button>
+          <button type="button" className="auth-mark auth-realpdf-brand" aria-label="Loading RealPDF workspace"><span aria-hidden="true"><FileText size={22} /></span><strong>RealPDF</strong></button>
           <h2>Opening workspace</h2>
+          <p className="auth-intro">Your document workspace is almost ready.</p>
           <p className="auth-privacy">Checking your saved sign-in before loading the app.</p>
         </section>
       </main>
@@ -3676,7 +3677,7 @@ function AuthPage({ mode, setMode, onBack, onComplete, onPasswordReset, authRead
     event.preventDefault();
     setNotice("");
     if (!isFirebaseConfigured) {
-      setError("Firebase is not configured yet. Add your VITE_FIREBASE_* env vars.");
+      setError("Sign-in is temporarily unavailable while the secure connection is being set up.");
       return;
     }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
@@ -3697,7 +3698,7 @@ function AuthPage({ mode, setMode, onBack, onComplete, onPasswordReset, authRead
   const submitGoogleAuth = async () => {
     setNotice("");
     if (!isFirebaseConfigured) {
-      setError("Firebase is not configured yet. Add your VITE_FIREBASE_* env vars.");
+      setError("Sign-in is temporarily unavailable while the secure connection is being set up.");
       return;
     }
     setError("");
@@ -3728,11 +3729,12 @@ function AuthPage({ mode, setMode, onBack, onComplete, onPasswordReset, authRead
     <main className="auth-shell">
       <section className="auth-card" aria-label={isSignup ? "Create account" : "Log in"}>
         <button type="button" className="auth-back" onClick={onBack}>Back to home</button>
-        <button type="button" className="auth-mark blank-brand" onClick={onBack} aria-label="Back to home"><span aria-hidden="true" /></button>
-        <h2>{isSignup ? "Create account" : "Sign in"}</h2>
+        <button type="button" className="auth-mark auth-realpdf-brand" onClick={onBack} aria-label="RealPDF home"><span aria-hidden="true"><FileText size={22} /></span><strong>RealPDF</strong></button>
+        <h2>{isSignup ? "Create your workspace" : "Welcome back"}</h2>
+        <p className="auth-intro">{isSignup ? "Start editing, signing, and organizing PDFs in one focused place." : "Sign in to continue working with your PDFs."}</p>
         {!isFirebaseConfigured && (
           <div className="auth-error">
-            Firebase config is missing. Add `VITE_FIREBASE_API_KEY`, `VITE_FIREBASE_AUTH_DOMAIN`, `VITE_FIREBASE_PROJECT_ID`, and `VITE_FIREBASE_APP_ID`.
+            Sign-in is temporarily unavailable while the secure connection is being set up.
           </div>
         )}
         <button type="button" className="sso-button google-button" onClick={submitGoogleAuth} disabled={!authReady || isSubmitting || !isFirebaseConfigured}>
@@ -3749,14 +3751,14 @@ function AuthPage({ mode, setMode, onBack, onComplete, onPasswordReset, authRead
           )}
           <label>
             Email address
-            <input type="email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" />
+            <input type="email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" placeholder="you@example.com" />
           </label>
           <label>
             <span className="auth-label-row">
               Password
               {!isSignup && <button type="button" onClick={requestPasswordReset}>Forgot password?</button>}
             </span>
-            <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete={isSignup ? "new-password" : "current-password"} />
+            <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete={isSignup ? "new-password" : "current-password"} placeholder={isSignup ? "At least 6 characters" : "Enter your password"} />
           </label>
           {error && <div className="auth-error">{error}</div>}
           {notice && <div className="auth-notice">{notice}</div>}
@@ -3766,7 +3768,8 @@ function AuthPage({ mode, setMode, onBack, onComplete, onPasswordReset, authRead
         </form>
         <p className="auth-privacy">Check our <button type="button">Privacy Notice</button>.</p>
         <div className="auth-switch">
-          <button type="button" onClick={switchMode}>{isSignup ? "sign in instead" : "create new account"}</button>
+          <span>{isSignup ? "Already have an account?" : "New to RealPDF?"}</span>
+          <button type="button" onClick={switchMode}>{isSignup ? "Sign in" : "Create an account"}</button>
         </div>
       </section>
     </main>
