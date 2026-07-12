@@ -4584,7 +4584,7 @@ function UploadLanding({
     <main className="upload-shell lumin-home">
       <input ref={fileInputRef} className="hidden-input" type="file" accept="application/pdf" onChange={onUpload} />
       <aside className="lumin-home-rail">
-        <button type="button" className="rail-brand-tile" onClick={() => setActiveSection("Home")}><Building2 size={24} /></button>
+        <button type="button" className="rail-brand-tile" aria-label="RealPDF home" onClick={() => setActiveSection("Home")}><FileText size={22} /></button>
         <button type="button" className="rail-mini-action" onClick={() => setOpenPanel("invite")}><Users size={22} /></button>
         <nav className="upload-nav" aria-label="Primary">
           {primaryNav.map(({ label, icon: Icon }) => (
@@ -4598,7 +4598,7 @@ function UploadLanding({
 
       <section className="upload-main">
         <header className="upload-topbar">
-          <div className="upload-logo blank-logo"><span aria-hidden="true" /></div>
+          <button type="button" className="upload-logo" onClick={() => setActiveSection("Home")}><span><FileText size={19} /></span><strong>RealPDF</strong></button>
           <label className="lumin-search">
             <Search size={25} />
             <input type="search" placeholder="Search" value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} />
