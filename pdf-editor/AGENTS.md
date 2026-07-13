@@ -21,3 +21,13 @@ App navigation must stay inside the product: the dashboard needs a visible retur
 The editor's 100% zoom must render at a comfortable working size, using an `EDITOR_PAGE_SCALE` of 0.88 so the PDF is larger than the old fit-to-window treatment while annotation coordinates remain aligned.
 
 The bottom zoom selector must reserve enough width and right padding for both the full percentage label (including `%`) and the native dropdown arrow at every supported zoom value.
+
+Reliable-editor foundation decisions:
+
+- Editor URLs must include `?view=editor&documentId=...`; refresh must restore that document only after `canAccessDocument` approves the current Firebase UID or guest-session owner.
+- Browser-local guest documents are partitioned by a persistent `guestOwnerId` for that browser workspace. Signed-in documents require an exact `ownerUid` match. Never pass another owner's or a guest document into cloud sync for the current account.
+- Stored document records use `schemaVersion` and monotonic `revision`. Autosave must compare the persisted revision before writing and expose `Unsaved`, `Saving`, `Saved`, and `Error` honestly; never show Saved after a failed or conflicting write.
+- PDF upload validation must inspect the PDF header and keep distinct messages for empty, wrong-format, oversized, encrypted, corrupted, and unreadable files.
+- The editor and dashboard must use `buildEditedPdfBytes` for downloads so supported edits are present in both paths. A rotated source page is intentionally converted to an image-backed page until vector-preserving rotation is implemented.
+- Do not expose prototype sharing, translation, security, AI, or signing-workflow controls as working actions. Remove them from primary navigation or disable them with an explicit unavailable label.
+- Run `npm test` and `npm run build` before handoff. Firebase rules live in this repository and must be emulator-tested and deployed before cloud storage is described as production-secure.

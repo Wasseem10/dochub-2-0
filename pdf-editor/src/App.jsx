@@ -86,6 +86,23 @@ import { collection, deleteDoc, doc, getDocs, setDoc } from "firebase/firestore"
 import { deleteObject, getDownloadURL, ref as storageReference, uploadString } from "firebase/storage";
 import { auth, db, googleProvider, isCloudPersistenceConfigured, isFirebaseConfigured, storage } from "./firebase";
 import { LatticePdfLanding } from "./LatticePdfLanding.jsx";
+import {
+  canAccessDocument,
+  documentsForViewer,
+  getOrCreateGuestOwnerId,
+  migrateLegacyGuestDocuments,
+  ownershipForViewer,
+  viewerIdentity,
+} from "./lib/document-access.js";
+import {
+  DocumentPersistenceError,
+  readDocumentCollection,
+  saveDocumentRevision,
+  writeDocumentCollection,
+} from "./lib/document-persistence.js";
+import { classifyPdfOpenError, MAX_PDF_BYTES, validatePdfCandidate } from "./lib/pdf-validation.js";
+import { buildEditedPdfBytes } from "./lib/pdf-export.js";
+import { appendHistorySnapshot, redoHistory, undoHistory } from "./lib/editor-history.js";
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
   "pdfjs-dist/build/pdf.worker.mjs",
@@ -101,7 +118,7 @@ const EDITOR_PAGE_SCALE = 0.88;
 const TEXT_SCREEN_SCALE = 1 / EDITOR_PAGE_SCALE;
 const STORAGE_KEY = "paperflow.documents.v1";
 const APP_SCREEN_KEY = "paperflow.lastScreen.v1";
-const MAX_FILE_BYTES = 8 * 1024 * 1024;
+const ACTIVE_DOCUMENT_KEY = "realpdf.activeDocument.v1";
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 const ZOOM_PRESETS = [60, 80, 90, 100, 120, 140, 160];
 
@@ -240,25 +257,40 @@ function formatBytes(bytes = 0) {
 }
 
 function safeLoadDocuments() {
-  try {
-    const parsed = JSON.parse(window.localStorage.getItem(STORAGE_KEY) || "[]");
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
+  return readDocumentCollection(window.localStorage, STORAGE_KEY);
 }
 
 function writeDocuments(documents) {
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(documents));
+  return writeDocumentCollection(window.localStorage, STORAGE_KEY, documents);
+}
+
+function requestedDocumentId() {
+  const urlDocumentId = new URLSearchParams(window.location.search).get("documentId");
+  if (urlDocumentId) return urlDocumentId;
+  try {
+    return window.sessionStorage.getItem(ACTIVE_DOCUMENT_KEY) || "";
+  } catch {
+    return "";
+  }
+}
+
+function writeActiveDocumentId(documentId) {
+  try {
+    if (documentId) window.sessionStorage.setItem(ACTIVE_DOCUMENT_KEY, documentId);
+    else window.sessionStorage.removeItem(ACTIVE_DOCUMENT_KEY);
+  } catch {
+    // The URL still carries the active document when session storage is unavailable.
+  }
 }
 
 function safeLoadScreen() {
   const urlView = new URLSearchParams(window.location.search).get("view");
   if (urlView === "dashboard") return "upload";
+  if (urlView === "editor" && requestedDocumentId()) return "editor";
 
   try {
     const savedScreen = window.localStorage.getItem(APP_SCREEN_KEY);
-    return savedScreen === "upload" || savedScreen === "editor" ? "upload" : "landing";
+    return savedScreen === "upload" ? "upload" : "landing";
   } catch {
     return "landing";
   }
@@ -267,7 +299,7 @@ function safeLoadScreen() {
 function writeLastScreen(screen) {
   try {
     if (screen === "auth") return;
-    window.localStorage.setItem(APP_SCREEN_KEY, screen === "editor" ? "upload" : screen);
+    window.localStorage.setItem(APP_SCREEN_KEY, screen);
   } catch {
     // Ignore private browsing or disabled storage; Firebase auth still owns login state.
   }
@@ -372,14 +404,6 @@ async function dataUrlToArrayBuffer(dataUrl) {
   return response.arrayBuffer();
 }
 
-async function embedDataUrlImage(pdfDoc, dataUrl) {
-  if (!dataUrl) return null;
-  const bytes = await dataUrlToArrayBuffer(dataUrl);
-  return dataUrl.startsWith("data:image/jpeg") || dataUrl.startsWith("data:image/jpg")
-    ? pdfDoc.embedJpg(bytes)
-    : pdfDoc.embedPng(bytes);
-}
-
 function readImageFile(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -406,12 +430,6 @@ function downloadBlob(blob, name) {
   anchor.download = name;
   anchor.click();
   URL.revokeObjectURL(url);
-}
-
-function hexToRgb(hex) {
-  const clean = hex.replace("#", "");
-  const value = parseInt(clean, 16);
-  return rgb(((value >> 16) & 255) / 255, ((value >> 8) & 255) / 255, (value & 255) / 255);
 }
 
 function normalizeHexColor(value) {
@@ -760,7 +778,7 @@ const EditableTextContent = forwardRef(function EditableTextContent({
   );
 });
 
-function Annotation({ annotation, selected, zoom, onSelect, onDrag, onResize, onUpdate, onDelete }) {
+function Annotation({ annotation, selected, zoom, onSelect, onDrag, onResize, onUpdate, onDelete, onInteractionStart }) {
   const textContentRef = useRef(null);
   const textWasFocusedRef = useRef(false);
   const displayScale = (zoom / 100) * EDITOR_PAGE_SCALE;
@@ -780,6 +798,7 @@ function Annotation({ annotation, selected, zoom, onSelect, onDrag, onResize, on
       return;
     }
     event.stopPropagation();
+    onInteractionStart?.();
     event.currentTarget.setPointerCapture(event.pointerId);
     const pageRect = event.currentTarget.closest(".page-surface").getBoundingClientRect();
     const origin = { clientX: event.clientX, clientY: event.clientY, x: annotation.x, y: annotation.y };
@@ -827,6 +846,7 @@ function Annotation({ annotation, selected, zoom, onSelect, onDrag, onResize, on
 
   const resizeStart = (event) => {
     event.stopPropagation();
+    onInteractionStart?.();
     const pageRect = event.currentTarget.closest(".page-surface").getBoundingClientRect();
     const origin = { clientX: event.clientX, clientY: event.clientY, w: annotation.w, h: annotation.h };
     const move = (moveEvent) => {
@@ -1021,11 +1041,20 @@ export function App() {
   const lastPagePointRef = useRef({ x: 0.52, y: 0.28 });
   const historyInitializedRef = useRef(false);
   const historyNavigationTargetRef = useRef(null);
+  const [guestOwnerId] = useState(() => getOrCreateGuestOwnerId());
   const [screen, setScreen] = useState(() => safeLoadScreen());
   const [authMode, setAuthMode] = useState("signup");
   const [currentUser, setCurrentUser] = useState(null);
   const [authReady, setAuthReady] = useState(!isFirebaseConfigured);
-  const [documents, setDocuments] = useState(() => safeLoadDocuments());
+  const [documents, setDocuments] = useState(() => {
+    const migrated = migrateLegacyGuestDocuments(safeLoadDocuments(), guestOwnerId);
+    try {
+      writeDocuments(migrated);
+    } catch {
+      // The save coordinator will expose a retryable error when the user edits.
+    }
+    return migrated;
+  });
   const [activeDocumentId, setActiveDocumentId] = useState(null);
   const [pages, setPages] = useState([]);
   const [pdfBytes, setPdfBytes] = useState(null);
@@ -1039,6 +1068,9 @@ export function App() {
   const [zoom, setZoom] = useState(100);
   const [saved, setSaved] = useState(true);
   const [saveState, setSaveState] = useState("saved");
+  const [saveError, setSaveError] = useState("");
+  const [editorLoadState, setEditorLoadState] = useState({ status: screen === "editor" ? "loading" : "idle", message: "" });
+  const [isOnline, setIsOnline] = useState(() => navigator.onLine !== false);
   const [cloudSyncStatus, setCloudSyncStatus] = useState(isCloudPersistenceConfigured ? "idle" : "local");
   const [lastSavedAt, setLastSavedAt] = useState(null);
   const [undoStack, setUndoStack] = useState([]);
@@ -1088,6 +1120,8 @@ export function App() {
   const selected = useMemo(() => annotations.find((annotation) => annotation.id === selectedId), [annotations, selectedId]);
   const selectedDetectedText = useMemo(() => detectedTextItems.find((item) => item.id === selectedDetectedTextId), [detectedTextItems, selectedDetectedTextId]);
   const activeDocument = useMemo(() => documents.find((document) => document.id === activeDocumentId), [documents, activeDocumentId]);
+  const currentViewer = useMemo(() => viewerIdentity(currentUser, guestOwnerId), [currentUser, guestOwnerId]);
+  const accessibleDocuments = useMemo(() => documentsForViewer(documents, currentViewer), [currentViewer, documents]);
   const currentPage = pages[pageIndex] || pages[0];
   const pageAnnotations = annotations.filter((annotation) => annotation.page === pageIndex);
   const pageDetectedTextItems = detectedTextItems.filter((item) => item.pageNumber === pageIndex && !item.isDeleted);
@@ -1160,13 +1194,25 @@ export function App() {
       .sort((a, b) => a.page - b.page)
   ), [annotations]);
   const saveStatusLabel = useMemo(() => {
+    if (saveState === "error") return saveError || "Save failed — retry";
     if (saveState === "unsaved") return "Unsaved changes";
     if (saveState === "saving") return "Saving...";
     if (cloudSyncStatus === "syncing") return "Syncing to cloud...";
     if (cloudSyncStatus === "error") return "Saved locally";
     if (currentUser?.uid && cloudSyncStatus === "synced") return "Saved to cloud";
     return lastSavedAt ? `Saved ${formatDateTime(lastSavedAt)}` : "Saved";
-  }, [cloudSyncStatus, currentUser?.uid, lastSavedAt, saveState]);
+  }, [cloudSyncStatus, currentUser?.uid, lastSavedAt, saveError, saveState]);
+
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, []);
 
   useEffect(() => {
     if (!auth) {
@@ -1209,8 +1255,10 @@ export function App() {
         const accountLocalDocuments = localDocuments.filter((documentRecord) => documentRecord.ownerUid === currentUser.uid);
         const mergedDocuments = mergeDocumentsByUpdatedAt(accountLocalDocuments, cloudDocuments);
         if (mergedDocuments.length) {
-          writeDocuments(mergedDocuments);
-          setDocuments(mergedDocuments);
+          const otherOwnerDocuments = localDocuments.filter((documentRecord) => documentRecord.ownerUid !== currentUser.uid);
+          const storedDocuments = [...mergedDocuments, ...otherOwnerDocuments];
+          writeDocuments(storedDocuments);
+          setDocuments(storedDocuments);
           if (cloudDocuments.length) {
             showToast(`Loaded ${cloudDocuments.length} cloud document${cloudDocuments.length === 1 ? "" : "s"}.`);
           }
@@ -1244,12 +1292,14 @@ export function App() {
       return;
     }
 
-    const nextIds = new Set(nextDocuments.map((documentRecord) => documentRecord.id));
-    const deletedDocuments = previousDocuments.filter((documentRecord) => documentRecord.id && !nextIds.has(documentRecord.id));
+    const previousOwnerDocuments = previousDocuments.filter((documentRecord) => documentRecord.ownerUid === currentUser.uid);
+    const nextOwnerDocuments = nextDocuments.filter((documentRecord) => documentRecord.ownerUid === currentUser.uid);
+    const nextIds = new Set(nextOwnerDocuments.map((documentRecord) => documentRecord.id));
+    const deletedDocuments = previousOwnerDocuments.filter((documentRecord) => documentRecord.id && !nextIds.has(documentRecord.id));
     setCloudSyncStatus("syncing");
 
     Promise.all([
-      ...nextDocuments.map((documentRecord) => uploadDocumentRecordToCloud(currentUser.uid, documentRecord)),
+      ...nextOwnerDocuments.map((documentRecord) => uploadDocumentRecordToCloud(currentUser.uid, documentRecord)),
       ...deletedDocuments.map((documentRecord) => deleteDocumentRecordFromCloud(currentUser.uid, documentRecord.id)),
     ])
       .then(() => setCloudSyncStatus("synced"))
@@ -1264,11 +1314,16 @@ export function App() {
       writeDocuments(nextDocuments);
       setDocuments(nextDocuments);
       syncDocumentsToCloud(documents, nextDocuments);
+      setSaveError("");
       return true;
-    } catch {
+    } catch (error) {
       setDocuments(nextDocuments);
-      syncDocumentsToCloud(documents, nextDocuments);
-      setUploadError("This browser storage is full. The document is open, but it may not persist after refresh.");
+      const message = error instanceof DocumentPersistenceError
+        ? error.message
+        : "RealPDF could not save this document. Free some browser storage, then retry.";
+      setSaveError(message);
+      setSaveState("error");
+      setUploadError(message);
       return false;
     }
   };
@@ -1336,30 +1391,48 @@ export function App() {
 
   const markUnsaved = () => {
     setSaved(false);
+    setSaveError("");
     setSaveState("unsaved");
   };
 
   const saveActiveDocument = (immediate = false) => {
-    if (!activeDocumentId) return;
+    if (!activeDocumentId) return false;
     const stamp = nowIso();
-    setSaveState(immediate ? "saved" : "saving");
-    const nextDocuments = documents.map((document) => (
-      document.id === activeDocumentId
-        ? {
-          ...document,
+    setSaveState("saving");
+    setSaveError("");
+    try {
+      const storedDocuments = safeLoadDocuments();
+      const { nextRecord, nextDocuments } = saveDocumentRevision({
+        storedDocuments,
+        stateDocuments: documents,
+        documentId: activeDocumentId,
+        expectedRevision: activeDocument?.revision || 0,
+        updates: {
           name: fileName,
           pages,
           annotations,
           detectedTextItems,
           pageCount: pages.length,
           updatedAt: stamp,
-        }
-        : document
-    ));
-    replaceDocuments(nextDocuments);
-    setLastSavedAt(stamp);
-    setSaved(true);
-    window.setTimeout(() => setSaveState("saved"), immediate ? 0 : 180);
+        },
+      });
+      writeDocuments(nextDocuments);
+      setDocuments(nextDocuments);
+      syncDocumentsToCloud(documents, nextDocuments);
+      setLastSavedAt(stamp);
+      setSaved(true);
+      window.setTimeout(() => setSaveState("saved"), immediate ? 0 : 180);
+      return nextRecord;
+    } catch (error) {
+      const message = error instanceof DocumentPersistenceError
+        ? error.message
+        : "RealPDF could not save this document. Retry before leaving the editor.";
+      setSaved(false);
+      setSaveError(message);
+      setSaveState("error");
+      showToast(message);
+      return false;
+    }
   };
 
   const duplicateActiveDocument = () => {
@@ -1385,7 +1458,9 @@ export function App() {
       ...(activeDocument || {}),
       id: makeId("doc"),
       name: nextName,
-      ownerUid: currentUser?.uid || activeDocument?.ownerUid || null,
+      ...ownershipForViewer(currentViewer),
+      schemaVersion: 1,
+      revision: 0,
       size: activeDocument?.size || 0,
       source: activeDocument?.source || (pdfBytes ? "pdf" : "blank"),
       pageCount: clonedPages.length,
@@ -1399,6 +1474,7 @@ export function App() {
 
     upsertDocument(duplicateRecord);
     setActiveDocumentId(duplicateRecord.id);
+    writeActiveDocumentId(duplicateRecord.id);
     setFileName(nextName);
     setPages(clonedPages);
     setAnnotations(clonedAnnotations);
@@ -1422,7 +1498,7 @@ export function App() {
   });
 
   const pushHistorySnapshot = () => {
-    setUndoStack((stack) => [...stack.slice(-24), getHistorySnapshot()]);
+    setUndoStack((stack) => appendHistorySnapshot(stack, getHistorySnapshot()));
     setRedoStack([]);
   };
 
@@ -1451,12 +1527,14 @@ export function App() {
     markUnsaved();
   };
 
-  const updateAnnotation = (id, patch) => {
+  const updateAnnotation = (id, patch, recordHistory = true) => {
+    if (recordHistory) pushHistorySnapshot();
     setAnnotations((items) => items.map((item) => (item.id === id ? { ...item, ...patch } : item)));
     markUnsaved();
   };
 
-  const updateDetectedTextItem = (id, patch) => {
+  const updateDetectedTextItem = (id, patch, recordHistory = true) => {
+    if (recordHistory) pushHistorySnapshot();
     setDetectedTextItems((items) => items.map((item) => (
       item.id === id
         ? {
@@ -1619,17 +1697,6 @@ export function App() {
     };
   }, [isZoomMenuOpen]);
 
-  const validatePdfFile = (file) => {
-    if (!file) return "No file selected.";
-    if (file.type !== "application/pdf" && !file.name.toLowerCase().endsWith(".pdf")) {
-      return "Please upload a PDF file.";
-    }
-    if (file.size > MAX_FILE_BYTES) {
-      return `For this local MVP, PDFs must be under ${formatBytes(MAX_FILE_BYTES)}.`;
-    }
-    return "";
-  };
-
   const parsePdfFile = async (file, { startPercent = 18, endPercent = 80, stagePrefix = "Rendering page" } = {}) => {
     const buffer = await file.arrayBuffer();
     const document = await pdfjsLib.getDocument({ data: buffer.slice(0) }).promise;
@@ -1677,9 +1744,9 @@ export function App() {
   const loadPdfFile = async (file) => {
     if (!file) return;
     setUploadStage({ status: "validating", percent: 8, fileName: file.name });
-    const validationError = validatePdfFile(file);
-    if (validationError) {
-      setUploadError(validationError);
+    const validation = await validatePdfCandidate(file, { maxBytes: MAX_PDF_BYTES });
+    if (!validation.ok) {
+      setUploadError(validation.error.message);
       setUploadStage({ status: "error", percent: 0, fileName: file.name });
       return;
     }
@@ -1698,7 +1765,9 @@ export function App() {
       const documentRecord = {
         id: makeId("doc"),
         name: file.name,
-        ownerUid: currentUser?.uid || null,
+        ...ownershipForViewer(currentViewer),
+        schemaVersion: 1,
+        revision: 0,
         size: file.size,
         source: "pdf",
         pageCount: loadedPages.length,
@@ -1714,6 +1783,7 @@ export function App() {
 
       upsertDocument(documentRecord);
       setActiveDocumentId(documentRecord.id);
+      writeActiveDocumentId(documentRecord.id);
       setPages(loadedPages);
       setPdfBytes(buffer);
       setFileName(file.name);
@@ -1726,14 +1796,16 @@ export function App() {
       setSelectedDetectedTextId(null);
       setTool(detectedItems.length ? "editText" : "select");
       setScreen("editor");
+      setEditorLoadState({ status: "ready", message: "" });
       setSaved(true);
       setSaveState("saved");
       setLastSavedAt(stamp);
       setUploadStage({ status: "complete", percent: 100, fileName: file.name });
       showToast(detectedItems.length ? `Smart Edit detected ${detectedItems.length} text item${detectedItems.length === 1 ? "" : "s"}.` : "This looks scanned. OCR is not enabled in this browser build yet.");
       window.setTimeout(() => setUploadStage({ status: "idle", percent: 0, fileName: "" }), 900);
-    } catch {
-      setUploadError("We could not read that PDF. Try a smaller or unprotected PDF file.");
+    } catch (error) {
+      const pdfError = classifyPdfOpenError(error);
+      setUploadError(pdfError.message);
       setUploadStage({ status: "error", percent: 0, fileName: file.name });
     }
   };
@@ -1747,9 +1819,9 @@ export function App() {
     if (!file) return;
     setIsPageAppendMenuOpen(false);
     setUploadStage({ status: "validating", percent: 8, fileName: file.name });
-    const validationError = validatePdfFile(file);
-    if (validationError) {
-      setUploadError(validationError);
+    const validation = await validatePdfCandidate(file, { maxBytes: MAX_PDF_BYTES });
+    if (!validation.ok) {
+      setUploadError(validation.error.message);
       setUploadStage({ status: "error", percent: 0, fileName: file.name });
       return;
     }
@@ -1788,8 +1860,8 @@ export function App() {
       setUploadStage({ status: "complete", percent: 100, fileName: file.name });
       showToast(`Appended ${appendedPages.length} page${appendedPages.length === 1 ? "" : "s"} from ${file.name}.`);
       window.setTimeout(() => setUploadStage({ status: "idle", percent: 0, fileName: "" }), 900);
-    } catch {
-      setUploadError("We could not append that PDF. Try a smaller or unprotected PDF file.");
+    } catch (error) {
+      setUploadError(classifyPdfOpenError(error).message);
       setUploadStage({ status: "error", percent: 0, fileName: file.name });
     }
   };
@@ -1842,7 +1914,9 @@ export function App() {
     const documentRecord = {
       id: makeId("doc"),
       name: "Untitled blank document.pdf",
-      ownerUid: currentUser?.uid || null,
+      ...ownershipForViewer(currentViewer),
+      schemaVersion: 1,
+      revision: 0,
       size: 0,
       source: "blank",
       pageCount: 1,
@@ -1858,6 +1932,7 @@ export function App() {
 
     upsertDocument(documentRecord);
     setActiveDocumentId(documentRecord.id);
+    writeActiveDocumentId(documentRecord.id);
     setPages(blankPages);
     setPdfBytes(null);
     setFileName("Untitled blank document.pdf");
@@ -1870,6 +1945,7 @@ export function App() {
     setSelectedDetectedTextId(null);
     setTool("text");
     setScreen("editor");
+    setEditorLoadState({ status: "ready", message: "" });
     setSaved(true);
     setSaveState("saved");
     setLastSavedAt(stamp);
@@ -1935,7 +2011,14 @@ export function App() {
       pushHistorySnapshot();
       setPages((items) => items.map((item, index) => (
         index === targetIndex
-          ? { ...item, image: canvas.toDataURL("image/png"), width: item.height, height: item.width }
+          ? {
+            ...item,
+            image: canvas.toDataURL("image/png"),
+            width: item.height,
+            height: item.width,
+            source: "image",
+            originalIndex: null,
+          }
           : item
       )));
       markUnsaved();
@@ -1974,47 +2057,98 @@ export function App() {
   };
 
   const openDocument = async (documentRecord) => {
-    setActiveDocumentId(documentRecord.id);
-    setPages((documentRecord.pages || []).map((page, index) => ({
-      ...page,
-      number: index + 1,
-      originalIndex: page.source === "pdf" && page.originalIndex == null ? index : page.originalIndex,
-    })));
-    setAnnotations(documentRecord.annotations || []);
-    setDetectedTextItems(documentRecord.detectedTextItems || []);
-    setPdfBytes(documentRecord.pdfDataUrl ? await dataUrlToArrayBuffer(documentRecord.pdfDataUrl) : null);
-    setFileName(documentRecord.name);
-    setPageIndex(0);
-    setUndoStack([]);
-    setRedoStack([]);
-    setSelectedId(null);
-    setSelectedDetectedTextId(null);
-    setTool("select");
-    setScreen("editor");
-    setSaved(true);
-    setSaveState("saved");
-    setLastSavedAt(documentRecord.updatedAt);
+    if (!canAccessDocument(documentRecord, currentViewer)) {
+      setPages([]);
+      setScreen("editor");
+      setEditorLoadState({
+        status: "error",
+        message: "This document is unavailable or belongs to a different RealPDF account.",
+      });
+      return false;
+    }
+
+    setEditorLoadState({ status: "loading", message: "Opening your document…" });
+    try {
+      setActiveDocumentId(documentRecord.id);
+      writeActiveDocumentId(documentRecord.id);
+      setPages((documentRecord.pages || []).map((page, index) => ({
+        ...page,
+        number: index + 1,
+        originalIndex: page.source === "pdf" && page.originalIndex == null ? index : page.originalIndex,
+      })));
+      setAnnotations(documentRecord.annotations || []);
+      setDetectedTextItems(documentRecord.detectedTextItems || []);
+      setPdfBytes(documentRecord.pdfDataUrl ? await dataUrlToArrayBuffer(documentRecord.pdfDataUrl) : null);
+      setFileName(documentRecord.name);
+      setPageIndex(0);
+      setUndoStack([]);
+      setRedoStack([]);
+      setSelectedId(null);
+      setSelectedDetectedTextId(null);
+      setTool("select");
+      setScreen("editor");
+      setSaved(true);
+      setSaveError("");
+      setSaveState("saved");
+      setLastSavedAt(documentRecord.updatedAt);
+      setEditorLoadState({ status: "ready", message: "" });
+      return true;
+    } catch {
+      setPages([]);
+      setEditorLoadState({
+        status: "error",
+        message: "RealPDF could not restore this document. Return to the dashboard and try again.",
+      });
+      return false;
+    }
   };
+
+  useEffect(() => {
+    if (!authReady || pages.length || screen !== "editor") return;
+    const documentId = requestedDocumentId();
+    if (!documentId) {
+      setEditorLoadState({ status: "empty", message: "No document was selected." });
+      return;
+    }
+    const requestedDocument = documents.find((documentRecord) => documentRecord.id === documentId);
+    if (!requestedDocument || !canAccessDocument(requestedDocument, currentViewer)) {
+      setEditorLoadState({
+        status: "error",
+        message: "This document is unavailable or belongs to a different RealPDF account.",
+      });
+      return;
+    }
+    openDocument(requestedDocument);
+  }, [authReady, currentUser?.uid, documents, guestOwnerId, pages.length, screen]);
 
   const appView = pages.length ? "editor" : screen;
 
   useEffect(() => {
+    const routeDocumentId = activeDocumentId || requestedDocumentId();
     const routeForView = (view) => {
       const basePath = window.location.pathname;
       if (view === "upload") return `${basePath}?view=dashboard`;
-      if (view === "editor") return `${basePath}?view=editor`;
+      if (view === "editor") {
+        return routeDocumentId
+          ? `${basePath}?view=editor&documentId=${encodeURIComponent(routeDocumentId)}`
+          : `${basePath}?view=editor`;
+      }
       if (view === "auth") return `${basePath}?view=auth`;
       return basePath;
     };
 
     const state = {
       realPdfView: appView,
-      documentId: appView === "editor" ? activeDocumentId : null,
+      documentId: appView === "editor" ? routeDocumentId : null,
     };
 
     if (!historyInitializedRef.current) {
       if (appView === "landing") {
         window.history.replaceState(state, "", routeForView("landing"));
+      } else if (appView === "editor") {
+        window.history.replaceState({ realPdfView: "landing", documentId: null }, "", routeForView("landing"));
+        window.history.pushState({ realPdfView: "upload", documentId: null }, "", routeForView("upload"));
+        window.history.pushState(state, "", routeForView("editor"));
       } else {
         window.history.replaceState({ realPdfView: "landing", documentId: null }, "", routeForView("landing"));
         window.history.pushState(state, "", routeForView(appView));
@@ -2029,6 +2163,9 @@ export function App() {
     }
 
     if (window.history.state?.realPdfView !== appView) {
+      if (appView === "editor" && window.history.state?.realPdfView === "landing") {
+        window.history.pushState({ realPdfView: "upload", documentId: null }, "", routeForView("upload"));
+      }
       window.history.pushState(state, "", routeForView(appView));
     } else if (appView === "editor" && window.history.state?.documentId !== activeDocumentId) {
       window.history.replaceState(state, "", routeForView(appView));
@@ -2043,16 +2180,20 @@ export function App() {
       if (requestedView === "editor") {
         const requestedDocument = documents.find((documentRecord) => documentRecord.id === event.state?.documentId)
           || documents.find((documentRecord) => documentRecord.id === activeDocumentId);
-        if (requestedDocument) {
+        if (requestedDocument && canAccessDocument(requestedDocument, currentViewer)) {
           openDocument(requestedDocument);
           return;
         }
-        historyNavigationTargetRef.current = "upload";
-        setScreen("upload");
+        setPages([]);
+        setScreen("editor");
+        setEditorLoadState({ status: "error", message: "This document is unavailable or belongs to a different RealPDF account." });
         return;
       }
 
-      if (pages.length) saveActiveDocument(true);
+      if (pages.length && !saveActiveDocument(true)) {
+        historyNavigationTargetRef.current = null;
+        return;
+      }
       setPages([]);
       setPdfBytes(null);
       setAnnotations([]);
@@ -2064,7 +2205,7 @@ export function App() {
 
     window.addEventListener("popstate", onPopState);
     return () => window.removeEventListener("popstate", onPopState);
-  }, [activeDocumentId, annotations, detectedTextItems, documents, fileName, pages, saveState]);
+  }, [activeDocumentId, annotations, currentViewer, detectedTextItems, documents, fileName, pages, saveState]);
 
   const renameActiveDocument = () => {
     const nextName = window.prompt("Rename document", fileName);
@@ -2118,7 +2259,9 @@ export function App() {
       ...documentRecord,
       id: makeId("doc-copy"),
       name: copyName,
-      ownerUid: currentUser?.uid || documentRecord.ownerUid || null,
+      ...ownershipForViewer(currentViewer),
+      schemaVersion: 1,
+      revision: 0,
       favorite: false,
       uploadedAt: stamp,
       updatedAt: stamp,
@@ -2142,15 +2285,24 @@ export function App() {
   };
 
   const downloadStoredDocument = async (documentRecord) => {
-    if (documentRecord.pdfDataUrl) {
-      const buffer = await dataUrlToArrayBuffer(documentRecord.pdfDataUrl);
-      downloadBlob(new Blob([buffer], { type: "application/pdf" }), documentRecord.name);
+    if (!canAccessDocument(documentRecord, currentViewer)) {
+      showToast("This document is unavailable or belongs to a different RealPDF account.");
       return;
     }
-
-    const blankPdf = await createBlankPdf(documentRecord.pageCount || 1);
-    const bytes = await blankPdf.save();
-    downloadBlob(new Blob([bytes], { type: "application/pdf" }), documentRecord.name);
+    try {
+      const sourcePdfBytes = documentRecord.pdfDataUrl
+        ? await dataUrlToArrayBuffer(documentRecord.pdfDataUrl)
+        : null;
+      const bytes = await buildEditedPdfBytes({
+        pages: documentRecord.pages || [],
+        annotations: documentRecord.annotations || [],
+        detectedTextItems: documentRecord.detectedTextItems || [],
+        sourcePdfBytes,
+      });
+      downloadBlob(new Blob([bytes], { type: "application/pdf" }), documentRecord.name.replace(/\.pdf$/i, "") + "-edited.pdf");
+    } catch {
+      showToast("This edited PDF could not be exported. Open it in the editor and try again.");
+    }
   };
 
   const onPagePointerDown = (event) => {
@@ -2359,22 +2511,22 @@ export function App() {
   };
 
   const undo = () => {
-    if (!undoStack.length) return;
-    const previous = undoStack[undoStack.length - 1];
-    setRedoStack((stack) => [getHistorySnapshot(), ...stack].slice(0, 25));
-    setUndoStack((stack) => stack.slice(0, -1));
-    restoreHistorySnapshot(previous);
+    const transition = undoHistory({ undoStack, redoStack, currentSnapshot: getHistorySnapshot() });
+    if (!transition) return;
+    setUndoStack(transition.undoStack);
+    setRedoStack(transition.redoStack);
+    restoreHistorySnapshot(transition.snapshot);
     setSelectedId(null);
     setSelectedDetectedTextId(null);
     markUnsaved();
   };
 
   const redo = () => {
-    if (!redoStack.length) return;
-    const [next, ...rest] = redoStack;
-    setUndoStack((stack) => [...stack, getHistorySnapshot()].slice(-25));
-    setRedoStack(rest);
-    restoreHistorySnapshot(next);
+    const transition = redoHistory({ undoStack, redoStack, currentSnapshot: getHistorySnapshot() });
+    if (!transition) return;
+    setUndoStack(transition.undoStack);
+    setRedoStack(transition.redoStack);
+    restoreHistorySnapshot(transition.snapshot);
     setSelectedId(null);
     setSelectedDetectedTextId(null);
     markUnsaved();
@@ -2542,8 +2694,7 @@ export function App() {
 
       if ((event.metaKey || event.ctrlKey) && key === "s") {
         event.preventDefault();
-        saveActiveDocument(true);
-        showToast("Saved locally.");
+        if (saveActiveDocument(true)) showToast("Saved locally.");
         return;
       }
 
@@ -2588,296 +2739,21 @@ export function App() {
   const exportPdf = async () => {
     setIsExporting(true);
     try {
-    saveActiveDocument(true);
-    const pdfDoc = await PDFDocument.create();
-    const sourcePdf = pdfBytes ? await PDFDocument.load(pdfBytes) : null;
-
-    for (const pageRecord of pages) {
-      if (sourcePdf && pageRecord.source === "pdf" && Number.isInteger(pageRecord.originalIndex)) {
-        const [copiedPage] = await pdfDoc.copyPages(sourcePdf, [pageRecord.originalIndex]);
-        pdfDoc.addPage(copiedPage);
-      } else {
-        const fallbackPage = pdfDoc.addPage([612, Math.round(612 * ((pageRecord.height || BASE_PAGE_HEIGHT) / (pageRecord.width || BASE_PAGE_WIDTH)))]);
-        if (pageRecord.image) {
-          const pageImage = await embedDataUrlImage(pdfDoc, pageRecord.image);
-          if (pageImage) {
-            const { width, height } = fallbackPage.getSize();
-            fallbackPage.drawImage(pageImage, {
-              x: 0,
-              y: 0,
-              width,
-              height,
-            });
-          }
-        }
-      }
-    }
-
-    const helvetica = await pdfDoc.embedFont(StandardFonts.Helvetica);
-    const helveticaBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-    const courier = await pdfDoc.embedFont(StandardFonts.Courier);
-    const timesItalic = await pdfDoc.embedFont(StandardFonts.TimesRomanItalic);
-    const timesRoman = await pdfDoc.embedFont(StandardFonts.TimesRoman);
-    const pickPdfFont = (fontFamily = "", isBold = false) => {
-      const lowerFont = String(fontFamily).toLowerCase();
-      if (isBold) return helveticaBold;
-      if (lowerFont.includes("courier")) return courier;
-      if (lowerFont.includes("times") || lowerFont.includes("georgia")) return timesRoman;
-      return helvetica;
-    };
-
-    for (const item of detectedTextItems.filter((candidate) => candidate.isEdited || candidate.isDeleted)) {
-      const page = pdfDoc.getPages()[item.pageNumber];
-      if (!page) continue;
-      const { width, height } = page.getSize();
-      const pageRecord = pages[item.pageNumber] || {};
-      const pdfScale = width / (pageRecord.width || BASE_PAGE_WIDTH);
-      const x = item.x * width;
-      const boxHeight = item.h * height;
-      const y = height - item.y * height - boxHeight;
-      const boxWidth = item.w * width;
-      const fontSize = clamp((item.fontSize || 11) * pdfScale, 4, 54);
-      const font = pickPdfFont(item.fontFamily);
-      const color = hexToRgb(item.color || colors.black);
-
-      page.drawRectangle({
-        x: Math.max(0, x - 1.5),
-        y: Math.max(0, y - 1.5),
-        width: Math.min(width - x + 1.5, boxWidth + 3),
-        height: Math.min(height - y + 1.5, boxHeight + 3),
-        color: rgb(1, 1, 1),
-        opacity: 1,
-        borderOpacity: 0,
+      if (!saveActiveDocument(true)) throw new Error("The document could not be saved before export.");
+      const bytes = await buildEditedPdfBytes({
+        pages,
+        annotations,
+        detectedTextItems,
+        sourcePdfBytes: pdfBytes,
       });
-
-      if (!item.isDeleted && String(item.currentText || "").trim()) {
-        String(item.currentText || "").split("\n").forEach((line, index) => {
-          page.drawText(line, {
-            x: x + 1.5,
-            y: y + Math.max(1, boxHeight - fontSize * 0.95) - index * fontSize * 1.18,
-            size: fontSize,
-            font,
-            color,
-            opacity: 1,
-          });
-        });
-      }
-    }
-
-    for (const annotation of annotations) {
-      const page = pdfDoc.getPages()[annotation.page];
-      if (!page) continue;
-      const { width, height } = page.getSize();
-      const color = hexToRgb(annotation.color || colors.black);
-
-      if (annotation.type === "highlight") {
-        page.drawRectangle({
-          x: annotation.x * width,
-          y: height - annotation.y * height - annotation.h * height,
-          width: annotation.w * width,
-          height: annotation.h * height,
-          color,
-          opacity: annotation.opacity,
-          borderOpacity: 0,
-        });
-      }
-
-      if (annotation.type === "whiteout") {
-        page.drawRectangle({
-          x: annotation.x * width,
-          y: height - annotation.y * height - annotation.h * height,
-          width: annotation.w * width,
-          height: annotation.h * height,
-          color: rgb(1, 1, 1),
-          opacity: annotation.opacity,
-          borderOpacity: 0,
-        });
-      }
-
-      if (annotation.type === "checkbox") {
-        const boxSize = Math.min(annotation.w * width, annotation.h * height);
-        const x = annotation.x * width;
-        const y = height - annotation.y * height - boxSize;
-        page.drawRectangle({
-          x,
-          y,
-          width: boxSize,
-          height: boxSize,
-          borderColor: color,
-          borderWidth: 1.5,
-          color: rgb(1, 1, 1),
-          opacity: annotation.opacity,
-        });
-        if (annotation.checked) {
-          page.drawLine({ start: { x: x + boxSize * 0.22, y: y + boxSize * 0.48 }, end: { x: x + boxSize * 0.42, y: y + boxSize * 0.25 }, thickness: 2, color });
-          page.drawLine({ start: { x: x + boxSize * 0.42, y: y + boxSize * 0.25 }, end: { x: x + boxSize * 0.78, y: y + boxSize * 0.76 }, thickness: 2, color });
-        }
-      }
-
-      if (annotation.type === "rectangle") {
-        page.drawRectangle({
-          x: annotation.x * width,
-          y: height - annotation.y * height - annotation.h * height,
-          width: annotation.w * width,
-          height: annotation.h * height,
-          borderColor: color,
-          borderWidth: annotation.strokeWidth || 2,
-          opacity: annotation.opacity,
-        });
-      }
-
-      if (annotation.type === "circle") {
-        page.drawEllipse({
-          x: annotation.x * width + (annotation.w * width) / 2,
-          y: height - annotation.y * height - (annotation.h * height) / 2,
-          xScale: (annotation.w * width) / 2,
-          yScale: (annotation.h * height) / 2,
-          borderColor: color,
-          borderWidth: annotation.strokeWidth || 2,
-          opacity: annotation.opacity,
-        });
-      }
-
-      if (annotation.type === "line" || annotation.type === "arrow") {
-        const start = { x: annotation.x * width, y: height - annotation.y * height };
-        const end = { x: (annotation.x + annotation.w) * width, y: height - (annotation.y + annotation.h) * height };
-        page.drawLine({
-          start,
-          end,
-          thickness: annotation.strokeWidth || 3,
-          color,
-          opacity: annotation.opacity,
-        });
-        if (annotation.type === "arrow") {
-          const head = Math.max(10, (annotation.strokeWidth || 3) * 4);
-          page.drawLine({ start: end, end: { x: end.x - head, y: end.y }, thickness: annotation.strokeWidth || 3, color, opacity: annotation.opacity });
-          page.drawLine({ start: end, end: { x: end.x, y: end.y + head }, thickness: annotation.strokeWidth || 3, color, opacity: annotation.opacity });
-        }
-      }
-
-      if (annotation.type === "comment") {
-        const markerSize = Math.max(20, Math.min(annotation.w * width, annotation.h * height));
-        const x = annotation.x * width;
-        const y = height - annotation.y * height - markerSize;
-        page.drawRectangle({
-          x,
-          y,
-          width: markerSize,
-          height: markerSize,
-          color: rgb(1, 0.74, 0.25),
-          borderColor: rgb(0.86, 0.48, 0.03),
-          borderWidth: 1,
-          opacity: annotation.opacity,
-        });
-        page.drawText("C", {
-          x: x + markerSize * 0.32,
-          y: y + markerSize * 0.28,
-          size: markerSize * 0.46,
-          font: helveticaBold,
-          color: rgb(0.5, 0.25, 0.03),
-        });
-      }
-
-      if (annotation.type === "field") {
-        const x = annotation.x * width;
-        const y = height - annotation.y * height - annotation.h * height;
-        page.drawRectangle({
-          x,
-          y,
-          width: annotation.w * width,
-          height: annotation.h * height,
-          borderColor: color,
-          borderWidth: 1.2,
-          opacity: annotation.opacity,
-        });
-        page.drawText(annotation.content || "Text field", {
-          x: x + 8,
-          y: y + Math.max(8, annotation.h * height * 0.32),
-          size: annotation.fontSize || 11,
-          font: helvetica,
-          color,
-          opacity: Math.min(0.82, annotation.opacity ?? 1),
-        });
-      }
-
-      if (annotation.type === "text") {
-        const lines = annotation.content.split("\n");
-        lines.forEach((line, index) => {
-          const font = pickPdfFont(annotation.fontFamily, annotation.bold);
-          const textWidth = font.widthOfTextAtSize(line, annotation.fontSize);
-          const boxWidth = annotation.w * width;
-          const alignOffset = annotation.textAlign === "center" ? Math.max(0, (boxWidth - textWidth) / 2) : annotation.textAlign === "right" ? Math.max(0, boxWidth - textWidth - 8) : 0;
-          page.drawText(line, {
-            x: annotation.x * width + 8 + alignOffset,
-            y: height - annotation.y * height - 22 - index * (annotation.fontSize * (annotation.lineHeight || 1.25)),
-            size: annotation.fontSize,
-            font,
-            color,
-            opacity: annotation.opacity,
-          });
-        });
-      }
-
-      if (annotation.type === "signature" || annotation.type === "initials") {
-        if (annotation.imageDataUrl) {
-          const image = await embedDataUrlImage(pdfDoc, annotation.imageDataUrl);
-          if (image) {
-            page.drawImage(image, {
-              x: annotation.x * width,
-              y: height - annotation.y * height - annotation.h * height,
-              width: annotation.w * width,
-              height: annotation.h * height,
-              opacity: annotation.opacity,
-            });
-          }
-        } else {
-          page.drawText(annotation.content, {
-            x: annotation.x * width + 6,
-            y: height - annotation.y * height - annotation.h * height + 7,
-            size: annotation.fontSize,
-            font: timesItalic,
-            color,
-            opacity: annotation.opacity,
-          });
-        }
-      }
-
-      if (annotation.type === "image" && annotation.imageDataUrl) {
-        const image = await embedDataUrlImage(pdfDoc, annotation.imageDataUrl);
-        if (image) {
-          page.drawImage(image, {
-            x: annotation.x * width,
-            y: height - annotation.y * height - annotation.h * height,
-            width: annotation.w * width,
-            height: annotation.h * height,
-            opacity: annotation.opacity,
-          });
-        }
-      }
-
-      if (annotation.type === "draw") {
-        annotation.points.slice(1).forEach((point, index) => {
-          const previous = annotation.points[index];
-          page.drawLine({
-            start: { x: previous.x * width, y: height - previous.y * height },
-            end: { x: point.x * width, y: height - point.y * height },
-            thickness: annotation.strokeWidth,
-            color,
-            opacity: annotation.opacity,
-          });
-        });
-      }
-    }
-
-    const bytes = await pdfDoc.save();
-    downloadBlob(new Blob([bytes], { type: "application/pdf" }), fileName.replace(/\.pdf$/i, "") + "-edited.pdf");
-    setSaved(true);
-    setSaveState("saved");
-    showToast("Exported PDF with current edits.");
+      downloadBlob(new Blob([bytes], { type: "application/pdf" }), fileName.replace(/\.pdf$/i, "") + "-edited.pdf");
+      setSaved(true);
+      setSaveState("saved");
+      showToast("Exported PDF with current edits.");
     } catch {
-      showToast("Export failed. Try saving locally, then export again.");
+      showToast("Export failed. Fix any save error, then try again.");
     } finally {
-    setIsExporting(false);
+      setIsExporting(false);
     }
   };
 
@@ -2906,7 +2782,7 @@ export function App() {
         onBlankPage={startBlankDocument}
         uploadError={uploadError}
         uploadStage={uploadStage}
-        documentCount={documents.length}
+        documentCount={accessibleDocuments.length}
       />
     );
   }
@@ -2925,6 +2801,29 @@ export function App() {
     );
   }
 
+  if (!pages.length && screen === "editor") {
+    const isLoadingDocument = editorLoadState.status === "loading";
+    return (
+      <main className="editor-state-shell">
+        <section className="editor-state-card" role={isLoadingDocument ? "status" : "alert"} aria-live="polite">
+          <div className="editor-state-mark"><FileText size={28} /></div>
+          <p className="editor-state-kicker">RealPDF editor</p>
+          <h1>{isLoadingDocument ? "Opening document" : editorLoadState.status === "empty" ? "Choose a document" : "Document unavailable"}</h1>
+          <p>{editorLoadState.message || "Preparing the latest saved version…"}</p>
+          {!isLoadingDocument && (
+            <div className="editor-state-actions">
+              <button type="button" onClick={() => {
+                writeActiveDocumentId("");
+                setScreen("upload");
+              }}>Back to dashboard</button>
+              <button type="button" className="secondary" onClick={() => setScreen("landing")}>Back to website</button>
+            </div>
+          )}
+        </section>
+      </main>
+    );
+  }
+
   if (!pages.length) {
     return (
       <UploadLanding
@@ -2938,7 +2837,7 @@ export function App() {
         isDraggingFile={isDraggingFile}
         setIsDraggingFile={setIsDraggingFile}
         onBackToLanding={() => setScreen("landing")}
-        documents={documents}
+        documents={accessibleDocuments}
         onOpenDocument={openDocument}
         onRenameDocument={renameDocument}
         onDeleteDocument={deleteDocument}
@@ -2972,7 +2871,7 @@ export function App() {
         </button>
         <div className="file-meta">
           <button type="button" className="file-name" onClick={renameActiveDocument} title="Rename document">{fileName}</button>
-          <span className={`save-state ${saveState === "unsaved" ? "unsaved" : ""}`}><Info size={16} /> {saveStatusLabel}</span>
+          <span className={`save-state ${saveState === "unsaved" ? "unsaved" : ""} ${saveState === "error" ? "is-error" : ""}`}><Info size={16} /> {saveStatusLabel}</span>
         </div>
         <div className="pdfnet-header-tools">
           <button type="button" className="icon-button" onClick={() => setIsSearchOpen((value) => !value)} title="Search"><Search size={22} /></button>
@@ -3028,7 +2927,7 @@ export function App() {
             {isMoreMenuOpen && (
               <div className="document-more-menu" role="menu" aria-label="Document actions">
                 <button type="button" role="menuitem" onClick={() => {
-                  saveActiveDocument(true);
+                  if (!saveActiveDocument(true)) return;
                   setPages([]);
                   setScreen("upload");
                   setIsMoreMenuOpen(false);
@@ -3042,8 +2941,7 @@ export function App() {
                   setIsMoreMenuOpen(false);
                 }}><FilePlus2 size={16} /> Duplicate document</button>
                 <button type="button" role="menuitem" onClick={() => {
-                  saveActiveDocument(true);
-                  showToast("Saved locally.");
+                  if (saveActiveDocument(true)) showToast("Saved locally.");
                   setIsMoreMenuOpen(false);
                 }}><Save size={16} /> Save locally</button>
                 <span />
@@ -3051,10 +2949,7 @@ export function App() {
                   addBlankPage();
                   setIsMoreMenuOpen(false);
                 }}><Plus size={16} /> Add blank page</button>
-                <button type="button" role="menuitem" onClick={() => {
-                  setShareModalOpen(true);
-                  setIsMoreMenuOpen(false);
-                }}><Share2 size={16} /> Share settings</button>
+                <button type="button" role="menuitem" disabled title="Sharing is unavailable in this release"><Share2 size={16} /> Share unavailable</button>
                 <button type="button" role="menuitem" onClick={() => {
                   window.print();
                   setIsMoreMenuOpen(false);
@@ -3066,16 +2961,20 @@ export function App() {
               </div>
             )}
           </div>
-          <button type="button" className="language-button" onClick={() => showToast("Language set to English.")}>◎ EN</button>
-          <button type="button" className="share-button" onClick={() => setShareModalOpen(true)} title="Share"><Share2 size={18} /> Share</button>
           <button type="button" className="editor-save-button" onClick={() => {
-            saveActiveDocument(true);
-            showToast(currentUser?.uid ? "Saved and queued for cloud sync." : "Saved locally.");
+            if (saveActiveDocument(true)) {
+              showToast(currentUser?.uid ? "Saved and queued for cloud sync." : "Saved locally.");
+            }
           }}><Save size={18} /> Save</button>
           <button type="button" className="editor-download-button" onClick={exportPdf} disabled={isExporting}><Download size={18} /> {isExporting ? "Exporting…" : "Download"}</button>
-          <button type="button" className="sign-secure-button" onClick={() => setSignatureModalOpen(true)}><PenLine size={18} /> Sign securely <ChevronDown size={15} /></button>
+          <button type="button" className="sign-secure-button" onClick={() => setSignatureModalOpen(true)} title="Create and place a local signature"><PenLine size={18} /> Add signature <ChevronDown size={15} /></button>
         </div>
       </header>
+      {!isOnline && (
+        <div className="editor-network-banner" role="status">
+          You’re offline. Editing continues locally; cloud sync will resume when your connection returns.
+        </div>
+      )}
 
       <section className="tool-ribbon">
         {toolConfig.filter(({ id }) => ["select", "editText", "text", "draw", "image", "field", "signature", "comment", "rectangle", "whiteout"].includes(id)).map(({ id, label, icon: Icon }) => (
@@ -3137,18 +3036,15 @@ export function App() {
       <section className={`workspace ${isPagesCollapsed ? "pages-collapsed" : ""}`}>
         <aside className="lumin-editor-rail">
           {[
-            { label: "Popular", icon: FileText, active: true },
             { label: "Fill & Sign", icon: PenLine },
             { label: "Mark up", icon: MessageSquare },
             { label: "Edit text", icon: Type },
-            { label: "Security", icon: CheckCircle2 },
             { label: "Organize", icon: FilePlus2 },
-            { label: "Explore", icon: Grid2X2 },
-          ].map(({ label, icon: Icon, active }) => (
-            <button key={label} type="button" className={active ? "is-active" : ""} onClick={() => {
+          ].map(({ label, icon: Icon }) => (
+            <button key={label} type="button" title={label} onClick={() => {
               if (label === "Fill & Sign") setTool("signature");
               if (label === "Mark up") setTool("comment");
-              if (label === "Edit text") setTool("text");
+              if (label === "Edit text") setTool("editText");
               if (label === "Organize") setIsPagesCollapsed(false);
             }}>
               <Icon size={28} />
@@ -3343,9 +3239,10 @@ export function App() {
                     selected={annotation.id === selectedId}
                     zoom={zoom}
                     onSelect={setSelectedId}
-                    onDrag={(id, patch) => updateAnnotation(id, { x: clamp(patch.x, 0, 0.95), y: clamp(patch.y, 0, 0.96) })}
-                    onResize={(id, patch) => updateAnnotation(id, { w: clamp(patch.w, 0.03, 0.7), h: clamp(patch.h, 0.018, 0.45) })}
+                    onDrag={(id, patch) => updateAnnotation(id, { x: clamp(patch.x, 0, 0.95), y: clamp(patch.y, 0, 0.96) }, false)}
+                    onResize={(id, patch) => updateAnnotation(id, { w: clamp(patch.w, 0.03, 0.7), h: clamp(patch.h, 0.018, 0.45) }, false)}
                     onUpdate={updateAnnotation}
+                    onInteractionStart={pushHistorySnapshot}
                     onDelete={(id) => {
                       commitAnnotations(annotations.filter((item) => item.id !== id));
                       setSelectedId(null);
@@ -3412,11 +3309,12 @@ export function App() {
               saveState={saveState}
               saveStatusLabel={saveStatusLabel}
               onSave={() => {
-                saveActiveDocument(true);
-                showToast(currentUser?.uid ? "Saved and queued for cloud sync." : "Saved locally.");
+                if (saveActiveDocument(true)) {
+                  showToast(currentUser?.uid ? "Saved and queued for cloud sync." : "Saved locally.");
+                }
               }}
               onExport={exportPdf}
-              onShare={() => setShareModalOpen(true)}
+              onShare={null}
               onPrint={() => window.print()}
               onSignatureModal={() => setSignatureModalOpen(true)}
             />
@@ -3435,7 +3333,6 @@ export function App() {
           <span />
           <button type="button" title="Download" aria-label="Download PDF" onClick={exportPdf} disabled={isExporting}><Download size={25} /></button>
           <button type="button" title="Print" aria-label="Print PDF" onClick={() => window.print()}><Printer size={25} /></button>
-          <button type="button" title="Share link" aria-label="Share PDF" onClick={() => setShareModalOpen(true)}><Share2 size={25} /></button>
           <span />
           <button type="button" title="Add page" aria-label="Add blank page" onClick={addBlankPage}><Plus size={25} /></button>
         </aside>
@@ -5126,7 +5023,7 @@ function Inspector({
           <button type="button" className="panel-action" onClick={onSignatureModal}><PenLine size={17} /> Create signature</button>
           <button type="button" className="panel-action" onClick={onSave}><Save size={17} /> Save locally</button>
           <button type="button" className="panel-action" onClick={onExport}><Download size={17} /> Export PDF</button>
-          <button type="button" className="panel-action" onClick={onShare}><Share2 size={17} /> Share</button>
+          <button type="button" className="panel-action" onClick={onShare || undefined} disabled={!onShare} title={!onShare ? "Sharing is unavailable in this release" : "Share document"}><Share2 size={17} /> Share unavailable</button>
           <button type="button" className="panel-action" onClick={onPrint}><Printer size={17} /> Print</button>
         </div>
       )}
