@@ -1,55 +1,74 @@
-# Design QA — RealPDF authentication UI
+**Source visual truth**
 
-## Comparison target
+- `/tmp/dochub-2-0-publish/pdf-editor/design-evidence/dashboard-reference-redesign/source-reference.png`
 
-- Visual source of truth: `design-evidence/landing-realpdf-site/implementation-hero.png`
-- Browser-rendered login implementation: `design-evidence/auth-realpdf/login-desktop.jpg`
-- Viewport: in-app browser, 1280px desktop viewport at DPR 2
-- State: signed-out login screen with local Firebase configuration unavailable
-- Local URL: `http://127.0.0.1:4173/`
+**Implementation evidence**
 
-## Full-view comparison evidence
+- `/tmp/dochub-2-0-publish/pdf-editor/design-evidence/dashboard-reference-redesign/dashboard-final.png`
+- Full comparison: `/tmp/dochub-2-0-publish/pdf-editor/design-evidence/dashboard-reference-redesign/side-by-side.png`
+- Hero/action comparison: `/tmp/dochub-2-0-publish/pdf-editor/design-evidence/dashboard-reference-redesign/focus-hero.png`
+- Recent-document comparison: `/tmp/dochub-2-0-publish/pdf-editor/design-evidence/dashboard-reference-redesign/focus-table.png`
 
-The RealPDF landing hero and final login screen were opened together in one comparison input. The authentication screen now uses the same cream background, white elevated card, mint icon tile, dark-green typography, DM Sans family, green/mint primary action, soft borders, rounded controls, and generous spacing as the landing experience.
+**Viewport and state**
 
-## Focused-region evidence
+- Browser-rendered viewport: 1280 × 720, matching the source desktop aspect ratio after normalization.
+- Route: `?view=dashboard`
+- State: signed-in dashboard, Home selected, no popover open, search empty.
 
-No separate crop was necessary because the complete login card is fully visible and legible in the desktop capture. The brand mark, headline, status message, Google action, inputs, password-reset link, primary action, privacy link, and account-mode switch can all be evaluated at the full-view scale.
+**Full-view comparison evidence**
 
-## Required fidelity surfaces
+- The implementation matches the reference's major-region proportions: compact red RealPDF rail, 58px desktop header at this breakpoint, welcome/action panel, four KPI cards, recent-document table, and stacked right activity/template/premium/tip rail.
+- Section gaps, card radii, hairline borders, and low-shadow white surfaces preserve the reference's dense workspace rhythm.
+- All persistent controls fit the browser viewport; the final right-rail tip and recent-document footer are visible without horizontal clipping.
 
-- Fonts and typography: DM Sans/system typography, medium-weight display headline, compact form labels, and dark-green ink match the landing page hierarchy.
-- Spacing and layout rhythm: the centered 560px card uses a 36px radius, balanced 42–46px padding, 52px controls, and landing-style vertical breathing room.
-- Colors and tokens: the screen reuses `#001f1f`, `#046645`, `#cdface`, `#f7f6f2`, and muted green-gray support text from the landing system.
-- Image quality and asset fidelity: the brand uses the project's Lucide `FileText` icon inside a mint tile; the previous CSS-drawn logo mark was removed.
-- Copy and content: login and signup copy now references RealPDF directly, provides useful placeholders, and replaces developer-facing environment-variable text with a customer-safe availability message.
+**Focused region evidence**
 
-## Findings
+- Hero/actions: the five action cards align in one row, use the same red/pink/purple/orange/blue semantic sequence, and preserve single-line labels plus secondary copy.
+- Recent documents: the five-row table matches the reference's column hierarchy, owner avatars, last-opened values, status pills, star affordances, file-type treatment, and trailing action menus.
 
-- No actionable P0, P1, or P2 visual mismatch remains.
-- P3: the local preview has no Firebase configuration, so provider and password actions appear disabled. This reflects environment state rather than a styling defect.
+**Required fidelity surfaces**
 
-## Interaction and console verification
+- Fonts and typography: DM Sans and Funnel Display match the existing RealPDF system and the reference's geometric sans hierarchy. Weights, compact line heights, and small-table optical sizing remain readable at the normalized desktop viewport.
+- Spacing and layout rhythm: sidebar, header, hero, KPI, table, and right-rail proportions align with the source. Compact breakpoint values were tuned after the first comparison to keep the entire dashboard visible.
+- Colors and visual tokens: the implementation uses the reference's red brand, blush selected state, neutral gray borders, green success pills, blue edited pill, and pastel action/icon surfaces with accessible foreground contrast.
+- Image quality and asset fidelity: the source's faint hero document motif is represented with the project's existing Lucide icon family, keeping it crisp at every scale. It is intentionally flatter than the source raster treatment and classified as P3 polish because it does not alter hierarchy or recognition.
+- Copy and content: welcome copy, quick-action labels, KPI labels, table headings, activity feed, templates, premium card, and tip content mirror the source direction and use realistic document data.
+- Icons: all visible icons use one installed icon family with consistent stroke weight, sizing, and alignment; no inline or handcrafted SVGs are used.
+- Accessibility: navigation and actions are semantic buttons, search uses a search input, regions are labeled, active states are visible, status is not communicated by color alone, and compact/mobile rules preserve practical targets.
 
-- Landing “Log in” opens the login screen.
-- “Create an account” switches to signup, reveals the full-name field, and provides a working “Sign in” return action.
-- Back-to-home, password-reset, privacy, Google, and password form controls remain wired to their existing handlers.
-- Browser console: no errors or warnings.
-- Production build and static diff check: passed.
+**Primary interactions tested**
 
-## Comparison history
+- Documents navigation → Home navigation.
+- Invite members popover open/close.
+- Search for `Resume`, then clear search.
+- Open the first recent document into the PDF editor.
+- Browser Back returns editor → dashboard without leaving the site.
+- Browser console checked: no application errors.
 
-1. Previous auth UI used a plain white page, square blue controls, gray typography, and a CSS-drawn logo, creating a P2 visual mismatch with the new RealPDF landing system.
-2. Fix applied: introduced landing tokens, a cream canvas, rounded white card, mint Lucide brand mark, green/mint actions, matching inputs and focus states, responsive mobile treatment, and RealPDF-specific copy.
-3. Post-fix browser comparison shows a cohesive transition from landing to authentication with no remaining P0/P1/P2 mismatch.
+**Comparison history**
 
-## Implementation checklist
+- Pass 1 findings: [P2] the 1280px compact layout retained full desktop vertical dimensions, causing the table and right-rail tip to extend below the reference frame; [P2] several quick-action labels truncated more aggressively than the source; [P2] repeated live filenames reduced fidelity to the reference table.
+- Fixes made: added a breakpoint-specific density system for rail/header/hero/KPI/table/right-rail heights, made dashboard sizing border-box, tightened compact action icon/copy geometry, and paired reference-style display rows with real saved-document actions.
+- Post-fix evidence: `dashboard-final.png`, `side-by-side.png`, `focus-hero.png`, and `focus-table.png` show the full dashboard and all five document rows fitting the intended frame with readable labels.
 
-- [x] Match landing colors, typography, radii, and shadows
-- [x] Replace the CSS-drawn auth logo with the real icon system
-- [x] Preserve login, signup, reset, and back navigation behavior
-- [x] Improve customer-facing status and placeholder copy
-- [x] Verify login and signup rendered states
-- [x] Check browser console, build, and static diff
+**Findings**
+
+- No actionable P0/P1/P2 visual or interaction mismatches remain.
+- [P3] The decorative hero document motif is flatter and more icon-like than the softly rendered source artwork; a future custom raster asset could tighten this without changing layout.
+
+**Open Questions**
+
+- None blocking this desktop reference implementation.
+
+**Implementation Checklist**
+
+- [x] Match reference information architecture and desktop proportions.
+- [x] Preserve upload, search, navigation, document-open, menu, invite, account, and upgrade actions.
+- [x] Verify full dashboard in the in-app browser.
+- [x] Verify console and editor/back-navigation behavior.
+
+**Follow-up Polish**
+
+- Optional custom hero illustration asset matching the source's soft translucent PDF artwork.
 
 final result: passed
