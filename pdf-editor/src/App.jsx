@@ -1002,6 +1002,8 @@ export function App() {
   const zoomMenuRef = useRef(null);
   const canvasColumnRef = useRef(null);
   const lastPagePointRef = useRef({ x: 0.52, y: 0.28 });
+  const historyInitializedRef = useRef(false);
+  const historyNavigationTargetRef = useRef(null);
   const [screen, setScreen] = useState(() => safeLoadScreen());
   const [authMode, setAuthMode] = useState("signup");
   const [currentUser, setCurrentUser] = useState(null);
@@ -1970,6 +1972,76 @@ export function App() {
     setSaveState("saved");
     setLastSavedAt(documentRecord.updatedAt);
   };
+
+  const appView = pages.length ? "editor" : screen;
+
+  useEffect(() => {
+    const routeForView = (view) => {
+      const basePath = window.location.pathname;
+      if (view === "upload") return `${basePath}?view=dashboard`;
+      if (view === "editor") return `${basePath}?view=editor`;
+      if (view === "auth") return `${basePath}?view=auth`;
+      return basePath;
+    };
+
+    const state = {
+      realPdfView: appView,
+      documentId: appView === "editor" ? activeDocumentId : null,
+    };
+
+    if (!historyInitializedRef.current) {
+      if (appView === "landing") {
+        window.history.replaceState(state, "", routeForView("landing"));
+      } else {
+        window.history.replaceState({ realPdfView: "landing", documentId: null }, "", routeForView("landing"));
+        window.history.pushState(state, "", routeForView(appView));
+      }
+      historyInitializedRef.current = true;
+      return;
+    }
+
+    if (historyNavigationTargetRef.current === appView) {
+      historyNavigationTargetRef.current = null;
+      return;
+    }
+
+    if (window.history.state?.realPdfView !== appView) {
+      window.history.pushState(state, "", routeForView(appView));
+    } else if (appView === "editor" && window.history.state?.documentId !== activeDocumentId) {
+      window.history.replaceState(state, "", routeForView(appView));
+    }
+  }, [activeDocumentId, appView]);
+
+  useEffect(() => {
+    const onPopState = (event) => {
+      const requestedView = event.state?.realPdfView || "landing";
+      historyNavigationTargetRef.current = requestedView;
+
+      if (requestedView === "editor") {
+        const requestedDocument = documents.find((documentRecord) => documentRecord.id === event.state?.documentId)
+          || documents.find((documentRecord) => documentRecord.id === activeDocumentId);
+        if (requestedDocument) {
+          openDocument(requestedDocument);
+          return;
+        }
+        historyNavigationTargetRef.current = "upload";
+        setScreen("upload");
+        return;
+      }
+
+      if (pages.length) saveActiveDocument(true);
+      setPages([]);
+      setPdfBytes(null);
+      setAnnotations([]);
+      setDetectedTextItems([]);
+      setSelectedId(null);
+      setSelectedDetectedTextId(null);
+      setScreen(requestedView === "upload" || requestedView === "auth" ? requestedView : "landing");
+    };
+
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, [activeDocumentId, annotations, detectedTextItems, documents, fileName, pages, saveState]);
 
   const renameActiveDocument = () => {
     const nextName = window.prompt("Rename document", fileName);
@@ -4157,6 +4229,7 @@ function UploadLanding({
   onMoveDocument,
   currentUser,
   onLogout,
+  onBackToLanding,
 }) {
   const [activeSection, setActiveSection] = useState("Home");
   const [searchQuery, setSearchQuery] = useState("");
@@ -4601,7 +4674,7 @@ function UploadLanding({
     <main className="upload-shell lumin-home">
       <input ref={fileInputRef} className="hidden-input" type="file" accept="application/pdf" onChange={onUpload} />
       <aside className="lumin-home-rail">
-        <button type="button" className="rail-brand-tile" aria-label="RealPDF home" onClick={() => setActiveSection("Home")}><FileText size={22} /></button>
+        <button type="button" className="rail-brand-tile" aria-label="Back to RealPDF website" onClick={onBackToLanding}><FileText size={22} /></button>
         <button type="button" className="rail-mini-action" onClick={() => setOpenPanel("invite")}><Users size={22} /></button>
         <nav className="upload-nav" aria-label="Primary">
           {primaryNav.map(({ label, icon: Icon }) => (
@@ -4611,11 +4684,12 @@ function UploadLanding({
             </button>
           ))}
         </nav>
+        <button type="button" className="dashboard-site-back" onClick={onBackToLanding}><ChevronLeft size={17} /><span>Back to website</span></button>
       </aside>
 
       <section className="upload-main">
         <header className="upload-topbar">
-          <button type="button" className="upload-logo" onClick={() => setActiveSection("Home")}><span><FileText size={19} /></span><strong>RealPDF</strong></button>
+          <button type="button" className="upload-logo" onClick={onBackToLanding} aria-label="Back to RealPDF website"><span><FileText size={19} /></span><strong>RealPDF</strong></button>
           <label className="lumin-search">
             <Search size={25} />
             <input type="search" placeholder="Search" value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} />
