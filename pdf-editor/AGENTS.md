@@ -12,7 +12,7 @@ The product name is RealPDF. The landing hero’s right column must remain a fun
 
 The dashboard must feel like the same product as the landing site: reuse the site's RealPDF branding, Funnel Display/DM Sans typography, blue-and-white palette, compact rounded controls, soft blue panels, and restrained borders rather than introducing a separate dashboard aesthetic.
 
-The dashboard's current visual source of truth is the red RealPDF workspace layout: a full-height labeled left rail, compact search/action header, welcome panel with five quick actions, four KPI cards, a five-row recent-document table, and a stacked activity/templates/premium/tip right rail. Preserve those major proportions and keep the dense desktop view fully visible at common 16:9 sizes.
+The dashboard's current visual source of truth is the baby-blue RealPDF workspace layout: a full-height labeled left rail with clear DM Sans labels, compact search/action header, welcome panel with five quick actions and no decorative document illustration, four KPI cards, a recent-document table, and a stacked activity/templates/premium/tip right rail. Use only the signed-in user's real saved documents, edits, signatures, storage, names, dates, and activity in dashboard data surfaces; never add demonstration rows, collaborators, counts, or percentages. Keep the desktop view comfortably sized rather than visually zoomed out.
 
 The PDF editor must prioritize the document and reliable editing actions. Keep unfinished or informational features out of the primary toolbar, expose Save and Download clearly, provide visible active-tool guidance, use labeled and correctly disabled page controls, and preserve a compact 144px thumbnail rail with 72px portrait previews.
 
