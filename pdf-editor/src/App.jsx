@@ -2145,6 +2145,10 @@ export function App() {
     if (!historyInitializedRef.current) {
       if (appView === "landing") {
         window.history.replaceState(state, "", routeForView("landing"));
+      } else if (appView === "editor") {
+        window.history.replaceState({ realPdfView: "landing", documentId: null }, "", routeForView("landing"));
+        window.history.pushState({ realPdfView: "upload", documentId: null }, "", routeForView("upload"));
+        window.history.pushState(state, "", routeForView("editor"));
       } else {
         window.history.replaceState({ realPdfView: "landing", documentId: null }, "", routeForView("landing"));
         window.history.pushState(state, "", routeForView(appView));
@@ -2159,6 +2163,9 @@ export function App() {
     }
 
     if (window.history.state?.realPdfView !== appView) {
+      if (appView === "editor" && window.history.state?.realPdfView === "landing") {
+        window.history.pushState({ realPdfView: "upload", documentId: null }, "", routeForView("upload"));
+      }
       window.history.pushState(state, "", routeForView(appView));
     } else if (appView === "editor" && window.history.state?.documentId !== activeDocumentId) {
       window.history.replaceState(state, "", routeForView(appView));
