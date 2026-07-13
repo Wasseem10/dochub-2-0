@@ -30,7 +30,7 @@ Scope for this implementation branch: **only this milestone**
 
 - Typed/structured PDF input validation with distinct invalid, encrypted, corrupted, empty, and oversized errors.
 - Active-document restoration after refresh with ownership checks before opening by ID.
-- Guest/session partitioning for browser-local documents and strict signed-in owner checks.
+- Guest-workspace partitioning for browser-local documents and strict signed-in owner checks.
 - Honest editor controls: each visible action works in the supported scope or is disabled with an unavailable label.
 - Central save coordinator with debouncing and explicit `Unsaved`, `Saving`, `Saved`, and `Error` states.
 - Revision field and compare-before-write behavior for local persistence; cloud writes report failure instead of silently succeeding.
