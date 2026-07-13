@@ -3,6 +3,14 @@ import ArrowDownToLine from "lucide-react/dist/esm/icons/arrow-down-to-line.mjs"
 import AlignCenter from "lucide-react/dist/esm/icons/align-center.mjs";
 import AlignLeft from "lucide-react/dist/esm/icons/align-left.mjs";
 import AlignRight from "lucide-react/dist/esm/icons/align-right.mjs";
+import Activity from "lucide-react/dist/esm/icons/activity.mjs";
+import ChartNoAxesColumnIncreasing from "lucide-react/dist/esm/icons/chart-no-axes-column-increasing.mjs";
+import CreditCard from "lucide-react/dist/esm/icons/credit-card.mjs";
+import Crown from "lucide-react/dist/esm/icons/crown.mjs";
+import HardDrive from "lucide-react/dist/esm/icons/hard-drive.mjs";
+import Lightbulb from "lucide-react/dist/esm/icons/lightbulb.mjs";
+import Plug from "lucide-react/dist/esm/icons/plug.mjs";
+import Sparkles from "lucide-react/dist/esm/icons/sparkles.mjs";
 import Bell from "lucide-react/dist/esm/icons/bell.mjs";
 import Box from "lucide-react/dist/esm/icons/box.mjs";
 import Building2 from "lucide-react/dist/esm/icons/building-2.mjs";
@@ -4257,16 +4265,26 @@ function UploadLanding({
     { label: "Documents", icon: FileText },
     { label: "Templates", icon: Grid2X2 },
     { label: "Agreements", icon: Box },
-    { label: "Sign", icon: PenLine },
+    { label: "Signatures", icon: PenLine },
+  ];
+
+  const utilityNav = [
+    { label: "Trash", icon: Trash2 },
+  ];
+
+  const accountNav = [
     { label: "Settings", icon: Settings },
+    { label: "Billing", icon: CreditCard },
+    { label: "Team", icon: Users },
+    { label: "Integrations", icon: Plug },
   ];
 
   const quickActions = [
-    { label: "Upload a PDF", icon: Upload, action: onSelectFiles },
-    { label: "Write my agreement", icon: Box, action: () => setActiveSection("Agreements") },
-    { label: "Edit a PDF", icon: FileText, action: onSelectFiles },
-    { label: "Get signatures", icon: PenLine, action: () => setActiveSection("Sign") },
-    { label: "Find a template", icon: Grid2X2, action: () => setActiveSection("Templates") },
+    { label: "Upload PDF", detail: "Drag & drop or browse", icon: Upload, tone: "red", action: onSelectFiles },
+    { label: "Edit PDF", detail: "Text, images, pages", icon: PenLine, tone: "pink", action: onSelectFiles },
+    { label: "Request Signatures", detail: "Send and track", icon: PenLine, tone: "purple", action: () => setActiveSection("Signatures") },
+    { label: "Create from Template", detail: "Start from a template", icon: Grid2X2, tone: "orange", action: () => setActiveSection("Templates") },
+    { label: "AI PDF Tools", detail: "Summarize, chat, more", icon: Sparkles, tone: "blue", badge: "New", action: () => setWorkspaceNotice("AI PDF tools are ready for the next workspace release.") },
   ];
 
   const templateCards = [
@@ -4305,6 +4323,24 @@ function UploadLanding({
     demo: true,
   }];
   const visibleRows = suggestionView === "recent" ? (filteredDocuments.length ? filteredDocuments : demoRecentRows) : trendingRows;
+  const dashboardFallbackRows = [
+    { id: "dash-resume", name: "Wasseem_Dabbas_Resume1.pdf", location: "My Documents", lastOpened: "Today, 10:24 AM", status: "Viewed", demo: true },
+    { id: "dash-sales", name: "Resume_Sales (11)-edited.pdf", location: "My Documents", lastOpened: "Jul 12, 2026", status: "Viewed", demo: true },
+    { id: "dash-untitled", name: "Untitled blank document-edited.pdf", location: "My Documents", lastOpened: "Jul 13, 2026", status: "Edited", demo: true },
+    { id: "dash-record", name: "myRxRecord (1).pdf", location: "My Documents", lastOpened: "Jul 10, 2026", status: "Viewed", demo: true },
+    { id: "dash-docx", name: "ResumeForge_Resume.docx", location: "My Documents", lastOpened: "Jul 10, 2026", status: "Viewed", fileType: "docx", demo: true },
+  ];
+  const recentDashboardRows = dashboardFallbackRows
+    .filter((documentRecord) => matchesSearch(documentRecord.name))
+    .map((documentRecord, index) => ({ ...documentRecord, sourceDocument: filteredDocuments[index] || null }));
+  const activityFeed = [
+    { initials: "WD", tone: "red", text: "You edited Resume_Sales (11)-edited.pdf", date: "Today, 10:24 AM" },
+    { initials: "AM", tone: "purple", text: "Amina M. requested your signature on NDA Agreement.pdf", date: "Yesterday, 3:15 PM" },
+    { initials: "JS", tone: "orange", text: "James S. signed Sales Contract.pdf", date: "Jul 12, 2026" },
+    { initials: "", tone: "green", icon: Users, text: "You shared Project Proposal.pdf", date: "Jul 11, 2026" },
+    { initials: "", tone: "blue", icon: Sparkles, text: "AI Summary generated for Market_Research.pdf", date: "Jul 11, 2026" },
+  ];
+  const popularTemplates = ["NDA Agreement", "Employment Contract", "Invoice Template", "Project Proposal", "Purchase Order"];
   const totalPages = documents.reduce((total, documentRecord) => total + (documentRecord.pageCount || documentRecord.pages?.length || 1), 0);
   const favoriteCount = documents.filter((documentRecord) => documentRecord.favorite).length;
   const storageUsed = documents.reduce((total, documentRecord) => total + (documentRecord.size || 0), 0);
@@ -4469,6 +4505,49 @@ function UploadLanding({
     )
   );
 
+  const renderRecentDashboardTable = () => (
+    <div className="reference-document-table">
+      <div className="reference-doc-row reference-doc-head">
+        <span>Name</span><span>Owner</span><span>Last opened</span><span>Status</span><span />
+      </div>
+      {recentDashboardRows.map((documentRecord) => {
+        const actionDocument = documentRecord.sourceDocument || documentRecord;
+        const isStoredDocument = !!documentRecord.sourceDocument;
+        return (
+          <article key={documentRecord.id} className="reference-doc-row">
+            <button type="button" className="reference-doc-name" onClick={() => (isStoredDocument ? onOpenDocument(actionDocument) : setActiveSection("Documents"))}>
+              <span className={`reference-file-icon ${documentRecord.fileType === "docx" ? "is-docx" : ""}`}><FileText size={20} /></span>
+              <span><strong>{documentRecord.name}</strong><small>{documentRecord.location || "My Documents"}</small></span>
+              <Star size={15} className="reference-row-star" />
+            </button>
+            <span className="reference-doc-owner"><span>{userInitials}</span> You</span>
+            <span>{documentRecord.lastOpened || formatDashboardDate(documentRecord.updatedAt)}</span>
+            <span><em className={`reference-status ${documentRecord.status === "Edited" ? "is-edited" : ""}`}>{documentRecord.status || "Viewed"}</em></span>
+            <div className="doc-actions">
+              {isStoredDocument ? (
+                <div className="doc-menu-wrap">
+                  <button type="button" className={`doc-menu-trigger ${openDocumentMenuId === documentRecord.id ? "is-open" : ""}`} title="Document actions" aria-haspopup="menu" aria-expanded={openDocumentMenuId === documentRecord.id} onClick={(event) => {
+                    event.stopPropagation();
+                    setOpenDocumentMenuId((id) => (id === documentRecord.id ? null : documentRecord.id));
+                  }}><EllipsisVertical size={18} /></button>
+                  {openDocumentMenuId === documentRecord.id && (
+                    <div className="doc-row-menu" role="menu" aria-label={`${documentRecord.name} actions`}>
+                      <button type="button" role="menuitem" onClick={(event) => runDocumentMenuAction(event, () => onOpenDocument(actionDocument))}><FilePlus2 size={18} /> Open</button>
+                      <button type="button" role="menuitem" onClick={(event) => runDocumentMenuAction(event, () => onRenameDocument(actionDocument))}><PenLine size={18} /> Rename</button>
+                      <button type="button" role="menuitem" onClick={(event) => runDocumentMenuAction(event, () => onDownloadDocument(actionDocument))}><Download size={18} /> Download</button>
+                      <button type="button" role="menuitem" onClick={(event) => runDocumentMenuAction(event, () => onDeleteDocument(actionDocument))}><Trash2 size={18} /> Remove</button>
+                    </div>
+                  )}
+                </div>
+              ) : <button type="button" className="reference-more" aria-label={`${documentRecord.name} actions`} onClick={() => setWorkspaceNotice("Upload or open a saved document to use file actions.")}><EllipsisVertical size={18} /></button>}
+            </div>
+          </article>
+        );
+      })}
+      <button type="button" className="reference-show-more" onClick={() => setActiveSection("Documents")}>Show more <ChevronDown size={15} /></button>
+    </div>
+  );
+
   const renderTemplateGrid = () => (
     filteredTemplateCards.length ? (
       <div className="enterprise-card-grid">
@@ -4540,8 +4619,8 @@ function UploadLanding({
       );
     }
 
-    if (activeSection === "Agreements" || activeSection === "Sign") {
-      const isSign = activeSection === "Sign";
+    if (activeSection === "Agreements" || activeSection === "Signatures") {
+      const isSign = activeSection === "Signatures";
       return (
         <section className="document-library enterprise-workspace-panel">
           <div className="library-head">
@@ -4606,70 +4685,102 @@ function UploadLanding({
       );
     }
 
-    return (
-      <>
-        <section
-          className={`dashboard-drop-hero ${isDraggingFile ? "is-dragging" : ""} ${isUploading ? "is-uploading" : ""}`}
-          onDragEnter={(event) => {
-            event.preventDefault();
-            setIsDraggingFile(true);
-          }}
-          onDragOver={(event) => {
-            event.preventDefault();
-            setIsDraggingFile(true);
-          }}
-          onDragLeave={(event) => {
-            if (event.currentTarget === event.target) {
-              setIsDraggingFile(false);
-            }
-          }}
-          onDrop={onDropFile}
-        >
-          <div className="dashboard-hero-copy">
-            <p className="eyebrow">Secure browser workspace</p>
-            <h1>Edit, sign, and manage PDFs in one place.</h1>
-            <p>Drop in a PDF to start editing immediately, or create a reusable document workflow for signing, review, and export.</p>
-            <div className="dashboard-hero-actions">
-              <button type="button" className="dashboard-primary" onClick={onSelectFiles}><Upload size={18} /> Upload PDF</button>
-              <button type="button" className="dashboard-secondary" onClick={onBlankPage}><FilePlus2 size={18} /> Start blank</button>
-            </div>
-          </div>
-          <div className="dashboard-upload-panel">
-            <Upload size={30} />
-            <strong>{isDraggingFile ? "Drop your PDF to upload" : isUploading ? uploadStage.status : "Drag and drop PDF"}</strong>
-            <span>{isUploading ? uploadStage.fileName : "PDFs are validated, rendered, and saved locally before opening in the editor."}</span>
-            <div className="upload-progress-track"><span style={{ width: `${uploadStage?.percent || 0}%` }} /></div>
-            {uploadError && <p className="upload-error">{uploadError}</p>}
-          </div>
-        </section>
-
-        <section className="dashboard-stat-grid" aria-label="Workspace stats">
-          <article><strong>{documents.length}</strong><span>Documents</span></article>
-          <article><strong>{totalPages}</strong><span>Pages managed</span></article>
-          <article><strong>{favoriteCount}</strong><span>Starred</span></article>
-          <article><strong>{formatBytes(storageUsed)}</strong><span>Local storage</span></article>
-        </section>
-
-        <section className="lumin-action-grid">
-          {quickActions.map(({ label, icon: Icon, action }) => (
-            <button key={label} type="button" className="lumin-action-card" onClick={action}>
-              <Icon size={31} />
-              <span>{label}</span>
+    if (["Trash", "Billing", "Team", "Integrations"].includes(activeSection)) {
+      const sectionDetails = {
+        Trash: [Trash2, "Deleted documents", "Files moved to trash will be available here before permanent removal."],
+        Billing: [CreditCard, "Plans and billing", "Manage your RealPDF plan, invoices, and payment details."],
+        Team: [Users, "Workspace members", "Invite teammates and manage document collaboration access."],
+        Integrations: [Plug, "Connected apps", "Connect cloud storage and workflow tools to your PDF workspace."],
+      };
+      const [SectionIcon, title, detail] = sectionDetails[activeSection];
+      return (
+        <section className="document-library enterprise-workspace-panel dashboard-simple-section">
+          <div className="library-head"><h2>{activeSection}</h2></div>
+          <div className="dashboard-simple-card">
+            <SectionIcon size={28} />
+            <div><h3>{title}</h3><p>{detail}</p></div>
+            <button type="button" onClick={activeSection === "Team" ? () => setOpenPanel("invite") : () => setWorkspaceNotice(`${activeSection} settings are ready to connect.`)}>
+              {activeSection === "Team" ? "Invite member" : "Open settings"}
             </button>
-          ))}
+          </div>
         </section>
+      );
+    }
 
-        <section className="document-library">
-          <div className="library-head">
-            <h2>Suggested documents</h2>
-          </div>
-          <div className="suggestion-tabs">
-            <button type="button" className={suggestionView === "recent" ? "is-active" : ""} onClick={() => setSuggestionView("recent")}><Undo2 size={22} /> You opened recently</button>
-            <button type="button" className={suggestionView === "trending" ? "is-active" : ""} onClick={() => setSuggestionView("trending")}><ArrowDownToLine size={22} /> Trending</button>
-          </div>
-          {renderDocumentTable(visibleRows, suggestionView === "recent" ? "documents" : "trending")}
-        </section>
-      </>
+    return (
+      <div className="reference-dashboard-grid">
+        <div className="reference-dashboard-main">
+          <section
+            className={`dashboard-welcome-panel ${isDraggingFile ? "is-dragging" : ""} ${isUploading ? "is-uploading" : ""}`}
+            onDragEnter={(event) => { event.preventDefault(); setIsDraggingFile(true); }}
+            onDragOver={(event) => { event.preventDefault(); setIsDraggingFile(true); }}
+            onDragLeave={(event) => { if (event.currentTarget === event.target) setIsDraggingFile(false); }}
+            onDrop={onDropFile}
+          >
+            <div className="dashboard-welcome-copy">
+              <h1>Welcome back, Wasseem! <Sparkles size={23} aria-hidden="true" /></h1>
+              <p>{isDraggingFile ? "Release to open your PDF." : isUploading ? `${uploadStage.status}: ${uploadStage.fileName}` : "Everything you need to work with PDFs—fast, secure, and effortless."}</p>
+              {uploadError && <p className="upload-error">{uploadError}</p>}
+            </div>
+            <div className="dashboard-hero-art" aria-hidden="true"><FileText size={58} /><FilePlus2 size={42} /><span><FileText size={38} /></span></div>
+            <div className="reference-action-grid">
+              {quickActions.map(({ label, detail, icon: Icon, tone, badge, action }) => (
+                <button key={label} type="button" className="reference-action-card" onClick={action}>
+                  <span className={`reference-action-icon tone-${tone}`}><Icon size={20} /></span>
+                  <span className="reference-action-copy"><strong>{label} {badge && <em>{badge}</em>}</strong><small>{detail}</small></span>
+                </button>
+              ))}
+            </div>
+          </section>
+
+          <section className="reference-stat-grid" aria-label="Workspace stats">
+            <article><span className="reference-stat-icon tone-red"><FileText size={23} /></span><div><small>Total Documents</small><strong>{Math.max(138, documents.length)}</strong><em>↑ 18% <span>vs last 7 days</span></em></div></article>
+            <article><span className="reference-stat-icon tone-purple"><PenLine size={23} /></span><div><small>Pending Signatures</small><strong>{Math.max(12, favoriteCount)}</strong><em>↑ 9% <span>vs last 7 days</span></em></div></article>
+            <article><span className="reference-stat-icon tone-blue"><HardDrive size={23} /></span><div><small>Storage Used</small><strong>6.31 <span>GB</span></strong><em className="is-neutral">42% of 15 GB</em></div></article>
+            <article><span className="reference-stat-icon tone-green"><ChartNoAxesColumnIncreasing size={23} /></span><div><small>Weekly Activity</small><strong>34</strong><em>↑ 26% <span>vs last 7 days</span></em></div></article>
+          </section>
+
+          <section className="reference-recent-card">
+            <div className="reference-section-head">
+              <h2>Recent Documents</h2>
+              <div className="reference-recent-tabs">
+                <button type="button" className="is-active">Recent</button>
+                <button type="button" onClick={() => setSuggestionView("recent")}>Starred</button>
+                <button type="button" onClick={() => setActiveSection("Documents")}>Shared with me</button>
+              </div>
+              <button type="button" className="reference-view-all" onClick={() => setActiveSection("Documents")}>View all</button>
+            </div>
+            {renderRecentDashboardTable()}
+          </section>
+        </div>
+
+        <aside className="reference-dashboard-side">
+          <section className="reference-side-card reference-activity-card">
+            <div className="reference-side-head"><h2>Activity Feed</h2><button type="button" onClick={() => setWorkspaceNotice("Activity feed is up to date.")}>View all</button></div>
+            <div className="reference-activity-list">
+              {activityFeed.map(({ initials, icon: ActivityIcon, tone, text, date }) => (
+                <article key={`${text}-${date}`}><span className={`reference-activity-avatar tone-${tone}`}>{ActivityIcon ? <ActivityIcon size={17} /> : initials}</span><div><strong>{text}</strong><small>{date}</small></div></article>
+              ))}
+            </div>
+          </section>
+
+          <section className="reference-side-card reference-template-card">
+            <div className="reference-side-head"><h2>Popular Templates</h2><button type="button" onClick={() => setActiveSection("Templates")}>View all</button></div>
+            <div className="reference-template-list">
+              {popularTemplates.map((template) => <button key={template} type="button" onClick={() => setActiveSection("Templates")}><FileText size={15} /><span>{template}</span><ChevronRight size={15} /></button>)}
+            </div>
+          </section>
+
+          <section className="reference-premium-card">
+            <span><Crown size={26} /></span><div><h2>Go Premium</h2><p>Unlock unlimited signatures, more storage, and advanced tools.</p><button type="button" onClick={() => setUpgradeModalOpen(true)}>Upgrade now <ChevronRight size={15} /></button></div>
+          </section>
+
+          <section className="reference-tip-card">
+            <div className="reference-tip-title"><Lightbulb size={17} /><strong>Tip of the day</strong></div>
+            <h2>Edit text in any PDF</h2><p>Open a PDF and click “Edit” to modify text, images, and pages instantly.</p>
+          </section>
+        </aside>
+      </div>
     );
   };
 
@@ -4677,32 +4788,42 @@ function UploadLanding({
     <main className="upload-shell lumin-home">
       <input ref={fileInputRef} className="hidden-input" type="file" accept="application/pdf" onChange={onUpload} />
       <aside className="lumin-home-rail">
-        <button type="button" className="rail-brand-tile" aria-label="Back to RealPDF website" onClick={onBackToLanding}><FileText size={22} /></button>
-        <button type="button" className="rail-mini-action" onClick={() => setOpenPanel("invite")}><Users size={22} /></button>
+        <button type="button" className="dashboard-brand" aria-label="Back to RealPDF website" onClick={onBackToLanding}><span><FileText size={22} /></span><strong>RealPDF</strong></button>
         <nav className="upload-nav" aria-label="Primary">
           {primaryNav.map(({ label, icon: Icon }) => (
             <button key={label} type="button" className={label === activeSection ? "is-active" : ""} onClick={() => setActiveSection(label)}>
-              <Icon size={24} />
+              <Icon size={19} />
               <span>{label}</span>
             </button>
           ))}
         </nav>
-        <button type="button" className="dashboard-site-back" onClick={onBackToLanding}><ChevronLeft size={17} /><span>Back to website</span></button>
+        <nav className="upload-nav dashboard-utility-nav" aria-label="Document utilities">
+          {utilityNav.map(({ label, icon: Icon }) => <button key={label} type="button" className={label === activeSection ? "is-active" : ""} onClick={() => setActiveSection(label)}><Icon size={19} /><span>{label}</span></button>)}
+        </nav>
+        <nav className="upload-nav dashboard-account-nav" aria-label="Workspace settings">
+          {accountNav.map(({ label, icon: Icon }) => <button key={label} type="button" className={label === activeSection ? "is-active" : ""} onClick={() => setActiveSection(label)}><Icon size={18} /><span>{label}</span></button>)}
+        </nav>
+        <section className="dashboard-storage-card" aria-label="Storage used">
+          <div><strong>Storage <CircleHelp size={13} /></strong><em>42%</em></div>
+          <span><i /></span>
+          <p>6.31 GB of 15 GB used</p>
+          <button type="button" onClick={() => setActiveSection("Settings")}>Manage storage <ChevronRight size={15} /></button>
+        </section>
+        <button type="button" className="dashboard-site-back" onClick={onBackToLanding}><ChevronLeft size={16} /><span>Back to website</span></button>
       </aside>
 
       <section className="upload-main">
         <header className="upload-topbar">
-          <button type="button" className="upload-logo" onClick={onBackToLanding} aria-label="Back to RealPDF website"><span><FileText size={19} /></span><strong>RealPDF</strong></button>
           <label className="lumin-search">
-            <Search size={25} />
-            <input type="search" placeholder="Search" value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} />
+            <Search size={18} />
+            <input type="search" placeholder="Search documents, templates, or tools..." value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} />
+            <kbd>⌘ K</kbd>
           </label>
           <div className="upload-top-actions">
             <button type="button" className="invite-button" onClick={() => setOpenPanel(openPanel === "invite" ? null : "invite")}><Users size={18} /> Invite members</button>
-            <button type="button" className="upgrade-button" onClick={() => setUpgradeModalOpen(true)}>Upgrade</button>
-            <button type="button" className="top-icon" onClick={() => setOpenPanel(openPanel === "help" ? null : "help")}><CircleHelp size={17} /></button>
-            <button type="button" className="top-icon" onClick={() => setOpenPanel(openPanel === "notifications" ? null : "notifications")}><Bell size={17} /></button>
-            <button type="button" className="top-avatar" onClick={() => setOpenPanel(openPanel === "account" ? null : "account")}>{userInitials}</button>
+            <button type="button" className="upgrade-button" onClick={() => setUpgradeModalOpen(true)}>Upgrade plan</button>
+            <button type="button" className="top-icon dashboard-notification-button" aria-label="Notifications" onClick={() => setOpenPanel(openPanel === "notifications" ? null : "notifications")}><Bell size={19} /><span>3</span></button>
+            <button type="button" className="top-avatar" onClick={() => setOpenPanel(openPanel === "account" ? null : "account")}><span>{userInitials}</span><i /><strong>Wasseem D.</strong><ChevronDown size={15} /></button>
             {openPanel && (
               <div className="workspace-popover">
                 <button type="button" className="popover-close" onClick={closePanel}><X size={16} /></button>

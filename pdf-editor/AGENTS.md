@@ -12,6 +12,8 @@ The product name is RealPDF. The landing hero’s right column must remain a fun
 
 The dashboard must feel like the same product as the landing site: reuse the site's RealPDF branding, Funnel Display/DM Sans typography, blue-and-white palette, compact rounded controls, soft blue panels, and restrained borders rather than introducing a separate dashboard aesthetic.
 
+The dashboard's current visual source of truth is the red RealPDF workspace layout: a full-height labeled left rail, compact search/action header, welcome panel with five quick actions, four KPI cards, a five-row recent-document table, and a stacked activity/templates/premium/tip right rail. Preserve those major proportions and keep the dense desktop view fully visible at common 16:9 sizes.
+
 The PDF editor must prioritize the document and reliable editing actions. Keep unfinished or informational features out of the primary toolbar, expose Save and Download clearly, provide visible active-tool guidance, use labeled and correctly disabled page controls, and preserve a compact 144px thumbnail rail with 72px portrait previews.
 
 App navigation must stay inside the product: the dashboard needs a visible return path to the landing page, and browser Back must move editor → dashboard → landing without leaving the site. Save the active document before leaving the editor.
