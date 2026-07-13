@@ -141,6 +141,16 @@ main.editor-shell .page-nav button { width: 30px !important; height: 30px !impor
 main.editor-shell .page-nav button:hover:not(:disabled) { background: var(--editor-blue-soft) !important; color: var(--editor-blue-dark) !important; }
 main.editor-shell .page-nav button:disabled { opacity: .32 !important; }
 main.editor-shell .page-nav input { width: 42px !important; height: 30px !important; border: 1px solid var(--editor-line) !important; background: #fff !important; }
+main.editor-shell .page-nav .page-nav-zoom-select {
+  width: 92px !important;
+  min-width: 92px !important;
+  height: 32px !important;
+  padding: 0 30px 0 14px !important;
+  color: var(--editor-ink) !important;
+  font-variant-numeric: tabular-nums;
+  text-align: left !important;
+  text-align-last: left !important;
+}
 main.editor-shell .page-count { min-width: 28px; color: var(--editor-muted) !important; font-size: 12px !important; }
 
 @media (max-width: 1080px) {

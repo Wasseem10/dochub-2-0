@@ -17,3 +17,5 @@ The PDF editor must prioritize the document and reliable editing actions. Keep u
 App navigation must stay inside the product: the dashboard needs a visible return path to the landing page, and browser Back must move editor → dashboard → landing without leaving the site. Save the active document before leaving the editor.
 
 The editor's 100% zoom must render at a comfortable working size, using an `EDITOR_PAGE_SCALE` of 0.88 so the PDF is larger than the old fit-to-window treatment while annotation coordinates remain aligned.
+
+The bottom zoom selector must reserve enough width and right padding for both the full percentage label (including `%`) and the native dropdown arrow at every supported zoom value.
