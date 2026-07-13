@@ -15,3 +15,5 @@ The dashboard must feel like the same product as the landing site: reuse the sit
 The PDF editor must prioritize the document and reliable editing actions. Keep unfinished or informational features out of the primary toolbar, expose Save and Download clearly, provide visible active-tool guidance, use labeled and correctly disabled page controls, and preserve a compact 144px thumbnail rail with 72px portrait previews.
 
 App navigation must stay inside the product: the dashboard needs a visible return path to the landing page, and browser Back must move editor → dashboard → landing without leaving the site. Save the active document before leaving the editor.
+
+The editor's 100% zoom must render at a comfortable working size, using an `EDITOR_PAGE_SCALE` of 0.88 so the PDF is larger than the old fit-to-window treatment while annotation coordinates remain aligned.
