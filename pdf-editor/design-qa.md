@@ -1,74 +1,74 @@
 **Source visual truth**
 
-- `/tmp/dochub-2-0-publish/pdf-editor/design-evidence/dashboard-reference-redesign/source-reference.png`
+- `/tmp/dochub-2-0-publish/pdf-editor/design-evidence/dashboard-user-data-refinement/source-reference.png`
+- User requirements: remove the decorative document artwork, use baby blue instead of red, increase the dashboard scale, show only the signed-in user's real activity, and improve left-navigation typography.
 
 **Implementation evidence**
 
-- `/tmp/dochub-2-0-publish/pdf-editor/design-evidence/dashboard-reference-redesign/dashboard-final.png`
-- Full comparison: `/tmp/dochub-2-0-publish/pdf-editor/design-evidence/dashboard-reference-redesign/side-by-side.png`
-- Hero/action comparison: `/tmp/dochub-2-0-publish/pdf-editor/design-evidence/dashboard-reference-redesign/focus-hero.png`
-- Recent-document comparison: `/tmp/dochub-2-0-publish/pdf-editor/design-evidence/dashboard-reference-redesign/focus-table.png`
+- `/tmp/dochub-2-0-publish/pdf-editor/design-evidence/dashboard-user-data-refinement/dashboard-final.png`
+- Focused before/after: `/tmp/dochub-2-0-publish/pdf-editor/design-evidence/dashboard-user-data-refinement/icon-removal-comparison.png`
 
 **Viewport and state**
 
-- Browser-rendered viewport: 1280 × 720, matching the source desktop aspect ratio after normalization.
-- Route: `?view=dashboard`
-- State: signed-in dashboard, Home selected, no popover open, search empty.
+- Browser-rendered viewport: 1280 × 720.
+- Route: `?view=dashboard`.
+- State: dashboard Home selected, no popover open, search empty, locally stored documents available. The local development session is logged out, so the account name uses the intentional `there` / `Account` fallback; signed-in sessions use the authenticated user's name and UID-scoped records.
 
 **Full-view comparison evidence**
 
-- The implementation matches the reference's major-region proportions: compact red RealPDF rail, 58px desktop header at this breakpoint, welcome/action panel, four KPI cards, recent-document table, and stacked right activity/template/premium/tip rail.
-- Section gaps, card radii, hairline borders, and low-shadow white surfaces preserve the reference's dense workspace rhythm.
-- All persistent controls fit the browser viewport; the final right-rail tip and recent-document footer are visible without horizontal clipping.
+- The dashboard is visibly larger than the prior compact pass: the rail, header, hero, quick actions, KPI cards, document rows, and right rail all use more comfortable dimensions.
+- The red brand and selection treatments were replaced with baby-blue accents across the logo, active rail item, primary actions, storage progress, premium card, and supporting surfaces.
+- The decorative document/PDF artwork shown in the source crop is absent. The resulting hero keeps the welcome copy and functional quick actions without a replacement illustration.
+- The left rail uses DM Sans with explicit 600-weight navigation labels and consistent sizing, line height, and icon alignment.
 
-**Focused region evidence**
+**Data integrity and copy**
 
-- Hero/actions: the five action cards align in one row, use the same red/pink/purple/orange/blue semantic sequence, and preserve single-line labels plus secondary copy.
-- Recent documents: the five-row table matches the reference's column hierarchy, owner avatars, last-opened values, status pills, star affordances, file-type treatment, and trailing action menus.
+- KPI values are calculated from saved user documents, annotations, byte totals, and seven-day update timestamps.
+- Recent, starred, shared, and activity sections are derived from actual document records. Empty states appear when a signed-in account has no matching records.
+- The hard-coded document rows, activity entries, owner name, storage values, notification count, and fallback dashboard totals were removed.
+- Cloud and local dashboard records are filtered by `ownerUid` for authenticated accounts; unowned legacy records are not silently attributed to a signed-in user.
 
 **Required fidelity surfaces**
 
-- Fonts and typography: DM Sans and Funnel Display match the existing RealPDF system and the reference's geometric sans hierarchy. Weights, compact line heights, and small-table optical sizing remain readable at the normalized desktop viewport.
-- Spacing and layout rhythm: sidebar, header, hero, KPI, table, and right-rail proportions align with the source. Compact breakpoint values were tuned after the first comparison to keep the entire dashboard visible.
-- Colors and visual tokens: the implementation uses the reference's red brand, blush selected state, neutral gray borders, green success pills, blue edited pill, and pastel action/icon surfaces with accessible foreground contrast.
-- Image quality and asset fidelity: the source's faint hero document motif is represented with the project's existing Lucide icon family, keeping it crisp at every scale. It is intentionally flatter than the source raster treatment and classified as P3 polish because it does not alter hierarchy or recognition.
-- Copy and content: welcome copy, quick-action labels, KPI labels, table headings, activity feed, templates, premium card, and tip content mirror the source direction and use realistic document data.
-- Icons: all visible icons use one installed icon family with consistent stroke weight, sizing, and alignment; no inline or handcrafted SVGs are used.
-- Accessibility: navigation and actions are semantic buttons, search uses a search input, regions are labeled, active states are visible, status is not communicated by color alone, and compact/mobile rules preserve practical targets.
+- Fonts and typography: DM Sans is explicitly applied to the rail and dashboard hierarchy; left-side labels no longer inherit inconsistent fallbacks or undersized compact values.
+- Spacing and layout: the desktop composition preserves the reference information architecture while intentionally increasing component scale per the user's latest direction. Sections remain aligned and unclipped horizontally at 1280px.
+- Colors and tokens: baby blue is the primary accent, with purple, amber, green, and neutral tokens retained for semantic differentiation. Text and interactive surfaces maintain readable contrast.
+- Image quality and asset fidelity: no new bitmap or CSS illustration was introduced. The mismatched decorative icon cluster was removed as requested.
+- Icons: visible controls use the installed Lucide family with consistent stroke weight and alignment. The removed hero icon cluster has no substitute.
+- States and interactions: Recent, Starred, and Shared tabs render real records or explicit empty states; opening a recent document enters the editor; browser Back returns editor → dashboard rather than leaving the site.
+- Accessibility: primary navigation and actions remain semantic controls, selected states are visible beyond color, inputs retain labels, focus behavior is preserved, and mobile/compact breakpoints remain defined.
 
 **Primary interactions tested**
 
-- Documents navigation → Home navigation.
-- Invite members popover open/close.
-- Search for `Resume`, then clear search.
-- Open the first recent document into the PDF editor.
-- Browser Back returns editor → dashboard without leaving the site.
-- Browser console checked: no application errors.
+- Recent → Starred → Shared document tabs, including the real empty state for Shared.
+- Open the first actual recent document into the PDF editor.
+- Browser Back returns from the editor to the dashboard.
+- Fake notification count absent.
+- Zoom control remains present in the editor.
+- Browser console checked with no application errors.
 
 **Comparison history**
 
-- Pass 1 findings: [P2] the 1280px compact layout retained full desktop vertical dimensions, causing the table and right-rail tip to extend below the reference frame; [P2] several quick-action labels truncated more aggressively than the source; [P2] repeated live filenames reduced fidelity to the reference table.
-- Fixes made: added a breakpoint-specific density system for rail/header/hero/KPI/table/right-rail heights, made dashboard sizing border-box, tightened compact action icon/copy geometry, and paired reference-style display rows with real saved-document actions.
-- Post-fix evidence: `dashboard-final.png`, `side-by-side.png`, `focus-hero.png`, and `focus-table.png` show the full dashboard and all five document rows fitting the intended frame with readable labels.
+- Pass 1 finding: the dashboard matched the earlier reference but felt too compressed at 1280px, retained red accents and decorative hero artwork, and mixed real local actions with fabricated display data.
+- Fixes made: increased breakpoint sizing, changed primary color tokens and surfaces to baby blue, removed the hero artwork, strengthened rail typography, replaced placeholder rows/activity/KPIs with document-derived values, and scoped authenticated records by UID.
+- Post-fix evidence: `dashboard-final.png` and `icon-removal-comparison.png` show the enlarged baby-blue dashboard and complete artwork removal.
 
 **Findings**
 
-- No actionable P0/P1/P2 visual or interaction mismatches remain.
-- [P3] The decorative hero document motif is flatter and more icon-like than the softly rendered source artwork; a future custom raster asset could tighten this without changing layout.
+- No actionable P0/P1/P2 visual, data-integrity, or interaction issues remain for the requested refinement.
 
 **Open Questions**
 
-- None blocking this desktop reference implementation.
+- None blocking this implementation.
 
 **Implementation Checklist**
 
-- [x] Match reference information architecture and desktop proportions.
-- [x] Preserve upload, search, navigation, document-open, menu, invite, account, and upgrade actions.
-- [x] Verify full dashboard in the in-app browser.
-- [x] Verify console and editor/back-navigation behavior.
-
-**Follow-up Polish**
-
-- Optional custom hero illustration asset matching the source's soft translucent PDF artwork.
+- [x] Increase dashboard scale.
+- [x] Replace red accents with baby blue.
+- [x] Remove the decorative document icon cluster.
+- [x] Correct left-navigation font treatment.
+- [x] Remove fabricated dashboard rows, activity, counts, and notification data.
+- [x] Scope authenticated dashboard data to the current user's UID.
+- [x] Verify build, dashboard tabs, document open, editor Back behavior, and browser console.
 
 final result: passed

@@ -232,6 +232,7 @@ function formatDateTime(value) {
 }
 
 function formatBytes(bytes = 0) {
+  if (!bytes || bytes <= 0) return "0 KB";
   if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
@@ -285,6 +286,7 @@ function toCloudDocumentMetadata(userId, documentRecord) {
     status: documentRecord.status || "Ready",
     location: documentRecord.location || "My documents",
     favorite: !!documentRecord.favorite,
+    ownerUid: userId,
     uploadedAt: documentRecord.uploadedAt || nowIso(),
     updatedAt: documentRecord.updatedAt || nowIso(),
     payloadPath,
@@ -308,6 +310,7 @@ async function uploadDocumentRecordToCloud(userId, documentRecord) {
   const payloadPath = cloudDocumentPayloadPath(userId, documentRecord.id);
   const payload = JSON.stringify({
     ...documentRecord,
+    ownerUid: userId,
     cloudBacked: true,
     cloudPayloadPath: payloadPath,
   });
@@ -332,7 +335,7 @@ async function loadCloudDocumentRecords(userId) {
   const snapshot = await getDocs(collection(db, "users", userId, "documents"));
   const records = await Promise.all(snapshot.docs.map(async (metadataDoc) => {
     const metadata = metadataDoc.data();
-    if (!metadata?.payloadPath) return { ...metadata, id: metadataDoc.id };
+    if (!metadata?.payloadPath) return { ...metadata, id: metadataDoc.id, ownerUid: userId };
 
     try {
       const payloadUrl = await getDownloadURL(storageReference(storage, metadata.payloadPath));
@@ -342,11 +345,12 @@ async function loadCloudDocumentRecords(userId) {
         ...payload,
         ...metadata,
         id: metadataDoc.id,
+        ownerUid: userId,
         cloudBacked: true,
         cloudPayloadPath: metadata.payloadPath,
       };
     } catch {
-      return { ...metadata, id: metadataDoc.id, cloudBacked: true };
+      return { ...metadata, id: metadataDoc.id, ownerUid: userId, cloudBacked: true };
     }
   }));
   return records;
@@ -1200,18 +1204,21 @@ export function App() {
       .then((cloudDocuments) => {
         if (cancelled) return;
         const localDocuments = safeLoadDocuments();
-        const mergedDocuments = mergeDocumentsByUpdatedAt(localDocuments, cloudDocuments);
+        const accountLocalDocuments = localDocuments.filter((documentRecord) => documentRecord.ownerUid === currentUser.uid);
+        const mergedDocuments = mergeDocumentsByUpdatedAt(accountLocalDocuments, cloudDocuments);
         if (mergedDocuments.length) {
           writeDocuments(mergedDocuments);
           setDocuments(mergedDocuments);
           if (cloudDocuments.length) {
             showToast(`Loaded ${cloudDocuments.length} cloud document${cloudDocuments.length === 1 ? "" : "s"}.`);
           }
-          if (localDocuments.length) {
+          if (accountLocalDocuments.length) {
             syncDocumentsToCloud([], mergedDocuments);
           }
+        } else {
+          setDocuments([]);
         }
-        if (!localDocuments.length) setCloudSyncStatus("synced");
+        if (!accountLocalDocuments.length) setCloudSyncStatus("synced");
       })
       .catch(() => {
         if (cancelled) return;
@@ -1376,6 +1383,7 @@ export function App() {
       ...(activeDocument || {}),
       id: makeId("doc"),
       name: nextName,
+      ownerUid: currentUser?.uid || activeDocument?.ownerUid || null,
       size: activeDocument?.size || 0,
       source: activeDocument?.source || (pdfBytes ? "pdf" : "blank"),
       pageCount: clonedPages.length,
@@ -1688,6 +1696,7 @@ export function App() {
       const documentRecord = {
         id: makeId("doc"),
         name: file.name,
+        ownerUid: currentUser?.uid || null,
         size: file.size,
         source: "pdf",
         pageCount: loadedPages.length,
@@ -1831,6 +1840,7 @@ export function App() {
     const documentRecord = {
       id: makeId("doc"),
       name: "Untitled blank document.pdf",
+      ownerUid: currentUser?.uid || null,
       size: 0,
       source: "blank",
       pageCount: 1,
@@ -2106,6 +2116,7 @@ export function App() {
       ...documentRecord,
       id: makeId("doc-copy"),
       name: copyName,
+      ownerUid: currentUser?.uid || documentRecord.ownerUid || null,
       favorite: false,
       uploadedAt: stamp,
       updatedAt: stamp,
@@ -4248,7 +4259,6 @@ function UploadLanding({
   const [openPanel, setOpenPanel] = useState(null);
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteDrafts, setInviteDrafts] = useState([]);
-  const [favoriteTrendingIds, setFavoriteTrendingIds] = useState([]);
   const [workspaceNotice, setWorkspaceNotice] = useState("");
   const [openDocumentMenuId, setOpenDocumentMenuId] = useState(null);
   const [upgradeModalOpen, setUpgradeModalOpen] = useState(false);
@@ -4259,6 +4269,12 @@ function UploadLanding({
     .slice(0, 2)
     .map((part) => part[0]?.toUpperCase())
     .join("") || "U";
+  const dashboardFirstName = currentUser?.name?.trim().split(/\s+/)[0]
+    || currentUser?.email?.split("@")[0]
+    || "there";
+  const dashboardAccountName = currentUser?.name?.trim()
+    || currentUser?.email?.split("@")[0]
+    || "Account";
 
   const primaryNav = [
     { label: "Home", icon: Home },
@@ -4302,56 +4318,53 @@ function UploadLanding({
 
   const normalizedQuery = searchQuery.trim().toLowerCase();
   const matchesSearch = (value) => !normalizedQuery || value.toLowerCase().includes(normalizedQuery);
-  const filteredDocuments = documents.filter((documentRecord) => (
+  const userDocuments = currentUser?.uid
+    ? documents.filter((documentRecord) => documentRecord.ownerUid === currentUser.uid)
+    : documents;
+  const filteredDocuments = userDocuments.filter((documentRecord) => (
     matchesSearch(documentRecord.name)
   ));
   const filteredTemplateCards = templateCards.filter(({ title, detail }) => matchesSearch(`${title} ${detail}`));
   const filteredAgreementFlows = agreementFlows.filter(({ title, detail }) => matchesSearch(`${title} ${detail}`));
 
-  const trendingRows = [
-    { id: "trend-nda", name: "Mutual NDA template", location: "Templates", updatedAt: nowIso(), favorite: favoriteTrendingIds.includes("trend-nda") },
-    { id: "trend-sign", name: "Signature request packet", location: "Signatures", updatedAt: nowIso(), favorite: favoriteTrendingIds.includes("trend-sign") },
-    { id: "trend-review", name: "Contract review workspace", location: "Agreements", updatedAt: nowIso(), favorite: favoriteTrendingIds.includes("trend-review") },
-  ].filter((row) => matchesSearch(row.name));
-
-  const demoRecentRows = normalizedQuery ? [] : [{
-    id: "demo-minoria-nda",
-    name: "Minoria_Tech_Intern_NDA_Wasseem_Dabbas",
-    location: "My documents",
-    updatedAt: nowIso(),
-    pageCount: 9,
-    demo: true,
-  }];
-  const visibleRows = suggestionView === "recent" ? (filteredDocuments.length ? filteredDocuments : demoRecentRows) : trendingRows;
-  const dashboardFallbackRows = [
-    { id: "dash-resume", name: "Wasseem_Dabbas_Resume1.pdf", location: "My Documents", lastOpened: "Today, 10:24 AM", status: "Viewed", demo: true },
-    { id: "dash-sales", name: "Resume_Sales (11)-edited.pdf", location: "My Documents", lastOpened: "Jul 12, 2026", status: "Viewed", demo: true },
-    { id: "dash-untitled", name: "Untitled blank document-edited.pdf", location: "My Documents", lastOpened: "Jul 13, 2026", status: "Edited", demo: true },
-    { id: "dash-record", name: "myRxRecord (1).pdf", location: "My Documents", lastOpened: "Jul 10, 2026", status: "Viewed", demo: true },
-    { id: "dash-docx", name: "ResumeForge_Resume.docx", location: "My Documents", lastOpened: "Jul 10, 2026", status: "Viewed", fileType: "docx", demo: true },
-  ];
-  const recentDashboardRows = dashboardFallbackRows
-    .filter((documentRecord) => matchesSearch(documentRecord.name))
-    .map((documentRecord, index) => ({ ...documentRecord, sourceDocument: filteredDocuments[index] || null }));
-  const activityFeed = [
-    { initials: "WD", tone: "red", text: "You edited Resume_Sales (11)-edited.pdf", date: "Today, 10:24 AM" },
-    { initials: "AM", tone: "purple", text: "Amina M. requested your signature on NDA Agreement.pdf", date: "Yesterday, 3:15 PM" },
-    { initials: "JS", tone: "orange", text: "James S. signed Sales Contract.pdf", date: "Jul 12, 2026" },
-    { initials: "", tone: "green", icon: Users, text: "You shared Project Proposal.pdf", date: "Jul 11, 2026" },
-    { initials: "", tone: "blue", icon: Sparkles, text: "AI Summary generated for Market_Research.pdf", date: "Jul 11, 2026" },
-  ];
+  const dashboardDocumentPool = suggestionView === "starred"
+    ? filteredDocuments.filter((documentRecord) => documentRecord.favorite)
+    : suggestionView === "shared"
+      ? filteredDocuments.filter((documentRecord) => /shared/i.test(documentRecord.location || ""))
+      : filteredDocuments;
+  const recentDashboardRows = [...dashboardDocumentPool]
+    .sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0))
+    .slice(0, 5);
+  const activityFeed = [...userDocuments]
+    .sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0))
+    .slice(0, 5)
+    .map((documentRecord) => {
+      const annotationCount = documentRecord.annotations?.length || 0;
+      const action = documentRecord.status === "Draft" && annotationCount === 0
+        ? "created"
+        : annotationCount > 0
+          ? "edited"
+          : documentRecord.source === "pdf" ? "uploaded" : "updated";
+      return {
+        id: documentRecord.id,
+        initials: userInitials,
+        tone: "blue",
+        text: `You ${action} ${documentRecord.name}`,
+        date: formatDateTime(documentRecord.updatedAt),
+      };
+    });
   const popularTemplates = ["NDA Agreement", "Employment Contract", "Invoice Template", "Project Proposal", "Purchase Order"];
-  const totalPages = documents.reduce((total, documentRecord) => total + (documentRecord.pageCount || documentRecord.pages?.length || 1), 0);
-  const favoriteCount = documents.filter((documentRecord) => documentRecord.favorite).length;
-  const storageUsed = documents.reduce((total, documentRecord) => total + (documentRecord.size || 0), 0);
+  const totalPages = userDocuments.reduce((total, documentRecord) => total + (documentRecord.pageCount || documentRecord.pages?.length || 1), 0);
+  const signatureCount = userDocuments.reduce((total, documentRecord) => total + (documentRecord.annotations || []).filter((annotation) => annotation.type === "signature" || annotation.type === "initials").length, 0);
+  const storageUsed = userDocuments.reduce((total, documentRecord) => total + (documentRecord.size || 0), 0);
+  const storageLimit = 15 * 1024 * 1024 * 1024;
+  const storagePercentage = Math.min(100, (storageUsed / storageLimit) * 100);
+  const storagePercentageLabel = storagePercentage === 0 ? "0%" : storagePercentage < 1 ? "<1%" : `${Math.round(storagePercentage)}%`;
+  const weekAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
+  const weeklyActivityCount = userDocuments.filter((documentRecord) => new Date(documentRecord.updatedAt || 0).getTime() >= weekAgo).length;
   const isUploading = uploadStage?.status && !["idle", "complete", "error"].includes(uploadStage.status);
 
   const closePanel = () => setOpenPanel(null);
-
-  const toggleTrendingFavorite = (id) => {
-    setFavoriteTrendingIds((items) => (items.includes(id) ? items.filter((item) => item !== id) : [...items, id]));
-    setWorkspaceNotice(favoriteTrendingIds.includes(id) ? "Removed suggestion from favorites." : "Added suggestion to favorites.");
-  };
 
   const createInviteDraft = () => {
     const cleanedEmail = inviteEmail.trim();
@@ -4445,7 +4458,7 @@ function UploadLanding({
                   if (isStoredDocument) {
                     onToggleFavorite(documentRecord);
                   } else {
-                    toggleTrendingFavorite(documentRecord.id);
+                    setWorkspaceNotice("Open a saved document to add it to favorites.");
                   }
                 }}
               >
@@ -4510,41 +4523,46 @@ function UploadLanding({
       <div className="reference-doc-row reference-doc-head">
         <span>Name</span><span>Owner</span><span>Last opened</span><span>Status</span><span />
       </div>
-      {recentDashboardRows.map((documentRecord) => {
-        const actionDocument = documentRecord.sourceDocument || documentRecord;
-        const isStoredDocument = !!documentRecord.sourceDocument;
+      {recentDashboardRows.length ? recentDashboardRows.map((documentRecord) => {
+        const status = documentRecord.status || "Ready";
+        const statusClass = status.toLowerCase().replace(/[^a-z0-9]+/g, "-");
         return (
           <article key={documentRecord.id} className="reference-doc-row">
-            <button type="button" className="reference-doc-name" onClick={() => (isStoredDocument ? onOpenDocument(actionDocument) : setActiveSection("Documents"))}>
-              <span className={`reference-file-icon ${documentRecord.fileType === "docx" ? "is-docx" : ""}`}><FileText size={20} /></span>
+            <button type="button" className="reference-doc-name" onClick={() => onOpenDocument(documentRecord)}>
+              <span className="reference-file-icon"><FileText size={20} /></span>
               <span><strong>{documentRecord.name}</strong><small>{documentRecord.location || "My Documents"}</small></span>
-              <Star size={15} className="reference-row-star" />
+              <Star size={15} className="reference-row-star" fill={documentRecord.favorite ? "currentColor" : "none"} />
             </button>
             <span className="reference-doc-owner"><span>{userInitials}</span> You</span>
-            <span>{documentRecord.lastOpened || formatDashboardDate(documentRecord.updatedAt)}</span>
-            <span><em className={`reference-status ${documentRecord.status === "Edited" ? "is-edited" : ""}`}>{documentRecord.status || "Viewed"}</em></span>
+            <span>{formatDashboardDate(documentRecord.updatedAt)}</span>
+            <span><em className={`reference-status is-${statusClass}`}>{status}</em></span>
             <div className="doc-actions">
-              {isStoredDocument ? (
-                <div className="doc-menu-wrap">
-                  <button type="button" className={`doc-menu-trigger ${openDocumentMenuId === documentRecord.id ? "is-open" : ""}`} title="Document actions" aria-haspopup="menu" aria-expanded={openDocumentMenuId === documentRecord.id} onClick={(event) => {
-                    event.stopPropagation();
-                    setOpenDocumentMenuId((id) => (id === documentRecord.id ? null : documentRecord.id));
-                  }}><EllipsisVertical size={18} /></button>
-                  {openDocumentMenuId === documentRecord.id && (
-                    <div className="doc-row-menu" role="menu" aria-label={`${documentRecord.name} actions`}>
-                      <button type="button" role="menuitem" onClick={(event) => runDocumentMenuAction(event, () => onOpenDocument(actionDocument))}><FilePlus2 size={18} /> Open</button>
-                      <button type="button" role="menuitem" onClick={(event) => runDocumentMenuAction(event, () => onRenameDocument(actionDocument))}><PenLine size={18} /> Rename</button>
-                      <button type="button" role="menuitem" onClick={(event) => runDocumentMenuAction(event, () => onDownloadDocument(actionDocument))}><Download size={18} /> Download</button>
-                      <button type="button" role="menuitem" onClick={(event) => runDocumentMenuAction(event, () => onDeleteDocument(actionDocument))}><Trash2 size={18} /> Remove</button>
-                    </div>
-                  )}
-                </div>
-              ) : <button type="button" className="reference-more" aria-label={`${documentRecord.name} actions`} onClick={() => setWorkspaceNotice("Upload or open a saved document to use file actions.")}><EllipsisVertical size={18} /></button>}
+              <div className="doc-menu-wrap">
+                <button type="button" className={`doc-menu-trigger ${openDocumentMenuId === documentRecord.id ? "is-open" : ""}`} title="Document actions" aria-haspopup="menu" aria-expanded={openDocumentMenuId === documentRecord.id} onClick={(event) => {
+                  event.stopPropagation();
+                  setOpenDocumentMenuId((id) => (id === documentRecord.id ? null : documentRecord.id));
+                }}><EllipsisVertical size={18} /></button>
+                {openDocumentMenuId === documentRecord.id && (
+                  <div className="doc-row-menu" role="menu" aria-label={`${documentRecord.name} actions`}>
+                    <button type="button" role="menuitem" onClick={(event) => runDocumentMenuAction(event, () => onOpenDocument(documentRecord))}><FilePlus2 size={18} /> Open</button>
+                    <button type="button" role="menuitem" onClick={(event) => runDocumentMenuAction(event, () => onRenameDocument(documentRecord))}><PenLine size={18} /> Rename</button>
+                    <button type="button" role="menuitem" onClick={(event) => runDocumentMenuAction(event, () => onDownloadDocument(documentRecord))}><Download size={18} /> Download</button>
+                    <button type="button" role="menuitem" onClick={(event) => runDocumentMenuAction(event, () => onDeleteDocument(documentRecord))}><Trash2 size={18} /> Remove</button>
+                  </div>
+                )}
+              </div>
             </div>
           </article>
         );
-      })}
-      <button type="button" className="reference-show-more" onClick={() => setActiveSection("Documents")}>Show more <ChevronDown size={15} /></button>
+      }) : (
+        <div className="reference-dashboard-empty">
+          <FileText size={26} />
+          <strong>{normalizedQuery ? "No matching documents" : suggestionView === "starred" ? "No starred documents" : suggestionView === "shared" ? "No shared documents" : "No documents yet"}</strong>
+          <span>{normalizedQuery ? "Try a different search." : "Upload a PDF and it will appear here."}</span>
+          {!normalizedQuery && suggestionView === "recent" && <button type="button" onClick={onSelectFiles}>Upload PDF</button>}
+        </div>
+      )}
+      {recentDashboardRows.length > 0 && <button type="button" className="reference-show-more" onClick={() => setActiveSection("Documents")}>View all documents <ChevronDown size={15} /></button>}
     </div>
   );
 
@@ -4652,7 +4670,6 @@ function UploadLanding({
     }
 
     if (activeSection === "Settings") {
-      const storageUsed = documents.reduce((total, documentRecord) => total + (documentRecord.size || 0), 0);
       return (
         <section className="document-library enterprise-workspace-panel">
           <div className="library-head">
@@ -4666,7 +4683,7 @@ function UploadLanding({
             </article>
             <article>
               <strong>Favorites</strong>
-              <span>{documents.filter((documentRecord) => documentRecord.favorite).length} saved document{documents.filter((documentRecord) => documentRecord.favorite).length === 1 ? "" : "s"} marked for quick access.</span>
+              <span>{userDocuments.filter((documentRecord) => documentRecord.favorite).length} saved document{userDocuments.filter((documentRecord) => documentRecord.favorite).length === 1 ? "" : "s"} marked for quick access.</span>
             </article>
             <article>
               <strong>Invites</strong>
@@ -4674,7 +4691,7 @@ function UploadLanding({
             </article>
             <article>
               <strong>Storage</strong>
-              <span>{documents.length} document{documents.length === 1 ? "" : "s"} saved locally, {formatBytes(storageUsed)} used.</span>
+              <span>{userDocuments.length} document{userDocuments.length === 1 ? "" : "s"} saved for this account, {formatBytes(storageUsed)} used.</span>
             </article>
             <article>
               <strong>Export policy</strong>
@@ -4718,11 +4735,10 @@ function UploadLanding({
             onDrop={onDropFile}
           >
             <div className="dashboard-welcome-copy">
-              <h1>Welcome back, Wasseem! <Sparkles size={23} aria-hidden="true" /></h1>
+              <h1>Welcome back, {dashboardFirstName}!</h1>
               <p>{isDraggingFile ? "Release to open your PDF." : isUploading ? `${uploadStage.status}: ${uploadStage.fileName}` : "Everything you need to work with PDFs—fast, secure, and effortless."}</p>
               {uploadError && <p className="upload-error">{uploadError}</p>}
             </div>
-            <div className="dashboard-hero-art" aria-hidden="true"><FileText size={58} /><FilePlus2 size={42} /><span><FileText size={38} /></span></div>
             <div className="reference-action-grid">
               {quickActions.map(({ label, detail, icon: Icon, tone, badge, action }) => (
                 <button key={label} type="button" className="reference-action-card" onClick={action}>
@@ -4734,19 +4750,19 @@ function UploadLanding({
           </section>
 
           <section className="reference-stat-grid" aria-label="Workspace stats">
-            <article><span className="reference-stat-icon tone-red"><FileText size={23} /></span><div><small>Total Documents</small><strong>{Math.max(138, documents.length)}</strong><em>↑ 18% <span>vs last 7 days</span></em></div></article>
-            <article><span className="reference-stat-icon tone-purple"><PenLine size={23} /></span><div><small>Pending Signatures</small><strong>{Math.max(12, favoriteCount)}</strong><em>↑ 9% <span>vs last 7 days</span></em></div></article>
-            <article><span className="reference-stat-icon tone-blue"><HardDrive size={23} /></span><div><small>Storage Used</small><strong>6.31 <span>GB</span></strong><em className="is-neutral">42% of 15 GB</em></div></article>
-            <article><span className="reference-stat-icon tone-green"><ChartNoAxesColumnIncreasing size={23} /></span><div><small>Weekly Activity</small><strong>34</strong><em>↑ 26% <span>vs last 7 days</span></em></div></article>
+            <article><span className="reference-stat-icon tone-red"><FileText size={23} /></span><div><small>Total Documents</small><strong>{userDocuments.length}</strong><em className="is-neutral">{totalPages} page{totalPages === 1 ? "" : "s"} managed</em></div></article>
+            <article><span className="reference-stat-icon tone-purple"><PenLine size={23} /></span><div><small>Signatures Added</small><strong>{signatureCount}</strong><em className="is-neutral">Across your saved PDFs</em></div></article>
+            <article><span className="reference-stat-icon tone-blue"><HardDrive size={23} /></span><div><small>Storage Used</small><strong>{formatBytes(storageUsed)}</strong><em className="is-neutral">{storagePercentageLabel} of 15 GB</em></div></article>
+            <article><span className="reference-stat-icon tone-green"><ChartNoAxesColumnIncreasing size={23} /></span><div><small>Weekly Activity</small><strong>{weeklyActivityCount}</strong><em className="is-neutral">Document{weeklyActivityCount === 1 ? "" : "s"} updated this week</em></div></article>
           </section>
 
           <section className="reference-recent-card">
             <div className="reference-section-head">
               <h2>Recent Documents</h2>
               <div className="reference-recent-tabs">
-                <button type="button" className="is-active">Recent</button>
-                <button type="button" onClick={() => setSuggestionView("recent")}>Starred</button>
-                <button type="button" onClick={() => setActiveSection("Documents")}>Shared with me</button>
+                <button type="button" className={suggestionView === "recent" ? "is-active" : ""} onClick={() => setSuggestionView("recent")}>Recent</button>
+                <button type="button" className={suggestionView === "starred" ? "is-active" : ""} onClick={() => setSuggestionView("starred")}>Starred</button>
+                <button type="button" className={suggestionView === "shared" ? "is-active" : ""} onClick={() => setSuggestionView("shared")}>Shared with me</button>
               </div>
               <button type="button" className="reference-view-all" onClick={() => setActiveSection("Documents")}>View all</button>
             </div>
@@ -4757,11 +4773,15 @@ function UploadLanding({
         <aside className="reference-dashboard-side">
           <section className="reference-side-card reference-activity-card">
             <div className="reference-side-head"><h2>Activity Feed</h2><button type="button" onClick={() => setWorkspaceNotice("Activity feed is up to date.")}>View all</button></div>
-            <div className="reference-activity-list">
-              {activityFeed.map(({ initials, icon: ActivityIcon, tone, text, date }) => (
-                <article key={`${text}-${date}`}><span className={`reference-activity-avatar tone-${tone}`}>{ActivityIcon ? <ActivityIcon size={17} /> : initials}</span><div><strong>{text}</strong><small>{date}</small></div></article>
-              ))}
-            </div>
+            {activityFeed.length ? (
+              <div className="reference-activity-list">
+                {activityFeed.map(({ id, initials, tone, text, date }) => (
+                  <article key={id}><span className={`reference-activity-avatar tone-${tone}`}>{initials}</span><div><strong>{text}</strong><small>{date}</small></div></article>
+                ))}
+              </div>
+            ) : (
+              <div className="reference-activity-empty"><Activity size={22} /><strong>No activity yet</strong><span>Your uploads and edits will appear here.</span></div>
+            )}
           </section>
 
           <section className="reference-side-card reference-template-card">
@@ -4804,9 +4824,9 @@ function UploadLanding({
           {accountNav.map(({ label, icon: Icon }) => <button key={label} type="button" className={label === activeSection ? "is-active" : ""} onClick={() => setActiveSection(label)}><Icon size={18} /><span>{label}</span></button>)}
         </nav>
         <section className="dashboard-storage-card" aria-label="Storage used">
-          <div><strong>Storage <CircleHelp size={13} /></strong><em>42%</em></div>
-          <span><i /></span>
-          <p>6.31 GB of 15 GB used</p>
+          <div><strong>Storage <CircleHelp size={13} /></strong><em>{storagePercentageLabel}</em></div>
+          <span><i style={{ width: `${storagePercentage === 0 ? 0 : Math.max(2, storagePercentage)}%` }} /></span>
+          <p>{formatBytes(storageUsed)} of 15 GB used</p>
           <button type="button" onClick={() => setActiveSection("Settings")}>Manage storage <ChevronRight size={15} /></button>
         </section>
         <button type="button" className="dashboard-site-back" onClick={onBackToLanding}><ChevronLeft size={16} /><span>Back to website</span></button>
@@ -4822,8 +4842,8 @@ function UploadLanding({
           <div className="upload-top-actions">
             <button type="button" className="invite-button" onClick={() => setOpenPanel(openPanel === "invite" ? null : "invite")}><Users size={18} /> Invite members</button>
             <button type="button" className="upgrade-button" onClick={() => setUpgradeModalOpen(true)}>Upgrade plan</button>
-            <button type="button" className="top-icon dashboard-notification-button" aria-label="Notifications" onClick={() => setOpenPanel(openPanel === "notifications" ? null : "notifications")}><Bell size={19} /><span>3</span></button>
-            <button type="button" className="top-avatar" onClick={() => setOpenPanel(openPanel === "account" ? null : "account")}><span>{userInitials}</span><i /><strong>Wasseem D.</strong><ChevronDown size={15} /></button>
+            <button type="button" className="top-icon dashboard-notification-button" aria-label="Notifications" onClick={() => setOpenPanel(openPanel === "notifications" ? null : "notifications")}><Bell size={19} /></button>
+            <button type="button" className="top-avatar" onClick={() => setOpenPanel(openPanel === "account" ? null : "account")}><span>{userInitials}</span><i /><strong>{dashboardAccountName}</strong><ChevronDown size={15} /></button>
             {openPanel && (
               <div className="workspace-popover">
                 <button type="button" className="popover-close" onClick={closePanel}><X size={16} /></button>
