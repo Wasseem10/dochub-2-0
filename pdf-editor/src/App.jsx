@@ -54,6 +54,8 @@ import Settings from "lucide-react/dist/esm/icons/settings.mjs";
 import Share2 from "lucide-react/dist/esm/icons/share-2.mjs";
 import Link from "lucide-react/dist/esm/icons/link.mjs";
 import Lock from "lucide-react/dist/esm/icons/lock.mjs";
+import LogOut from "lucide-react/dist/esm/icons/log-out.mjs";
+import Mail from "lucide-react/dist/esm/icons/mail.mjs";
 import Circle from "lucide-react/dist/esm/icons/circle.mjs";
 import Minus from "lucide-react/dist/esm/icons/minus.mjs";
 import Move from "lucide-react/dist/esm/icons/move.mjs";
@@ -4275,6 +4277,12 @@ function UploadLanding({
   const dashboardAccountName = currentUser?.name?.trim()
     || currentUser?.email?.split("@")[0]
     || "Account";
+  const dashboardHour = new Date().getHours();
+  const dashboardGreeting = dashboardHour < 12
+    ? "Good morning"
+    : dashboardHour < 18
+      ? "Good afternoon"
+      : "Good evening";
 
   const primaryNav = [
     { label: "Home", icon: Home },
@@ -4293,14 +4301,6 @@ function UploadLanding({
     { label: "Billing", icon: CreditCard },
     { label: "Team", icon: Users },
     { label: "Integrations", icon: Plug },
-  ];
-
-  const quickActions = [
-    { label: "Upload PDF", detail: "Drag & drop or browse", icon: Upload, tone: "red", action: onSelectFiles },
-    { label: "Edit PDF", detail: "Text, images, pages", icon: PenLine, tone: "pink", action: onSelectFiles },
-    { label: "Request Signatures", detail: "Send and track", icon: PenLine, tone: "purple", action: () => setActiveSection("Signatures") },
-    { label: "Create from Template", detail: "Start from a template", icon: Grid2X2, tone: "orange", action: () => setActiveSection("Templates") },
-    { label: "AI PDF Tools", detail: "Summarize, chat, more", icon: Sparkles, tone: "blue", badge: "New", action: () => setWorkspaceNotice("AI PDF tools are ready for the next workspace release.") },
   ];
 
   const templateCards = [
@@ -4735,17 +4735,17 @@ function UploadLanding({
             onDrop={onDropFile}
           >
             <div className="dashboard-welcome-copy">
-              <h1>Welcome back, {dashboardFirstName}!</h1>
-              <p>{isDraggingFile ? "Release to open your PDF." : isUploading ? `${uploadStage.status}: ${uploadStage.fileName}` : "Everything you need to work with PDFs—fast, secure, and effortless."}</p>
+              <span className="dashboard-greeting"><Sparkles size={14} /> {dashboardGreeting}, {dashboardFirstName}!</span>
+              <h1>Work smarter with <strong>RealPDF</strong></h1>
+              <p>{isDraggingFile ? "Release to open your PDF." : isUploading ? `${uploadStage.status}: ${uploadStage.fileName}` : "Edit, organize, sign, and collaborate on PDFs in one delightful place."}</p>
               {uploadError && <p className="upload-error">{uploadError}</p>}
+              <div className="dashboard-hero-actions">
+                <button type="button" className="dashboard-hero-upload" onClick={onSelectFiles}><Upload size={17} /> Upload PDF</button>
+                <button type="button" className="dashboard-hero-ai" onClick={() => setWorkspaceNotice("AI PDF tools are ready for the next workspace release.")}><Sparkles size={17} /> Explore AI Tools</button>
+              </div>
             </div>
-            <div className="reference-action-grid">
-              {quickActions.map(({ label, detail, icon: Icon, tone, badge, action }) => (
-                <button key={label} type="button" className="reference-action-card" onClick={action}>
-                  <span className={`reference-action-icon tone-${tone}`}><Icon size={20} /></span>
-                  <span className="reference-action-copy"><strong>{label} {badge && <em>{badge}</em>}</strong><small>{detail}</small></span>
-                </button>
-              ))}
+            <div className="dashboard-hero-visual" aria-hidden="true">
+              <img src={`${import.meta.env.BASE_URL}dashboard-pdf-hero.jpg`} alt="" />
             </div>
           </section>
 
@@ -4843,9 +4843,9 @@ function UploadLanding({
             <button type="button" className="invite-button" onClick={() => setOpenPanel(openPanel === "invite" ? null : "invite")}><Users size={18} /> Invite members</button>
             <button type="button" className="upgrade-button" onClick={() => setUpgradeModalOpen(true)}>Upgrade plan</button>
             <button type="button" className="top-icon dashboard-notification-button" aria-label="Notifications" onClick={() => setOpenPanel(openPanel === "notifications" ? null : "notifications")}><Bell size={19} /></button>
-            <button type="button" className="top-avatar" onClick={() => setOpenPanel(openPanel === "account" ? null : "account")}><span>{userInitials}</span><i /><strong>{dashboardAccountName}</strong><ChevronDown size={15} /></button>
+            <button type="button" className="top-avatar" aria-haspopup="dialog" aria-expanded={openPanel === "account"} onClick={() => setOpenPanel(openPanel === "account" ? null : "account")}><span>{userInitials}</span><i /><strong>{dashboardAccountName}</strong><ChevronDown size={15} /></button>
             {openPanel && (
-              <div className="workspace-popover">
+              <div className={`workspace-popover ${openPanel === "account" ? "account-menu-popover" : ""}`} role={openPanel === "account" ? "dialog" : undefined} aria-label={openPanel === "account" ? "Account menu" : undefined}>
                 <button type="button" className="popover-close" onClick={closePanel}><X size={16} /></button>
                 {openPanel === "invite" && (
                   <>
@@ -4884,10 +4884,14 @@ function UploadLanding({
                 )}
                 {openPanel === "account" && (
                   <>
-                    <h3>{userName}</h3>
-                    <p>{currentUser?.email || "Signed in workspace"}</p>
-                    <button type="button" className="popover-primary" onClick={() => setActiveSection("Settings")}>Workspace settings</button>
-                    <button type="button" className="popover-secondary" onClick={onLogout}>Sign out</button>
+                    <div className="account-menu-identity">
+                      <span className="account-menu-avatar">{userInitials}</span>
+                      <div><h3>{userName}</h3><p><Mail size={15} /> {currentUser?.email || "Signed in workspace"}</p></div>
+                    </div>
+                    <div className="account-menu-actions">
+                      <button type="button" className="account-menu-settings" onClick={() => { setActiveSection("Settings"); closePanel(); }}><Settings size={18} /><span><strong>Workspace settings</strong><small>Profile, storage, and preferences</small></span><ChevronRight size={17} /></button>
+                      <button type="button" className="account-menu-signout" onClick={onLogout}><LogOut size={18} /><span>Sign out</span></button>
+                    </div>
                   </>
                 )}
               </div>

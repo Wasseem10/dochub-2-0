@@ -1,61 +1,63 @@
 **Source visual truth**
 
-- `/tmp/dochub-2-0-publish/pdf-editor/design-evidence/dashboard-user-data-refinement/source-reference.png`
-- User requirements: remove the decorative document artwork, use baby blue instead of red, increase the dashboard scale, show only the signed-in user's real activity, and improve left-navigation typography.
+- Account menu: `/tmp/dochub-2-0-profile-hero/pdf-editor/design-evidence/profile-and-hero-refinement/account-menu-reference.png`
+- Welcome banner: `/tmp/dochub-2-0-profile-hero/pdf-editor/design-evidence/profile-and-hero-refinement/banner-reference.png`
+- Supplied banner artwork: `/tmp/dochub-2-0-profile-hero/pdf-editor/design-evidence/profile-and-hero-refinement/banner-art-reference.png`
 
 **Implementation evidence**
 
-- `/tmp/dochub-2-0-publish/pdf-editor/design-evidence/dashboard-user-data-refinement/dashboard-final.png`
-- Focused before/after: `/tmp/dochub-2-0-publish/pdf-editor/design-evidence/dashboard-user-data-refinement/icon-removal-comparison.png`
+- Dashboard: `/tmp/dochub-2-0-profile-hero/pdf-editor/design-evidence/profile-and-hero-refinement/dashboard-banner-final.png`
+- Account menu open: `/tmp/dochub-2-0-profile-hero/pdf-editor/design-evidence/profile-and-hero-refinement/account-menu-final.png`
+- Combined comparison: `/tmp/dochub-2-0-profile-hero/pdf-editor/design-evidence/profile-and-hero-refinement/source-vs-final.png`
 
 **Viewport and state**
 
 - Browser-rendered viewport: 1280 × 720.
 - Route: `?view=dashboard`.
-- State: dashboard Home selected, no popover open, search empty, locally stored documents available. The local development session is logged out, so the account name uses the intentional `there` / `Account` fallback; signed-in sessions use the authenticated user's name and UID-scoped records.
+- States: dashboard Home with banner visible; account menu open; Workspace settings destination; AI action success notice.
+- Local development is logged out, so the menu uses the intentional `Workspace owner` / `Signed in workspace` fallback. Authenticated sessions render the actual name and email.
 
 **Full-view comparison evidence**
 
-- The dashboard is visibly larger than the prior compact pass: the rail, header, hero, quick actions, KPI cards, document rows, and right rail all use more comfortable dimensions.
-- The red brand and selection treatments were replaced with baby-blue accents across the logo, active rail item, primary actions, storage progress, premium card, and supporting surfaces.
-- The decorative document/PDF artwork shown in the source crop is absent. The resulting hero keeps the welcome copy and functional quick actions without a replacement illustration.
-- The left rail uses DM Sans with explicit 600-weight navigation labels and consistent sizing, line height, and icon alignment.
+- The welcome surface now matches the reference anatomy: greeting, strong “Work smarter with RealPDF” heading, one-line supporting copy, primary Upload PDF action, secondary Explore AI Tools action, and a large right-side illustration.
+- The supplied illustration is used as a real optimized raster asset. It is sharply rendered, correctly cropped to the banner slot, and preserves the source’s document, PDF badge, clouds, and pen.
+- The account menu preserves the reference’s name/email/settings/sign-out content while improving scan order with an avatar, grouped identity header, divider, icon-led settings row, and clearly separate sign-out action.
+- Both additions stay inside the established baby-blue dashboard system rather than reintroducing red UI controls.
 
-**Data integrity and copy**
+**Focused region comparison evidence**
 
-- KPI values are calculated from saved user documents, annotations, byte totals, and seven-day update timestamps.
-- Recent, starred, shared, and activity sections are derived from actual document records. Empty states appear when a signed-in account has no matching records.
-- The hard-coded document rows, activity entries, owner name, storage values, notification count, and fallback dashboard totals were removed.
-- Cloud and local dashboard records are filtered by `ownerUid` for authenticated accounts; unowned legacy records are not silently attributed to a signed-in user.
+- Banner: `source-vs-final.png` shows equivalent left-copy/right-art proportions, functional two-button hierarchy, comparable type scale, and a clean 16px card radius. The implementation intentionally uses baby blue for the RealPDF wordmark and primary button to respect the current product palette.
+- Account menu: `source-vs-final.png` shows the same compact floating-card state and all requested content. The implementation reduces the oversized reference buttons, adds descriptive settings copy, and maintains practical 44–64px action heights.
 
 **Required fidelity surfaces**
 
-- Fonts and typography: DM Sans is explicitly applied to the rail and dashboard hierarchy; left-side labels no longer inherit inconsistent fallbacks or undersized compact values.
-- Spacing and layout: the desktop composition preserves the reference information architecture while intentionally increasing component scale per the user's latest direction. Sections remain aligned and unclipped horizontally at 1280px.
-- Colors and tokens: baby blue is the primary accent, with purple, amber, green, and neutral tokens retained for semantic differentiation. Text and interactive surfaces maintain readable contrast.
-- Image quality and asset fidelity: no new bitmap or CSS illustration was introduced. The mismatched decorative icon cluster was removed as requested.
-- Icons: visible controls use the installed Lucide family with consistent stroke weight and alignment. The removed hero icon cluster has no substitute.
-- States and interactions: Recent, Starred, and Shared tabs render real records or explicit empty states; opening a recent document enters the editor; browser Back returns editor → dashboard rather than leaving the site.
-- Accessibility: primary navigation and actions remain semantic controls, selected states are visible beyond color, inputs retain labels, focus behavior is preserved, and mobile/compact breakpoints remain defined.
+- Fonts and typography: Funnel Display carries the banner heading and identity name; DM Sans carries UI copy and actions. Weight, line height, and truncation rules are explicit, and the account email cannot collide with the close button.
+- Spacing and layout rhythm: banner copy and artwork share a stable two-column grid; account identity and actions use consistent 9–16px spacing, a single divider, and restrained elevation.
+- Colors and tokens: baby-blue dashboard tokens drive the primary CTA, brand emphasis, avatar, settings surface, focus-adjacent borders, and hover states. The supplied pastel illustration retains its original pink/purple art direction as requested.
+- Image quality and asset fidelity: `dashboard-pdf-hero.jpg` is a 1400 × 676 optimized version of the supplied 1909 × 922 artwork. It loads from the configured runtime public path, uses `object-fit: cover`, and reports its full natural dimensions in the browser.
+- Copy and content: greeting changes by local time and uses the actual authenticated first name when available. Upload, AI tools, workspace settings, and sign-out labels are direct and coherent.
+- Icons: all UI icons come from the installed Lucide set; no handcrafted SVG, CSS illustration, emoji, or placeholder image is used.
+- Accessibility: the account trigger exposes expanded state and dialog semantics; buttons remain semantic; decorative artwork has empty alt text; the menu close action is explicit; action heights remain practical.
+- Viewport resilience: at 1280px there is no horizontal page overflow. Existing compact, tablet, and mobile rules now convert the banner from a two-column layout to a stacked art panel at 520px.
 
 **Primary interactions tested**
 
-- Recent → Starred → Shared document tabs, including the real empty state for Shared.
-- Open the first actual recent document into the PDF editor.
-- Browser Back returns from the editor to the dashboard.
-- Fake notification count absent.
-- Zoom control remains present in the editor.
-- Browser console checked with no application errors.
+- Open account menu from the account trigger.
+- Workspace settings changes to Settings and closes the menu.
+- Account close button remains visible and reachable.
+- Explore AI Tools produces a visible workspace notice.
+- Banner illustration loads successfully at 1400 × 676 natural dimensions.
+- Browser console checked: no application errors.
 
 **Comparison history**
 
-- Pass 1 finding: the dashboard matched the earlier reference but felt too compressed at 1280px, retained red accents and decorative hero artwork, and mixed real local actions with fabricated display data.
-- Fixes made: increased breakpoint sizing, changed primary color tokens and surfaces to baby blue, removed the hero artwork, strengthened rail typography, replaced placeholder rows/activity/KPIs with document-derived values, and scoped authenticated records by UID.
-- Post-fix evidence: `dashboard-final.png` and `icon-removal-comparison.png` show the enlarged baby-blue dashboard and complete artwork removal.
+- Pass 1 finding: [P1] the illustration returned the app shell instead of the image because the project’s Vite `publicDir` is `runtime-public`, leaving the banner’s right half blank with a broken-image icon.
+- Fix made: moved the optimized illustration into `runtime-public`, restarted the preview, and recaptured the same 1280 × 720 state.
+- Post-fix evidence: `dashboard-banner-final.png`, `account-menu-final.png`, and `source-vs-final.png` show the complete illustration and polished account menu.
 
 **Findings**
 
-- No actionable P0/P1/P2 visual, data-integrity, or interaction issues remain for the requested refinement.
+- No actionable P0/P1/P2 visual, interaction, asset, or accessibility issues remain for the requested desktop states.
 
 **Open Questions**
 
@@ -63,12 +65,12 @@
 
 **Implementation Checklist**
 
-- [x] Increase dashboard scale.
-- [x] Replace red accents with baby blue.
-- [x] Remove the decorative document icon cluster.
-- [x] Correct left-navigation font treatment.
-- [x] Remove fabricated dashboard rows, activity, counts, and notification data.
-- [x] Scope authenticated dashboard data to the current user's UID.
-- [x] Verify build, dashboard tabs, document open, editor Back behavior, and browser console.
+- [x] Replace the welcome panel with the supplied banner composition.
+- [x] Use the supplied PDF artwork as a real optimized asset.
+- [x] Keep Upload PDF and Explore AI Tools functional.
+- [x] Redesign the account menu around identity and clear actions.
+- [x] Close the account menu after entering Workspace settings.
+- [x] Preserve baby-blue dashboard styling and current-user data behavior.
+- [x] Verify build, visual states, interactions, asset loading, overflow, and console.
 
 final result: passed
