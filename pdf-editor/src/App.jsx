@@ -84,7 +84,10 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
 
 const BASE_PAGE_WIDTH = 760;
 const BASE_PAGE_HEIGHT = 984;
-const EDITOR_PAGE_SCALE = 0.74;
+// Calibrate the editor so 100% feels like a true document-working size rather
+// than a fit-to-window preview. Zoom math and annotation coordinates continue
+// to use this shared scale, keeping edits aligned with the rendered PDF.
+const EDITOR_PAGE_SCALE = 0.88;
 const TEXT_SCREEN_SCALE = 1 / EDITOR_PAGE_SCALE;
 const STORAGE_KEY = "paperflow.documents.v1";
 const APP_SCREEN_KEY = "paperflow.lastScreen.v1";
