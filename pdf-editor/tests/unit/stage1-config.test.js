@@ -7,7 +7,8 @@ import worker from "../../worker/index.js";
 describe("Stage 1 production configuration", () => {
   it("uses one explicit runtime asset directory", () => {
     expect(viteConfig.publicDir).toBe("runtime-public");
-    expect(viteConfig.base).toBe("/");
+    const expectedBase = process.env.GITHUB_ACTIONS === "true" ? "/dochub-2-0/" : "/";
+    expect(viteConfig.base).toBe(expectedBase);
   });
 
   it("contains the required hosting and worker files", async () => {
