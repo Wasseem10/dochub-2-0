@@ -1,8 +1,10 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
+const githubPagesBase = process.env.GITHUB_ACTIONS === "true" ? "/dochub-2-0/" : "/";
+
 export default defineConfig({
-  base: "/",
+  base: githubPagesBase,
   plugins: [react()],
   publicDir: "runtime-public",
   envPrefix: "VITE_",
