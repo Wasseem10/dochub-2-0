@@ -1,0 +1,181 @@
+.public-route-shell,
+.app-route-layout,
+.auth-route-layout {
+  min-height: 100vh;
+}
+
+.public-route-shell {
+  background: #f8fbff;
+  color: #17233a;
+}
+
+.public-route-header,
+.public-route-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 20px clamp(24px, 6vw, 92px);
+  border-bottom: 1px solid #dce7f3;
+  background: rgba(255, 255, 255, 0.94);
+}
+
+.public-route-header nav,
+.route-state-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.public-route-header a,
+.public-route-footer a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.public-route-brand {
+  font-size: 1.25rem;
+  font-weight: 850;
+}
+
+.public-route-footer {
+  border-top: 1px solid #dce7f3;
+  border-bottom: 0;
+  color: #5f6f86;
+}
+
+.route-state-page {
+  min-height: calc(100vh - 145px);
+  display: grid;
+  place-items: center;
+  padding: 56px 24px;
+  background: linear-gradient(145deg, #f3f9ff 0%, #ffffff 52%, #eef8ff 100%);
+}
+
+.route-state-card {
+  width: min(680px, 100%);
+  padding: clamp(30px, 5vw, 56px);
+  border: 1px solid #d9e6f2;
+  border-radius: 28px;
+  background: #fff;
+  box-shadow: 0 24px 70px rgba(34, 86, 130, 0.12);
+}
+
+.route-state-card h1 {
+  margin: 18px 0 12px;
+  font-size: clamp(2rem, 5vw, 3.4rem);
+  line-height: 1.03;
+}
+
+.route-state-card p {
+  margin: 0 0 26px;
+  color: #627089;
+  font-size: 1.05rem;
+  line-height: 1.65;
+}
+
+.route-status-pill {
+  display: inline-flex;
+  padding: 8px 13px;
+  border-radius: 999px;
+  background: #dff4ff;
+  color: #17617f;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.route-state-actions a,
+.route-state-actions button {
+  display: inline-flex;
+  padding: 12px 18px;
+  border: 0;
+  border-radius: 12px;
+  background: #1e88d8;
+  color: #fff;
+  font-weight: 750;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.route-state-actions a.is-secondary {
+  border: 1px solid #cfddeb;
+  background: #fff;
+  color: #26364d;
+}
+
+.route-error-detail {
+  overflow: auto;
+  padding: 14px;
+  border-radius: 12px;
+  background: #f5f7fa;
+  color: #7b3543;
+  white-space: pre-wrap;
+}
+
+/* Dashboard navigation is now made of real routes instead of stateful buttons. */
+.lumin-home .upload-nav a {
+  display: grid;
+  grid-template-columns: 1fr;
+  justify-items: center;
+  align-items: center;
+  width: 98px;
+  min-width: 0;
+  min-height: 70px;
+  box-sizing: border-box;
+  gap: 7px;
+  padding: 8px 6px;
+  overflow: hidden;
+  border-radius: 14px;
+  color: #576372;
+  font-size: 13px;
+  font-weight: 780;
+  line-height: 1.12;
+  text-align: center;
+  text-decoration: none;
+  transition: background 160ms ease, color 160ms ease, transform 160ms ease;
+}
+
+.lumin-home .upload-nav a:hover {
+  background: rgba(255, 255, 255, 0.78);
+  color: #202b38;
+}
+
+.lumin-home .upload-nav a.is-active {
+  background: #eef9ff;
+  color: #1d384a;
+  box-shadow: inset 0 0 0 1px #d8eef8;
+}
+
+.lumin-home .upload-nav a span {
+  display: block;
+  width: 100%;
+  max-width: 90px;
+  overflow: hidden;
+  color: inherit;
+}
+
+.lumin-home .upload-nav a:last-child {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid #e2e8ef;
+}
+
+@media (max-width: 700px) {
+  .public-route-header,
+  .public-route-footer {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .lumin-home .upload-nav a {
+    min-width: 42px;
+    min-height: 38px;
+  }
+
+  .lumin-home .upload-nav a span {
+    display: none;
+  }
+}

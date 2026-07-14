@@ -1,0 +1,101 @@
+import { createBrowserRouter, RouterProvider, useParams } from "react-router-dom";
+import { AppLayout } from "../layouts/AppLayout.jsx";
+import { AuthLayout } from "../layouts/AuthLayout.jsx";
+import { PublicLayout } from "../layouts/PublicLayout.jsx";
+import { NotFoundPage } from "../pages/errors/NotFoundPage.jsx";
+import { PublicPlaceholderPage } from "../pages/public/PublicPlaceholderPage.jsx";
+import { ToolDirectoryPage } from "../pages/public/ToolDirectoryPage.jsx";
+import { ToolLandingPage } from "../pages/public/ToolLandingPage.jsx";
+import { WorkflowUnavailablePage } from "../pages/public/WorkflowUnavailablePage.jsx";
+import { TOOL_REGISTRY } from "../tools/toolRegistry.js";
+import { LazyAppContent, LazyAuthRouteProvider, LazyPublicAppRoute } from "./LazyAppRoute.jsx";
+import { ProtectedRoute } from "./ProtectedRoute.jsx";
+import { PublicOnlyRoute } from "./PublicOnlyRoute.jsx";
+import { RouteErrorBoundary } from "./RouteErrorBoundary.jsx";
+import { APP_ROUTE_SECTIONS, PUBLIC_PLACEHOLDER_ROUTES } from "./routes.js";
+import { ROUTE_PATHS } from "./routePaths.js";
+
+export function EditorRoute() {
+  const { documentId } = useParams();
+  return <LazyAppContent view="editor" documentId={documentId} />;
+}
+
+const publicPlaceholderRouteObjects = PUBLIC_PLACEHOLDER_ROUTES.map((route) => ({
+  path: route.path,
+  element: <PublicPlaceholderPage {...route} />,
+}));
+
+const toolRouteObjects = TOOL_REGISTRY
+  .filter((tool) => tool.route !== ROUTE_PATHS.editPdf)
+  .map((tool) => ({ path: tool.route, element: <ToolLandingPage tool={tool} /> }));
+
+const appScreenRouteObjects = Object.entries(APP_ROUTE_SECTIONS).map(([path, appSection]) => ({
+  path,
+  element: <LazyAppContent view="dashboard" appSection={appSection} />,
+}));
+
+export const appRouteObjects = [
+  {
+    errorElement: <RouteErrorBoundary />,
+    children: [
+      {
+        element: <PublicLayout />,
+        children: [
+          { path: ROUTE_PATHS.home, element: <LazyPublicAppRoute view="landing" /> },
+          { path: ROUTE_PATHS.editPdf, element: <LazyPublicAppRoute view="landing" publicTool="edit-pdf" /> },
+          { path: ROUTE_PATHS.tools, element: <ToolDirectoryPage /> },
+          ...publicPlaceholderRouteObjects,
+          ...toolRouteObjects,
+        ],
+      },
+      {
+        element: <LazyAuthRouteProvider />,
+        children: [
+          {
+            element: <PublicOnlyRoute />,
+            children: [
+              {
+                element: <AuthLayout />,
+                children: [
+                  { path: ROUTE_PATHS.login, element: <LazyAppContent view="auth" authMode="login" /> },
+                  { path: ROUTE_PATHS.signup, element: <LazyAppContent view="auth" authMode="signup" /> },
+                ],
+              },
+            ],
+          },
+          {
+            element: <AuthLayout />,
+            children: [
+              { path: ROUTE_PATHS.forgotPassword, element: <LazyAppContent view="auth" authMode="forgot-password" /> },
+            ],
+          },
+          {
+            element: <ProtectedRoute />,
+            children: [
+              {
+                element: <AppLayout />,
+                children: [
+                  ...appScreenRouteObjects,
+                  { path: ROUTE_PATHS.editorPattern, element: <EditorRoute /> },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+      { path: ROUTE_PATHS.sharePattern, element: <WorkflowUnavailablePage kind="share" /> },
+      { path: ROUTE_PATHS.signPattern, element: <WorkflowUnavailablePage kind="signing" /> },
+      { path: "*", element: <NotFoundPage /> },
+    ],
+  },
+];
+
+export function createRealPdfRouter() {
+  return createBrowserRouter(appRouteObjects);
+}
+
+const browserRouter = createRealPdfRouter();
+
+export function AppRouter() {
+  return <RouterProvider router={browserRouter} />;
+}

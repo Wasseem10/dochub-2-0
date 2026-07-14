@@ -77,6 +77,9 @@
 .lpdf-mega-grid aside > strong { font-size: 16px; }
 .lpdf-mega-grid aside p { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.45; }
 .lpdf-mega-grid aside button { display: inline-flex; align-items: center; gap: 6px; width: max-content; margin-top: 4px; padding: 0; border: 0; background: transparent; color: var(--green); font-size: 13px; font-weight: 700; cursor: pointer; }
+.lpdf-mega-grid.is-tools-menu { grid-template-columns: repeat(4,minmax(0,1fr)) 240px; gap: 18px; }
+.lpdf-mega-all-tools { display: inline-flex; align-items: center; gap: 6px; width: max-content; margin-top: 4px; color: var(--green); font-size: 13px; font-weight: 700; text-decoration: none; }
+.lpdf-mega-all-tools svg { transform: rotate(-90deg); }
 .lpdf-mega-grid aside button svg, .lpdf-pill svg:last-child { transform: rotate(-90deg); }
 .lpdf-mobile-nav { display: none; }
 
@@ -201,7 +204,7 @@
 .lpdf-outro > div:last-child { display: flex; justify-content: center; flex-wrap: wrap; gap: 12px; margin-top: 30px; }
 
 .lpdf-footer { padding: 78px max(24px,calc((100vw - 1242px)/2)) 34px; background: #fff; }
-.lpdf-footer-grid { display: grid; grid-template-columns: repeat(5,minmax(0,1fr)); gap: 32px; padding-bottom: 58px; }
+.lpdf-footer-grid { display: grid; grid-template-columns: repeat(6,minmax(0,1fr)); gap: 32px; padding-bottom: 58px; }
 .lpdf-footer-grid section { display: grid; align-content: start; gap: 6px; }
 .lpdf-footer-grid a, .lpdf-footer-grid button { width: max-content; max-width: 100%; padding: 4px 0; border: 0; background: transparent; color: var(--body); font-size: 14px; text-decoration: none; cursor: pointer; }
 .lpdf-footer-grid a:hover, .lpdf-footer-grid button:hover { color: var(--green); }
