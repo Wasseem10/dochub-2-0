@@ -4,12 +4,14 @@ import { after, before, test } from "node:test";
 
 const port = 4183;
 const origin = `http://127.0.0.1:${port}`;
+const basePath = process.env.GITHUB_ACTIONS === "true" ? "/dochub-2-0" : "";
+const previewUrl = (path) => `${origin}${basePath}${path}`;
 let preview;
 
 async function waitForPreview() {
   for (let attempt = 0; attempt < 40; attempt += 1) {
     try {
-      const response = await fetch(origin);
+      const response = await fetch(previewUrl("/"));
       if (response.ok) return;
     } catch {
       // The preview process is still starting.
@@ -77,7 +79,7 @@ const directRoutes = [
 
 for (const path of directRoutes) {
   test(`production preview serves ${path} through the SPA fallback`, async () => {
-    const response = await fetch(`${origin}${path}`, { headers: { accept: "text/html" } });
+    const response = await fetch(previewUrl(path), { headers: { accept: "text/html" } });
     const html = await response.text();
     assert.equal(response.status, 200);
     assert.match(html, /<title>RealPDF/);
