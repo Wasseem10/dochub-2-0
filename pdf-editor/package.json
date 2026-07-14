@@ -5,8 +5,12 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host 127.0.0.1",
-    "build": "vite build && node scripts/prepare-sites-build.mjs",
-    "preview": "vite preview --host 127.0.0.1"
+    "build": "node scripts/generate-tool-sitemap.mjs && vite build && node scripts/prepare-sites-build.mjs",
+    "preview": "vite preview --host 127.0.0.1",
+    "lint": "eslint .",
+    "typecheck": "tsc --project jsconfig.json --noEmit",
+    "test": "vitest run",
+    "test:e2e": "npm run build && node --test tests/e2e/*.test.mjs"
   },
   "dependencies": {
     "@vitejs/plugin-react": "5.0.4",
@@ -16,6 +20,17 @@
     "pdfjs-dist": "^6.1.200",
     "react": "19.2.0",
     "react-dom": "19.2.0",
+    "react-router-dom": "^7.18.1",
     "vite": "^6.4.3"
+  },
+  "devDependencies": {
+    "@eslint/js": "9.17.0",
+    "@types/node": "^24.10.1",
+    "eslint": "9.17.0",
+    "eslint-plugin-react-hooks": "5.1.0",
+    "globals": "15.14.0",
+    "react-test-renderer": "^19.2.0",
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.4"
   }
 }

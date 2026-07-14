@@ -1,15 +1,15 @@
 import React from "react";
 import { createRoot } from "react-dom/client";
-import { App } from "./App.jsx";
+import { AppRouter } from "./router/AppRouter.jsx";
 import "./styles.css";
 import "./editor-overrides.css";
 import "./landing-redesign.css";
 import "./lattice-pdf.css";
-import "./dashboard-redesign.css";
-import "./editor-quality.css";
+import "./route-shells.css";
+import "./tool-platform.css";
 
 createRoot(document.getElementById("root")).render(
   <React.StrictMode>
-    <App />
+    <AppRouter />
   </React.StrictMode>,
 );

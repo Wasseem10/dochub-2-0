@@ -3,14 +3,6 @@ import ArrowDownToLine from "lucide-react/dist/esm/icons/arrow-down-to-line.mjs"
 import AlignCenter from "lucide-react/dist/esm/icons/align-center.mjs";
 import AlignLeft from "lucide-react/dist/esm/icons/align-left.mjs";
 import AlignRight from "lucide-react/dist/esm/icons/align-right.mjs";
-import Activity from "lucide-react/dist/esm/icons/activity.mjs";
-import ChartNoAxesColumnIncreasing from "lucide-react/dist/esm/icons/chart-no-axes-column-increasing.mjs";
-import CreditCard from "lucide-react/dist/esm/icons/credit-card.mjs";
-import Crown from "lucide-react/dist/esm/icons/crown.mjs";
-import HardDrive from "lucide-react/dist/esm/icons/hard-drive.mjs";
-import Lightbulb from "lucide-react/dist/esm/icons/lightbulb.mjs";
-import Plug from "lucide-react/dist/esm/icons/plug.mjs";
-import Sparkles from "lucide-react/dist/esm/icons/sparkles.mjs";
 import Bell from "lucide-react/dist/esm/icons/bell.mjs";
 import Box from "lucide-react/dist/esm/icons/box.mjs";
 import Building2 from "lucide-react/dist/esm/icons/building-2.mjs";
@@ -18,10 +10,6 @@ import CalendarDays from "lucide-react/dist/esm/icons/calendar-days.mjs";
 import CheckCircle2 from "lucide-react/dist/esm/icons/check-circle-2.mjs";
 import CheckSquare from "lucide-react/dist/esm/icons/check-square.mjs";
 import ChevronDown from "lucide-react/dist/esm/icons/chevron-down.mjs";
-import ChevronLeft from "lucide-react/dist/esm/icons/chevron-left.mjs";
-import ChevronRight from "lucide-react/dist/esm/icons/chevron-right.mjs";
-import ChevronsLeft from "lucide-react/dist/esm/icons/chevrons-left.mjs";
-import ChevronsRight from "lucide-react/dist/esm/icons/chevrons-right.mjs";
 import CircleHelp from "lucide-react/dist/esm/icons/circle-help.mjs";
 import Copy from "lucide-react/dist/esm/icons/copy.mjs";
 import Download from "lucide-react/dist/esm/icons/download.mjs";
@@ -54,8 +42,6 @@ import Settings from "lucide-react/dist/esm/icons/settings.mjs";
 import Share2 from "lucide-react/dist/esm/icons/share-2.mjs";
 import Link from "lucide-react/dist/esm/icons/link.mjs";
 import Lock from "lucide-react/dist/esm/icons/lock.mjs";
-import LogOut from "lucide-react/dist/esm/icons/log-out.mjs";
-import Mail from "lucide-react/dist/esm/icons/mail.mjs";
 import Circle from "lucide-react/dist/esm/icons/circle.mjs";
 import Minus from "lucide-react/dist/esm/icons/minus.mjs";
 import Move from "lucide-react/dist/esm/icons/move.mjs";
@@ -73,19 +59,15 @@ import Zap from "lucide-react/dist/esm/icons/zap.mjs";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import * as pdfjsLib from "pdfjs-dist";
 import "pdfjs-dist/build/pdf.worker.mjs";
-import {
-  createUserWithEmailAndPassword,
-  onAuthStateChanged,
-  sendPasswordResetEmail,
-  signInWithEmailAndPassword,
-  signInWithPopup,
-  signOut,
-  updateProfile,
-} from "firebase/auth";
+import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { collection, deleteDoc, doc, getDocs, setDoc } from "firebase/firestore";
 import { deleteObject, getDownloadURL, ref as storageReference, uploadString } from "firebase/storage";
-import { auth, db, googleProvider, isCloudPersistenceConfigured, isFirebaseConfigured, storage } from "./firebase";
+import { db, isCloudPersistenceConfigured, storage } from "./firebase";
+import { useAuth } from "./auth/AuthContext.jsx";
 import { LatticePdfLanding } from "./LatticePdfLanding.jsx";
+import { EditorRouteStatePage } from "./pages/app/EditorRouteStatePage.jsx";
+import { resolveEditorDocument } from "./router/editorRouteState.js";
+import { editorPath, ROUTE_PATHS } from "./router/routePaths.js";
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
   "pdfjs-dist/build/pdf.worker.mjs",
@@ -94,13 +76,9 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
 
 const BASE_PAGE_WIDTH = 760;
 const BASE_PAGE_HEIGHT = 984;
-// Calibrate the editor so 100% feels like a true document-working size rather
-// than a fit-to-window preview. Zoom math and annotation coordinates continue
-// to use this shared scale, keeping edits aligned with the rendered PDF.
-const EDITOR_PAGE_SCALE = 0.88;
+const EDITOR_PAGE_SCALE = 0.74;
 const TEXT_SCREEN_SCALE = 1 / EDITOR_PAGE_SCALE;
 const STORAGE_KEY = "paperflow.documents.v1";
-const APP_SCREEN_KEY = "paperflow.lastScreen.v1";
 const MAX_FILE_BYTES = 8 * 1024 * 1024;
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 const ZOOM_PRESETS = [60, 80, 90, 100, 120, 140, 160];
@@ -197,28 +175,6 @@ function nowIso() {
   return new Date().toISOString();
 }
 
-function mapFirebaseUser(user) {
-  if (!user) return null;
-  const fallbackName = user.email?.split("@")[0] || "Workspace owner";
-  return {
-    uid: user.uid,
-    email: user.email || "",
-    name: user.displayName || fallbackName,
-    photoURL: user.photoURL || "",
-  };
-}
-
-function formatAuthError(error) {
-  const code = error?.code || "";
-  if (code.includes("auth/email-already-in-use")) return "That email already has an account. Log in instead.";
-  if (code.includes("auth/invalid-credential") || code.includes("auth/wrong-password")) return "Email or password is incorrect.";
-  if (code.includes("auth/user-not-found")) return "No account exists for that email.";
-  if (code.includes("auth/weak-password")) return "Use a password with at least 6 characters.";
-  if (code.includes("auth/popup-closed-by-user")) return "Google sign-in was closed before it finished.";
-  if (code.includes("auth/unauthorized-domain")) return "This domain is not authorized in Firebase Authentication settings.";
-  return error?.message || "Authentication failed. Try again.";
-}
-
 function isEditableTarget(target) {
   return Boolean(target?.closest?.("textarea, input, select, [contenteditable], .text-content, .detected-text-content"));
 }
@@ -234,43 +190,27 @@ function formatDateTime(value) {
 }
 
 function formatBytes(bytes = 0) {
-  if (!bytes || bytes <= 0) return "0 KB";
   if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-function safeLoadDocuments() {
+function userDocumentStorageKey(userId) {
+  return `${STORAGE_KEY}:${userId}`;
+}
+
+function safeLoadDocuments(userId) {
+  if (!userId) return [];
   try {
-    const parsed = JSON.parse(window.localStorage.getItem(STORAGE_KEY) || "[]");
+    const parsed = JSON.parse(window.localStorage.getItem(userDocumentStorageKey(userId)) || "[]");
     return Array.isArray(parsed) ? parsed : [];
   } catch {
     return [];
   }
 }
 
-function writeDocuments(documents) {
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(documents));
-}
-
-function safeLoadScreen() {
-  const urlView = new URLSearchParams(window.location.search).get("view");
-  if (urlView === "dashboard") return "upload";
-
-  try {
-    const savedScreen = window.localStorage.getItem(APP_SCREEN_KEY);
-    return savedScreen === "upload" || savedScreen === "editor" ? "upload" : "landing";
-  } catch {
-    return "landing";
-  }
-}
-
-function writeLastScreen(screen) {
-  try {
-    if (screen === "auth") return;
-    window.localStorage.setItem(APP_SCREEN_KEY, screen === "editor" ? "upload" : screen);
-  } catch {
-    // Ignore private browsing or disabled storage; Firebase auth still owns login state.
-  }
+function writeDocuments(userId, documents) {
+  if (!userId) throw new Error("An authenticated user is required to persist documents.");
+  window.localStorage.setItem(userDocumentStorageKey(userId), JSON.stringify(documents));
 }
 
 function cloudDocumentPayloadPath(userId, documentId) {
@@ -281,6 +221,7 @@ function toCloudDocumentMetadata(userId, documentRecord) {
   const payloadPath = cloudDocumentPayloadPath(userId, documentRecord.id);
   return {
     id: documentRecord.id,
+    ownerId: userId,
     name: documentRecord.name || "Untitled document.pdf",
     size: documentRecord.size || 0,
     source: documentRecord.source || "blank",
@@ -288,7 +229,6 @@ function toCloudDocumentMetadata(userId, documentRecord) {
     status: documentRecord.status || "Ready",
     location: documentRecord.location || "My documents",
     favorite: !!documentRecord.favorite,
-    ownerUid: userId,
     uploadedAt: documentRecord.uploadedAt || nowIso(),
     updatedAt: documentRecord.updatedAt || nowIso(),
     payloadPath,
@@ -312,7 +252,6 @@ async function uploadDocumentRecordToCloud(userId, documentRecord) {
   const payloadPath = cloudDocumentPayloadPath(userId, documentRecord.id);
   const payload = JSON.stringify({
     ...documentRecord,
-    ownerUid: userId,
     cloudBacked: true,
     cloudPayloadPath: payloadPath,
   });
@@ -337,7 +276,7 @@ async function loadCloudDocumentRecords(userId) {
   const snapshot = await getDocs(collection(db, "users", userId, "documents"));
   const records = await Promise.all(snapshot.docs.map(async (metadataDoc) => {
     const metadata = metadataDoc.data();
-    if (!metadata?.payloadPath) return { ...metadata, id: metadataDoc.id, ownerUid: userId };
+    if (!metadata?.payloadPath) return { ...metadata, id: metadataDoc.id };
 
     try {
       const payloadUrl = await getDownloadURL(storageReference(storage, metadata.payloadPath));
@@ -347,12 +286,11 @@ async function loadCloudDocumentRecords(userId) {
         ...payload,
         ...metadata,
         id: metadataDoc.id,
-        ownerUid: userId,
         cloudBacked: true,
         cloudPayloadPath: metadata.payloadPath,
       };
     } catch {
-      return { ...metadata, id: metadataDoc.id, ownerUid: userId, cloudBacked: true };
+      return { ...metadata, id: metadataDoc.id, cloudBacked: true };
     }
   }));
   return records;
@@ -1011,7 +949,17 @@ function Annotation({ annotation, selected, zoom, onSelect, onDrag, onResize, on
   );
 }
 
-export function App() {
+export function App({ view = "landing", appSection = "Home", authMode = "login", documentId = "", publicTool = "" }) {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const {
+    authReady,
+    currentUser,
+    isFirebaseConfigured,
+    authenticate,
+    resetPassword,
+    logout: logoutAuth,
+  } = useAuth();
   const fileInputRef = useRef(null);
   const appendFileInputRef = useRef(null);
   const imageInputRef = useRef(null);
@@ -1019,13 +967,9 @@ export function App() {
   const zoomMenuRef = useRef(null);
   const canvasColumnRef = useRef(null);
   const lastPagePointRef = useRef({ x: 0.52, y: 0.28 });
-  const historyInitializedRef = useRef(false);
-  const historyNavigationTargetRef = useRef(null);
-  const [screen, setScreen] = useState(() => safeLoadScreen());
-  const [authMode, setAuthMode] = useState("signup");
-  const [currentUser, setCurrentUser] = useState(null);
-  const [authReady, setAuthReady] = useState(!isFirebaseConfigured);
-  const [documents, setDocuments] = useState(() => safeLoadDocuments());
+  const [documents, setDocuments] = useState([]);
+  const [documentCatalogReady, setDocumentCatalogReady] = useState(!isCloudPersistenceConfigured);
+  const [editorRouteState, setEditorRouteState] = useState("idle");
   const [activeDocumentId, setActiveDocumentId] = useState(null);
   const [pages, setPages] = useState([]);
   const [pdfBytes, setPdfBytes] = useState(null);
@@ -1169,62 +1113,53 @@ export function App() {
   }, [cloudSyncStatus, currentUser?.uid, lastSavedAt, saveState]);
 
   useEffect(() => {
-    if (!auth) {
-      setAuthReady(true);
-      return undefined;
+    if (!currentUser?.uid) {
+      setDocuments([]);
+      setDocumentCatalogReady(true);
+      return;
     }
-
-    return onAuthStateChanged(auth, (user) => {
-      setCurrentUser(mapFirebaseUser(user));
-      setAuthReady(true);
-    });
-  }, []);
-
-  useEffect(() => {
-    writeLastScreen(screen);
-  }, [screen]);
-
-  useEffect(() => {
-    if (!authReady || !currentUser || pages.length || screen !== "landing") return;
-    setScreen("upload");
-  }, [authReady, currentUser, pages.length, screen]);
+    setDocuments(safeLoadDocuments(currentUser.uid));
+    setDocumentCatalogReady(!isCloudPersistenceConfigured);
+  }, [currentUser?.uid]);
 
   useEffect(() => {
     if (!currentUser?.uid) {
       setCloudSyncStatus(isCloudPersistenceConfigured ? "idle" : "local");
+      setDocumentCatalogReady(true);
       return undefined;
     }
 
     if (!isCloudPersistenceConfigured) {
       setCloudSyncStatus("local");
+      setDocumentCatalogReady(true);
       return undefined;
     }
 
     let cancelled = false;
+    setDocumentCatalogReady(false);
     setCloudSyncStatus("syncing");
     loadCloudDocumentRecords(currentUser.uid)
       .then((cloudDocuments) => {
         if (cancelled) return;
-        const localDocuments = safeLoadDocuments();
-        const accountLocalDocuments = localDocuments.filter((documentRecord) => documentRecord.ownerUid === currentUser.uid);
-        const mergedDocuments = mergeDocumentsByUpdatedAt(accountLocalDocuments, cloudDocuments);
+        const localDocuments = safeLoadDocuments(currentUser.uid);
+        const mergedDocuments = mergeDocumentsByUpdatedAt(localDocuments, cloudDocuments);
         if (mergedDocuments.length) {
-          writeDocuments(mergedDocuments);
+          writeDocuments(currentUser.uid, mergedDocuments);
           setDocuments(mergedDocuments);
           if (cloudDocuments.length) {
             showToast(`Loaded ${cloudDocuments.length} cloud document${cloudDocuments.length === 1 ? "" : "s"}.`);
           }
-          if (accountLocalDocuments.length) {
+          if (localDocuments.length) {
             syncDocumentsToCloud([], mergedDocuments);
           }
-        } else {
-          setDocuments([]);
         }
-        if (!accountLocalDocuments.length) setCloudSyncStatus("synced");
+        if (!localDocuments.length) setCloudSyncStatus("synced");
+        setDocumentCatalogReady(true);
       })
       .catch(() => {
         if (cancelled) return;
         setCloudSyncStatus("error");
+        setDocumentCatalogReady(true);
         showToast("Cloud sync is unavailable. Changes are saved locally.");
       });
 
@@ -1261,7 +1196,7 @@ export function App() {
 
   const replaceDocuments = (nextDocuments) => {
     try {
-      writeDocuments(nextDocuments);
+      writeDocuments(currentUser?.uid, nextDocuments);
       setDocuments(nextDocuments);
       syncDocumentsToCloud(documents, nextDocuments);
       return true;
@@ -1273,59 +1208,28 @@ export function App() {
     }
   };
 
-  const openAuth = (mode = "signup") => {
-    setAuthMode(mode);
-    setScreen("auth");
+  const openAuth = (mode = "signup", state = undefined) => {
+    navigate(mode === "login" ? ROUTE_PATHS.login : ROUTE_PATHS.signup, { state });
   };
 
   const completeAuth = async ({ email, password, name, provider }) => {
-    if (!auth) {
-      return { ok: false, error: "Firebase is not configured yet. Add the VITE_FIREBASE_* env vars first." };
+    const result = await authenticate({ mode: authMode, email, password, name, provider });
+    if (result?.ok) {
+      const requested = location.state?.from;
+      const returnTo = requested?.pathname?.startsWith("/app/")
+        ? `${requested.pathname}${requested.search || ""}${requested.hash || ""}`
+        : ROUTE_PATHS.dashboard;
+      navigate(returnTo, { replace: true });
     }
-
-    try {
-      const credential = provider === "google"
-        ? await signInWithPopup(auth, googleProvider)
-        : authMode === "signup"
-          ? await createUserWithEmailAndPassword(auth, email, password)
-          : await signInWithEmailAndPassword(auth, email, password);
-
-      if (authMode === "signup" && provider !== "google" && name?.trim()) {
-        await updateProfile(credential.user, { displayName: name.trim() });
-      }
-
-      setCurrentUser(mapFirebaseUser(auth.currentUser || credential.user));
-      setScreen("upload");
-      return { ok: true };
-    } catch (error) {
-      return { ok: false, error: formatAuthError(error) };
-    }
+    return result;
   };
 
-  const sendAuthPasswordReset = async (email) => {
-    if (!auth) {
-      return { ok: false, error: "Firebase is not configured yet. Add the VITE_FIREBASE_* env vars first." };
-    }
-
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
-      return { ok: false, error: "Enter your email address first." };
-    }
-
-    try {
-      await sendPasswordResetEmail(auth, email.trim());
-      return { ok: true };
-    } catch (error) {
-      return { ok: false, error: formatAuthError(error) };
-    }
-  };
+  const sendAuthPasswordReset = (email) => resetPassword(email);
 
   const logout = async () => {
-    if (auth) {
-      await signOut(auth);
-    }
-    setCurrentUser(null);
+    await logoutAuth();
     setPages([]);
-    setScreen("landing");
+    navigate(ROUTE_PATHS.home);
     showToast("Signed out.");
   };
 
@@ -1385,7 +1289,6 @@ export function App() {
       ...(activeDocument || {}),
       id: makeId("doc"),
       name: nextName,
-      ownerUid: currentUser?.uid || activeDocument?.ownerUid || null,
       size: activeDocument?.size || 0,
       source: activeDocument?.source || (pdfBytes ? "pdf" : "blank"),
       pageCount: clonedPages.length,
@@ -1630,6 +1533,32 @@ export function App() {
     return "";
   };
 
+  const requireAuthenticationForUpload = () => {
+    if (currentUser) return true;
+    openAuth("login", {
+      from: { pathname: publicTool === "edit-pdf" ? ROUTE_PATHS.editPdf : location.pathname },
+      intent: "upload",
+      notice: "Sign in before choosing a PDF so the document can be stored in your private workspace.",
+    });
+    return false;
+  };
+
+  const selectPdfFile = () => {
+    if (requireAuthenticationForUpload()) fileInputRef.current?.click();
+  };
+
+  const handleLandingDropFiles = (files) => {
+    if (!currentUser) {
+      openAuth("login", {
+        from: { pathname: publicTool === "edit-pdf" ? ROUTE_PATHS.editPdf : location.pathname },
+        intent: "upload",
+        notice: "For privacy, the PDF you dropped was not retained. Sign in, then choose it again from your device.",
+      });
+      return;
+    }
+    onUpload({ target: { files, value: "" } });
+  };
+
   const parsePdfFile = async (file, { startPercent = 18, endPercent = 80, stagePrefix = "Rendering page" } = {}) => {
     const buffer = await file.arrayBuffer();
     const document = await pdfjsLib.getDocument({ data: buffer.slice(0) }).promise;
@@ -1697,8 +1626,8 @@ export function App() {
       const stamp = nowIso();
       const documentRecord = {
         id: makeId("doc"),
+        ownerId: currentUser.uid,
         name: file.name,
-        ownerUid: currentUser?.uid || null,
         size: file.size,
         source: "pdf",
         pageCount: loadedPages.length,
@@ -1725,12 +1654,12 @@ export function App() {
       setSelectedId(null);
       setSelectedDetectedTextId(null);
       setTool(detectedItems.length ? "editText" : "select");
-      setScreen("editor");
       setSaved(true);
       setSaveState("saved");
       setLastSavedAt(stamp);
       setUploadStage({ status: "complete", percent: 100, fileName: file.name });
       showToast(detectedItems.length ? `Smart Edit detected ${detectedItems.length} text item${detectedItems.length === 1 ? "" : "s"}.` : "This looks scanned. OCR is not enabled in this browser build yet.");
+      navigate(editorPath(documentRecord.id));
       window.setTimeout(() => setUploadStage({ status: "idle", percent: 0, fileName: "" }), 900);
     } catch {
       setUploadError("We could not read that PDF. Try a smaller or unprotected PDF file.");
@@ -1739,6 +1668,10 @@ export function App() {
   };
 
   const onUpload = async (event) => {
+    if (!requireAuthenticationForUpload()) {
+      event.target.value = "";
+      return;
+    }
     await loadPdfFile(event.target.files?.[0]);
     event.target.value = "";
   };
@@ -1833,16 +1766,18 @@ export function App() {
   const onDropFile = async (event) => {
     event.preventDefault();
     setIsDraggingFile(false);
+    if (!requireAuthenticationForUpload()) return;
     await loadPdfFile(event.dataTransfer.files?.[0]);
   };
 
   const startBlankDocument = () => {
+    if (!requireAuthenticationForUpload()) return;
     const stamp = nowIso();
     const blankPages = [{ id: makeId("blank-page"), number: 1, originalIndex: null, width: BASE_PAGE_WIDTH, height: BASE_PAGE_HEIGHT, source: "blank" }];
     const documentRecord = {
       id: makeId("doc"),
+      ownerId: currentUser.uid,
       name: "Untitled blank document.pdf",
-      ownerUid: currentUser?.uid || null,
       size: 0,
       source: "blank",
       pageCount: 1,
@@ -1869,10 +1804,10 @@ export function App() {
     setSelectedId(null);
     setSelectedDetectedTextId(null);
     setTool("text");
-    setScreen("editor");
     setSaved(true);
     setSaveState("saved");
     setLastSavedAt(stamp);
+    navigate(editorPath(documentRecord.id));
   };
 
   const addBlankPage = () => {
@@ -1973,7 +1908,7 @@ export function App() {
     reorderPage(pageIndex, pageIndex + direction);
   };
 
-  const openDocument = async (documentRecord) => {
+  const hydrateDocument = useCallback(async (documentRecord) => {
     setActiveDocumentId(documentRecord.id);
     setPages((documentRecord.pages || []).map((page, index) => ({
       ...page,
@@ -1990,81 +1925,22 @@ export function App() {
     setSelectedId(null);
     setSelectedDetectedTextId(null);
     setTool("select");
-    setScreen("editor");
     setSaved(true);
     setSaveState("saved");
     setLastSavedAt(documentRecord.updatedAt);
+    setEditorRouteState("ready");
+  }, []);
+
+  const openDocument = async (documentRecord) => {
+    if (documentRecord.ownerId && documentRecord.ownerId !== currentUser?.uid) {
+      setEditorRouteState("unauthorized");
+      navigate(editorPath(documentRecord.id));
+      return;
+    }
+    setEditorRouteState("loading");
+    await hydrateDocument(documentRecord);
+    navigate(editorPath(documentRecord.id));
   };
-
-  const appView = pages.length ? "editor" : screen;
-
-  useEffect(() => {
-    const routeForView = (view) => {
-      const basePath = window.location.pathname;
-      if (view === "upload") return `${basePath}?view=dashboard`;
-      if (view === "editor") return `${basePath}?view=editor`;
-      if (view === "auth") return `${basePath}?view=auth`;
-      return basePath;
-    };
-
-    const state = {
-      realPdfView: appView,
-      documentId: appView === "editor" ? activeDocumentId : null,
-    };
-
-    if (!historyInitializedRef.current) {
-      if (appView === "landing") {
-        window.history.replaceState(state, "", routeForView("landing"));
-      } else {
-        window.history.replaceState({ realPdfView: "landing", documentId: null }, "", routeForView("landing"));
-        window.history.pushState(state, "", routeForView(appView));
-      }
-      historyInitializedRef.current = true;
-      return;
-    }
-
-    if (historyNavigationTargetRef.current === appView) {
-      historyNavigationTargetRef.current = null;
-      return;
-    }
-
-    if (window.history.state?.realPdfView !== appView) {
-      window.history.pushState(state, "", routeForView(appView));
-    } else if (appView === "editor" && window.history.state?.documentId !== activeDocumentId) {
-      window.history.replaceState(state, "", routeForView(appView));
-    }
-  }, [activeDocumentId, appView]);
-
-  useEffect(() => {
-    const onPopState = (event) => {
-      const requestedView = event.state?.realPdfView || "landing";
-      historyNavigationTargetRef.current = requestedView;
-
-      if (requestedView === "editor") {
-        const requestedDocument = documents.find((documentRecord) => documentRecord.id === event.state?.documentId)
-          || documents.find((documentRecord) => documentRecord.id === activeDocumentId);
-        if (requestedDocument) {
-          openDocument(requestedDocument);
-          return;
-        }
-        historyNavigationTargetRef.current = "upload";
-        setScreen("upload");
-        return;
-      }
-
-      if (pages.length) saveActiveDocument(true);
-      setPages([]);
-      setPdfBytes(null);
-      setAnnotations([]);
-      setDetectedTextItems([]);
-      setSelectedId(null);
-      setSelectedDetectedTextId(null);
-      setScreen(requestedView === "upload" || requestedView === "auth" ? requestedView : "landing");
-    };
-
-    window.addEventListener("popstate", onPopState);
-    return () => window.removeEventListener("popstate", onPopState);
-  }, [activeDocumentId, annotations, detectedTextItems, documents, fileName, pages, saveState]);
 
   const renameActiveDocument = () => {
     const nextName = window.prompt("Rename document", fileName);
@@ -2099,7 +1975,7 @@ export function App() {
       setPages([]);
       setAnnotations([]);
       setPdfBytes(null);
-      setScreen("upload");
+      navigate(ROUTE_PATHS.documents);
     }
   };
 
@@ -2118,7 +1994,6 @@ export function App() {
       ...documentRecord,
       id: makeId("doc-copy"),
       name: copyName,
-      ownerUid: currentUser?.uid || documentRecord.ownerUid || null,
       favorite: false,
       uploadedAt: stamp,
       updatedAt: stamp,
@@ -2881,28 +2756,44 @@ export function App() {
     }
   };
 
-  if (!authReady) {
-    return (
-      <main className="auth-shell">
-        <section className="auth-card" aria-label="Restoring session">
-          <button type="button" className="auth-mark auth-realpdf-brand" aria-label="Loading RealPDF workspace"><span aria-hidden="true"><FileText size={22} /></span><strong>RealPDF</strong></button>
-          <h2>Opening workspace</h2>
-          <p className="auth-intro">Your document workspace is almost ready.</p>
-          <p className="auth-privacy">Checking your saved sign-in before loading the app.</p>
-        </section>
-      </main>
-    );
-  }
+  useEffect(() => {
+    if (view !== "editor") {
+      setEditorRouteState("idle");
+      return;
+    }
+    if (!documentId) {
+      setEditorRouteState("not-found");
+      return;
+    }
+    if (activeDocumentId === documentId && pages.length) {
+      setEditorRouteState("ready");
+      return;
+    }
 
-  if (!pages.length && screen === "landing") {
+    const resolved = resolveEditorDocument({
+      documentId,
+      documents,
+      userId: currentUser?.uid,
+      catalogReady: documentCatalogReady,
+    });
+    if (resolved.status !== "ready") {
+      setEditorRouteState(resolved.status);
+      return;
+    }
+
+    setEditorRouteState("loading");
+    hydrateDocument(resolved.document).catch(() => setEditorRouteState("error"));
+  }, [activeDocumentId, currentUser?.uid, documentCatalogReady, documentId, documents, hydrateDocument, pages.length, view]);
+
+  if (view === "landing") {
     return (
       <LatticePdfLanding
         fileInputRef={fileInputRef}
         onUpload={onUpload}
         onLogin={() => openAuth("login")}
         onSignup={() => openAuth("signup")}
-        onSelectFiles={() => fileInputRef.current?.click()}
-        onDropFiles={(files) => onUpload({ target: { files, value: "" } })}
+        onSelectFiles={selectPdfFile}
+        onDropFiles={handleLandingDropFiles}
         onBlankPage={startBlankDocument}
         uploadError={uploadError}
         uploadStage={uploadStage}
@@ -2911,33 +2802,35 @@ export function App() {
     );
   }
 
-  if (!pages.length && screen === "auth") {
+  if (view === "auth") {
     return (
       <AuthPage
         mode={authMode}
-        setMode={setAuthMode}
-        onBack={() => setScreen("landing")}
+        setMode={(mode) => navigate(mode === "signup" ? ROUTE_PATHS.signup : mode === "forgot-password" ? ROUTE_PATHS.forgotPassword : ROUTE_PATHS.login, { state: location.state })}
+        onBack={() => navigate(ROUTE_PATHS.home)}
         onComplete={completeAuth}
         onPasswordReset={sendAuthPasswordReset}
         authReady={authReady}
         isFirebaseConfigured={isFirebaseConfigured}
+        routeNotice={location.state?.notice}
       />
     );
   }
 
-  if (!pages.length) {
+  if (view === "dashboard") {
     return (
       <UploadLanding
+        section={appSection}
+        onNavigate={navigate}
         fileInputRef={fileInputRef}
         onUpload={onUpload}
-        onSelectFiles={() => fileInputRef.current?.click()}
+        onSelectFiles={selectPdfFile}
         onDropFile={onDropFile}
         onBlankPage={startBlankDocument}
         uploadError={uploadError}
         uploadStage={uploadStage}
         isDraggingFile={isDraggingFile}
         setIsDraggingFile={setIsDraggingFile}
-        onBackToLanding={() => setScreen("landing")}
         documents={documents}
         onOpenDocument={openDocument}
         onRenameDocument={renameDocument}
@@ -2951,6 +2844,10 @@ export function App() {
         onUpgrade={() => setUpgradeModalOpen(true)}
       />
     );
+  }
+
+  if (view === "editor" && (editorRouteState !== "ready" || !pages.length)) {
+    return <EditorRouteStatePage state={editorRouteState} onBack={() => navigate(ROUTE_PATHS.documents)} />;
   }
 
   return (
@@ -3029,9 +2926,8 @@ export function App() {
               <div className="document-more-menu" role="menu" aria-label="Document actions">
                 <button type="button" role="menuitem" onClick={() => {
                   saveActiveDocument(true);
-                  setPages([]);
-                  setScreen("upload");
                   setIsMoreMenuOpen(false);
+                  navigate(ROUTE_PATHS.dashboard);
                 }}><Home size={16} /> Dashboard</button>
                 <button type="button" role="menuitem" onClick={() => {
                   renameActiveDocument();
@@ -3068,11 +2964,7 @@ export function App() {
           </div>
           <button type="button" className="language-button" onClick={() => showToast("Language set to English.")}>◎ EN</button>
           <button type="button" className="share-button" onClick={() => setShareModalOpen(true)} title="Share"><Share2 size={18} /> Share</button>
-          <button type="button" className="editor-save-button" onClick={() => {
-            saveActiveDocument(true);
-            showToast(currentUser?.uid ? "Saved and queued for cloud sync." : "Saved locally.");
-          }}><Save size={18} /> Save</button>
-          <button type="button" className="editor-download-button" onClick={exportPdf} disabled={isExporting}><Download size={18} /> {isExporting ? "Exporting…" : "Download"}</button>
+          <button type="button" className="upgrade-button editor-upgrade-button" onClick={() => setUpgradeModalOpen(true)}>Upgrade</button>
           <button type="button" className="sign-secure-button" onClick={() => setSignatureModalOpen(true)}><PenLine size={18} /> Sign securely <ChevronDown size={15} /></button>
         </div>
       </header>
@@ -3107,23 +2999,14 @@ export function App() {
           <ScanText size={17} />
           {detectedTextCount ? `${detectedTextCount} original text boxes detected` : "Original text edit works after uploading a text PDF"}
         </div>
-        <div className="editor-mode-hint" role="status">
-          {({
-            select: "Select, move, or resize an item",
-            editText: detectedTextCount ? "Click outlined PDF text to edit it" : "Upload a text-based PDF to edit original text",
-            text: "Click anywhere on the page to add text",
-            draw: "Drag on the page to draw",
-            rectangle: "Drag to add a rectangle",
-            comment: "Click the page to place a comment",
-            image: pendingImage ? "Click the page to place your image" : "Choose an image, then place it on the page",
-            field: "Click the page to add a fillable field",
-            whiteout: "Drag over content to cover it",
-            signature: "Click the page to place your signature",
-          })[tool] || "Choose a tool, then work directly on the page"}
-        </div>
         <div className="ribbon-divider" />
+        <button className="ribbon-tool" type="button" onClick={() => showToast("Auto-fill reads form fields from uploaded PDFs.")} title="Auto-Fill" aria-label="Auto-Fill"><FilePlus2 size={24} /><span>Auto-Fill</span></button>
+        <button className="ribbon-tool" type="button" onClick={() => showToast("Ask AI is ready for document summary prompts.")} title="Ask AI" aria-label="Ask AI"><Zap size={24} /><span>Ask AI</span></button>
         <button className="ribbon-tool" type="button" onClick={() => appendFileInputRef.current?.click()} title="Merge and append file" aria-label="Merge and append file"><Copy size={24} /><span>Merge</span></button>
         <button className="ribbon-tool" type="button" onClick={() => setIsPagesCollapsed(false)} title="Rearrange" aria-label="Rearrange"><Grid2X2 size={24} /><span>Rearrange</span></button>
+        <button className="ribbon-tool" type="button" onClick={addBlankPage} title="Page numbers" aria-label="Page numbers"><FileText size={24} /><span>Page numbers</span></button>
+        <button className="ribbon-tool" type="button" onClick={() => showToast("Conversion tools will use the exported PDF.")} title="Convert" aria-label="Convert"><Redo2 size={24} /><span>Convert</span></button>
+        <button className="ribbon-tool" type="button" onClick={() => showToast("Compression runs when exporting optimized PDFs.")} title="Compress" aria-label="Compress"><Box size={24} /><span>Compress</span></button>
       </section>
 
       <ToolSettingsPanel
@@ -3426,18 +3309,18 @@ export function App() {
           <button type="button" title="Search" className={isSearchOpen ? "is-active" : ""} onClick={() => {
             setIsSearchOpen((value) => !value);
             setIsCommentsOpen(false);
-          }} aria-label="Search document"><Search size={25} /></button>
+          }}><Search size={25} /></button>
           <button type="button" title="Comments" className={isCommentsOpen ? "is-active" : ""} onClick={() => {
             setTool("comment");
             setIsCommentsOpen((value) => !value);
             setIsSearchOpen(false);
-          }} aria-label="Open comments"><MessageSquare size={24} /></button>
+          }}><MessageSquare size={24} /></button>
           <span />
-          <button type="button" title="Download" aria-label="Download PDF" onClick={exportPdf} disabled={isExporting}><Download size={25} /></button>
-          <button type="button" title="Print" aria-label="Print PDF" onClick={() => window.print()}><Printer size={25} /></button>
-          <button type="button" title="Share link" aria-label="Share PDF" onClick={() => setShareModalOpen(true)}><Share2 size={25} /></button>
+          <button type="button" title="Download" onClick={exportPdf}><Download size={25} /></button>
+          <button type="button" title="Print" onClick={() => window.print()}><Printer size={25} /></button>
+          <button type="button" title="Share link" onClick={() => setShareModalOpen(true)}><Share2 size={25} /></button>
           <span />
-          <button type="button" title="Add page" aria-label="Add blank page" onClick={addBlankPage}><Plus size={25} /></button>
+          <button type="button" title="Add page" onClick={addBlankPage}><Plus size={25} /></button>
         </aside>
         {isSearchOpen && (
           <DocumentSearchPanel
@@ -3473,12 +3356,12 @@ export function App() {
           </select>
           <button className="page-nav-zoom" type="button" onClick={() => setZoom((value) => clamp(value + 10, 60, 160))} title="Zoom in" aria-label="Zoom in">+</button>
           <span className="page-nav-divider" aria-hidden="true" />
-          <button type="button" aria-label="First page" title="First page" disabled={pageIndex === 0} onClick={() => setPageIndex(0)}><ChevronsLeft size={17} /></button>
-          <button type="button" aria-label="Previous page" title="Previous page" disabled={pageIndex === 0} onClick={() => setPageIndex((value) => clamp(value - 1, 0, pages.length - 1))}><ChevronLeft size={18} /></button>
-          <input type="number" min="1" max={pages.length} aria-label="Current page" value={pageIndex + 1} onChange={(event) => setPageIndex(clamp(Number(event.target.value) - 1 || 0, 0, pages.length - 1))} />
-          <span className="page-count">of {pages.length}</span>
-          <button type="button" aria-label="Next page" title="Next page" disabled={pageIndex === pages.length - 1} onClick={() => setPageIndex((value) => clamp(value + 1, 0, pages.length - 1))}><ChevronRight size={18} /></button>
-          <button type="button" aria-label="Last page" title="Last page" disabled={pageIndex === pages.length - 1} onClick={() => setPageIndex(pages.length - 1)}><ChevronsRight size={17} /></button>
+          <button type="button" onClick={() => setPageIndex(0)}>‹</button>
+          <input value={pageIndex + 1} onChange={(event) => setPageIndex(clamp(Number(event.target.value) - 1 || 0, 0, pages.length - 1))} />
+          <span>/ {pages.length}</span>
+          <button type="button" onClick={() => setPageIndex((value) => clamp(value - 1, 0, pages.length - 1))}>⌃</button>
+          <button type="button" onClick={() => setPageIndex((value) => clamp(value + 1, 0, pages.length - 1))}>⌄</button>
+          <button type="button" onClick={() => setPageIndex(pages.length - 1)}>›</button>
         </div>
         <div className="status-tools">
           <button type="button" onClick={() => setZoom((value) => clamp(value - 10, 60, 160))}>-</button>
@@ -3777,8 +3660,9 @@ function LandingPage({ fileInputRef, onUpload, onSelectFiles, onLogin }) {
   );
 }
 
-function AuthPage({ mode, setMode, onBack, onComplete, onPasswordReset, authReady, isFirebaseConfigured }) {
+function AuthPage({ mode, setMode, onBack, onComplete, onPasswordReset, authReady, isFirebaseConfigured, routeNotice = "" }) {
   const isSignup = mode === "signup";
+  const isPasswordReset = mode === "forgot-password";
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -3795,6 +3679,15 @@ function AuthPage({ mode, setMode, onBack, onComplete, onPasswordReset, authRead
     }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
       setError("Enter a valid email to continue.");
+      return;
+    }
+    if (isPasswordReset) {
+      setError("");
+      setIsSubmitting(true);
+      const result = await onPasswordReset(email);
+      setIsSubmitting(false);
+      if (result?.ok) setNotice("Password reset email sent.");
+      else setError(result?.error || "Could not send a password reset email.");
       return;
     }
     if (password.length < 6) {
@@ -3821,17 +3714,6 @@ function AuthPage({ mode, setMode, onBack, onComplete, onPasswordReset, authRead
     if (!result?.ok) setError(result?.error || "Google sign-in failed.");
   };
 
-  const requestPasswordReset = async () => {
-    setNotice("");
-    setError("");
-    const result = await onPasswordReset(email);
-    if (result?.ok) {
-      setNotice("Password reset email sent.");
-    } else {
-      setError(result?.error || "Could not send a password reset email.");
-    }
-  };
-
   const switchMode = () => {
     setError("");
     setNotice("");
@@ -3840,21 +3722,26 @@ function AuthPage({ mode, setMode, onBack, onComplete, onPasswordReset, authRead
 
   return (
     <main className="auth-shell">
-      <section className="auth-card" aria-label={isSignup ? "Create account" : "Log in"}>
+      <section className="auth-card" aria-label={isSignup ? "Create account" : isPasswordReset ? "Reset password" : "Log in"}>
         <button type="button" className="auth-back" onClick={onBack}>Back to home</button>
         <button type="button" className="auth-mark auth-realpdf-brand" onClick={onBack} aria-label="RealPDF home"><span aria-hidden="true"><FileText size={22} /></span><strong>RealPDF</strong></button>
-        <h2>{isSignup ? "Create your workspace" : "Welcome back"}</h2>
-        <p className="auth-intro">{isSignup ? "Start editing, signing, and organizing PDFs in one focused place." : "Sign in to continue working with your PDFs."}</p>
+        <h2>{isSignup ? "Create your workspace" : isPasswordReset ? "Reset your password" : "Welcome back"}</h2>
+        <p className="auth-intro">{isSignup ? "Start editing, signing, and organizing PDFs in one focused place." : isPasswordReset ? "Enter your account email and we will send the existing Firebase reset flow." : "Sign in to continue working with your PDFs."}</p>
+        {routeNotice && <div className="auth-notice">{routeNotice}</div>}
         {!isFirebaseConfigured && (
           <div className="auth-error">
             Sign-in is temporarily unavailable while the secure connection is being set up.
           </div>
         )}
-        <button type="button" className="sso-button google-button" onClick={submitGoogleAuth} disabled={!authReady || isSubmitting || !isFirebaseConfigured}>
-          <span aria-hidden="true">G</span>
-          Sign in with Google
-        </button>
-        <div className="auth-divider"><span /> Or continue with <span /></div>
+        {!isPasswordReset && (
+          <>
+            <button type="button" className="sso-button google-button" onClick={submitGoogleAuth} disabled={!authReady || isSubmitting || !isFirebaseConfigured}>
+              <span aria-hidden="true">G</span>
+              Sign in with Google
+            </button>
+            <div className="auth-divider"><span /> Or continue with <span /></div>
+          </>
+        )}
         <form onSubmit={submitAuth}>
           {isSignup && (
             <label>
@@ -3866,23 +3753,25 @@ function AuthPage({ mode, setMode, onBack, onComplete, onPasswordReset, authRead
             Email address
             <input type="email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" placeholder="you@example.com" />
           </label>
-          <label>
-            <span className="auth-label-row">
-              Password
-              {!isSignup && <button type="button" onClick={requestPasswordReset}>Forgot password?</button>}
-            </span>
-            <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete={isSignup ? "new-password" : "current-password"} placeholder={isSignup ? "At least 6 characters" : "Enter your password"} />
-          </label>
+          {!isPasswordReset && (
+            <label>
+              <span className="auth-label-row">
+                Password
+                {!isSignup && <button type="button" onClick={() => setMode("forgot-password")}>Forgot password?</button>}
+              </span>
+              <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete={isSignup ? "new-password" : "current-password"} placeholder={isSignup ? "At least 6 characters" : "Enter your password"} />
+            </label>
+          )}
           {error && <div className="auth-error">{error}</div>}
           {notice && <div className="auth-notice">{notice}</div>}
           <button type="submit" className="auth-submit" disabled={!authReady || isSubmitting || !isFirebaseConfigured}>
-            {isSubmitting ? "Connecting..." : isSignup ? "Create account" : "Sign in with password"}
+            {isSubmitting ? "Connecting..." : isSignup ? "Create account" : isPasswordReset ? "Send reset email" : "Sign in with password"}
           </button>
         </form>
         <p className="auth-privacy">Check our <button type="button">Privacy Notice</button>.</p>
         <div className="auth-switch">
-          <span>{isSignup ? "Already have an account?" : "New to RealPDF?"}</span>
-          <button type="button" onClick={switchMode}>{isSignup ? "Sign in" : "Create an account"}</button>
+          <span>{isSignup ? "Already have an account?" : isPasswordReset ? "Remembered your password?" : "New to RealPDF?"}</span>
+          <button type="button" onClick={isPasswordReset ? () => setMode("login") : switchMode}>{isSignup ? "Sign in" : isPasswordReset ? "Back to login" : "Create an account"}</button>
         </div>
       </section>
     </main>
@@ -4234,6 +4123,8 @@ function ColorControl({ value, onChange }) {
 }
 
 function UploadLanding({
+  section,
+  onNavigate,
   fileInputRef,
   onUpload,
   onSelectFiles,
@@ -4253,14 +4144,24 @@ function UploadLanding({
   onMoveDocument,
   currentUser,
   onLogout,
-  onBackToLanding,
 }) {
-  const [activeSection, setActiveSection] = useState("Home");
+  const activeSection = section || "Home";
+  const sectionPaths = {
+    Home: ROUTE_PATHS.dashboard,
+    Documents: ROUTE_PATHS.documents,
+    Templates: ROUTE_PATHS.appTemplates,
+    Signatures: ROUTE_PATHS.signatures,
+    Settings: ROUTE_PATHS.settings,
+    Trash: ROUTE_PATHS.trash,
+    Shared: ROUTE_PATHS.documents,
+  };
+  const setActiveSection = (nextSection) => onNavigate(sectionPaths[nextSection] || ROUTE_PATHS.dashboard);
   const [searchQuery, setSearchQuery] = useState("");
   const [suggestionView, setSuggestionView] = useState("recent");
   const [openPanel, setOpenPanel] = useState(null);
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteDrafts, setInviteDrafts] = useState([]);
+  const [favoriteTrendingIds, setFavoriteTrendingIds] = useState([]);
   const [workspaceNotice, setWorkspaceNotice] = useState("");
   const [openDocumentMenuId, setOpenDocumentMenuId] = useState(null);
   const [upgradeModalOpen, setUpgradeModalOpen] = useState(false);
@@ -4271,36 +4172,22 @@ function UploadLanding({
     .slice(0, 2)
     .map((part) => part[0]?.toUpperCase())
     .join("") || "U";
-  const dashboardFirstName = currentUser?.name?.trim().split(/\s+/)[0]
-    || currentUser?.email?.split("@")[0]
-    || "there";
-  const dashboardAccountName = currentUser?.name?.trim()
-    || currentUser?.email?.split("@")[0]
-    || "Account";
-  const dashboardHour = new Date().getHours();
-  const dashboardGreeting = dashboardHour < 12
-    ? "Good morning"
-    : dashboardHour < 18
-      ? "Good afternoon"
-      : "Good evening";
 
   const primaryNav = [
-    { label: "Home", icon: Home },
-    { label: "Documents", icon: FileText },
-    { label: "Templates", icon: Grid2X2 },
-    { label: "Agreements", icon: Box },
-    { label: "Signatures", icon: PenLine },
+    { label: "Home", icon: Home, path: ROUTE_PATHS.dashboard },
+    { label: "Documents", icon: FileText, path: ROUTE_PATHS.documents },
+    { label: "Templates", icon: Grid2X2, path: ROUTE_PATHS.appTemplates },
+    { label: "Signatures", icon: PenLine, path: ROUTE_PATHS.signatures },
+    { label: "Settings", icon: Settings, path: ROUTE_PATHS.settings },
+    { label: "Trash", icon: Trash2, path: ROUTE_PATHS.trash },
   ];
 
-  const utilityNav = [
-    { label: "Trash", icon: Trash2 },
-  ];
-
-  const accountNav = [
-    { label: "Settings", icon: Settings },
-    { label: "Billing", icon: CreditCard },
-    { label: "Team", icon: Users },
-    { label: "Integrations", icon: Plug },
+  const quickActions = [
+    { label: "Upload a PDF", icon: Upload, action: onSelectFiles },
+    { label: "Write my agreement", icon: Box, action: () => setActiveSection("Signatures") },
+    { label: "Edit a PDF", icon: FileText, action: onSelectFiles },
+    { label: "Get signatures", icon: PenLine, action: () => setActiveSection("Signatures") },
+    { label: "Find a template", icon: Grid2X2, action: () => setActiveSection("Templates") },
   ];
 
   const templateCards = [
@@ -4318,53 +4205,38 @@ function UploadLanding({
 
   const normalizedQuery = searchQuery.trim().toLowerCase();
   const matchesSearch = (value) => !normalizedQuery || value.toLowerCase().includes(normalizedQuery);
-  const userDocuments = currentUser?.uid
-    ? documents.filter((documentRecord) => documentRecord.ownerUid === currentUser.uid)
-    : documents;
-  const filteredDocuments = userDocuments.filter((documentRecord) => (
+  const filteredDocuments = documents.filter((documentRecord) => (
     matchesSearch(documentRecord.name)
   ));
   const filteredTemplateCards = templateCards.filter(({ title, detail }) => matchesSearch(`${title} ${detail}`));
   const filteredAgreementFlows = agreementFlows.filter(({ title, detail }) => matchesSearch(`${title} ${detail}`));
 
-  const dashboardDocumentPool = suggestionView === "starred"
-    ? filteredDocuments.filter((documentRecord) => documentRecord.favorite)
-    : suggestionView === "shared"
-      ? filteredDocuments.filter((documentRecord) => /shared/i.test(documentRecord.location || ""))
-      : filteredDocuments;
-  const recentDashboardRows = [...dashboardDocumentPool]
-    .sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0))
-    .slice(0, 5);
-  const activityFeed = [...userDocuments]
-    .sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0))
-    .slice(0, 5)
-    .map((documentRecord) => {
-      const annotationCount = documentRecord.annotations?.length || 0;
-      const action = documentRecord.status === "Draft" && annotationCount === 0
-        ? "created"
-        : annotationCount > 0
-          ? "edited"
-          : documentRecord.source === "pdf" ? "uploaded" : "updated";
-      return {
-        id: documentRecord.id,
-        initials: userInitials,
-        tone: "blue",
-        text: `You ${action} ${documentRecord.name}`,
-        date: formatDateTime(documentRecord.updatedAt),
-      };
-    });
-  const popularTemplates = ["NDA Agreement", "Employment Contract", "Invoice Template", "Project Proposal", "Purchase Order"];
-  const totalPages = userDocuments.reduce((total, documentRecord) => total + (documentRecord.pageCount || documentRecord.pages?.length || 1), 0);
-  const signatureCount = userDocuments.reduce((total, documentRecord) => total + (documentRecord.annotations || []).filter((annotation) => annotation.type === "signature" || annotation.type === "initials").length, 0);
-  const storageUsed = userDocuments.reduce((total, documentRecord) => total + (documentRecord.size || 0), 0);
-  const storageLimit = 15 * 1024 * 1024 * 1024;
-  const storagePercentage = Math.min(100, (storageUsed / storageLimit) * 100);
-  const storagePercentageLabel = storagePercentage === 0 ? "0%" : storagePercentage < 1 ? "<1%" : `${Math.round(storagePercentage)}%`;
-  const weekAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
-  const weeklyActivityCount = userDocuments.filter((documentRecord) => new Date(documentRecord.updatedAt || 0).getTime() >= weekAgo).length;
+  const trendingRows = [
+    { id: "trend-nda", name: "Mutual NDA template", location: "Templates", updatedAt: nowIso(), favorite: favoriteTrendingIds.includes("trend-nda") },
+    { id: "trend-sign", name: "Signature request packet", location: "Signatures", updatedAt: nowIso(), favorite: favoriteTrendingIds.includes("trend-sign") },
+    { id: "trend-review", name: "Contract review workspace", location: "Agreements", updatedAt: nowIso(), favorite: favoriteTrendingIds.includes("trend-review") },
+  ].filter((row) => matchesSearch(row.name));
+
+  const demoRecentRows = normalizedQuery ? [] : [{
+    id: "demo-minoria-nda",
+    name: "Minoria_Tech_Intern_NDA_Wasseem_Dabbas",
+    location: "My documents",
+    updatedAt: nowIso(),
+    pageCount: 9,
+    demo: true,
+  }];
+  const visibleRows = suggestionView === "recent" ? (filteredDocuments.length ? filteredDocuments : demoRecentRows) : trendingRows;
+  const totalPages = documents.reduce((total, documentRecord) => total + (documentRecord.pageCount || documentRecord.pages?.length || 1), 0);
+  const favoriteCount = documents.filter((documentRecord) => documentRecord.favorite).length;
+  const storageUsed = documents.reduce((total, documentRecord) => total + (documentRecord.size || 0), 0);
   const isUploading = uploadStage?.status && !["idle", "complete", "error"].includes(uploadStage.status);
 
   const closePanel = () => setOpenPanel(null);
+
+  const toggleTrendingFavorite = (id) => {
+    setFavoriteTrendingIds((items) => (items.includes(id) ? items.filter((item) => item !== id) : [...items, id]));
+    setWorkspaceNotice(favoriteTrendingIds.includes(id) ? "Removed suggestion from favorites." : "Added suggestion to favorites.");
+  };
 
   const createInviteDraft = () => {
     const cleanedEmail = inviteEmail.trim();
@@ -4378,26 +4250,6 @@ function UploadLanding({
   };
 
   const closeDocumentMenu = () => setOpenDocumentMenuId(null);
-
-  const documentLink = (documentRecord) => {
-    const origin = window.location.origin || "http://127.0.0.1:5173";
-    const slug = documentRecord.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") || "document";
-    return `${origin}/share/${slug}?doc=${encodeURIComponent(documentRecord.id)}`;
-  };
-
-  const copyDocumentLink = async (documentRecord, label = "Link copied.") => {
-    try {
-      await navigator.clipboard.writeText(documentLink(documentRecord));
-    } catch {
-      const input = window.document.createElement("input");
-      input.value = documentLink(documentRecord);
-      window.document.body.appendChild(input);
-      input.select();
-      window.document.execCommand?.("copy");
-      input.remove();
-    }
-    setWorkspaceNotice(label);
-  };
 
   const showFileInfo = (documentRecord) => {
     const details = [
@@ -4458,7 +4310,7 @@ function UploadLanding({
                   if (isStoredDocument) {
                     onToggleFavorite(documentRecord);
                   } else {
-                    setWorkspaceNotice("Open a saved document to add it to favorites.");
+                    toggleTrendingFavorite(documentRecord.id);
                   }
                 }}
               >
@@ -4489,8 +4341,8 @@ function UploadLanding({
                         <button type="button" role="menuitem" onClick={(event) => runDocumentMenuAction(event, () => onDuplicateDocument(documentRecord))}><Copy size={20} /> Make a copy</button>
                         <span />
                         <button type="button" role="menuitem" onClick={(event) => runDocumentMenuAction(event, () => onRenameDocument(documentRecord))}><PenLine size={20} /> Rename</button>
-                        <button type="button" role="menuitem" onClick={(event) => runDocumentMenuAction(event, () => copyDocumentLink(documentRecord))}><Link size={20} /> Copy link</button>
-                        <button type="button" role="menuitem" onClick={(event) => runDocumentMenuAction(event, () => copyDocumentLink(documentRecord, "Share link copied."))}><Share2 size={20} /> Share</button>
+                        <button type="button" role="menuitem" disabled title="Secure document links require the future token service"><Link size={20} /> Copy link unavailable</button>
+                        <button type="button" role="menuitem" disabled title="Secure sharing requires the future token service"><Share2 size={20} /> Share unavailable</button>
                         <button type="button" role="menuitem" onClick={(event) => runDocumentMenuAction(event, () => onDownloadDocument(documentRecord))}><Download size={20} /> Download</button>
                         <button type="button" role="menuitem" onClick={(event) => runDocumentMenuAction(event, () => onToggleFavorite(documentRecord))}><Star size={20} /> {documentRecord.favorite ? "Unstar" : "Star"}</button>
                         <button type="button" role="menuitem" onClick={(event) => runDocumentMenuAction(event, () => onMoveDocument(documentRecord))}><Move size={20} /> Move</button>
@@ -4516,54 +4368,6 @@ function UploadLanding({
         <p>{normalizedQuery ? "Try a different search term or upload a PDF." : "Upload a PDF or create a blank agreement. Your recent files will appear in this table."}</p>
       </div>
     )
-  );
-
-  const renderRecentDashboardTable = () => (
-    <div className="reference-document-table">
-      <div className="reference-doc-row reference-doc-head">
-        <span>Name</span><span>Owner</span><span>Last opened</span><span>Status</span><span />
-      </div>
-      {recentDashboardRows.length ? recentDashboardRows.map((documentRecord) => {
-        const status = documentRecord.status || "Ready";
-        const statusClass = status.toLowerCase().replace(/[^a-z0-9]+/g, "-");
-        return (
-          <article key={documentRecord.id} className="reference-doc-row">
-            <button type="button" className="reference-doc-name" onClick={() => onOpenDocument(documentRecord)}>
-              <span className="reference-file-icon"><FileText size={20} /></span>
-              <span><strong>{documentRecord.name}</strong><small>{documentRecord.location || "My Documents"}</small></span>
-              <Star size={15} className="reference-row-star" fill={documentRecord.favorite ? "currentColor" : "none"} />
-            </button>
-            <span className="reference-doc-owner"><span>{userInitials}</span> You</span>
-            <span>{formatDashboardDate(documentRecord.updatedAt)}</span>
-            <span><em className={`reference-status is-${statusClass}`}>{status}</em></span>
-            <div className="doc-actions">
-              <div className="doc-menu-wrap">
-                <button type="button" className={`doc-menu-trigger ${openDocumentMenuId === documentRecord.id ? "is-open" : ""}`} title="Document actions" aria-haspopup="menu" aria-expanded={openDocumentMenuId === documentRecord.id} onClick={(event) => {
-                  event.stopPropagation();
-                  setOpenDocumentMenuId((id) => (id === documentRecord.id ? null : documentRecord.id));
-                }}><EllipsisVertical size={18} /></button>
-                {openDocumentMenuId === documentRecord.id && (
-                  <div className="doc-row-menu" role="menu" aria-label={`${documentRecord.name} actions`}>
-                    <button type="button" role="menuitem" onClick={(event) => runDocumentMenuAction(event, () => onOpenDocument(documentRecord))}><FilePlus2 size={18} /> Open</button>
-                    <button type="button" role="menuitem" onClick={(event) => runDocumentMenuAction(event, () => onRenameDocument(documentRecord))}><PenLine size={18} /> Rename</button>
-                    <button type="button" role="menuitem" onClick={(event) => runDocumentMenuAction(event, () => onDownloadDocument(documentRecord))}><Download size={18} /> Download</button>
-                    <button type="button" role="menuitem" onClick={(event) => runDocumentMenuAction(event, () => onDeleteDocument(documentRecord))}><Trash2 size={18} /> Remove</button>
-                  </div>
-                )}
-              </div>
-            </div>
-          </article>
-        );
-      }) : (
-        <div className="reference-dashboard-empty">
-          <FileText size={26} />
-          <strong>{normalizedQuery ? "No matching documents" : suggestionView === "starred" ? "No starred documents" : suggestionView === "shared" ? "No shared documents" : "No documents yet"}</strong>
-          <span>{normalizedQuery ? "Try a different search." : "Upload a PDF and it will appear here."}</span>
-          {!normalizedQuery && suggestionView === "recent" && <button type="button" onClick={onSelectFiles}>Upload PDF</button>}
-        </div>
-      )}
-      {recentDashboardRows.length > 0 && <button type="button" className="reference-show-more" onClick={() => setActiveSection("Documents")}>View all documents <ChevronDown size={15} /></button>}
-    </div>
   );
 
   const renderTemplateGrid = () => (
@@ -4637,8 +4441,8 @@ function UploadLanding({
       );
     }
 
-    if (activeSection === "Agreements" || activeSection === "Signatures") {
-      const isSign = activeSection === "Signatures";
+    if (activeSection === "Signatures") {
+      const isSign = true;
       return (
         <section className="document-library enterprise-workspace-panel">
           <div className="library-head">
@@ -4670,6 +4474,7 @@ function UploadLanding({
     }
 
     if (activeSection === "Settings") {
+      const storageUsed = documents.reduce((total, documentRecord) => total + (documentRecord.size || 0), 0);
       return (
         <section className="document-library enterprise-workspace-panel">
           <div className="library-head">
@@ -4683,7 +4488,7 @@ function UploadLanding({
             </article>
             <article>
               <strong>Favorites</strong>
-              <span>{userDocuments.filter((documentRecord) => documentRecord.favorite).length} saved document{userDocuments.filter((documentRecord) => documentRecord.favorite).length === 1 ? "" : "s"} marked for quick access.</span>
+              <span>{documents.filter((documentRecord) => documentRecord.favorite).length} saved document{documents.filter((documentRecord) => documentRecord.favorite).length === 1 ? "" : "s"} marked for quick access.</span>
             </article>
             <article>
               <strong>Invites</strong>
@@ -4691,7 +4496,7 @@ function UploadLanding({
             </article>
             <article>
               <strong>Storage</strong>
-              <span>{userDocuments.length} document{userDocuments.length === 1 ? "" : "s"} saved for this account, {formatBytes(storageUsed)} used.</span>
+              <span>{documents.length} document{documents.length === 1 ? "" : "s"} saved locally, {formatBytes(storageUsed)} used.</span>
             </article>
             <article>
               <strong>Export policy</strong>
@@ -4702,105 +4507,83 @@ function UploadLanding({
       );
     }
 
-    if (["Trash", "Billing", "Team", "Integrations"].includes(activeSection)) {
-      const sectionDetails = {
-        Trash: [Trash2, "Deleted documents", "Files moved to trash will be available here before permanent removal."],
-        Billing: [CreditCard, "Plans and billing", "Manage your RealPDF plan, invoices, and payment details."],
-        Team: [Users, "Workspace members", "Invite teammates and manage document collaboration access."],
-        Integrations: [Plug, "Connected apps", "Connect cloud storage and workflow tools to your PDF workspace."],
-      };
-      const [SectionIcon, title, detail] = sectionDetails[activeSection];
+    if (activeSection === "Trash") {
       return (
-        <section className="document-library enterprise-workspace-panel dashboard-simple-section">
-          <div className="library-head"><h2>{activeSection}</h2></div>
-          <div className="dashboard-simple-card">
-            <SectionIcon size={28} />
-            <div><h3>{title}</h3><p>{detail}</p></div>
-            <button type="button" onClick={activeSection === "Team" ? () => setOpenPanel("invite") : () => setWorkspaceNotice(`${activeSection} settings are ready to connect.`)}>
-              {activeSection === "Team" ? "Invite member" : "Open settings"}
-            </button>
+        <section className="document-library enterprise-workspace-panel">
+          <div className="library-head"><h2>Trash</h2><span className="settings-status">Coming soon</span></div>
+          <div className="empty-library">
+            <Trash2 size={34} />
+            <h3>Trash and restore are in development</h3>
+            <p>Documents are not shown here until recoverable deletion is implemented. Current removal remains permanent and requires confirmation.</p>
           </div>
         </section>
       );
     }
 
     return (
-      <div className="reference-dashboard-grid">
-        <div className="reference-dashboard-main">
-          <section
-            className={`dashboard-welcome-panel ${isDraggingFile ? "is-dragging" : ""} ${isUploading ? "is-uploading" : ""}`}
-            onDragEnter={(event) => { event.preventDefault(); setIsDraggingFile(true); }}
-            onDragOver={(event) => { event.preventDefault(); setIsDraggingFile(true); }}
-            onDragLeave={(event) => { if (event.currentTarget === event.target) setIsDraggingFile(false); }}
-            onDrop={onDropFile}
-          >
-            <div className="dashboard-welcome-copy">
-              <span className="dashboard-greeting"><Sparkles size={14} /> {dashboardGreeting}, {dashboardFirstName}!</span>
-              <h1>Work smarter with <strong>RealPDF</strong></h1>
-              <p>{isDraggingFile ? "Release to open your PDF." : isUploading ? `${uploadStage.status}: ${uploadStage.fileName}` : "Edit, organize, sign, and collaborate on PDFs in one delightful place."}</p>
-              {uploadError && <p className="upload-error">{uploadError}</p>}
-              <div className="dashboard-hero-actions">
-                <button type="button" className="dashboard-hero-upload" onClick={onSelectFiles}><Upload size={17} /> Upload PDF</button>
-                <button type="button" className="dashboard-hero-ai" onClick={() => setWorkspaceNotice("AI PDF tools are ready for the next workspace release.")}><Sparkles size={17} /> Explore AI Tools</button>
-              </div>
+      <>
+        <section
+          className={`dashboard-drop-hero ${isDraggingFile ? "is-dragging" : ""} ${isUploading ? "is-uploading" : ""}`}
+          onDragEnter={(event) => {
+            event.preventDefault();
+            setIsDraggingFile(true);
+          }}
+          onDragOver={(event) => {
+            event.preventDefault();
+            setIsDraggingFile(true);
+          }}
+          onDragLeave={(event) => {
+            if (event.currentTarget === event.target) {
+              setIsDraggingFile(false);
+            }
+          }}
+          onDrop={onDropFile}
+        >
+          <div className="dashboard-hero-copy">
+            <p className="eyebrow">Secure browser workspace</p>
+            <h1>Edit, sign, and manage PDFs in one place.</h1>
+            <p>Drop in a PDF to start editing immediately, or create a reusable document workflow for signing, review, and export.</p>
+            <div className="dashboard-hero-actions">
+              <button type="button" className="dashboard-primary" onClick={onSelectFiles}><Upload size={18} /> Upload PDF</button>
+              <button type="button" className="dashboard-secondary" onClick={onBlankPage}><FilePlus2 size={18} /> Start blank</button>
             </div>
-            <div className="dashboard-hero-visual" aria-hidden="true">
-              <img src={`${import.meta.env.BASE_URL}dashboard-pdf-hero.jpg`} alt="" />
-            </div>
-          </section>
+          </div>
+          <div className="dashboard-upload-panel">
+            <Upload size={30} />
+            <strong>{isDraggingFile ? "Drop your PDF to upload" : isUploading ? uploadStage.status : "Drag and drop PDF"}</strong>
+            <span>{isUploading ? uploadStage.fileName : "PDFs are validated, rendered, and saved locally before opening in the editor."}</span>
+            <div className="upload-progress-track"><span style={{ width: `${uploadStage?.percent || 0}%` }} /></div>
+            {uploadError && <p className="upload-error">{uploadError}</p>}
+          </div>
+        </section>
 
-          <section className="reference-stat-grid" aria-label="Workspace stats">
-            <article><span className="reference-stat-icon tone-red"><FileText size={23} /></span><div><small>Total Documents</small><strong>{userDocuments.length}</strong><em className="is-neutral">{totalPages} page{totalPages === 1 ? "" : "s"} managed</em></div></article>
-            <article><span className="reference-stat-icon tone-purple"><PenLine size={23} /></span><div><small>Signatures Added</small><strong>{signatureCount}</strong><em className="is-neutral">Across your saved PDFs</em></div></article>
-            <article><span className="reference-stat-icon tone-blue"><HardDrive size={23} /></span><div><small>Storage Used</small><strong>{formatBytes(storageUsed)}</strong><em className="is-neutral">{storagePercentageLabel} of 15 GB</em></div></article>
-            <article><span className="reference-stat-icon tone-green"><ChartNoAxesColumnIncreasing size={23} /></span><div><small>Weekly Activity</small><strong>{weeklyActivityCount}</strong><em className="is-neutral">Document{weeklyActivityCount === 1 ? "" : "s"} updated this week</em></div></article>
-          </section>
+        <section className="dashboard-stat-grid" aria-label="Workspace stats">
+          <article><strong>{documents.length}</strong><span>Documents</span></article>
+          <article><strong>{totalPages}</strong><span>Pages managed</span></article>
+          <article><strong>{favoriteCount}</strong><span>Starred</span></article>
+          <article><strong>{formatBytes(storageUsed)}</strong><span>Local storage</span></article>
+        </section>
 
-          <section className="reference-recent-card">
-            <div className="reference-section-head">
-              <h2>Recent Documents</h2>
-              <div className="reference-recent-tabs">
-                <button type="button" className={suggestionView === "recent" ? "is-active" : ""} onClick={() => setSuggestionView("recent")}>Recent</button>
-                <button type="button" className={suggestionView === "starred" ? "is-active" : ""} onClick={() => setSuggestionView("starred")}>Starred</button>
-                <button type="button" className={suggestionView === "shared" ? "is-active" : ""} onClick={() => setSuggestionView("shared")}>Shared with me</button>
-              </div>
-              <button type="button" className="reference-view-all" onClick={() => setActiveSection("Documents")}>View all</button>
-            </div>
-            {renderRecentDashboardTable()}
-          </section>
-        </div>
+        <section className="lumin-action-grid">
+          {quickActions.map(({ label, icon: Icon, action }) => (
+            <button key={label} type="button" className="lumin-action-card" onClick={action}>
+              <Icon size={31} />
+              <span>{label}</span>
+            </button>
+          ))}
+        </section>
 
-        <aside className="reference-dashboard-side">
-          <section className="reference-side-card reference-activity-card">
-            <div className="reference-side-head"><h2>Activity Feed</h2><button type="button" onClick={() => setWorkspaceNotice("Activity feed is up to date.")}>View all</button></div>
-            {activityFeed.length ? (
-              <div className="reference-activity-list">
-                {activityFeed.map(({ id, initials, tone, text, date }) => (
-                  <article key={id}><span className={`reference-activity-avatar tone-${tone}`}>{initials}</span><div><strong>{text}</strong><small>{date}</small></div></article>
-                ))}
-              </div>
-            ) : (
-              <div className="reference-activity-empty"><Activity size={22} /><strong>No activity yet</strong><span>Your uploads and edits will appear here.</span></div>
-            )}
-          </section>
-
-          <section className="reference-side-card reference-template-card">
-            <div className="reference-side-head"><h2>Popular Templates</h2><button type="button" onClick={() => setActiveSection("Templates")}>View all</button></div>
-            <div className="reference-template-list">
-              {popularTemplates.map((template) => <button key={template} type="button" onClick={() => setActiveSection("Templates")}><FileText size={15} /><span>{template}</span><ChevronRight size={15} /></button>)}
-            </div>
-          </section>
-
-          <section className="reference-premium-card">
-            <span><Crown size={26} /></span><div><h2>Go Premium</h2><p>Unlock unlimited signatures, more storage, and advanced tools.</p><button type="button" onClick={() => setUpgradeModalOpen(true)}>Upgrade now <ChevronRight size={15} /></button></div>
-          </section>
-
-          <section className="reference-tip-card">
-            <div className="reference-tip-title"><Lightbulb size={17} /><strong>Tip of the day</strong></div>
-            <h2>Edit text in any PDF</h2><p>Open a PDF and click “Edit” to modify text, images, and pages instantly.</p>
-          </section>
-        </aside>
-      </div>
+        <section className="document-library">
+          <div className="library-head">
+            <h2>Suggested documents</h2>
+          </div>
+          <div className="suggestion-tabs">
+            <button type="button" className={suggestionView === "recent" ? "is-active" : ""} onClick={() => setSuggestionView("recent")}><Undo2 size={22} /> You opened recently</button>
+            <button type="button" className={suggestionView === "trending" ? "is-active" : ""} onClick={() => setSuggestionView("trending")}><ArrowDownToLine size={22} /> Trending</button>
+          </div>
+          {renderDocumentTable(visibleRows, suggestionView === "recent" ? "documents" : "trending")}
+        </section>
+      </>
     );
   };
 
@@ -4808,44 +4591,33 @@ function UploadLanding({
     <main className="upload-shell lumin-home">
       <input ref={fileInputRef} className="hidden-input" type="file" accept="application/pdf" onChange={onUpload} />
       <aside className="lumin-home-rail">
-        <button type="button" className="dashboard-brand" aria-label="Back to RealPDF website" onClick={onBackToLanding}><span><FileText size={22} /></span><strong>RealPDF</strong></button>
+        <button type="button" className="rail-brand-tile" aria-label="Back to RealPDF website" onClick={() => onNavigate(ROUTE_PATHS.home)}><FileText size={22} /></button>
+        <button type="button" className="rail-mini-action" onClick={() => setOpenPanel("invite")}><Users size={22} /></button>
         <nav className="upload-nav" aria-label="Primary">
-          {primaryNav.map(({ label, icon: Icon }) => (
-            <button key={label} type="button" className={label === activeSection ? "is-active" : ""} onClick={() => setActiveSection(label)}>
-              <Icon size={19} />
+          {primaryNav.map(({ label, icon: Icon, path }) => (
+            <NavLink key={label} to={path} className={({ isActive }) => (isActive ? "is-active" : "")}>
+              <Icon size={24} />
               <span>{label}</span>
-            </button>
+            </NavLink>
           ))}
         </nav>
-        <nav className="upload-nav dashboard-utility-nav" aria-label="Document utilities">
-          {utilityNav.map(({ label, icon: Icon }) => <button key={label} type="button" className={label === activeSection ? "is-active" : ""} onClick={() => setActiveSection(label)}><Icon size={19} /><span>{label}</span></button>)}
-        </nav>
-        <nav className="upload-nav dashboard-account-nav" aria-label="Workspace settings">
-          {accountNav.map(({ label, icon: Icon }) => <button key={label} type="button" className={label === activeSection ? "is-active" : ""} onClick={() => setActiveSection(label)}><Icon size={18} /><span>{label}</span></button>)}
-        </nav>
-        <section className="dashboard-storage-card" aria-label="Storage used">
-          <div><strong>Storage <CircleHelp size={13} /></strong><em>{storagePercentageLabel}</em></div>
-          <span><i style={{ width: `${storagePercentage === 0 ? 0 : Math.max(2, storagePercentage)}%` }} /></span>
-          <p>{formatBytes(storageUsed)} of 15 GB used</p>
-          <button type="button" onClick={() => setActiveSection("Settings")}>Manage storage <ChevronRight size={15} /></button>
-        </section>
-        <button type="button" className="dashboard-site-back" onClick={onBackToLanding}><ChevronLeft size={16} /><span>Back to website</span></button>
       </aside>
 
       <section className="upload-main">
         <header className="upload-topbar">
+          <button type="button" className="upload-logo" onClick={() => onNavigate(ROUTE_PATHS.home)}><span><FileText size={19} /></span><strong>RealPDF</strong></button>
           <label className="lumin-search">
-            <Search size={18} />
-            <input type="search" placeholder="Search documents, templates, or tools..." value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} />
-            <kbd>⌘ K</kbd>
+            <Search size={25} />
+            <input type="search" placeholder="Search" value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} />
           </label>
           <div className="upload-top-actions">
             <button type="button" className="invite-button" onClick={() => setOpenPanel(openPanel === "invite" ? null : "invite")}><Users size={18} /> Invite members</button>
-            <button type="button" className="upgrade-button" onClick={() => setUpgradeModalOpen(true)}>Upgrade plan</button>
-            <button type="button" className="top-icon dashboard-notification-button" aria-label="Notifications" onClick={() => setOpenPanel(openPanel === "notifications" ? null : "notifications")}><Bell size={19} /></button>
-            <button type="button" className="top-avatar" aria-haspopup="dialog" aria-expanded={openPanel === "account"} onClick={() => setOpenPanel(openPanel === "account" ? null : "account")}><span>{userInitials}</span><i /><strong>{dashboardAccountName}</strong><ChevronDown size={15} /></button>
+            <button type="button" className="upgrade-button" onClick={() => setUpgradeModalOpen(true)}>Upgrade</button>
+            <button type="button" className="top-icon" onClick={() => setOpenPanel(openPanel === "help" ? null : "help")}><CircleHelp size={17} /></button>
+            <button type="button" className="top-icon" onClick={() => setOpenPanel(openPanel === "notifications" ? null : "notifications")}><Bell size={17} /></button>
+            <button type="button" className="top-avatar" onClick={() => setOpenPanel(openPanel === "account" ? null : "account")}>{userInitials}</button>
             {openPanel && (
-              <div className={`workspace-popover ${openPanel === "account" ? "account-menu-popover" : ""}`} role={openPanel === "account" ? "dialog" : undefined} aria-label={openPanel === "account" ? "Account menu" : undefined}>
+              <div className="workspace-popover">
                 <button type="button" className="popover-close" onClick={closePanel}><X size={16} /></button>
                 {openPanel === "invite" && (
                   <>
@@ -4884,14 +4656,10 @@ function UploadLanding({
                 )}
                 {openPanel === "account" && (
                   <>
-                    <div className="account-menu-identity">
-                      <span className="account-menu-avatar">{userInitials}</span>
-                      <div><h3>{userName}</h3><p><Mail size={15} /> {currentUser?.email || "Signed in workspace"}</p></div>
-                    </div>
-                    <div className="account-menu-actions">
-                      <button type="button" className="account-menu-settings" onClick={() => { setActiveSection("Settings"); closePanel(); }}><Settings size={18} /><span><strong>Workspace settings</strong><small>Profile, storage, and preferences</small></span><ChevronRight size={17} /></button>
-                      <button type="button" className="account-menu-signout" onClick={onLogout}><LogOut size={18} /><span>Sign out</span></button>
-                    </div>
+                    <h3>{userName}</h3>
+                    <p>{currentUser?.email || "Signed in workspace"}</p>
+                    <button type="button" className="popover-primary" onClick={() => setActiveSection("Settings")}>Workspace settings</button>
+                    <button type="button" className="popover-secondary" onClick={onLogout}>Sign out</button>
                   </>
                 )}
               </div>
@@ -5361,38 +5129,6 @@ function SignatureModal({ defaultName, onClose, onSave }) {
 }
 
 function ShareModal({ fileName, onClose, onExport }) {
-  const [access, setAccess] = useState("restricted");
-  const [permission, setPermission] = useState("view");
-  const [email, setEmail] = useState("");
-  const [message, setMessage] = useState("Please review this PDF when you have a chance.");
-  const [invites, setInvites] = useState([]);
-  const [copyState, setCopyState] = useState("Copy link");
-  const linkInputRef = useRef(null);
-  const shareLink = useMemo(() => {
-    const origin = window.location.origin || "http://127.0.0.1:5173";
-    const slug = fileName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") || "document";
-    return `${origin}/share/${slug}?access=${access}&permission=${permission}`;
-  }, [access, fileName, permission]);
-
-  const copyShareLink = async () => {
-    try {
-      await navigator.clipboard.writeText(shareLink);
-      setCopyState("Copied");
-    } catch {
-      linkInputRef.current?.select();
-      window.document.execCommand?.("copy");
-      setCopyState("Copied");
-    }
-    window.setTimeout(() => setCopyState("Copy link"), 1600);
-  };
-
-  const addInvite = () => {
-    const cleanedEmail = email.trim();
-    if (!cleanedEmail) return;
-    setInvites((items) => [...items, { email: cleanedEmail, permission, message, id: makeId("invite") }]);
-    setEmail("");
-  };
-
   return (
     <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="Share document">
       <section className="share-modal">
@@ -5406,65 +5142,12 @@ function ShareModal({ fileName, onClose, onExport }) {
         <div className="share-panel">
           <section className="share-card">
             <div className="share-card-head">
-              <Share2 size={20} />
+              <Lock size={20} />
               <div>
-                <h3>Document link</h3>
-                <p>Generate a review link for this workspace. Export remains the production-safe handoff for this local build.</p>
+                <h3>Secure sharing is unavailable</h3>
+                <p>RealPDF will not generate a public document URL until a server-side token service can enforce ownership, permissions, expiration, and revocation.</p>
               </div>
             </div>
-            <div className="share-link-row">
-              <input ref={linkInputRef} readOnly value={shareLink} aria-label="Share link" />
-              <button type="button" onClick={copyShareLink}>{copyState}</button>
-            </div>
-          </section>
-
-          <section className="share-grid">
-            <label className="field">
-              <span>Access</span>
-              <select value={access} onChange={(event) => setAccess(event.target.value)}>
-                <option value="restricted">Only invited people</option>
-                <option value="workspace">Anyone in workspace</option>
-                <option value="public">Anyone with link</option>
-              </select>
-            </label>
-            <label className="field">
-              <span>Permission</span>
-              <select value={permission} onChange={(event) => setPermission(event.target.value)}>
-                <option value="view">Can view</option>
-                <option value="comment">Can comment</option>
-                <option value="edit">Can edit</option>
-                <option value="sign">Can sign</option>
-              </select>
-            </label>
-          </section>
-
-          <section className="share-card">
-            <div className="share-card-head">
-              <Users size={20} />
-              <div>
-                <h3>Invite people</h3>
-                <p>Draft reviewers or signers before exporting or connecting hosted auth.</p>
-              </div>
-            </div>
-            <label className="field">
-              <span>Email</span>
-              <input type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="teammate@company.com" />
-            </label>
-            <label className="field">
-              <span>Message</span>
-              <textarea value={message} onChange={(event) => setMessage(event.target.value)} />
-            </label>
-            <button type="button" className="invite-draft-button" onClick={addInvite}><Send size={16} /> Add invite draft</button>
-            {invites.length > 0 && (
-              <div className="invite-list">
-                {invites.map((invite) => (
-                  <div key={invite.id}>
-                    <strong>{invite.email}</strong>
-                    <span>{invite.permission} access</span>
-                  </div>
-                ))}
-              </div>
-            )}
           </section>
         </div>
         <footer>
