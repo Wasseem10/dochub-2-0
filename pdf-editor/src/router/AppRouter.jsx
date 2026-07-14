@@ -91,7 +91,9 @@ export const appRouteObjects = [
 ];
 
 export function createRealPdfRouter() {
-  return createBrowserRouter(appRouteObjects);
+  const baseUrl = import.meta.env.BASE_URL || "/";
+  const basename = baseUrl === "/" ? undefined : baseUrl.replace(/\/$/, "");
+  return createBrowserRouter(appRouteObjects, { basename });
 }
 
 const browserRouter = createRealPdfRouter();
