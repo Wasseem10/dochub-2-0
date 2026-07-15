@@ -1,4 +1,15 @@
 import { forwardRef, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import Mail from "lucide-react/dist/esm/icons/mail.mjs";
+import LogOut from "lucide-react/dist/esm/icons/log-out.mjs";
+import ChevronRight from "lucide-react/dist/esm/icons/chevron-right.mjs";
+import ChevronLeft from "lucide-react/dist/esm/icons/chevron-left.mjs";
+import Sparkles from "lucide-react/dist/esm/icons/sparkles.mjs";
+import Plug from "lucide-react/dist/esm/icons/plug.mjs";
+import HardDrive from "lucide-react/dist/esm/icons/hard-drive.mjs";
+import Crown from "lucide-react/dist/esm/icons/crown.mjs";
+import CreditCard from "lucide-react/dist/esm/icons/credit-card.mjs";
+import ChartNoAxesColumnIncreasing from "lucide-react/dist/esm/icons/chart-no-axes-column-increasing.mjs";
+import Activity from "lucide-react/dist/esm/icons/activity.mjs";
 import ArrowDownToLine from "lucide-react/dist/esm/icons/arrow-down-to-line.mjs";
 import AlignCenter from "lucide-react/dist/esm/icons/align-center.mjs";
 import AlignLeft from "lucide-react/dist/esm/icons/align-left.mjs";
@@ -4150,10 +4161,15 @@ function UploadLanding({
     Home: ROUTE_PATHS.dashboard,
     Documents: ROUTE_PATHS.documents,
     Templates: ROUTE_PATHS.appTemplates,
+    Agreements: ROUTE_PATHS.signatures,
     Signatures: ROUTE_PATHS.signatures,
+    "AI Tools": ROUTE_PATHS.tools,
+    Shared: ROUTE_PATHS.documents,
     Settings: ROUTE_PATHS.settings,
     Trash: ROUTE_PATHS.trash,
-    Shared: ROUTE_PATHS.documents,
+    Billing: ROUTE_PATHS.settings,
+    Team: ROUTE_PATHS.settings,
+    Integrations: ROUTE_PATHS.settings,
   };
   const setActiveSection = (nextSection) => onNavigate(sectionPaths[nextSection] || ROUTE_PATHS.dashboard);
   const [searchQuery, setSearchQuery] = useState("");
@@ -4161,7 +4177,6 @@ function UploadLanding({
   const [openPanel, setOpenPanel] = useState(null);
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteDrafts, setInviteDrafts] = useState([]);
-  const [favoriteTrendingIds, setFavoriteTrendingIds] = useState([]);
   const [workspaceNotice, setWorkspaceNotice] = useState("");
   const [openDocumentMenuId, setOpenDocumentMenuId] = useState(null);
   const [upgradeModalOpen, setUpgradeModalOpen] = useState(false);
@@ -4172,23 +4187,33 @@ function UploadLanding({
     .slice(0, 2)
     .map((part) => part[0]?.toUpperCase())
     .join("") || "U";
+  const dashboardFirstName = currentUser?.name?.trim().split(/\s+/)[0]
+    || currentUser?.email?.split("@")[0]
+    || "there";
+  const dashboardAccountName = currentUser?.name?.trim()
+    || currentUser?.email?.split("@")[0]
+    || "Account";
+  const dashboardHour = new Date().getHours();
+  const dashboardGreeting = dashboardHour < 12
+    ? "Good morning"
+    : dashboardHour < 18
+      ? "Good afternoon"
+      : "Good evening";
 
   const primaryNav = [
-    { label: "Home", icon: Home, path: ROUTE_PATHS.dashboard },
-    { label: "Documents", icon: FileText, path: ROUTE_PATHS.documents },
-    { label: "Templates", icon: Grid2X2, path: ROUTE_PATHS.appTemplates },
-    { label: "Signatures", icon: PenLine, path: ROUTE_PATHS.signatures },
-    { label: "Settings", icon: Settings, path: ROUTE_PATHS.settings },
-    { label: "Trash", icon: Trash2, path: ROUTE_PATHS.trash },
+    { label: "Dashboard", section: "Home", icon: Home },
+    { label: "Documents", icon: FileText },
+    { label: "Signatures", icon: PenLine },
+    { label: "Templates", icon: Grid2X2 },
+    { label: "AI Tools", icon: Sparkles, badge: "New" },
+    { label: "Shared with me", section: "Shared", icon: Users },
   ];
 
-  const quickActions = [
-    { label: "Upload a PDF", icon: Upload, action: onSelectFiles },
-    { label: "Write my agreement", icon: Box, action: () => setActiveSection("Signatures") },
-    { label: "Edit a PDF", icon: FileText, action: onSelectFiles },
-    { label: "Get signatures", icon: PenLine, action: () => setActiveSection("Signatures") },
-    { label: "Find a template", icon: Grid2X2, action: () => setActiveSection("Templates") },
+  const utilityNav = [
+    { label: "Trash", icon: Trash2 },
   ];
+
+  const workspaceFolders = ["My documents", "Projects"];
 
   const templateCards = [
     { title: "NDA agreement", detail: "Confidentiality, non-compete, and signature fields", icon: Box },
@@ -4205,38 +4230,52 @@ function UploadLanding({
 
   const normalizedQuery = searchQuery.trim().toLowerCase();
   const matchesSearch = (value) => !normalizedQuery || value.toLowerCase().includes(normalizedQuery);
-  const filteredDocuments = documents.filter((documentRecord) => (
+  const userDocuments = currentUser?.uid
+    ? documents.filter((documentRecord) => documentRecord.ownerId === currentUser.uid)
+    : documents;
+  const filteredDocuments = userDocuments.filter((documentRecord) => (
     matchesSearch(documentRecord.name)
   ));
   const filteredTemplateCards = templateCards.filter(({ title, detail }) => matchesSearch(`${title} ${detail}`));
   const filteredAgreementFlows = agreementFlows.filter(({ title, detail }) => matchesSearch(`${title} ${detail}`));
 
-  const trendingRows = [
-    { id: "trend-nda", name: "Mutual NDA template", location: "Templates", updatedAt: nowIso(), favorite: favoriteTrendingIds.includes("trend-nda") },
-    { id: "trend-sign", name: "Signature request packet", location: "Signatures", updatedAt: nowIso(), favorite: favoriteTrendingIds.includes("trend-sign") },
-    { id: "trend-review", name: "Contract review workspace", location: "Agreements", updatedAt: nowIso(), favorite: favoriteTrendingIds.includes("trend-review") },
-  ].filter((row) => matchesSearch(row.name));
-
-  const demoRecentRows = normalizedQuery ? [] : [{
-    id: "demo-minoria-nda",
-    name: "Minoria_Tech_Intern_NDA_Wasseem_Dabbas",
-    location: "My documents",
-    updatedAt: nowIso(),
-    pageCount: 9,
-    demo: true,
-  }];
-  const visibleRows = suggestionView === "recent" ? (filteredDocuments.length ? filteredDocuments : demoRecentRows) : trendingRows;
-  const totalPages = documents.reduce((total, documentRecord) => total + (documentRecord.pageCount || documentRecord.pages?.length || 1), 0);
-  const favoriteCount = documents.filter((documentRecord) => documentRecord.favorite).length;
-  const storageUsed = documents.reduce((total, documentRecord) => total + (documentRecord.size || 0), 0);
+  const dashboardDocumentPool = suggestionView === "starred"
+    ? filteredDocuments.filter((documentRecord) => documentRecord.favorite)
+    : suggestionView === "shared"
+      ? filteredDocuments.filter((documentRecord) => /shared/i.test(documentRecord.location || ""))
+      : filteredDocuments;
+  const recentDashboardRows = [...dashboardDocumentPool]
+    .sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0))
+    .slice(0, 5);
+  const activityFeed = [...userDocuments]
+    .sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0))
+    .slice(0, 5)
+    .map((documentRecord) => {
+      const annotationCount = documentRecord.annotations?.length || 0;
+      const action = documentRecord.status === "Draft" && annotationCount === 0
+        ? "created"
+        : annotationCount > 0
+          ? "edited"
+          : documentRecord.source === "pdf" ? "uploaded" : "updated";
+      return {
+        id: documentRecord.id,
+        initials: userInitials,
+        tone: "blue",
+        text: `You ${action} ${documentRecord.name}`,
+        date: formatDateTime(documentRecord.updatedAt),
+      };
+    });
+  const totalPages = userDocuments.reduce((total, documentRecord) => total + (documentRecord.pageCount || documentRecord.pages?.length || 1), 0);
+  const signatureCount = userDocuments.reduce((total, documentRecord) => total + (documentRecord.annotations || []).filter((annotation) => annotation.type === "signature" || annotation.type === "initials").length, 0);
+  const storageUsed = userDocuments.reduce((total, documentRecord) => total + (documentRecord.size || 0), 0);
+  const storageLimit = 15 * 1024 * 1024 * 1024;
+  const storagePercentage = Math.min(100, (storageUsed / storageLimit) * 100);
+  const storagePercentageLabel = storagePercentage === 0 ? "0%" : storagePercentage < 1 ? "<1%" : `${Math.round(storagePercentage)}%`;
+  const weekAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
+  const weeklyActivityCount = userDocuments.filter((documentRecord) => new Date(documentRecord.updatedAt || 0).getTime() >= weekAgo).length;
   const isUploading = uploadStage?.status && !["idle", "complete", "error"].includes(uploadStage.status);
 
   const closePanel = () => setOpenPanel(null);
-
-  const toggleTrendingFavorite = (id) => {
-    setFavoriteTrendingIds((items) => (items.includes(id) ? items.filter((item) => item !== id) : [...items, id]));
-    setWorkspaceNotice(favoriteTrendingIds.includes(id) ? "Removed suggestion from favorites." : "Added suggestion to favorites.");
-  };
 
   const createInviteDraft = () => {
     const cleanedEmail = inviteEmail.trim();
@@ -4310,7 +4349,7 @@ function UploadLanding({
                   if (isStoredDocument) {
                     onToggleFavorite(documentRecord);
                   } else {
-                    toggleTrendingFavorite(documentRecord.id);
+                    setWorkspaceNotice("Open a saved document to add it to favorites.");
                   }
                 }}
               >
@@ -4368,6 +4407,54 @@ function UploadLanding({
         <p>{normalizedQuery ? "Try a different search term or upload a PDF." : "Upload a PDF or create a blank agreement. Your recent files will appear in this table."}</p>
       </div>
     )
+  );
+
+  const renderRecentDashboardTable = () => (
+    <div className="reference-document-table">
+      <div className="reference-doc-row reference-doc-head">
+        <span>Name</span><span>Owner</span><span>Last opened</span><span>Status</span><span />
+      </div>
+      {recentDashboardRows.length ? recentDashboardRows.map((documentRecord) => {
+        const status = documentRecord.status || "Ready";
+        const statusClass = status.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+        return (
+          <article key={documentRecord.id} className="reference-doc-row">
+            <button type="button" className="reference-doc-name" onClick={() => onOpenDocument(documentRecord)}>
+              <span className="reference-file-icon"><FileText size={20} /></span>
+              <span><strong>{documentRecord.name}</strong><small>{documentRecord.location || "My Documents"}</small></span>
+              <Star size={15} className="reference-row-star" fill={documentRecord.favorite ? "currentColor" : "none"} />
+            </button>
+            <span className="reference-doc-owner"><span>{userInitials}</span> You</span>
+            <span>{formatDashboardDate(documentRecord.updatedAt)}</span>
+            <span><em className={`reference-status is-${statusClass}`}>{status}</em></span>
+            <div className="doc-actions">
+              <div className="doc-menu-wrap">
+                <button type="button" className={`doc-menu-trigger ${openDocumentMenuId === documentRecord.id ? "is-open" : ""}`} title="Document actions" aria-haspopup="menu" aria-expanded={openDocumentMenuId === documentRecord.id} onClick={(event) => {
+                  event.stopPropagation();
+                  setOpenDocumentMenuId((id) => (id === documentRecord.id ? null : documentRecord.id));
+                }}><EllipsisVertical size={18} /></button>
+                {openDocumentMenuId === documentRecord.id && (
+                  <div className="doc-row-menu" role="menu" aria-label={`${documentRecord.name} actions`}>
+                    <button type="button" role="menuitem" onClick={(event) => runDocumentMenuAction(event, () => onOpenDocument(documentRecord))}><FilePlus2 size={18} /> Open</button>
+                    <button type="button" role="menuitem" onClick={(event) => runDocumentMenuAction(event, () => onRenameDocument(documentRecord))}><PenLine size={18} /> Rename</button>
+                    <button type="button" role="menuitem" onClick={(event) => runDocumentMenuAction(event, () => onDownloadDocument(documentRecord))}><Download size={18} /> Download</button>
+                    <button type="button" role="menuitem" onClick={(event) => runDocumentMenuAction(event, () => onDeleteDocument(documentRecord))}><Trash2 size={18} /> Remove</button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </article>
+        );
+      }) : (
+        <div className="reference-dashboard-empty">
+          <FileText size={26} />
+          <strong>{normalizedQuery ? "No matching documents" : suggestionView === "starred" ? "No starred documents" : suggestionView === "shared" ? "No shared documents" : "No documents yet"}</strong>
+          <span>{normalizedQuery ? "Try a different search." : "Upload a PDF and it will appear here."}</span>
+          {!normalizedQuery && suggestionView === "recent" && <button type="button" onClick={onSelectFiles}>Upload PDF</button>}
+        </div>
+      )}
+      {recentDashboardRows.length > 0 && <button type="button" className="reference-show-more" onClick={() => setActiveSection("Documents")}>View all documents <ChevronDown size={15} /></button>}
+    </div>
   );
 
   const renderTemplateGrid = () => (
@@ -4441,8 +4528,8 @@ function UploadLanding({
       );
     }
 
-    if (activeSection === "Signatures") {
-      const isSign = true;
+    if (activeSection === "Agreements" || activeSection === "Signatures") {
+      const isSign = activeSection === "Signatures";
       return (
         <section className="document-library enterprise-workspace-panel">
           <div className="library-head">
@@ -4474,7 +4561,6 @@ function UploadLanding({
     }
 
     if (activeSection === "Settings") {
-      const storageUsed = documents.reduce((total, documentRecord) => total + (documentRecord.size || 0), 0);
       return (
         <section className="document-library enterprise-workspace-panel">
           <div className="library-head">
@@ -4488,7 +4574,7 @@ function UploadLanding({
             </article>
             <article>
               <strong>Favorites</strong>
-              <span>{documents.filter((documentRecord) => documentRecord.favorite).length} saved document{documents.filter((documentRecord) => documentRecord.favorite).length === 1 ? "" : "s"} marked for quick access.</span>
+              <span>{userDocuments.filter((documentRecord) => documentRecord.favorite).length} saved document{userDocuments.filter((documentRecord) => documentRecord.favorite).length === 1 ? "" : "s"} marked for quick access.</span>
             </article>
             <article>
               <strong>Invites</strong>
@@ -4496,7 +4582,7 @@ function UploadLanding({
             </article>
             <article>
               <strong>Storage</strong>
-              <span>{documents.length} document{documents.length === 1 ? "" : "s"} saved locally, {formatBytes(storageUsed)} used.</span>
+              <span>{userDocuments.length} document{userDocuments.length === 1 ? "" : "s"} saved for this account, {formatBytes(storageUsed)} used.</span>
             </article>
             <article>
               <strong>Export policy</strong>
@@ -4507,83 +4593,114 @@ function UploadLanding({
       );
     }
 
-    if (activeSection === "Trash") {
+    if (["Trash", "Billing", "Team", "Integrations"].includes(activeSection)) {
+      const sectionDetails = {
+        Trash: [Trash2, "Deleted documents", "Files moved to trash will be available here before permanent removal."],
+        Billing: [CreditCard, "Plans and billing", "Manage your RealPDF plan, invoices, and payment details."],
+        Team: [Users, "Workspace members", "Invite teammates and manage document collaboration access."],
+        Integrations: [Plug, "Connected apps", "Connect cloud storage and workflow tools to your PDF workspace."],
+      };
+      const [SectionIcon, title, detail] = sectionDetails[activeSection];
       return (
-        <section className="document-library enterprise-workspace-panel">
-          <div className="library-head"><h2>Trash</h2><span className="settings-status">Coming soon</span></div>
-          <div className="empty-library">
-            <Trash2 size={34} />
-            <h3>Trash and restore are in development</h3>
-            <p>Documents are not shown here until recoverable deletion is implemented. Current removal remains permanent and requires confirmation.</p>
+        <section className="document-library enterprise-workspace-panel dashboard-simple-section">
+          <div className="library-head"><h2>{activeSection}</h2></div>
+          <div className="dashboard-simple-card">
+            <SectionIcon size={28} />
+            <div><h3>{title}</h3><p>{detail}</p></div>
+            <button type="button" onClick={activeSection === "Team" ? () => setOpenPanel("invite") : () => setWorkspaceNotice(`${activeSection} settings are ready to connect.`)}>
+              {activeSection === "Team" ? "Invite member" : "Open settings"}
+            </button>
           </div>
         </section>
       );
     }
 
     return (
-      <>
-        <section
-          className={`dashboard-drop-hero ${isDraggingFile ? "is-dragging" : ""} ${isUploading ? "is-uploading" : ""}`}
-          onDragEnter={(event) => {
-            event.preventDefault();
-            setIsDraggingFile(true);
-          }}
-          onDragOver={(event) => {
-            event.preventDefault();
-            setIsDraggingFile(true);
-          }}
-          onDragLeave={(event) => {
-            if (event.currentTarget === event.target) {
-              setIsDraggingFile(false);
-            }
-          }}
-          onDrop={onDropFile}
-        >
-          <div className="dashboard-hero-copy">
-            <p className="eyebrow">Secure browser workspace</p>
-            <h1>Edit, sign, and manage PDFs in one place.</h1>
-            <p>Drop in a PDF to start editing immediately, or create a reusable document workflow for signing, review, and export.</p>
-            <div className="dashboard-hero-actions">
-              <button type="button" className="dashboard-primary" onClick={onSelectFiles}><Upload size={18} /> Upload PDF</button>
-              <button type="button" className="dashboard-secondary" onClick={onBlankPage}><FilePlus2 size={18} /> Start blank</button>
+      <div className="reference-dashboard-grid">
+        <div className="reference-dashboard-main">
+          <section
+            className={`dashboard-welcome-panel ${isDraggingFile ? "is-dragging" : ""} ${isUploading ? "is-uploading" : ""}`}
+            onDragEnter={(event) => { event.preventDefault(); setIsDraggingFile(true); }}
+            onDragOver={(event) => { event.preventDefault(); setIsDraggingFile(true); }}
+            onDragLeave={(event) => { if (event.currentTarget === event.target) setIsDraggingFile(false); }}
+            onDrop={onDropFile}
+          >
+            <div className="dashboard-welcome-copy">
+              <span className="dashboard-greeting"><Sparkles size={14} /> {dashboardGreeting}, {dashboardFirstName}!</span>
+              <h1>Work smarter with <strong>RealPDF</strong></h1>
+              <p>{isDraggingFile ? "Release to open your PDF." : isUploading ? `${uploadStage.status}: ${uploadStage.fileName}` : "Edit, organize, sign, and collaborate on PDFs in one delightful place."}</p>
+              {uploadError && <p className="upload-error">{uploadError}</p>}
+              <div className="dashboard-hero-actions">
+                <button type="button" className="dashboard-hero-upload" onClick={onSelectFiles}><Upload size={17} /> Upload PDF</button>
+                <button type="button" className="dashboard-hero-ai" onClick={() => onNavigate(ROUTE_PATHS.tools)}><Sparkles size={17} /> Explore AI Tools</button>
+              </div>
             </div>
-          </div>
-          <div className="dashboard-upload-panel">
-            <Upload size={30} />
-            <strong>{isDraggingFile ? "Drop your PDF to upload" : isUploading ? uploadStage.status : "Drag and drop PDF"}</strong>
-            <span>{isUploading ? uploadStage.fileName : "PDFs are validated, rendered, and saved locally before opening in the editor."}</span>
-            <div className="upload-progress-track"><span style={{ width: `${uploadStage?.percent || 0}%` }} /></div>
-            {uploadError && <p className="upload-error">{uploadError}</p>}
-          </div>
-        </section>
+            <div className="dashboard-hero-visual" aria-hidden="true">
+              <img src={`${import.meta.env.BASE_URL}dashboard-pdf-hero.jpg`} alt="" />
+            </div>
+          </section>
 
-        <section className="dashboard-stat-grid" aria-label="Workspace stats">
-          <article><strong>{documents.length}</strong><span>Documents</span></article>
-          <article><strong>{totalPages}</strong><span>Pages managed</span></article>
-          <article><strong>{favoriteCount}</strong><span>Starred</span></article>
-          <article><strong>{formatBytes(storageUsed)}</strong><span>Local storage</span></article>
-        </section>
+          <section className="dashboard-quick-grid" aria-label="Quick actions">
+            <button type="button" onClick={onSelectFiles}><span className="tone-coral"><Upload size={21} /></span><div><strong>Upload PDF</strong><small>Upload files from your device</small></div></button>
+            <button type="button" onClick={onSelectFiles}><span className="tone-purple"><PenLine size={21} /></span><div><strong>Edit PDF</strong><small>Edit text, images, pages</small></div></button>
+            <button type="button" onClick={() => setActiveSection("Signatures")}><span className="tone-blue"><PenLine size={21} /></span><div><strong>Request Signatures</strong><small>Get documents signed</small></div></button>
+            <button type="button" onClick={() => setActiveSection("Templates")}><span className="tone-violet"><FilePlus2 size={21} /></span><div><strong>Create Template</strong><small>Save and reuse templates</small></div></button>
+            <button type="button" onClick={() => onNavigate(ROUTE_PATHS.tools)}><span className="tone-lilac"><Sparkles size={21} /></span><div><strong>AI Tools</strong><small>Summarize, rewrite, more</small></div><ChevronRight size={16} /></button>
+          </section>
 
-        <section className="lumin-action-grid">
-          {quickActions.map(({ label, icon: Icon, action }) => (
-            <button key={label} type="button" className="lumin-action-card" onClick={action}>
-              <Icon size={31} />
-              <span>{label}</span>
-            </button>
-          ))}
-        </section>
+          <section className="reference-stat-grid" aria-label="Workspace stats">
+            <article><span className="reference-stat-icon tone-red"><FileText size={23} /></span><div><small>Total Documents</small><strong>{userDocuments.length}</strong><em className="is-neutral">{totalPages} page{totalPages === 1 ? "" : "s"} managed</em></div></article>
+            <article><span className="reference-stat-icon tone-purple"><PenLine size={23} /></span><div><small>Awaiting Signatures</small><strong>{signatureCount}</strong><em className="is-neutral">Across your saved PDFs</em></div></article>
+            <article><span className="reference-stat-icon tone-blue"><HardDrive size={23} /></span><div><small>Storage Used</small><strong>{formatBytes(storageUsed)}</strong><em className="is-neutral">{storagePercentageLabel} of 15 GB</em></div></article>
+            <article><span className="reference-stat-icon tone-green"><ChartNoAxesColumnIncreasing size={23} /></span><div><small>Completed This Month</small><strong>{weeklyActivityCount}</strong><em className="is-neutral">Document{weeklyActivityCount === 1 ? "" : "s"} updated recently</em></div></article>
+          </section>
 
-        <section className="document-library">
-          <div className="library-head">
-            <h2>Suggested documents</h2>
-          </div>
-          <div className="suggestion-tabs">
-            <button type="button" className={suggestionView === "recent" ? "is-active" : ""} onClick={() => setSuggestionView("recent")}><Undo2 size={22} /> You opened recently</button>
-            <button type="button" className={suggestionView === "trending" ? "is-active" : ""} onClick={() => setSuggestionView("trending")}><ArrowDownToLine size={22} /> Trending</button>
-          </div>
-          {renderDocumentTable(visibleRows, suggestionView === "recent" ? "documents" : "trending")}
-        </section>
-      </>
+          <section className="reference-recent-card">
+            <div className="reference-section-head">
+              <h2>Recent Documents</h2>
+              <div className="reference-recent-tabs">
+                <button type="button" className={suggestionView === "recent" ? "is-active" : ""} onClick={() => setSuggestionView("recent")}>Recent</button>
+                <button type="button" className={suggestionView === "starred" ? "is-active" : ""} onClick={() => setSuggestionView("starred")}>Starred</button>
+                <button type="button" className={suggestionView === "shared" ? "is-active" : ""} onClick={() => setSuggestionView("shared")}>Shared with me</button>
+              </div>
+              <button type="button" className="reference-view-all" onClick={() => setActiveSection("Documents")}>View all</button>
+            </div>
+            {renderRecentDashboardTable()}
+          </section>
+        </div>
+
+        <aside className="reference-dashboard-side">
+          <section className="dashboard-ai-card">
+            <img src={`${import.meta.env.BASE_URL}dashboard-assets/ai-assistant.png`} alt="RealPDF AI assistant" />
+            <div className="dashboard-ai-title"><h2>AI Assistant</h2><Sparkles size={15} /></div>
+            <p>Hi {dashboardFirstName}! I can help you with:</p>
+            <div className="dashboard-ai-actions">
+              {["Summarize this document", "Extract key points", "Improve writing", "Translate PDF", "Convert to other formats"].map((label) => (
+                <button key={label} type="button" onClick={() => onNavigate(ROUTE_PATHS.tools)}><Sparkles size={14} /> {label}</button>
+              ))}
+            </div>
+            <button type="button" className="dashboard-ai-prompt" onClick={() => onNavigate(ROUTE_PATHS.aiPdf)}>Ask anything about your PDF… <ChevronRight size={15} /></button>
+          </section>
+
+          <section className="reference-side-card reference-activity-card dashboard-recent-activity">
+            <div className="reference-side-head"><h2>Recent Activity</h2><button type="button" onClick={() => setActiveSection("Documents")}>View all</button></div>
+            {activityFeed.length ? (
+              <div className="reference-activity-list">
+                {activityFeed.map(({ id, initials, tone, text, date }) => (
+                  <article key={id}><span className={`reference-activity-avatar tone-${tone}`}>{initials}</span><div><strong>{text}</strong><small>{date}</small></div></article>
+                ))}
+              </div>
+            ) : (
+              <div className="reference-activity-empty"><Activity size={22} /><strong>No activity yet</strong><span>Your uploads and edits will appear here.</span></div>
+            )}
+          </section>
+
+          <section className="dashboard-template-promo">
+            <div><h2>Create reusable templates</h2><p>Save time by creating templates for contracts, agreements, and more.</p><button type="button" onClick={() => setActiveSection("Templates")}>Create template</button></div>
+            <img src={`${import.meta.env.BASE_URL}dashboard-assets/template-card.png`} alt="Purple reusable document template" />
+          </section>
+        </aside>
+      </div>
     );
   };
 
@@ -4591,33 +4708,46 @@ function UploadLanding({
     <main className="upload-shell lumin-home">
       <input ref={fileInputRef} className="hidden-input" type="file" accept="application/pdf" onChange={onUpload} />
       <aside className="lumin-home-rail">
-        <button type="button" className="rail-brand-tile" aria-label="Back to RealPDF website" onClick={() => onNavigate(ROUTE_PATHS.home)}><FileText size={22} /></button>
-        <button type="button" className="rail-mini-action" onClick={() => setOpenPanel("invite")}><Users size={22} /></button>
+        <button type="button" className="dashboard-brand" aria-label="Back to RealPDF website" onClick={() => onNavigate(ROUTE_PATHS.home)}><span><FileText size={22} /></span><strong>RealPDF</strong></button>
         <nav className="upload-nav" aria-label="Primary">
-          {primaryNav.map(({ label, icon: Icon, path }) => (
-            <NavLink key={label} to={path} className={({ isActive }) => (isActive ? "is-active" : "")}>
-              <Icon size={24} />
+          {primaryNav.map(({ label, section: navSection = label, icon: Icon, badge }) => (
+            <button key={label} type="button" className={navSection === activeSection ? "is-active" : ""} onClick={() => setActiveSection(navSection)}>
+              <Icon size={19} />
               <span>{label}</span>
-            </NavLink>
+              {badge && <em className="dashboard-nav-badge">{badge}</em>}
+            </button>
           ))}
         </nav>
+        <nav className="upload-nav dashboard-utility-nav" aria-label="Document utilities">
+          {utilityNav.map(({ label, icon: Icon }) => <button key={label} type="button" className={label === activeSection ? "is-active" : ""} onClick={() => setActiveSection(label)}><Icon size={19} /><span>{label}</span></button>)}
+        </nav>
+        <section className="dashboard-workspace-nav">
+          <div><strong>Workspace</strong><button type="button" aria-label="Create folder" onClick={() => setWorkspaceNotice("Folder creation is coming soon.")}>+</button></div>
+          {workspaceFolders.map((folder, index) => <button key={folder} type="button" className={index === 0 ? "is-active" : ""} onClick={() => setActiveSection("Documents")}><FolderPlus size={17} /><span>{folder}</span></button>)}
+        </section>
+        <section className="dashboard-storage-card" aria-label="Storage used">
+          <div><strong>Pro Plan <Crown size={13} /></strong><button type="button" onClick={() => setUpgradeModalOpen(true)}>Upgrade plan</button></div>
+          <p><b>{storagePercentageLabel}</b> of 15 GB used</p>
+          <span><i style={{ width: `${storagePercentage === 0 ? 0 : Math.max(2, storagePercentage)}%` }} /></span>
+          <p>{formatBytes(storageUsed)} / 15 GB</p>
+        </section>
+        <button type="button" className="dashboard-site-back" onClick={() => onNavigate(ROUTE_PATHS.home)}><ChevronLeft size={16} /><span>Back to website</span></button>
       </aside>
 
       <section className="upload-main">
         <header className="upload-topbar">
-          <button type="button" className="upload-logo" onClick={() => onNavigate(ROUTE_PATHS.home)}><span><FileText size={19} /></span><strong>RealPDF</strong></button>
           <label className="lumin-search">
-            <Search size={25} />
-            <input type="search" placeholder="Search" value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} />
+            <Search size={18} />
+            <input type="search" placeholder="Search documents, templates, or tools..." value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} />
+            <kbd>⌘ K</kbd>
           </label>
           <div className="upload-top-actions">
+            <button type="button" className="dashboard-create-button" onClick={onBlankPage}><Plus size={18} /> Create</button>
             <button type="button" className="invite-button" onClick={() => setOpenPanel(openPanel === "invite" ? null : "invite")}><Users size={18} /> Invite members</button>
-            <button type="button" className="upgrade-button" onClick={() => setUpgradeModalOpen(true)}>Upgrade</button>
-            <button type="button" className="top-icon" onClick={() => setOpenPanel(openPanel === "help" ? null : "help")}><CircleHelp size={17} /></button>
-            <button type="button" className="top-icon" onClick={() => setOpenPanel(openPanel === "notifications" ? null : "notifications")}><Bell size={17} /></button>
-            <button type="button" className="top-avatar" onClick={() => setOpenPanel(openPanel === "account" ? null : "account")}>{userInitials}</button>
+            <button type="button" className="top-icon dashboard-notification-button" aria-label="Notifications" onClick={() => setOpenPanel(openPanel === "notifications" ? null : "notifications")}><Bell size={19} /></button>
+            <button type="button" className="top-avatar" aria-haspopup="dialog" aria-expanded={openPanel === "account"} onClick={() => setOpenPanel(openPanel === "account" ? null : "account")}><span>{userInitials}</span><i /><strong>{dashboardAccountName}</strong><ChevronDown size={15} /></button>
             {openPanel && (
-              <div className="workspace-popover">
+              <div className={`workspace-popover ${openPanel === "account" ? "account-menu-popover" : ""}`} role={openPanel === "account" ? "dialog" : undefined} aria-label={openPanel === "account" ? "Account menu" : undefined}>
                 <button type="button" className="popover-close" onClick={closePanel}><X size={16} /></button>
                 {openPanel === "invite" && (
                   <>
@@ -4656,10 +4786,14 @@ function UploadLanding({
                 )}
                 {openPanel === "account" && (
                   <>
-                    <h3>{userName}</h3>
-                    <p>{currentUser?.email || "Signed in workspace"}</p>
-                    <button type="button" className="popover-primary" onClick={() => setActiveSection("Settings")}>Workspace settings</button>
-                    <button type="button" className="popover-secondary" onClick={onLogout}>Sign out</button>
+                    <div className="account-menu-identity">
+                      <span className="account-menu-avatar">{userInitials}</span>
+                      <div><h3>{userName}</h3><p><Mail size={15} /> {currentUser?.email || "Signed in workspace"}</p></div>
+                    </div>
+                    <div className="account-menu-actions">
+                      <button type="button" className="account-menu-settings" onClick={() => { setActiveSection("Settings"); closePanel(); }}><Settings size={18} /><span><strong>Workspace settings</strong><small>Profile, storage, and preferences</small></span><ChevronRight size={17} /></button>
+                      <button type="button" className="account-menu-signout" onClick={onLogout}><LogOut size={18} /><span>Sign out</span></button>
+                    </div>
                   </>
                 )}
               </div>
