@@ -18,7 +18,7 @@
  * @property {string[]} supportedOutputTypes
  * @property {boolean} uploadEnabled
  * @property {boolean} opensEditor
- * @property {"editor" | "converter" | "information"} workflowType
+ * @property {"editor" | "converter" | "page-tool" | "information"} workflowType
  * @property {string} currentLimitations
  * @property {string} availabilityLabel
  * @property {string} seoTitle
@@ -53,6 +53,7 @@ export const TOOL_CATEGORIES = Object.freeze([
 const PARTIAL_EDITOR_LIMIT = "This workflow opens the current browser editor. Supported edits are flattened during export, and source formatting or interactive PDF features may not be preserved.";
 const COMING_SOON_LIMIT = "This tool is not implemented yet. RealPDF does not upload or process files for this workflow today.";
 const DEDICATED_CONVERTER_IDS = new Set(["pdf-to-jpg", "pdf-to-png", "jpg-to-pdf", "png-to-pdf"]);
+const DEDICATED_PAGE_TOOL_IDS = new Set(["merge-pdf", "split-pdf", "rotate-pdf", "delete-pdf-pages", "extract-pdf-pages", "reorder-pdf-pages", "organize-pdf"]);
 
 /** @type {ToolDefinition[]} */
 const definitions = [
@@ -67,13 +68,13 @@ const definitions = [
   ["redact-pdf", "Redact PDF", "Permanently remove sensitive content from a PDF before sharing it.", "edit-view", "redact", "coming-soon", ["application/pdf"], ["application/pdf"], "Secure permanent redaction is not available. The editor's current whiteout is visual only and must not be treated as redaction."],
   ["share-pdf", "Share PDF", "Create a controlled link for another person to view or download a PDF.", "edit-view", "share", "coming-soon", ["application/pdf"], [], "Secure links, permissions, passwords, and expiration controls require a backend token service and are not available."],
 
-  ["merge-pdf", "Merge PDF", "Append another PDF to the current document and export the combined pages.", "organize", "merge", "partial", ["application/pdf"], ["application/pdf"], "A basic append workflow is available inside the editor. Multi-file staging, page-range selection, and advanced merge controls are still being improved."],
-  ["split-pdf", "Split PDF", "Separate one PDF into smaller files by page or page range.", "organize", "split", "coming-soon", ["application/pdf"], ["application/pdf"], "Multi-file split export and page-range rules are not implemented."],
-  ["rotate-pdf", "Rotate PDF", "Rotate the current page clockwise and export the updated document.", "organize", "rotate", "partial", ["application/pdf"], ["application/pdf"], "Rotation currently rasterizes the page, which may reduce fidelity and remove native PDF structure."],
-  ["delete-pdf-pages", "Delete PDF Pages", "Remove selected pages from the working PDF before export.", "organize", "delete", "partial", ["application/pdf"], ["application/pdf"], "Page deletion works in the editor but has no page-range batch dialog or recovery after the document is permanently deleted."],
-  ["extract-pdf-pages", "Extract PDF Pages", "Export selected pages from a PDF as a separate document.", "organize", "extract", "coming-soon", ["application/pdf"], ["application/pdf"], "Selected-page extraction to a separate file is not implemented."],
-  ["reorder-pdf-pages", "Reorder PDF Pages", "Drag page thumbnails or use the keyboard to change page order.", "organize", "reorder", "partial", ["application/pdf"], ["application/pdf"], "Reordering works in the editor. Large-document performance and page-range movement still need production testing."],
-  ["organize-pdf", "Organize PDF", "Review thumbnails, add, delete, rotate, reorder, and append PDF pages.", "organize", "pages", "partial", ["application/pdf"], ["application/pdf"], "Core page controls are available, but extraction, splitting, and high-fidelity rotation are incomplete."],
+  ["merge-pdf", "Merge PDF", "Combine multiple ordered PDFs into one high-fidelity document.", "organize", "merge", "available", ["application/pdf"], ["application/pdf"], "Browser merging supports up to 20 valid, unencrypted PDFs, 50 MB each, and 200 total pages."],
+  ["split-pdf", "Split PDF", "Separate one PDF into downloadable files using page ranges.", "organize", "split", "available", ["application/pdf"], ["application/pdf", "application/zip"], "Browser splitting supports valid, unencrypted PDFs up to 50 MB and 200 pages."],
+  ["rotate-pdf", "Rotate PDF", "Rotate PDF pages in 90-degree steps without rasterizing their native content.", "organize", "rotate", "available", ["application/pdf"], ["application/pdf"], "Browser organization supports valid, unencrypted PDFs up to 50 MB and 200 output pages."],
+  ["delete-pdf-pages", "Delete PDF Pages", "Remove pages from a PDF and download the remaining native pages.", "organize", "delete", "available", ["application/pdf"], ["application/pdf"], "At least one page must remain. Browser organization supports PDFs up to 50 MB and 200 pages."],
+  ["extract-pdf-pages", "Extract PDF Pages", "Select pages and export them as a separate high-fidelity PDF.", "organize", "extract", "available", ["application/pdf"], ["application/pdf"], "Browser extraction supports valid, unencrypted PDFs up to 50 MB and 200 pages."],
+  ["reorder-pdf-pages", "Reorder PDF Pages", "Drag page thumbnails into a new order and download the reorganized PDF.", "organize", "reorder", "available", ["application/pdf"], ["application/pdf"], "Browser organization supports valid, unencrypted PDFs up to 50 MB and 200 output pages."],
+  ["organize-pdf", "Organize PDF", "Reorder, rotate, duplicate, and delete PDF pages with undo.", "organize", "pages", "available", ["application/pdf"], ["application/pdf"], "Browser organization supports valid, unencrypted PDFs up to 50 MB and 200 output pages."],
 
   ["compress-pdf", "Compress PDF", "Reduce a PDF's file size while balancing visual quality and readability.", "compress", "compress", "coming-soon", ["application/pdf"], ["application/pdf"], "Real PDF optimization and measurable size reduction are not implemented."],
 
@@ -221,6 +222,8 @@ function buildBaseTool([slug, name, shortDescription, category, icon, status, su
   if (!categoryRecord || !content) throw new Error(`Unknown tool category: ${category}`);
   const isUsable = status === "available" || status === "beta" || status === "partial";
   const isDedicatedConverter = DEDICATED_CONVERTER_IDS.has(slug);
+  const isDedicatedPageTool = DEDICATED_PAGE_TOOL_IDS.has(slug);
+  const hasDedicatedWorkflow = isDedicatedConverter || isDedicatedPageTool;
   const inputLabel = supportedInputTypes.length ? supportedInputTypes.map(formatType).join(", ") : "No upload today";
   const outputLabel = supportedOutputTypes.length ? supportedOutputTypes.map(formatType).join(", ") : "No generated output today";
   const availabilityLabel = status === "available" ? "Available" : status === "beta" ? "Beta" : status === "partial" ? "Available with limitations" : "Coming soon";
@@ -231,7 +234,7 @@ function buildBaseTool([slug, name, shortDescription, category, icon, status, su
     route,
     name,
     shortDescription,
-    longDescription: `${shortDescription} ${isUsable ? isDedicatedConverter ? "Use the dedicated RealPDF converter and review the downloaded result carefully." : "Use the supported workflow in the current RealPDF editor and review the exported result carefully." : "The page explains the intended workflow without pretending that file processing is available."}`,
+    longDescription: `${shortDescription} ${isUsable ? hasDedicatedWorkflow ? "Use the dedicated RealPDF workflow and review the downloaded result carefully." : "Use the supported workflow in the current RealPDF editor and review the exported result carefully." : "The page explains the intended workflow without pretending that file processing is available."}`,
     category,
     categoryName: categoryRecord.name,
     icon,
@@ -240,8 +243,8 @@ function buildBaseTool([slug, name, shortDescription, category, icon, status, su
     supportedInputTypes,
     supportedOutputTypes,
     uploadEnabled: isUsable,
-    opensEditor: isUsable && !isDedicatedConverter,
-    workflowType: isDedicatedConverter ? "converter" : isUsable ? "editor" : "information",
+    opensEditor: isUsable && !hasDedicatedWorkflow,
+    workflowType: isDedicatedConverter ? "converter" : isDedicatedPageTool ? "page-tool" : isUsable ? "editor" : "information",
     currentLimitations: currentLimitations || (isUsable ? PARTIAL_EDITOR_LIMIT : COMING_SOON_LIMIT),
     availabilityLabel,
     seoTitle: `${name} Online | RealPDF`,

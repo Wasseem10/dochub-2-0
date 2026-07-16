@@ -7,7 +7,6 @@ describe("editor tool launch presets", () => {
   it("routes every implemented screenshot workflow to a specific editor intent", () => {
     const expectedTools = [
       "edit-pdf", "annotate-pdf", "pdf-reader", "fill-pdf", "pdf-form-filler",
-      "merge-pdf", "rotate-pdf", "delete-pdf-pages", "reorder-pdf-pages", "organize-pdf",
       "sign-pdf", "add-initials", "add-date-fields",
     ];
     expect(Object.keys(EDITOR_TOOL_PRESETS)).toEqual(expectedTools);
