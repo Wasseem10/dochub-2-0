@@ -5,7 +5,7 @@ import { ROUTE_PATHS } from "../router/routePaths.js";
 
 export function PublicLayout() {
   const { pathname } = useLocation();
-  const usesExistingLandingChrome = pathname === ROUTE_PATHS.home || pathname === ROUTE_PATHS.editPdf;
+  const usesExistingLandingChrome = pathname === ROUTE_PATHS.home;
 
   if (usesExistingLandingChrome) return <Outlet />;
 
