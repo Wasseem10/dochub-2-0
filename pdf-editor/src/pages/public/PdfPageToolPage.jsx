@@ -16,6 +16,7 @@ import Upload from "lucide-react/dist/esm/icons/upload.mjs";
 import { PageMetadata } from "../../components/public/PageMetadata.jsx";
 import { ROUTE_PATHS } from "../../router/routePaths.js";
 import { createStoredZip } from "../../tools/imageConversion.js";
+import { createCompressedPdfFromJpegs } from "../../tools/pdfCompression.js";
 import { cropPdfPages } from "../../tools/pdfCrop.js";
 import { addPageNumbersToPdf, buildPdfFromPagePlan, extractPdfPages, inspectPdfBytes, mergePdfDocuments, PAGE_TOOL_LIMITS, parsePageRanges, splitPdfByRanges } from "../../tools/pdfPageOperations.js";
 import { addWatermarkToPdf } from "../../tools/pdfWatermark.js";
@@ -300,6 +301,65 @@ function CropWorkspace({ tool }) {
   return <div className="conversion-workspace-grid"><section><PdfDropzone multiple={false} label="Drop a PDF to crop" onFiles={loadPdf} disabled={status === "reading" || status === "working"} />{status === "reading" && <div className="conversion-progress"><LoaderCircle className="is-spinning" size={18} /> Reading PDF...</div>}{error && <div className="conversion-error" role="alert">{error}</div>}{file && <article className="page-number-file-card"><strong>{file.name}</strong><small>{pageCount} page{pageCount === 1 ? "" : "s"} · {formatBytes(file.size)}</small></article>}{pageCount > 0 && <section className="watermark-page-selector"><header><strong>Crop these pages</strong><button type="button" onClick={() => setSelectedPages(allPagesSelected ? new Set() : new Set(Array.from({ length: pageCount }, (_, index) => index)))}>{allPagesSelected ? "Clear all" : "Select all"}</button></header><div>{Array.from({ length: pageCount }, (_, index) => <label key={index}><input type="checkbox" checked={selectedPages.has(index)} onChange={() => togglePage(index)} /> Page {index + 1}</label>)}</div></section>}</section><aside className="conversion-settings-card crop-settings"><span>Crop settings</span><h2>Trim the edges</h2><p className="page-tool-help">Choose how much to remove from each edge. Values are a percentage of the current visible page. The original source stays unchanged.</p><div className="crop-presets"><button type="button" onClick={() => setPreset(0)}>No trim</button><button type="button" onClick={() => setPreset(5)}>Trim 5%</button><button type="button" onClick={() => setPreset(10)}>Trim 10%</button></div><div className="crop-margin-grid">{margins.map((margin) => <label key={margin.label}>{margin.label}<input type="number" min="0" max="45" value={margin.value} onChange={updateMargin(margin.set)} /><small>{margin.value}%</small></label>)}</div><div className="conversion-summary"><Check size={18} /><span>{file ? `${selectedPages.size} of ${pageCount} page${pageCount === 1 ? "" : "s"} selected` : "Upload a PDF to continue"}</span></div><button className="conversion-primary-action" type="button" disabled={!file || !selectedPages.size || status === "working" || status === "reading"} onClick={exportCroppedPdf}>{status === "working" ? <><LoaderCircle className="is-spinning" size={18} /> Cropping PDF...</> : <><Download size={18} /> Download cropped PDF</>}</button>{status === "complete" && <ExportSuccessState toolId={tool.id} onDownloadAgain={exportCroppedPdf} onStartAnother={() => { setFile(null); setSourceBytes(null); setPageCount(0); setSelectedPages(new Set()); setStatus("idle"); }} relatedRoute="/organize-pdf" relatedName="Organize PDF" />}</aside></div>;
 }
 
+function CompressWorkspace({ tool }) {
+  const [file, setFile] = useState(null);
+  const [sourceBytes, setSourceBytes] = useState(null);
+  const [pageCount, setPageCount] = useState(0);
+  const [preset, setPreset] = useState("balanced");
+  const [status, setStatus] = useState("idle");
+  const [progress, setProgress] = useState(0);
+  const [resultSize, setResultSize] = useState(0);
+  const [error, setError] = useState("");
+  const options = { strong: { scale: 0.85, quality: 0.48, label: "Strong" }, balanced: { scale: 1.1, quality: 0.65, label: "Balanced" }, quality: { scale: 1.35, quality: 0.8, label: "Better quality" } };
+
+  const loadPdf = async (fileList) => {
+    const nextFile = Array.from(fileList || [])[0];
+    if (!nextFile) return;
+    setError(""); setResultSize(0);
+    if (nextFile.type !== "application/pdf" && !nextFile.name.toLowerCase().endsWith(".pdf")) return setError("Choose a PDF file.");
+    if (nextFile.size > PAGE_TOOL_LIMITS.maxFileBytes) return setError("PDFs must be under 50 MB.");
+    setStatus("reading");
+    try {
+      const bytes = new Uint8Array(await nextFile.arrayBuffer());
+      const details = await inspectPdfBytes(bytes);
+      if (details.pageCount > PAGE_TOOL_LIMITS.maxPages) throw new Error(`This PDF has ${details.pageCount} pages. The limit is ${PAGE_TOOL_LIMITS.maxPages}.`);
+      setFile(nextFile); setSourceBytes(bytes); setPageCount(details.pageCount);
+    } catch (loadError) { setFile(null); setSourceBytes(null); setPageCount(0); setError(friendlyPdfError(loadError)); }
+    finally { setStatus("idle"); }
+  };
+
+  const compressPdf = async () => {
+    if (!sourceBytes || !file) return;
+    setStatus("working"); setProgress(0); setError(""); setResultSize(0);
+    try {
+      const config = options[preset];
+      const pdfjsLib = await loadPdfRenderer();
+      const source = await pdfjsLib.getDocument({ data: sourceBytes.slice(0) }).promise;
+      const pages = [];
+      for (let pageNumber = 1; pageNumber <= source.numPages; pageNumber += 1) {
+        const page = await source.getPage(pageNumber);
+        const outputViewport = page.getViewport({ scale: 1 });
+        const renderViewport = page.getViewport({ scale: config.scale });
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.max(1, Math.round(renderViewport.width));
+        canvas.height = Math.max(1, Math.round(renderViewport.height));
+        await page.render({ canvasContext: canvas.getContext("2d"), viewport: renderViewport }).promise;
+        const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", config.quality));
+        if (!blob) throw new Error("A page could not be prepared for compression.");
+        pages.push({ jpegBytes: new Uint8Array(await blob.arrayBuffer()), width: outputViewport.width, height: outputViewport.height });
+        setProgress(Math.round((pageNumber / source.numPages) * 100));
+      }
+      await source.destroy();
+      const output = await createCompressedPdfFromJpegs(pages);
+      if (output.length >= sourceBytes.length) throw new Error("These settings did not make the PDF smaller. Choose Strong compression or keep the original PDF.");
+      downloadBytes(output, "application/pdf", `${file.name.replace(/\.pdf$/i, "") || "document"}-compressed.pdf`);
+      setResultSize(output.length); setStatus("complete");
+    } catch (compressionError) { setError(friendlyPdfError(compressionError)); setStatus("idle"); }
+  };
+
+  return <div className="conversion-workspace-grid"><section><PdfDropzone multiple={false} label="Drop a PDF to compress" onFiles={loadPdf} disabled={status === "reading" || status === "working"} />{status === "reading" && <div className="conversion-progress"><LoaderCircle className="is-spinning" size={18} /> Reading PDF...</div>}{status === "working" && <div className="conversion-progress"><LoaderCircle className="is-spinning" size={18} /> Compressing pages... {progress}%</div>}{error && <div className="conversion-error" role="alert">{error}</div>}{file && <article className="page-number-file-card"><strong>{file.name}</strong><small>{pageCount} page{pageCount === 1 ? "" : "s"} · {formatBytes(file.size)}</small></article>}</section><aside className="conversion-settings-card"><span>Compression settings</span><h2>Make image-heavy PDFs lighter</h2><p className="page-tool-help">This privacy-first workflow runs locally. It creates a smaller visual PDF by flattening pages to JPEG images, so searchable text, links, forms, and layers are not retained.</p><label>Compression level<select value={preset} onChange={(event) => setPreset(event.target.value)}>{Object.entries(options).map(([key, option]) => <option key={key} value={key}>{option.label}</option>)}</select></label><div className="conversion-summary"><Check size={18} /><span>{!file ? "Upload a PDF to continue" : resultSize ? `${formatBytes(file.size)} → ${formatBytes(resultSize)}` : `${pageCount} page${pageCount === 1 ? "" : "s"} ready`}</span></div><button className="conversion-primary-action" type="button" disabled={!file || status === "working" || status === "reading"} onClick={compressPdf}>{status === "working" ? <><LoaderCircle className="is-spinning" size={18} /> Compressing...</> : <><Download size={18} /> Download compressed PDF</>}</button>{status === "complete" && <ExportSuccessState toolId={tool.id} onDownloadAgain={compressPdf} onStartAnother={() => { setFile(null); setSourceBytes(null); setPageCount(0); setResultSize(0); setStatus("idle"); }} relatedRoute="/organize-pdf" relatedName="Organize PDF" />}</aside></div>;
+}
+
 function SinglePdfWorkspace({ tool }) {
   const isSplit = tool.id === "split-pdf";
   const isExtract = tool.id === "extract-pdf-pages";
@@ -387,6 +447,7 @@ export function PdfPageToolPage({ tool }) {
   const isPageNumbers = tool.id === "add-page-numbers";
   const isWatermark = tool.id === "watermark-pdf";
   const isCrop = tool.id === "crop-pdf";
+  const isCompress = tool.id === "compress-pdf";
   const schema = { "@context": "https://schema.org", "@type": "SoftwareApplication", name: tool.name, applicationCategory: "BusinessApplication", operatingSystem: "Web", url: absoluteSiteUrl(tool.canonicalUrl), offers: { "@type": "Offer", price: "0", priceCurrency: "USD" } };
-  return <main className="image-conversion-page pdf-page-tool-page"><PageMetadata title={tool.seoTitle} description={tool.metaDescription} canonicalUrl={tool.canonicalUrl} schemas={[schema]} /><nav className="tool-breadcrumbs" aria-label="Breadcrumb"><Link to={ROUTE_PATHS.tools}>PDF tools</Link><span>/</span><span aria-current="page">{tool.name}</span></nav><section className="conversion-hero"><div><small>Available now · runs in your browser</small><h1>{tool.name} online.</h1><p>{tool.shortDescription} Free to use and ready in seconds.</p></div></section>{isCrop ? <CropWorkspace tool={tool} /> : isWatermark ? <WatermarkWorkspace tool={tool} /> : isPageNumbers ? <PageNumberWorkspace tool={tool} /> : isMerge ? <MergeWorkspace tool={tool} /> : <SinglePdfWorkspace tool={tool} />}<section className="conversion-privacy-note"><Check size={19} /><div><strong>High-fidelity browser processing</strong><p>FixThatPDF keeps original PDF pages intact and adds only the changes you request. Processing stays on this device.</p></div></section></main>;
+  return <main className="image-conversion-page pdf-page-tool-page"><PageMetadata title={tool.seoTitle} description={tool.metaDescription} canonicalUrl={tool.canonicalUrl} schemas={[schema]} /><nav className="tool-breadcrumbs" aria-label="Breadcrumb"><Link to={ROUTE_PATHS.tools}>PDF tools</Link><span>/</span><span aria-current="page">{tool.name}</span></nav><section className="conversion-hero"><div><small>Available now · runs in your browser</small><h1>{tool.name} online.</h1><p>{tool.shortDescription} Free to use and ready in seconds.</p></div></section>{isCompress ? <CompressWorkspace tool={tool} /> : isCrop ? <CropWorkspace tool={tool} /> : isWatermark ? <WatermarkWorkspace tool={tool} /> : isPageNumbers ? <PageNumberWorkspace tool={tool} /> : isMerge ? <MergeWorkspace tool={tool} /> : <SinglePdfWorkspace tool={tool} />}<section className="conversion-privacy-note"><Check size={19} /><div><strong>High-fidelity browser processing</strong><p>FixThatPDF keeps original PDF pages intact and adds only the changes you request. Processing stays on this device.</p></div></section></main>;
 }
