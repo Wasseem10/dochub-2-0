@@ -1,50 +1,36 @@
-# FixThatPDF rebrand design QA
+# RealPDF homepage design QA
 
-- Source visual truth: `/var/folders/y5/5nxfxhk97_9fmsmdf8tqj81r0000gn/T/TemporaryItems/NSIRD_screencaptureui_tURx16/Screenshot 2026-07-15 at 10.53.50 PM.png`
-- Browser-rendered implementation: `/tmp/realpdf-page-tools/pdf-editor/tmp/fixthatpdf-desktop.png`
-- Focused comparison: `/tmp/realpdf-page-tools/pdf-editor/tmp/fixthatpdf-brand-comparison.png`
-- Viewports: 1440 × 900 desktop and 390 × 844 mobile
-- State: public landing page with the announcement visible; mobile navigation also tested open
+## Source and implementation
 
-**Findings**
+- Approved source mockup: `/Users/wasseemdabbas/.codex/generated_images/019f6936-fa87-7811-b78f-f28c20e79dae/exec-9b008a1d-4ec1-4cc8-b55a-8fbacb5235cd.png` (1487 × 1058)
+- Desktop implementation capture: `/tmp/realpdf-implementation-desktop.png` (1440 × 6282, captured at a 1440 × 1024 viewport)
+- Mobile implementation capture: `/tmp/realpdf-implementation-mobile.png` (390 px wide, captured at a 390 × 844 viewport)
+- Side-by-side comparison: `/tmp/realpdf-design-comparison.png`
 
-- No actionable P0, P1, or P2 differences remain. The source green document mark is absent from the implemented public wordmark, and the replacement text reads `FixThatPDF`.
-- Fonts and typography: the existing display family, weight, line height, and hierarchy are preserved; the longer wordmark does not wrap at either tested viewport.
-- Spacing and layout rhythm: removing the square mark closes the unused icon gap without shifting the navigation or causing horizontal overflow.
-- Colors and visual tokens: the existing green, mint, cream, and dark-ink system is unchanged. The removed green logo block no longer competes with the wordmark.
-- Image quality and asset fidelity: the supplied document-mark asset is removed instead of recreated, approximated, or replaced. The outdated embedded product screenshot was refreshed with the current FixThatPDF editor entry, while functional document icons remain intact.
-- Copy and content: visible product references, page titles, metadata, tool copy, login copy, dashboard copy, export metadata, and copyright text use `FixThatPDF`.
+## Comparison history
 
-**Full-view comparison evidence**
+### Pass 1 — desktop, 1440 × 1024
 
-- The 1440 × 900 landing-page capture shows a wordmark-only header, balanced navigation, unchanged upload workflow, and no visible former product-name text.
-- The 390 × 844 landing-page capture shows the complete `FixThatPDF` wordmark, the primary action, and the menu control with no horizontal overflow.
+The approved mockup and coded implementation were placed together in one comparison view. The implementation matches the approved direction: compact white navigation, handwritten blue eyebrow with orange accent, oversized black display headline, cobalt primary action, layered blue product stage, centered white upload panel, trust strip, and cream-backed visual task lanes.
 
-**Focused region comparison evidence**
+- Layout and spacing: passed. The hero hierarchy, product-stage proportions, trust strip, and task-lane rhythm align with the source. The implementation adds intentional below-fold detail without changing the approved first-screen composition.
+- Typography: passed. Funnel Display, DM Sans, and Caveat reproduce the source's bold display, readable body, and handwritten accent roles.
+- Color and surfaces: passed. Cobalt, sky blue, white, black, and warm cream are consistent with the approved palette.
+- Imagery: passed. Purpose-built hero and task-workflow assets fit their measured containers without stretching, placeholder art, or unintended cropping.
+- Controls and states: passed. Buttons, links, upload panel, focus styles, drag state, progress state, error state, and mobile navigation are present and visually consistent.
 
-- `fixthatpdf-brand-comparison.png` places the supplied green document mark beside the implemented wordmark-only header. The unwanted mark is fully removed and no substitute icon appears.
+No P1 or P2 fidelity issues were found. Minor copy and below-fold density differences are intentional product-content adaptations, not visual defects.
 
-**Primary interactions and browser checks**
+### Pass 2 — mobile, 390 × 844
 
-- Opened the mobile navigation and confirmed its links and labels render with the new product name.
-- Confirmed the login screen uses the wordmark-only brand button.
-- Confirmed the public brand links still target the landing page.
-- Browser console errors and warnings: none during the desktop, mobile, login, and menu checks.
+The layout was captured as a full page after the desktop comparison. Headline wrapping, upload affordance, task cards, tools, process steps, privacy panel, FAQ, final CTA, and footer all stack cleanly. `documentElement.scrollWidth` equals the 390 px viewport width, confirming no horizontal overflow.
 
-**Comparison history**
+## Interaction and runtime checks
 
-- Pass 1: no P0/P1/P2 issues found after implementation; no corrective visual iteration was required.
-
-**Implementation Checklist**
-
-- [x] Rename visible product branding to FixThatPDF.
-- [x] Remove the supplied document mark from brand placements.
-- [x] Preserve functional PDF and tool icons.
-- [x] Verify desktop and mobile layouts.
-- [x] Verify login and mobile navigation states.
-
-**Follow-up Polish**
-
-- None required for this scoped rebrand.
+- Mobile navigation: open button resolved uniquely, menu appeared with the expected links, and close button resolved uniquely and dismissed it.
+- Primary upload actions: all visible “Choose a PDF” controls remain wired to the existing file-selection flow; drag-and-drop, upload progress, and error handling are preserved.
+- Task lanes: Edit, Organize, and Convert link to their working product routes.
+- Console: no errors or warnings were recorded during desktop/mobile visual and navigation checks.
+- Accessibility: semantic headings, labeled navigation regions, labeled upload region, keyboard focus styles, escape-to-close behavior, and reduced-motion support are present.
 
 final result: passed
