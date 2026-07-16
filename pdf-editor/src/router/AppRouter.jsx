@@ -93,13 +93,18 @@ export const appRouteObjects = [
             ],
           },
           {
+            element: <AppLayout />,
+            children: [
+              { path: ROUTE_PATHS.editorPattern, element: <EditorRoute /> },
+            ],
+          },
+          {
             element: <ProtectedRoute />,
             children: [
               {
                 element: <AppLayout />,
                 children: [
                   ...appScreenRouteObjects,
-                  { path: ROUTE_PATHS.editorPattern, element: <EditorRoute /> },
                 ],
               },
             ],
