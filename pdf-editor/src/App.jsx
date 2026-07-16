@@ -3841,6 +3841,15 @@ function AuthPage({ mode, setMode, onBack, onComplete, onPasswordReset, authRead
 
   return (
     <main className="auth-shell">
+      <section className="auth-showcase" aria-label="FixThatPDF product preview">
+        <button type="button" className="auth-showcase-brand" onClick={onBack} aria-label="FixThatPDF home"><span><FileText size={21} /></span><strong>FixThatPDF</strong></button>
+        <div className="auth-showcase-copy">
+          <span>Every PDF task</span>
+          <h1>Pick up right where you left off.</h1>
+          <p>Edit, sign, organize, and export in the same focused workspace.</p>
+        </div>
+        <img src={`${import.meta.env.BASE_URL}homepage/hero-product-stage.png`} alt="FixThatPDF upload workspace preview" />
+      </section>
       <section className="auth-card" aria-label={isSignup ? "Create account" : isPasswordReset ? "Reset password" : "Log in"}>
         <button type="button" className="auth-back" onClick={onBack}>Back to home</button>
         <button type="button" className="auth-mark auth-realpdf-brand" onClick={onBack} aria-label="FixThatPDF home"><strong>FixThatPDF</strong></button>
@@ -3876,7 +3885,7 @@ function AuthPage({ mode, setMode, onBack, onComplete, onPasswordReset, authRead
             <label>
               <span className="auth-label-row">
                 Password
-                {!isSignup && <button type="button" onClick={() => setMode("forgot-password")}>Forgot password?</button>}
+                {!isSignup && <button type="button" aria-label="Forgot password?" onClick={() => setMode("forgot-password")}>Forgot password?</button>}
               </span>
               <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete={isSignup ? "new-password" : "current-password"} placeholder={isSignup ? "At least 6 characters" : "Enter your password"} />
             </label>

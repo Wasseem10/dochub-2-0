@@ -38,6 +38,6 @@ export function trackProductEvent(name, properties = {}) {
   if (!ALLOWED_EVENTS.has(name)) return false;
   const event = { name, properties: sanitizeAnalyticsProperties(properties) };
   if (typeof window !== "undefined") window.dispatchEvent(new CustomEvent("realpdf:analytics", { detail: event }));
-  if (import.meta.env.DEV) console.info("[RealPDF analytics]", event);
+  if (import.meta.env.DEV) console.info("[FixThatPDF analytics]", event);
   return true;
 }

@@ -10,15 +10,15 @@ const template = await readFile("dist/index.html", "utf8");
 const escapeHtml = (value) => String(value).replaceAll("&", "&amp;").replaceAll('"', "&quot;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
 /** @type {Record<string, string>} */
 const legalDescriptions = {
-  [ROUTE_PATHS.privacy]: "How RealPDF handles browser processing, local storage, optional Firebase cloud history, analytics, and deletion.",
-  [ROUTE_PATHS.security]: "Current RealPDF browser-processing safeguards, account boundaries, and honest security limitations.",
-  [ROUTE_PATHS.help]: "Help for uploading, editing, signing, organizing, converting, and downloading PDFs with RealPDF.",
-  [ROUTE_PATHS.terms]: "Current terms for using RealPDF's free browser PDF tools and optional account features.",
+  [ROUTE_PATHS.privacy]: "How FixThatPDF handles browser processing, local storage, optional Firebase cloud history, analytics, and deletion.",
+  [ROUTE_PATHS.security]: "Current FixThatPDF browser-processing safeguards, account boundaries, and honest security limitations.",
+  [ROUTE_PATHS.help]: "Help for uploading, editing, signing, organizing, converting, and downloading PDFs with FixThatPDF.",
+  [ROUTE_PATHS.terms]: "Current terms for using FixThatPDF's free browser PDF tools and optional account features.",
 };
 const routeRecords = [
-  { path: "/", title: "Every PDF Task in One Place | RealPDF", description: "Edit, sign, fill, merge, split, organize, and convert PDFs without subscriptions, watermarks, or forced signup.", noIndex: false },
-  { path: ROUTE_PATHS.tools, title: "Free PDF Tools | RealPDF", description: "Browse working free PDF tools with clear formats, limits, and availability labels.", noIndex: false },
-  ...PUBLIC_PLACEHOLDER_ROUTES.map((route) => ({ ...route, title: `${route.title} | RealPDF`, description: legalDescriptions[route.path] || route.description, noIndex: !Object.hasOwn(legalDescriptions, route.path) })),
+  { path: "/", title: "Every PDF Task in One Place | FixThatPDF", description: "Edit, sign, fill, merge, split, organize, and convert PDFs without subscriptions, watermarks, or forced signup.", noIndex: false },
+  { path: ROUTE_PATHS.tools, title: "Free PDF Tools | FixThatPDF", description: "Browse working free PDF tools with clear formats, limits, and availability labels.", noIndex: false },
+  ...PUBLIC_PLACEHOLDER_ROUTES.map((route) => ({ ...route, title: `${route.title} | FixThatPDF`, description: legalDescriptions[route.path] || route.description, noIndex: !Object.hasOwn(legalDescriptions, route.path) })),
   ...TOOL_REGISTRY.map((tool) => ({ path: tool.route, title: tool.seoTitle, description: tool.metaDescription, noIndex: tool.status === "coming-soon" })),
 ];
 
