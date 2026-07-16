@@ -82,7 +82,7 @@ import { EditorToolUploadPage } from "./pages/public/EditorToolUploadPage.jsx";
 import { resolveEditorDocument } from "./router/editorRouteState.js";
 import { editorPath, publicEditorDocumentPath, publicEditorPath, ROUTE_PATHS } from "./router/routePaths.js";
 import { getEditorToolPreset, resolveEditorActiveTool } from "./tools/editorToolPresets.js";
-import { claimGuestDocument, editorActionNeedsAccount, GUEST_OWNER_ID } from "./tools/guestDocumentSession.js";
+import { claimGuestDocument, editorActionNeedsAccount, GUEST_OWNER_ID, resolveEditorStorageOwnerId } from "./tools/guestDocumentSession.js";
 import { loadLocalDocuments, saveLocalDocuments } from "./tools/localDocumentStore.js";
 import { extractPdfFormAnnotations } from "./tools/pdfFormFields.js";
 import { getPdfLoadErrorMessage, validatePdfUpload } from "./tools/pdfUploadValidation.js";
@@ -994,8 +994,8 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     resetPassword,
     logout: logoutAuth,
   } = useAuth();
-  const storageOwnerId = currentUser?.uid || GUEST_OWNER_ID;
   const isPublicEditor = view === "tool-upload" || view === "public-editor";
+  const storageOwnerId = resolveEditorStorageOwnerId(isPublicEditor, currentUser);
   const fileInputRef = useRef(null);
   const appendFileInputRef = useRef(null);
   const imageInputRef = useRef(null);
@@ -1148,10 +1148,10 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     if (isOffline) return lastSavedAt ? "Saved offline" : "Offline";
     if (cloudSyncStatus === "syncing") return "Syncing to cloud...";
     if (cloudSyncStatus === "error") return "Saved locally";
-    if (!currentUser?.uid && lastSavedAt) return "Guest draft · sign in to save";
+    if (isPublicEditor && lastSavedAt) return "Guest draft · sign in to save";
     if (currentUser?.uid && cloudSyncStatus === "synced") return "Saved to cloud";
     return lastSavedAt ? `Saved ${formatDateTime(lastSavedAt)}` : "Saved";
-  }, [cloudSyncStatus, currentUser?.uid, isOffline, lastSavedAt, saveState]);
+  }, [cloudSyncStatus, currentUser?.uid, isOffline, isPublicEditor, lastSavedAt, saveState]);
 
   useEffect(() => {
     const onOnline = () => setIsOffline(false);
@@ -1175,13 +1175,13 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
         if (!cancelled) setDocuments(safeLoadDocuments(storageOwnerId));
       })
       .finally(() => {
-        if (!cancelled && (!currentUser?.uid || !isCloudPersistenceConfigured)) setDocumentCatalogReady(true);
+        if (!cancelled && (isPublicEditor || !currentUser?.uid || !isCloudPersistenceConfigured)) setDocumentCatalogReady(true);
       });
     return () => { cancelled = true; };
-  }, [storageOwnerId]);
+  }, [currentUser?.uid, isPublicEditor, storageOwnerId]);
 
   useEffect(() => {
-    if (!currentUser?.uid) {
+    if (isPublicEditor || !currentUser?.uid) {
       setCloudSyncStatus(isCloudPersistenceConfigured ? "idle" : "local");
       setDocumentCatalogReady(true);
       return undefined;
@@ -1224,7 +1224,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     return () => {
       cancelled = true;
     };
-  }, [currentUser?.uid]);
+  }, [currentUser?.uid, isPublicEditor]);
 
   const showToast = (message) => {
     setToast(message);
@@ -1257,7 +1257,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     setDocuments(nextDocuments);
     try {
       await saveLocalDocuments(storageOwnerId, nextDocuments);
-      if (currentUser?.uid) syncDocumentsToCloud(previousDocuments, nextDocuments);
+      if (currentUser?.uid && !isPublicEditor) syncDocumentsToCloud(previousDocuments, nextDocuments);
       return true;
     } catch {
       setSaveState("error");
@@ -1315,8 +1315,8 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     setSaveState("unsaved");
   };
 
-  const saveActiveDocument = (immediate = false) => {
-    if (!activeDocumentId) return;
+  const saveActiveDocument = async (immediate = false) => {
+    if (!activeDocumentId) return false;
     const stamp = nowIso();
     setSaveState(immediate ? "saved" : "saving");
     const nextDocuments = documents.map((document) => (
@@ -1332,10 +1332,12 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
         }
         : document
     ));
-    replaceDocuments(nextDocuments);
+    const persisted = await replaceDocuments(nextDocuments);
+    if (!persisted) return false;
     setLastSavedAt(stamp);
     setSaved(true);
     window.setTimeout(() => setSaveState("saved"), immediate ? 0 : 180);
+    return true;
   };
 
   const duplicateActiveDocument = () => {
@@ -1608,8 +1610,13 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     if (requireAuthenticationForUpload()) fileInputRef.current?.click();
   };
 
-  const requireAuthenticationForEditorAction = (intent) => {
+  const requireAuthenticationForEditorAction = async (intent) => {
     if (!editorActionNeedsAccount(intent, currentUser)) return true;
+    const persisted = await saveActiveDocument(true);
+    if (!persisted) {
+      showToast("The guest draft could not be preserved. Keep this tab open and try again.");
+      return false;
+    }
     openAuth("login", {
       from: { pathname: location.pathname, search: location.search },
       intent,
@@ -1622,10 +1629,25 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     return false;
   };
 
-  const saveDocumentToAccount = () => {
-    if (!requireAuthenticationForEditorAction("save")) return;
-    saveActiveDocument(true);
+  const saveDocumentToAccount = async () => {
+    if (!(await requireAuthenticationForEditorAction("save"))) return false;
+    if (!(await saveActiveDocument(true))) return false;
+    if (isPublicEditor && activeDocumentId) {
+      const claimedDocument = await claimGuestDocument(currentUser.uid, activeDocumentId, {
+        loadDocuments: async (ownerId) => {
+          const localDocuments = await loadLocalDocuments(ownerId);
+          return localDocuments.length ? localDocuments : safeLoadDocuments(ownerId);
+        },
+      });
+      if (!claimedDocument) {
+        showToast("The guest draft could not be moved to your workspace. Keep this tab open and try again.");
+        return false;
+      }
+      navigate(editorPath(claimedDocument.id), { state: { publicTool, postAuthAction: "save" } });
+      return true;
+    }
     showToast("Saved to your FixThatPDF workspace.");
+    return true;
   };
 
   const handleLandingDropFiles = (files) => {
@@ -2563,10 +2585,10 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   }, [pages, pageIndex, selectedId, selectedDetectedTextId, selected?.type, annotations, detectedTextItems, undoStack, redoStack, saveState]);
 
   const exportPdf = async () => {
-    if (!requireAuthenticationForEditorAction("download")) return;
+    if (!(await requireAuthenticationForEditorAction("download"))) return;
     setIsExporting(true);
     try {
-    saveActiveDocument(true);
+    await saveActiveDocument(true);
     const pdfDoc = await PDFDocument.create();
     const sourcePdf = pdfBytes ? await PDFDocument.load(pdfBytes) : null;
 
@@ -2990,13 +3012,8 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
                 }}><Home size={16} /> Back to home</button>
                 <button type="button" role="menuitem" onClick={() => {
                   setIsMoreMenuOpen(false);
-                  if (currentUser?.uid) {
-                    saveActiveDocument(true);
-                    navigate(ROUTE_PATHS.dashboard);
-                  } else {
-                    requireAuthenticationForEditorAction("save");
-                  }
-                }}><LayoutDashboard size={16} /> Save to dashboard</button>
+                  saveDocumentToAccount();
+                }}><LayoutDashboard size={16} /> Save to workspace</button>
                 <button type="button" role="menuitem" onClick={() => {
                   renameActiveDocument();
                   setIsMoreMenuOpen(false);
