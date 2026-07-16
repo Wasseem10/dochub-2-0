@@ -18,6 +18,7 @@
  * @property {string[]} supportedOutputTypes
  * @property {boolean} uploadEnabled
  * @property {boolean} opensEditor
+ * @property {"editor" | "converter" | "information"} workflowType
  * @property {string} currentLimitations
  * @property {string} availabilityLabel
  * @property {string} seoTitle
@@ -51,6 +52,7 @@ export const TOOL_CATEGORIES = Object.freeze([
 
 const PARTIAL_EDITOR_LIMIT = "This workflow opens the current browser editor. Supported edits are flattened during export, and source formatting or interactive PDF features may not be preserved.";
 const COMING_SOON_LIMIT = "This tool is not implemented yet. RealPDF does not upload or process files for this workflow today.";
+const DEDICATED_CONVERTER_IDS = new Set(["pdf-to-jpg", "pdf-to-png", "jpg-to-pdf", "png-to-pdf"]);
 
 /** @type {ToolDefinition[]} */
 const definitions = [
@@ -78,16 +80,16 @@ const definitions = [
   ["pdf-to-word", "PDF to Word", "Convert PDF content into an editable Word document.", "from-pdf", "word", "coming-soon", ["application/pdf"], ["application/vnd.openxmlformats-officedocument.wordprocessingml.document"], "Layout-preserving DOCX conversion is not implemented."],
   ["pdf-to-excel", "PDF to Excel", "Extract tables and structured values from a PDF into an Excel workbook.", "from-pdf", "sheet", "coming-soon", ["application/pdf"], ["application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"], "Table detection and XLSX generation are not implemented."],
   ["pdf-to-powerpoint", "PDF to PowerPoint", "Turn PDF pages into an editable or image-based presentation.", "from-pdf", "slides", "coming-soon", ["application/pdf"], ["application/vnd.openxmlformats-officedocument.presentationml.presentation"], "PPTX generation and editable slide reconstruction are not implemented."],
-  ["pdf-to-jpg", "PDF to JPG", "Render PDF pages as individual JPG images.", "from-pdf", "image", "coming-soon", ["application/pdf"], ["image/jpeg"], "Batch JPG export and download packaging are not implemented."],
-  ["pdf-to-png", "PDF to PNG", "Render PDF pages as individual lossless PNG images.", "from-pdf", "image", "coming-soon", ["application/pdf"], ["image/png"], "Batch PNG export and download packaging are not implemented."],
+  ["pdf-to-jpg", "PDF to JPG", "Render selected PDF pages as individual JPG images.", "from-pdf", "image", "available", ["application/pdf"], ["image/jpeg", "application/zip"], "Browser conversion supports valid, unencrypted PDFs up to 50 MB and 100 pages. Complex transparency is flattened into JPG output."],
+  ["pdf-to-png", "PDF to PNG", "Render selected PDF pages as individual lossless PNG images.", "from-pdf", "image", "available", ["application/pdf"], ["image/png", "application/zip"], "Browser conversion supports valid, unencrypted PDFs up to 50 MB and 100 pages. Higher resolutions use more memory."],
   ["pdf-to-txt", "PDF to TXT", "Extract readable text from a text-based PDF into a plain text file.", "from-pdf", "text", "coming-soon", ["application/pdf"], ["text/plain"], "The editor extracts text for search, but a structured TXT conversion and download workflow is not implemented."],
   ["pdf-to-html", "PDF to HTML", "Convert PDF content into a browser-readable HTML document.", "from-pdf", "code", "coming-soon", ["application/pdf"], ["text/html"], "Semantic HTML reconstruction and asset packaging are not implemented."],
 
   ["word-to-pdf", "Word to PDF", "Convert a DOC or DOCX document into a PDF while retaining its layout.", "to-pdf", "word", "coming-soon", ["application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"], ["application/pdf"], "Word document rendering and pagination are not implemented."],
   ["excel-to-pdf", "Excel to PDF", "Convert spreadsheet sheets and print areas into a PDF.", "to-pdf", "sheet", "coming-soon", ["application/vnd.ms-excel", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"], ["application/pdf"], "Spreadsheet rendering, print areas, and page scaling are not implemented."],
   ["powerpoint-to-pdf", "PowerPoint to PDF", "Convert presentation slides into a PDF in slide order.", "to-pdf", "slides", "coming-soon", ["application/vnd.ms-powerpoint", "application/vnd.openxmlformats-officedocument.presentationml.presentation"], ["application/pdf"], "Presentation rendering and font substitution handling are not implemented."],
-  ["jpg-to-pdf", "JPG to PDF", "Combine JPG images into a PDF with predictable page sizing and order.", "to-pdf", "image", "coming-soon", ["image/jpeg"], ["application/pdf"], "The editor can place an image on an existing page, but dedicated image-to-PDF conversion is not implemented."],
-  ["png-to-pdf", "PNG to PDF", "Combine PNG images into a PDF while preserving transparent artwork where possible.", "to-pdf", "image", "coming-soon", ["image/png"], ["application/pdf"], "Dedicated PNG-to-PDF page creation and batch ordering are not implemented."],
+  ["jpg-to-pdf", "JPG to PDF", "Combine ordered JPG images into a PDF with configurable page sizing, orientation, and margins.", "to-pdf", "image", "available", ["image/jpeg"], ["application/pdf"], "Browser conversion supports up to 100 JPG images, with each source image limited to 50 MB."],
+  ["png-to-pdf", "PNG to PDF", "Combine ordered PNG images into a PDF with configurable page sizing, orientation, and margins.", "to-pdf", "image", "available", ["image/png"], ["application/pdf"], "Browser conversion supports up to 100 PNG images, with each source image limited to 50 MB. Transparency is preserved where the PDF format allows it."],
   ["txt-to-pdf", "TXT to PDF", "Turn plain text into a paginated PDF with readable margins and typography.", "to-pdf", "text", "coming-soon", ["text/plain"], ["application/pdf"], "Text pagination, styling, and export controls are not implemented as a dedicated converter."],
   ["rtf-to-pdf", "RTF to PDF", "Convert a rich text document into a PDF.", "to-pdf", "text", "coming-soon", ["application/rtf", "text/rtf"], ["application/pdf"], "RTF parsing and layout rendering are not implemented."],
   ["odt-to-pdf", "ODT to PDF", "Convert an OpenDocument text file into a PDF.", "to-pdf", "text", "coming-soon", ["application/vnd.oasis.opendocument.text"], ["application/pdf"], "ODT parsing, font handling, and pagination are not implemented."],
@@ -218,6 +220,7 @@ function buildBaseTool([slug, name, shortDescription, category, icon, status, su
   const content = categoryContent[category];
   if (!categoryRecord || !content) throw new Error(`Unknown tool category: ${category}`);
   const isUsable = status === "available" || status === "beta" || status === "partial";
+  const isDedicatedConverter = DEDICATED_CONVERTER_IDS.has(slug);
   const inputLabel = supportedInputTypes.length ? supportedInputTypes.map(formatType).join(", ") : "No upload today";
   const outputLabel = supportedOutputTypes.length ? supportedOutputTypes.map(formatType).join(", ") : "No generated output today";
   const availabilityLabel = status === "available" ? "Available" : status === "beta" ? "Beta" : status === "partial" ? "Available with limitations" : "Coming soon";
@@ -228,7 +231,7 @@ function buildBaseTool([slug, name, shortDescription, category, icon, status, su
     route,
     name,
     shortDescription,
-    longDescription: `${shortDescription} ${isUsable ? "Use the supported workflow in the current RealPDF editor and review the exported result carefully." : "The page explains the intended workflow without pretending that file processing is available."}`,
+    longDescription: `${shortDescription} ${isUsable ? isDedicatedConverter ? "Use the dedicated RealPDF converter and review the downloaded result carefully." : "Use the supported workflow in the current RealPDF editor and review the exported result carefully." : "The page explains the intended workflow without pretending that file processing is available."}`,
     category,
     categoryName: categoryRecord.name,
     icon,
@@ -237,7 +240,8 @@ function buildBaseTool([slug, name, shortDescription, category, icon, status, su
     supportedInputTypes,
     supportedOutputTypes,
     uploadEnabled: isUsable,
-    opensEditor: isUsable,
+    opensEditor: isUsable && !isDedicatedConverter,
+    workflowType: isDedicatedConverter ? "converter" : isUsable ? "editor" : "information",
     currentLimitations: currentLimitations || (isUsable ? PARTIAL_EDITOR_LIMIT : COMING_SOON_LIMIT),
     availabilityLabel,
     seoTitle: `${name} Online | RealPDF`,

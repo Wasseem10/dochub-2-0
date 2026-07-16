@@ -5,7 +5,7 @@ import { TOOL_CATEGORIES, TOOL_REGISTRY, validateToolRegistry } from "../../src/
 const requiredFields = [
   "id", "slug", "route", "name", "shortDescription", "longDescription", "category", "categoryName",
   "icon", "accentColor", "status", "supportedInputTypes", "supportedOutputTypes", "uploadEnabled",
-  "opensEditor", "currentLimitations", "availabilityLabel", "seoTitle", "metaDescription", "heroHeadline",
+  "opensEditor", "workflowType", "currentLimitations", "availabilityLabel", "seoTitle", "metaDescription", "heroHeadline",
   "heroSubheadline", "benefits", "steps", "useCases", "faqEntries", "relatedTools", "canonicalUrl", "schemaType",
 ];
 
@@ -20,10 +20,11 @@ describe("RealPDF tool registry", () => {
   it("truthfully exposes only editor-backed partial workflows", () => {
     const counts = Object.groupBy(TOOL_REGISTRY, (tool) => tool.status);
     expect(counts.partial).toHaveLength(15);
-    expect(counts["coming-soon"]).toHaveLength(53);
-    expect(counts.available).toBeUndefined();
+    expect(counts.available).toHaveLength(4);
+    expect(counts["coming-soon"]).toHaveLength(49);
     expect(counts.beta).toBeUndefined();
-    expect(TOOL_REGISTRY.filter((tool) => tool.uploadEnabled).every((tool) => tool.opensEditor && tool.status === "partial")).toBe(true);
+    expect(TOOL_REGISTRY.filter((tool) => tool.workflowType === "converter").every((tool) => tool.uploadEnabled && !tool.opensEditor && tool.status === "available")).toBe(true);
+    expect(TOOL_REGISTRY.filter((tool) => tool.workflowType === "editor").every((tool) => tool.opensEditor && tool.status === "partial")).toBe(true);
     expect(TOOL_REGISTRY.filter((tool) => tool.status === "coming-soon").every((tool) => !tool.uploadEnabled && !tool.opensEditor)).toBe(true);
   });
 
