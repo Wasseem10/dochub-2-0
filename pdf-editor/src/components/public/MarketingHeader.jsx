@@ -33,7 +33,7 @@ export function MarketingHeader() {
   return (
     <header ref={headerRef} className="marketing-header">
       <div className="marketing-header-row">
-        <Link className="marketing-brand" to={ROUTE_PATHS.home} onClick={closeMenus} aria-label="RealPDF home"><span><FileText size={21} /></span><strong>RealPDF</strong></Link>
+        <Link className="marketing-brand" to={ROUTE_PATHS.home} onClick={closeMenus} aria-label="FixThatPDF home"><span><FileText size={21} /></span><strong>FixThatPDF</strong></Link>
         <nav className="marketing-desktop-nav" aria-label="Public navigation">
           <Link to={ROUTE_PATHS.tools}>All tools</Link>
           <Link to={ROUTE_PATHS.editPdf}>Edit PDF</Link>

@@ -17,12 +17,12 @@ import { POPULAR_TOOLS } from "./tools/toolRegistry.js";
 const asset = (fileName) => `${import.meta.env.BASE_URL}homepage/${fileName}`;
 
 const faqs = [
-  ["Is RealPDF really free?", "Yes. Supported core tools are free to use with no subscription, checkout, email requirement, or RealPDF watermark."],
+  ["Is FixThatPDF really free?", "Yes. Supported core tools are free to use with no subscription, checkout, email requirement, or FixThatPDF watermark."],
   ["Do I need an account?", "No. Open, edit, and download supported files as a guest. Create an account only when you want cloud document history."],
   ["Are files processed in my browser?", "Supported editor, page, and image tools process files in your browser. Account-based cloud history uses Firebase and is clearly separate."],
   ["What is the editor file limit?", "The editor accepts valid, unencrypted PDFs up to 8 MB and 100 pages. Dedicated page and conversion tools may support higher limits shown before upload."],
-  ["Can RealPDF perfectly rewrite original PDF text?", "Not always. The editor can change detected text overlays and add new content, but original fonts, spacing, and layout may vary. Always review the export."],
-  ["Does RealPDF add a watermark?", "No. RealPDF does not add a watermark to supported exports."],
+  ["Can FixThatPDF perfectly rewrite original PDF text?", "Not always. The editor can change detected text overlays and add new content, but original fonts, spacing, and layout may vary. Always review the export."],
+  ["Does FixThatPDF add a watermark?", "No. FixThatPDF does not add a watermark to supported exports."],
 ];
 
 const taskLanes = [
@@ -31,7 +31,7 @@ const taskLanes = [
     title: "Make every change in one focused workspace.",
     copy: "Add text, signatures, highlights, shapes, form answers, and comments without bouncing between apps.",
     image: "edit-sign-preview.png",
-    imageAlt: "RealPDF editing workspace showing a document with text, signature, and review tools",
+    imageAlt: "FixThatPDF editing workspace showing a document with text, signature, and review tools",
     route: ROUTE_PATHS.editPdf,
     cta: "Open the PDF editor",
   },
@@ -40,7 +40,7 @@ const taskLanes = [
     title: "Put every page exactly where it belongs.",
     copy: "Reorder, rotate, duplicate, remove, merge, and split pages with clear visual controls.",
     image: "organize-preview.png",
-    imageAlt: "RealPDF page organizer with PDF page thumbnails ready to reorder",
+    imageAlt: "FixThatPDF page organizer with PDF page thumbnails ready to reorder",
     route: "/organize-pdf",
     cta: "Organize a PDF",
   },
@@ -49,7 +49,7 @@ const taskLanes = [
     title: "Move between PDF and the formats you use.",
     copy: "Turn PDFs into Word or images, and convert common files back into clean PDFs.",
     image: "convert-preview.png",
-    imageAlt: "RealPDF conversion workspace showing PDF, Word, and image formats",
+    imageAlt: "FixThatPDF conversion workspace showing PDF, Word, and image formats",
     route: "/pdf-to-word",
     cta: "Convert a PDF",
   },
@@ -83,7 +83,7 @@ const footerToolGroups = [
 ];
 
 function Brand() {
-  return <Link className="freepdf-brand" to={ROUTE_PATHS.home} aria-label="RealPDF home"><span><FileText size={20} /></span><strong>RealPDF</strong></Link>;
+  return <Link className="freepdf-brand" to={ROUTE_PATHS.home} aria-label="FixThatPDF home"><span><FileText size={20} /></span><strong>FixThatPDF</strong></Link>;
 }
 
 function SiteHeader({ onChoose }) {
@@ -165,7 +165,7 @@ export function LatticePdfLanding({ fileInputRef, onUpload, onSelectFiles, onDro
   }, []);
 
   return <main className="freepdf-page">
-    <PageMetadata title="Every PDF Task in One Place | RealPDF" description="Edit, sign, fill, merge, split, organize, and convert PDFs without subscriptions, watermarks, or forced signup." canonicalUrl="/" />
+    <PageMetadata title="Every PDF Task in One Place | FixThatPDF" description="Edit, sign, fill, merge, split, organize, and convert PDFs without subscriptions, watermarks, or forced signup." canonicalUrl="/" />
     <input ref={inputRef} className="hidden-input" type="file" accept="application/pdf,.pdf" onChange={onUpload} />
     <SiteHeader onChoose={choose} />
 
@@ -184,7 +184,7 @@ export function LatticePdfLanding({ fileInputRef, onUpload, onSelectFiles, onDro
       </div>
     </section>
 
-    <section className="freepdf-trust-strip" aria-label="RealPDF promises">
+    <section className="freepdf-trust-strip" aria-label="FixThatPDF promises">
       <div><LockKeyhole size={21} /><span><strong>Private by design</strong>Browser processing where supported</span></div>
       <div><ShieldCheck size={21} /><span><strong>No watermark</strong>Your finished file stays yours</span></div>
       <div><FileText size={21} /><span><strong>All the essentials</strong>Edit, organize, sign, and convert</span></div>
@@ -192,7 +192,7 @@ export function LatticePdfLanding({ fileInputRef, onUpload, onSelectFiles, onDro
     </section>
 
     <section className="freepdf-task-section" aria-labelledby="task-lanes-title">
-      <div className="freepdf-section-heading freepdf-task-heading"><span>One home for every PDF</span><h2 id="task-lanes-title">From first edit to final export.</h2><p>RealPDF keeps the work simple, visual, and close at hand.</p></div>
+      <div className="freepdf-section-heading freepdf-task-heading"><span>One home for every PDF</span><h2 id="task-lanes-title">From first edit to final export.</h2><p>FixThatPDF keeps the work simple, visual, and close at hand.</p></div>
       <div className="freepdf-task-lanes">{taskLanes.map((lane, index) => <article className={`freepdf-task-lane ${index % 2 ? "is-reversed" : ""}`} key={lane.eyebrow}>
         <div className="freepdf-task-copy"><span>{lane.eyebrow}</span><h3>{lane.title}</h3><p>{lane.copy}</p><Link to={lane.route}>{lane.cta} <ArrowRight size={17} /></Link></div>
         <Link className="freepdf-task-visual" to={lane.route} aria-label={lane.cta}><img src={asset(lane.image)} alt={lane.imageAlt} loading="lazy" decoding="async" /></Link>
@@ -211,6 +211,6 @@ export function LatticePdfLanding({ fileInputRef, onUpload, onSelectFiles, onDro
 
     <FooterToolDirectory />
 
-    <footer className="freepdf-footer"><div><Brand /><p>Every PDF task, finally in one place.</p></div><nav aria-label="Footer"><Link to={ROUTE_PATHS.tools}>All tools</Link><Link to={ROUTE_PATHS.help}>Help</Link><Link to={ROUTE_PATHS.privacy}>Privacy</Link><Link to={ROUTE_PATHS.terms}>Terms</Link></nav><span>© 2026 RealPDF</span></footer>
+    <footer className="freepdf-footer"><div><Brand /><p>Every PDF task, finally in one place.</p></div><nav aria-label="Footer"><Link to={ROUTE_PATHS.tools}>All tools</Link><Link to={ROUTE_PATHS.help}>Help</Link><Link to={ROUTE_PATHS.privacy}>Privacy</Link><Link to={ROUTE_PATHS.terms}>Terms</Link></nav><span>© 2026 FixThatPDF</span></footer>
   </main>;
 }
