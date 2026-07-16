@@ -10,6 +10,8 @@ For the editor page rail, use a narrow 144px white thumbnail sidebar with compac
 
 The product name is FixThatPDF. The landing hero’s right column must remain a functional PDF drag-and-drop upload zone. Selecting or dropping a PDF should open the editor without first forcing authentication.
 
+The desktop editor must use six working tool modes—View, Annotate, Shapes, Insert, Edit, and Fill & Sign—with only the active mode’s real tools shown in the contextual ribbon. Selected objects use one blue normalized transform model with eight resize handles, a rotation handle, keyboard deletion, and undo/redo; text boxes enter editing immediately, save on blur, and discard abandoned empty boxes. Do not add disabled “coming soon” controls to the editor chrome.
+
 Every released PDF tool must have its own simple landing page using the current landing page as its visual source of truth: DM Sans hero typography, blue `#2851eb` actions, white and powder-blue surfaces, and compact type. Keep one centered upload card as the dominant action. Do not use green, mint, or cream on tool landing pages. Secondary settings and explanatory content must not compete with the upload action before a file is chosen.
 
 The dashboard visual source of truth is the July 15, 2026 pink notebook dashboard screenshot: coral/pink FixThatPDF branding, a wide notebook hero, five compact quick-action cards, four real-account statistic cards, a dense recent-documents table, an AI assistant panel, recent activity, workspace folders, and a reusable-template promo. Never substitute the later blue dashboard treatment, and never populate the design with fake user documents or fabricated metrics.

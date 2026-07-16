@@ -15,7 +15,7 @@ describe("editor PDF export", () => {
     const annotations = [
       { type: "field", x: .1, y: .1, w: .45, h: .06, content: "Ada Lovelace", fontSize: 12, color: "#155ee8", opacity: 1 },
       { type: "checkbox", x: .1, y: .2, w: .04, h: .04, checked: true, color: "#155ee8", opacity: 1 },
-      { type: "text", x: .1, y: .3, w: .3, h: .05, content: "07/15/2026", fontSize: 12, color: "#0f172a", opacity: 1, lineHeight: 1.25 },
+      { type: "text", x: .1, y: .3, w: .3, h: .05, content: "07/15/2026", fontSize: 12, color: "#0f172a", opacity: 1, lineHeight: 1.25, rotation: 15 },
       { type: "initials", x: .1, y: .4, w: .12, h: .05, content: "AL", fontSize: 20, color: "#0f172a", opacity: 1 },
       { type: "signature", x: .1, y: .5, w: .25, h: .06, content: "Ada Lovelace", fontSize: 24, color: "#0f172a", opacity: 1 },
     ];
@@ -35,5 +35,7 @@ describe("editor PDF export", () => {
     expect(extracted).toContain("Ada Lovelace");
     expect(extracted).toContain("07/15/2026");
     expect(extracted).toContain("AL");
+    const rotatedDate = content.items.find((item) => item.str === "07/15/2026");
+    expect(Math.abs(rotatedDate.transform[1])).toBeGreaterThan(0);
   });
 });

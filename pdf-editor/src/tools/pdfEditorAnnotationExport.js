@@ -1,4 +1,4 @@
-import { rgb } from "pdf-lib";
+import { degrees, rgb } from "pdf-lib";
 
 function colorFromHex(hex = "#0f172a") {
   const normalized = String(hex).replace("#", "");
@@ -30,7 +30,7 @@ export async function drawFlattenedInputAnnotation({
     const boxSize = Math.min(annotation.w * width, annotation.h * height);
     const x = annotation.x * width;
     const y = height - annotation.y * height - boxSize;
-    page.drawRectangle({ x, y, width: boxSize, height: boxSize, borderColor: color, borderWidth: 1.5, color: rgb(1, 1, 1), opacity: annotation.opacity });
+    page.drawRectangle({ x, y, width: boxSize, height: boxSize, borderColor: color, borderWidth: 1.5, color: rgb(1, 1, 1), opacity: annotation.opacity, rotate: degrees(Number(annotation.rotation || 0)) });
     if (annotation.checked) {
       page.drawLine({ start: { x: x + boxSize * 0.22, y: y + boxSize * 0.48 }, end: { x: x + boxSize * 0.42, y: y + boxSize * 0.25 }, thickness: 2, color });
       page.drawLine({ start: { x: x + boxSize * 0.42, y: y + boxSize * 0.25 }, end: { x: x + boxSize * 0.78, y: y + boxSize * 0.76 }, thickness: 2, color });
@@ -41,7 +41,7 @@ export async function drawFlattenedInputAnnotation({
   if (annotation.type === "field") {
     const x = annotation.x * width;
     const y = height - annotation.y * height - annotation.h * height;
-    page.drawRectangle({ x, y, width: annotation.w * width, height: annotation.h * height, borderColor: color, borderWidth: 1.2, opacity: annotation.opacity });
+    page.drawRectangle({ x, y, width: annotation.w * width, height: annotation.h * height, borderColor: color, borderWidth: 1.2, opacity: annotation.opacity, rotate: degrees(Number(annotation.rotation || 0)) });
     if (String(annotation.content || "").trim()) {
       page.drawText(annotation.content, { x: x + 8, y: y + Math.max(8, annotation.h * height * 0.32), size: annotation.fontSize || 11, font: helvetica, color, opacity: Math.min(0.82, annotation.opacity ?? 1) });
     }
@@ -61,6 +61,7 @@ export async function drawFlattenedInputAnnotation({
         font,
         color,
         opacity: annotation.opacity,
+        rotate: degrees(Number(annotation.rotation || 0)),
       });
     });
     return true;
@@ -69,10 +70,10 @@ export async function drawFlattenedInputAnnotation({
   if (annotation.imageDataUrl) {
     const image = await embedDataUrlImage(pdfDoc, annotation.imageDataUrl);
     if (image) {
-      page.drawImage(image, { x: annotation.x * width, y: height - annotation.y * height - annotation.h * height, width: annotation.w * width, height: annotation.h * height, opacity: annotation.opacity });
+      page.drawImage(image, { x: annotation.x * width, y: height - annotation.y * height - annotation.h * height, width: annotation.w * width, height: annotation.h * height, opacity: annotation.opacity, rotate: degrees(Number(annotation.rotation || 0)) });
     }
   } else if (String(annotation.content || "").trim()) {
-    page.drawText(annotation.content, { x: annotation.x * width + 6, y: height - annotation.y * height - annotation.h * height + 7, size: annotation.fontSize, font: timesItalic, color, opacity: annotation.opacity });
+    page.drawText(annotation.content, { x: annotation.x * width + 6, y: height - annotation.y * height - annotation.h * height + 7, size: annotation.fontSize, font: timesItalic, color, opacity: annotation.opacity, rotate: degrees(Number(annotation.rotation || 0)) });
   }
   return true;
 }
