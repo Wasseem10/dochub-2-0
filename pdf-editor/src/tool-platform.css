@@ -606,6 +606,8 @@
 }
 
 .editor-tool-dropzone button:hover { background: #70cfee; }
+.editor-tool-dropzone .editor-tool-blank-action { min-width: auto; min-height: 42px; margin-top: -8px; padding: 0 18px; border: 1px solid #cbd8e7; background: #ffffff; color: #2851eb; box-shadow: none; font-size: 14px; }
+.editor-tool-dropzone .editor-tool-blank-action:hover { border-color: #2851eb; background: #f3f6ff; }
 .editor-tool-dropzone button:disabled { cursor: wait; opacity: .72; }
 .editor-tool-dropzone p { margin: 0; color: #91a0b5; font-size: 14px; }
 .editor-tool-dropzone p.is-error { max-width: 620px; color: #bd3148; font-weight: 750; }

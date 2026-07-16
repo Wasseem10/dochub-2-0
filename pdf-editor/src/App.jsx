@@ -68,7 +68,7 @@ import Upload from "lucide-react/dist/esm/icons/upload.mjs";
 import Users from "lucide-react/dist/esm/icons/users.mjs";
 import X from "lucide-react/dist/esm/icons/x.mjs";
 import Zap from "lucide-react/dist/esm/icons/zap.mjs";
-import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
+import { degrees, PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import * as pdfjsLib from "pdfjs-dist";
 import "pdfjs-dist/build/pdf.worker.mjs";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
@@ -91,6 +91,9 @@ import { getPdfLoadErrorMessage, validatePdfUpload } from "./tools/pdfUploadVali
 import { drawFlattenedInputAnnotation } from "./tools/pdfEditorAnnotationExport.js";
 import { attachPdfCommentAnnotation } from "./tools/pdfCommentAnnotations.js";
 import { protectPdfBytes } from "./tools/protectPdf.js";
+import { EDITOR_TOOL_MODES, getDefaultToolForMode, getToolsForMode, resolveModeForTool } from "./tools/editorToolModes.js";
+import { annotationPatchFromFrame, framesEqual, getAnnotationFrame, moveFrame, normalizeRotation, resizeFrame, rotationFromPointer } from "./tools/editorObjectTransforms.js";
+import { createTextAnnotation, shouldDiscardTextAnnotation } from "./tools/editorTextObjects.js";
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
   "pdfjs-dist/build/pdf.worker.mjs",
@@ -380,6 +383,18 @@ function pointerToNormalized(event, pageElement) {
   return {
     x: clamp((event.clientX - rect.left) / rect.width, 0, 1),
     y: clamp((event.clientY - rect.top) / rect.height, 0, 1),
+  };
+}
+
+function rotatePdfPoint(point, center, rotation = 0) {
+  const radians = (Number(rotation || 0) * Math.PI) / 180;
+  const cosine = Math.cos(radians);
+  const sine = Math.sin(radians);
+  const dx = point.x - center.x;
+  const dy = point.y - center.y;
+  return {
+    x: center.x + dx * cosine - dy * sine,
+    y: center.y + dx * sine + dy * cosine,
   };
 }
 
@@ -987,6 +1002,216 @@ function Annotation({ annotation, selected, zoom, onSelect, onDrag, onResize, on
   );
 }
 
+function EditorSelectionControls({ onDelete, onMoveStart, onResizeStart, onRotate, onRotateStart }) {
+  return (
+    <>
+      <div className="annotation-mini-menu annotation-controls" onPointerDown={(event) => event.stopPropagation()}>
+        <button type="button" className="mini-grip move-control" title="Move" aria-label="Move object" onPointerDown={onMoveStart}><GripVertical size={15} /></button>
+        <button type="button" title="Rotate 15 degrees" aria-label="Rotate object 15 degrees" onClick={onRotate}><RotateCw size={15} /></button>
+        <button type="button" title="Delete" aria-label="Delete object" onClick={onDelete}><Trash2 size={15} /></button>
+      </div>
+      <span className="rotation-stem" aria-hidden="true" />
+      <button type="button" className="rotation-handle" title="Rotate object" aria-label="Rotate object" onPointerDown={onRotateStart} />
+      {["nw", "n", "ne", "e", "se", "s", "sw", "w"].map((handle) => (
+        <button key={handle} type="button" className={`resize-control resize-${handle}`} aria-label={`Resize object ${handle}`} onPointerDown={(event) => onResizeStart(event, handle)} />
+      ))}
+    </>
+  );
+}
+
+function ProfessionalAnnotation({ annotation, selected, zoom, onSelect, onCommit, onUpdate, onDelete }) {
+  const textContentRef = useRef(null);
+  const textWasFocusedRef = useRef(false);
+  const textDraftRef = useRef(annotation.content || "");
+  const gestureFrameRef = useRef(getAnnotationFrame(annotation));
+  const [liveFrame, setLiveFrame] = useState(() => getAnnotationFrame(annotation));
+  const displayScale = (zoom / 100) * EDITOR_PAGE_SCALE;
+  const textDisplayScale = displayScale * TEXT_SCREEN_SCALE;
+
+  useEffect(() => {
+    const nextFrame = getAnnotationFrame(annotation);
+    gestureFrameRef.current = nextFrame;
+    setLiveFrame(nextFrame);
+    textDraftRef.current = annotation.content || "";
+  }, [annotation]);
+
+  useEffect(() => {
+    if (annotation.type !== "text") return undefined;
+    if (!selected) {
+      textWasFocusedRef.current = false;
+      return undefined;
+    }
+    if (textWasFocusedRef.current) return undefined;
+    textWasFocusedRef.current = true;
+    const frame = window.requestAnimationFrame(() => {
+      const textElement = textContentRef.current;
+      if (!textElement) return;
+      textElement.focus({ preventScroll: true });
+      const selection = window.getSelection();
+      if (!selection) return;
+      const range = window.document.createRange();
+      range.selectNodeContents(textElement);
+      range.collapse(false);
+      selection.removeAllRanges();
+      selection.addRange(range);
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [annotation.id, annotation.type, selected]);
+
+  const beginFrameGesture = (event, kind, handle = "") => {
+    if (kind === "move" && event.target.closest?.("input, [contenteditable='true']") && !event.target.closest?.(".move-control")) {
+      event.stopPropagation();
+      onSelect(annotation.id);
+      return;
+    }
+    event.stopPropagation();
+    event.preventDefault();
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+    const pageRect = event.currentTarget.closest(".page-surface")?.getBoundingClientRect();
+    if (!pageRect?.width || !pageRect?.height) return;
+    const originFrame = getAnnotationFrame(annotation);
+    const origin = { clientX: event.clientX, clientY: event.clientY };
+    const initialPointerRotation = rotationFromPointer(originFrame, pageRect, event.clientX, event.clientY);
+    const rotationOffset = normalizeRotation(originFrame.rotation - initialPointerRotation);
+    gestureFrameRef.current = originFrame;
+    onSelect(annotation.id);
+
+    const move = (moveEvent) => {
+      const deltaX = (moveEvent.clientX - origin.clientX) / pageRect.width;
+      const deltaY = (moveEvent.clientY - origin.clientY) / pageRect.height;
+      const nextFrame = kind === "resize"
+        ? resizeFrame(originFrame, handle, deltaX, deltaY)
+        : kind === "rotate"
+          ? { ...originFrame, rotation: rotationFromPointer(originFrame, pageRect, moveEvent.clientX, moveEvent.clientY, rotationOffset) }
+          : moveFrame(originFrame, deltaX, deltaY);
+      gestureFrameRef.current = nextFrame;
+      setLiveFrame(nextFrame);
+    };
+    const up = () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+      window.removeEventListener("pointercancel", up);
+      const nextFrame = gestureFrameRef.current;
+      if (!framesEqual(originFrame, nextFrame)) onCommit(annotation.id, annotationPatchFromFrame(annotation, nextFrame, originFrame));
+    };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+    window.addEventListener("pointercancel", up);
+  };
+
+  const dragStart = (event) => beginFrameGesture(event, "move");
+  const resizeStart = (event, handle) => beginFrameGesture(event, "resize", handle);
+  const rotateStart = (event) => beginFrameGesture(event, "rotate");
+  const rotateStep = () => onCommit(annotation.id, { rotation: normalizeRotation((annotation.rotation || 0) + 15) });
+  const commonStyle = {
+    left: `${liveFrame.x * 100}%`,
+    top: `${liveFrame.y * 100}%`,
+    width: `${liveFrame.w * 100}%`,
+    height: `${liveFrame.h * 100}%`,
+    opacity: annotation.opacity,
+    transform: `rotate(${liveFrame.rotation || 0}deg)`,
+    transformOrigin: "center",
+    "--annotation-counter-rotation": `${-(liveFrame.rotation || 0)}deg`,
+  };
+  const controls = selected ? (
+    <EditorSelectionControls
+      onDelete={() => onDelete(annotation.id)}
+      onMoveStart={dragStart}
+      onResizeStart={resizeStart}
+      onRotate={rotateStep}
+      onRotateStart={rotateStart}
+    />
+  ) : null;
+
+  const updateTextContent = (element) => {
+    const pageRect = element.closest(".page-surface")?.getBoundingClientRect();
+    const content = element.innerText.replace(/\r/g, "");
+    textDraftRef.current = content;
+    if (!pageRect?.width || !pageRect?.height) return;
+    const hasContent = content.trim().length > 0;
+    const fontPx = Math.max(8, (annotation.fontSize || 16) * textDisplayScale);
+    const nextFrame = {
+      ...gestureFrameRef.current,
+      w: clamp((hasContent ? element.scrollWidth + 12 : fontPx * 3.25) / pageRect.width, 0.055, 0.72),
+      h: clamp((hasContent ? element.scrollHeight + 8 : fontPx * 1.6) / pageRect.height, 0.028, 0.42),
+    };
+    gestureFrameRef.current = nextFrame;
+    setLiveFrame(nextFrame);
+  };
+
+  const commitTextContent = () => {
+    const content = textDraftRef.current;
+    if (shouldDiscardTextAnnotation(content)) {
+      onDelete(annotation.id);
+      return;
+    }
+    onCommit(annotation.id, {
+      ...annotationPatchFromFrame(annotation, gestureFrameRef.current, getAnnotationFrame(annotation)),
+      content,
+      updatedAt: nowIso(),
+    });
+  };
+
+  if (annotation.type === "draw") {
+    const points = (annotation.points || []).map((point) => `${((point.x - liveFrame.x) / liveFrame.w) * 100},${((point.y - liveFrame.y) / liveFrame.h) * 100}`).join(" ");
+    return (
+      <div className={`annotation ink-annotation ${selected ? "is-selected" : ""}`} style={commonStyle} onPointerDown={dragStart}>
+        <svg viewBox="0 0 100 100" preserveAspectRatio="none"><polyline points={points} fill="none" stroke={annotation.color} strokeWidth={Math.max(0.4, annotation.strokeWidth || 3)} vectorEffect="non-scaling-stroke" strokeLinecap="round" strokeLinejoin="round" opacity={annotation.opacity} /></svg>
+        {controls}
+      </div>
+    );
+  }
+
+  if (annotation.type === "highlight" || annotation.type === "whiteout") {
+    return <div className={`annotation ${annotation.type} ${selected ? "is-selected" : ""}`} style={{ ...commonStyle, backgroundColor: annotation.type === "highlight" ? annotation.color : "#ffffff" }} onPointerDown={dragStart}>{controls}</div>;
+  }
+
+  if (annotation.type === "checkbox") {
+    return (
+      <div className={`annotation checkbox-field ${selected ? "is-selected" : ""}`} style={{ ...commonStyle, "--checkbox-color": annotation.color }} onPointerDown={dragStart} onDoubleClick={(event) => { event.stopPropagation(); onUpdate(annotation.id, { checked: !annotation.checked }); }} role="checkbox" aria-checked={Boolean(annotation.checked)} aria-label={annotation.fieldName || "PDF checkbox"} title="Double-click to toggle">
+        {annotation.checked && <span className="checkbox-mark" />}{controls}
+      </div>
+    );
+  }
+
+  if (annotation.type === "rectangle" || annotation.type === "circle") {
+    return <div className={`annotation shape ${annotation.type} ${selected ? "is-selected" : ""}`} style={{ ...commonStyle, borderColor: annotation.color, borderWidth: `${Math.max(1, annotation.strokeWidth || 2)}px`, backgroundColor: annotation.fillColor || "transparent" }} onPointerDown={dragStart}>{controls}</div>;
+  }
+
+  if (annotation.type === "line" || annotation.type === "arrow") {
+    return (
+      <div className={`annotation line-box ${annotation.type === "arrow" ? "arrow-line" : ""} ${selected ? "is-selected" : ""}`} style={commonStyle} onPointerDown={dragStart}>
+        <svg viewBox="0 0 100 100" preserveAspectRatio="none"><line x1="0" y1="0" x2="100" y2="100" stroke={annotation.color} strokeWidth={Math.max(1, annotation.strokeWidth || 3)} vectorEffect="non-scaling-stroke" strokeLinecap="round" opacity={annotation.opacity} />{annotation.type === "arrow" && <polyline points="78,100 100,100 100,78" fill="none" stroke={annotation.color} strokeWidth={Math.max(1, annotation.strokeWidth || 3)} vectorEffect="non-scaling-stroke" strokeLinecap="round" strokeLinejoin="round" opacity={annotation.opacity} />}</svg>
+        {controls}
+      </div>
+    );
+  }
+
+  if (annotation.type === "comment") return <div className={`annotation comment-marker ${selected ? "is-selected" : ""}`} style={commonStyle} onPointerDown={dragStart}><MessageSquare size={Math.max(16, 20 * (zoom / 100))} />{controls}</div>;
+
+  if (annotation.type === "signature" || annotation.type === "initials") {
+    return <div className={`annotation signature ${annotation.type === "initials" ? "initials" : ""} ${selected ? "is-selected" : ""}`} style={{ ...commonStyle, color: annotation.color, fontFamily: annotation.fontFamily || (annotation.type === "signature" ? DEFAULT_SIGNATURE_FONT : '"PP Agrandir", Inter, Arial, sans-serif'), fontSize: `${annotation.fontSize * displayScale}px` }} onPointerDown={dragStart}>{annotation.imageDataUrl ? <img src={annotation.imageDataUrl} alt="Signature" /> : annotation.content}{controls}</div>;
+  }
+
+  if (annotation.type === "image") return <div className={`annotation image-annotation ${selected ? "is-selected" : ""}`} style={commonStyle} onPointerDown={dragStart}><img src={annotation.imageDataUrl} alt={annotation.content || "Inserted image"} />{controls}</div>;
+
+  if (annotation.type === "field") {
+    return (
+      <div className={`annotation fillable-field ${selected ? "is-selected" : ""}`} style={{ ...commonStyle, "--field-color": annotation.color }} onPointerDown={dragStart}>
+        <input aria-label={annotation.fieldName || "PDF text field"} value={annotation.content || ""} placeholder={annotation.fieldName || "Enter text"} onPointerDown={(event) => { event.stopPropagation(); onSelect(annotation.id); }} onChange={(event) => onUpdate(annotation.id, { content: event.target.value, updatedAt: nowIso() })} />
+        {controls}
+      </div>
+    );
+  }
+
+  return (
+    <div className={`annotation text-box ${selected ? "is-selected" : ""}`} style={{ ...commonStyle, color: annotation.color, fontFamily: annotation.fontFamily || '"PP Agrandir", Inter, Arial, sans-serif', fontSize: `${annotation.fontSize * textDisplayScale}px`, fontWeight: annotation.bold ? 850 : 500, fontStyle: annotation.italic ? "italic" : "normal", textDecoration: annotation.underline ? "underline" : "none", textAlign: annotation.textAlign || "left", lineHeight: annotation.lineHeight || 1.25 }} onPointerDown={dragStart}>
+      {controls}
+      <EditableTextContent ref={textContentRef} className="text-content" editable={selected} spellCheck="false" value={annotation.content} onPointerDown={(event) => { event.stopPropagation(); onSelect(annotation.id); }} onChange={updateTextContent} onBlur={commitTextContent} />
+    </div>
+  );
+}
+
 export function App({ view = "landing", appSection = "Home", authMode = "login", documentId = "", publicTool = "" }) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -1018,6 +1243,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   const [pdfBytes, setPdfBytes] = useState(null);
   const [fileName, setFileName] = useState("New Document");
   const [tool, setTool] = useState("select");
+  const [activeToolMode, setActiveToolMode] = useState("view");
   const [pageIndex, setPageIndex] = useState(0);
   const [annotations, setAnnotations] = useState([]);
   const [detectedTextItems, setDetectedTextItems] = useState([]);
@@ -1085,6 +1311,10 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   const pageDetectedTextItems = detectedTextItems.filter((item) => item.pageNumber === pageIndex && !item.isDeleted);
   const pageDeletedTextItems = detectedTextItems.filter((item) => item.pageNumber === pageIndex && item.isDeleted);
   const detectedTextCount = useMemo(() => detectedTextItems.filter((item) => !item.isDeleted).length, [detectedTextItems]);
+  const contextualToolConfig = useMemo(() => {
+    const tools = new Set(getToolsForMode(activeToolMode));
+    return toolConfig.filter((item) => tools.has(item.id));
+  }, [activeToolMode]);
   const zoomOptions = useMemo(() => (
     Array.from(new Set([...ZOOM_PRESETS, zoom])).sort((a, b) => a - b)
   ), [zoom]);
@@ -1166,6 +1396,10 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     if (currentUser?.uid && cloudSyncStatus === "synced") return "Saved to cloud";
     return lastSavedAt ? `Saved ${formatDateTime(lastSavedAt)}` : "Saved";
   }, [cloudSyncStatus, currentUser?.uid, isOffline, lastSavedAt, saveState]);
+
+  useEffect(() => {
+    setActiveToolMode((currentMode) => resolveModeForTool(tool, currentMode));
+  }, [tool]);
 
   useEffect(() => {
     const onOnline = () => setIsOffline(false);
@@ -1527,8 +1761,11 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   };
 
   const updateAnnotation = (id, patch) => {
-    setAnnotations((items) => items.map((item) => (item.id === id ? { ...item, ...patch } : item)));
-    markUnsaved();
+    const current = annotations.find((item) => item.id === id);
+    if (!current) return;
+    const changed = Object.entries(patch).some(([key, value]) => current[key] !== value);
+    if (!changed) return;
+    commitAnnotations(annotations.map((item) => (item.id === id ? { ...item, ...patch } : item)));
   };
 
   const updateDetectedTextItem = (id, patch) => {
@@ -1598,32 +1835,8 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   };
 
   const addTextAnnotation = (content, point) => {
-    const isBlankInsertion = !content.trim();
-    const cleanContent = isBlankInsertion ? "" : content.trimEnd();
-    const lines = cleanContent.split("\n");
-    const longestLine = Math.max(...lines.map((line) => line.length), isBlankInsertion ? 1 : 9);
-    const width = isBlankInsertion ? 0.11 : clamp(longestLine * 0.0085, 0.075, 0.42);
-    const height = isBlankInsertion ? 0.038 : clamp(lines.length * 0.024 + 0.02, 0.038, 0.28);
-
-    addAnnotation({
-      id: makeId("text"),
-      type: "text",
-      page: pageIndex,
-      x: clamp(point.x, 0.02, 0.96 - width),
-      y: clamp(point.y, 0.02, 0.97 - height),
-      w: width,
-      h: height,
-      content: cleanContent,
-      color: toolSettings.textColor,
-      fontSize: toolSettings.textSize,
-      fontFamily: toolSettings.fontFamily,
-      textAlign: toolSettings.textAlign,
-      lineHeight: toolSettings.lineHeight,
-      bold: toolSettings.textBold,
-      italic: toolSettings.textItalic,
-      underline: toolSettings.textUnderline,
-      opacity: 1,
-    });
+    const stamp = nowIso();
+    addAnnotation(createTextAnnotation({ id: makeId("text"), page: pageIndex, point, content, settings: toolSettings, createdAt: stamp }));
   };
 
   useEffect(() => {
@@ -2833,6 +3046,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
           color,
           opacity: annotation.opacity,
           borderOpacity: 0,
+          rotate: degrees(Number(annotation.rotation || 0)),
         });
       }
 
@@ -2845,6 +3059,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
           color: rgb(1, 1, 1),
           opacity: annotation.opacity,
           borderOpacity: 0,
+          rotate: degrees(Number(annotation.rotation || 0)),
         });
       }
 
@@ -2857,6 +3072,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
           borderColor: color,
           borderWidth: annotation.strokeWidth || 2,
           opacity: annotation.opacity,
+          rotate: degrees(Number(annotation.rotation || 0)),
         });
       }
 
@@ -2873,8 +3089,9 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       }
 
       if (annotation.type === "line" || annotation.type === "arrow") {
-        const start = { x: annotation.x * width, y: height - annotation.y * height };
-        const end = { x: (annotation.x + annotation.w) * width, y: height - (annotation.y + annotation.h) * height };
+        const center = { x: (annotation.x + annotation.w / 2) * width, y: height - (annotation.y + annotation.h / 2) * height };
+        const start = rotatePdfPoint({ x: annotation.x * width, y: height - annotation.y * height }, center, annotation.rotation);
+        const end = rotatePdfPoint({ x: (annotation.x + annotation.w) * width, y: height - (annotation.y + annotation.h) * height }, center, annotation.rotation);
         page.drawLine({
           start,
           end,
@@ -2922,16 +3139,19 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
             width: annotation.w * width,
             height: annotation.h * height,
             opacity: annotation.opacity,
+            rotate: degrees(Number(annotation.rotation || 0)),
           });
         }
       }
 
       if (annotation.type === "draw") {
+        const frame = getAnnotationFrame(annotation);
+        const center = { x: (frame.x + frame.w / 2) * width, y: height - (frame.y + frame.h / 2) * height };
         annotation.points.slice(1).forEach((point, index) => {
           const previous = annotation.points[index];
           page.drawLine({
-            start: { x: previous.x * width, y: height - previous.y * height },
-            end: { x: point.x * width, y: height - point.y * height },
+            start: rotatePdfPoint({ x: previous.x * width, y: height - previous.y * height }, center, annotation.rotation),
+            end: rotatePdfPoint({ x: point.x * width, y: height - point.y * height }, center, annotation.rotation),
             thickness: annotation.strokeWidth,
             color,
             opacity: annotation.opacity,
@@ -3080,6 +3300,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
         fileInputRef={fileInputRef}
         onUpload={onUpload}
         onDropFiles={handleLandingDropFiles}
+        onBlankPage={startBlankDocument}
         uploadError={uploadError}
         uploadStage={uploadStage}
       />
@@ -3261,8 +3482,9 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
         </div>
       </header>
 
-      <section className="tool-ribbon">
-        {toolConfig.map(({ id, label, icon: Icon }) => (
+      <section className="tool-ribbon" aria-label={`${EDITOR_TOOL_MODES.find((mode) => mode.id === activeToolMode)?.label || "View"} tools`}>
+        <div className="contextual-mode-label">{EDITOR_TOOL_MODES.find((mode) => mode.id === activeToolMode)?.label || "View"}</div>
+        {contextualToolConfig.map(({ id, label, icon: Icon }) => (
           <button
             key={id}
             type="button"
@@ -3282,6 +3504,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
                 showToast(detectedTextCount ? `${detectedTextCount} original PDF text item${detectedTextCount === 1 ? "" : "s"} ready. Click a blue outline to edit.` : "Upload a text-based PDF to edit the original words.");
               }
               setTool(id);
+              setActiveToolMode((currentMode) => resolveModeForTool(id, currentMode));
             }}
           >
             {id === "text" ? <span className="text-tool-glyph" aria-hidden="true">A</span> : <Icon size={25} />}
@@ -3290,16 +3513,10 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
         ))}
         <div className={`smart-text-chip ${tool === "editText" ? "is-active" : ""}`}>
           <ScanText size={17} />
-          {detectedTextCount ? `${detectedTextCount} original text boxes detected` : "Original text edit works after uploading a text PDF"}
+          {activeToolMode === "edit"
+            ? detectedTextCount ? `${detectedTextCount} original text boxes detected` : "Add Text remains available for scanned PDFs"
+            : `Active tool: ${toolConfig.find((item) => item.id === tool)?.label || "Select"}`}
         </div>
-        <div className="ribbon-divider" />
-        <button className="ribbon-tool is-unavailable" type="button" disabled title="Unavailable: automatic form-field detection is not implemented" aria-label="Auto-Fill unavailable"><FilePlus2 size={24} /><span>Auto-Fill <small>Soon</small></span></button>
-        <button className="ribbon-tool is-unavailable" type="button" disabled title="Unavailable: AI document analysis is not connected" aria-label="Ask AI unavailable"><Zap size={24} /><span>Ask AI <small>Soon</small></span></button>
-        <button className="ribbon-tool" type="button" onClick={() => appendFileInputRef.current?.click()} title="Merge and append file" aria-label="Merge and append file"><Copy size={24} /><span>Merge</span></button>
-        <button className="ribbon-tool" type="button" onClick={() => setIsPagesCollapsed(false)} title="Rearrange" aria-label="Rearrange"><Grid2X2 size={24} /><span>Rearrange</span></button>
-        <button className="ribbon-tool is-unavailable" type="button" disabled title="Unavailable: automatic page numbering is not implemented" aria-label="Page numbers unavailable"><FileText size={24} /><span>Page numbers <small>Soon</small></span></button>
-        <button className="ribbon-tool is-unavailable" type="button" disabled title="Unavailable: format conversion is not implemented" aria-label="Convert unavailable"><Redo2 size={24} /><span>Convert <small>Soon</small></span></button>
-        <button className="ribbon-tool is-unavailable" type="button" disabled title="Unavailable: PDF compression is not implemented" aria-label="Compress unavailable"><Box size={24} /><span>Compress <small>Soon</small></span></button>
       </section>
 
       <ToolSettingsPanel
@@ -3312,25 +3529,19 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
 
       <section className={`workspace ${isPagesCollapsed ? "pages-collapsed" : ""}`}>
         <aside className="lumin-editor-rail">
-          {[
-            { label: "Popular", icon: FileText, active: true },
-            { label: "Fill & Sign", icon: PenLine },
-            { label: "Mark up", icon: MessageSquare },
-            { label: "Edit text", icon: Type },
-            { label: "Security", icon: CheckCircle2 },
-            { label: "Organize", icon: FilePlus2 },
-            { label: "Explore", icon: Grid2X2 },
-          ].map(({ label, icon: Icon, active }) => (
-            <button key={label} type="button" className={active ? "is-active" : ""} onClick={() => {
-              if (label === "Fill & Sign") setTool("signature");
-              if (label === "Mark up") setTool("comment");
-              if (label === "Edit text") setTool("text");
-              if (label === "Organize") setIsPagesCollapsed(false);
+          {EDITOR_TOOL_MODES.map((mode) => {
+            const Icon = mode.id === "view" ? MousePointer2 : mode.id === "annotate" ? Highlighter : mode.id === "shapes" ? RectangleHorizontal : mode.id === "insert" ? Plus : mode.id === "edit" ? Type : PenLine;
+            return (
+            <button key={mode.id} type="button" className={activeToolMode === mode.id ? "is-active" : ""} aria-pressed={activeToolMode === mode.id} onClick={() => {
+              setActiveToolMode(mode.id);
+              setTool(getDefaultToolForMode(mode.id));
+              setSelectedId(null);
+              setSelectedDetectedTextId(null);
             }}>
               <Icon size={28} />
-              <span>{label}</span>
+              <span>{mode.label}</span>
             </button>
-          ))}
+          );})}
         </aside>
         <aside id="page-thumbnails" className={`pages-panel ${isPagesCollapsed ? "is-collapsed" : ""}`}>
           <div className="panel-title pdfnet-page-title">
@@ -3513,14 +3724,13 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
                   );
                 })}
                 {pageAnnotations.map((annotation) => (
-                  <Annotation
+                  <ProfessionalAnnotation
                     key={annotation.id}
                     annotation={annotation}
                     selected={annotation.id === selectedId}
                     zoom={zoom}
                     onSelect={setSelectedId}
-                    onDrag={(id, patch) => updateAnnotation(id, { x: clamp(patch.x, 0, 0.95), y: clamp(patch.y, 0, 0.96) })}
-                    onResize={(id, patch) => updateAnnotation(id, { w: clamp(patch.w, 0.03, 0.7), h: clamp(patch.h, 0.018, 0.45) })}
+                    onCommit={updateAnnotation}
                     onUpdate={updateAnnotation}
                     onDelete={(id) => {
                       commitAnnotations(annotations.filter((item) => item.id !== id));

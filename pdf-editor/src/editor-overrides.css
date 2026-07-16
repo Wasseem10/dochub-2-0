@@ -6198,6 +6198,61 @@ main.editor-shell .page-nav .page-nav-divider {
   }
 }
 
+/* Final desktop workspace contract: grouped modes + persistent 144px thumbnails. */
+@media (min-width: 821px) {
+  main.editor-shell .workspace,
+  .editor-shell .workspace {
+    grid-template-columns: 92px 144px minmax(0, 1fr) 62px !important;
+  }
+
+  main.editor-shell .workspace.pages-collapsed,
+  .editor-shell .workspace.pages-collapsed {
+    grid-template-columns: 92px minmax(0, 1fr) 62px !important;
+  }
+
+  main.editor-shell .lumin-editor-rail,
+  .editor-shell .lumin-editor-rail {
+    display: grid !important;
+    grid-template-rows: repeat(6, minmax(68px, auto)) minmax(0, 1fr) !important;
+    width: 92px !important;
+    min-width: 92px !important;
+    padding: 6px 8px 12px !important;
+    border-right: 1px solid #e2e8f0 !important;
+    background: #f8fafc !important;
+  }
+
+  main.editor-shell .lumin-editor-rail button,
+  .editor-shell .lumin-editor-rail button {
+    display: grid !important;
+    width: 76px !important;
+    min-width: 0 !important;
+    height: 70px !important;
+    place-items: center !important;
+    align-content: center !important;
+    gap: 5px !important;
+    padding: 0 4px !important;
+    border: 0 !important;
+    border-radius: 10px !important;
+    background: transparent !important;
+    color: #475569 !important;
+    font-size: 11px !important;
+    font-weight: 750 !important;
+  }
+
+  main.editor-shell .lumin-editor-rail button.is-active,
+  .editor-shell .lumin-editor-rail button.is-active {
+    background: #e8eeff !important;
+    color: #2851eb !important;
+    box-shadow: inset 3px 0 0 #2851eb !important;
+  }
+
+  main.editor-shell .lumin-editor-rail button svg,
+  .editor-shell .lumin-editor-rail button svg {
+    width: 22px !important;
+    height: 22px !important;
+  }
+}
+
 /* FixThatPDF auth screen — aligned with the landing page design system. */
 .auth-shell {
   --auth-ink: #001f1f;
@@ -8007,6 +8062,125 @@ main.editor-shell .text-box.is-selected .text-content,
   min-width: 24px !important;
 }
 
+/* Unified professional object selection: one transform model for every annotation. */
+main.editor-shell .annotation.is-selected,
+.editor-shell .annotation.is-selected {
+  border: 1.5px solid #2851eb !important;
+  outline: 1px solid rgba(40, 81, 235, 0.16) !important;
+  outline-offset: 2px !important;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.9) !important;
+}
+
+main.editor-shell .annotation-controls,
+.editor-shell .annotation-controls {
+  top: -78px !important;
+  z-index: 40 !important;
+  height: 36px !important;
+  padding: 0 5px !important;
+  border: 1px solid rgba(17, 38, 77, 0.12) !important;
+  border-radius: 8px !important;
+  background: #ffffff !important;
+  color: #1f2937 !important;
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.2) !important;
+  transform: translateX(-50%) rotate(var(--annotation-counter-rotation, 0deg)) !important;
+}
+
+main.editor-shell .annotation-controls::after,
+.editor-shell .annotation-controls::after {
+  bottom: -7px !important;
+  border-width: 7px !important;
+  border-top-color: #ffffff !important;
+}
+
+main.editor-shell .annotation-controls button,
+.editor-shell .annotation-controls button {
+  width: 27px !important;
+  height: 27px !important;
+  color: #334155 !important;
+}
+
+main.editor-shell .annotation-controls button:hover,
+.editor-shell .annotation-controls button:hover {
+  background: #eef3ff !important;
+  color: #2851eb !important;
+}
+
+main.editor-shell .resize-control,
+.editor-shell .resize-control,
+main.editor-shell .rotation-handle,
+.editor-shell .rotation-handle {
+  position: absolute !important;
+  z-index: 35 !important;
+  display: block !important;
+  width: 10px !important;
+  height: 10px !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  padding: 0 !important;
+  border: 2px solid #2851eb !important;
+  border-radius: 2px !important;
+  background: #ffffff !important;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.2) !important;
+}
+
+main.editor-shell .resize-nw, .editor-shell .resize-nw { left: -6px !important; top: -6px !important; cursor: nwse-resize !important; }
+main.editor-shell .resize-n, .editor-shell .resize-n { left: 50% !important; top: -6px !important; transform: translateX(-50%) !important; cursor: ns-resize !important; }
+main.editor-shell .resize-ne, .editor-shell .resize-ne { right: -6px !important; top: -6px !important; cursor: nesw-resize !important; }
+main.editor-shell .resize-e, .editor-shell .resize-e { right: -6px !important; top: 50% !important; transform: translateY(-50%) !important; cursor: ew-resize !important; }
+main.editor-shell .resize-se, .editor-shell .resize-se { right: -6px !important; bottom: -6px !important; cursor: nwse-resize !important; }
+main.editor-shell .resize-s, .editor-shell .resize-s { left: 50% !important; bottom: -6px !important; transform: translateX(-50%) !important; cursor: ns-resize !important; }
+main.editor-shell .resize-sw, .editor-shell .resize-sw { left: -6px !important; bottom: -6px !important; cursor: nesw-resize !important; }
+main.editor-shell .resize-w, .editor-shell .resize-w { left: -6px !important; top: 50% !important; transform: translateY(-50%) !important; cursor: ew-resize !important; }
+
+main.editor-shell .rotation-stem,
+.editor-shell .rotation-stem {
+  position: absolute !important;
+  left: 50% !important;
+  top: -25px !important;
+  width: 1.5px !important;
+  height: 20px !important;
+  transform: translateX(-50%) !important;
+  background: #2851eb !important;
+}
+
+main.editor-shell .rotation-handle,
+.editor-shell .rotation-handle {
+  left: 50% !important;
+  top: -32px !important;
+  width: 13px !important;
+  height: 13px !important;
+  transform: translateX(-50%) !important;
+  border-radius: 999px !important;
+  cursor: grab !important;
+}
+
+main.editor-shell .ink-annotation,
+.editor-shell .ink-annotation {
+  padding: 0 !important;
+  background: transparent !important;
+}
+
+main.editor-shell .ink-annotation > svg,
+.editor-shell .ink-annotation > svg {
+  width: 100% !important;
+  height: 100% !important;
+  overflow: visible !important;
+  pointer-events: none !important;
+}
+
+main.editor-shell .contextual-mode-label,
+.editor-shell .contextual-mode-label {
+  display: flex !important;
+  align-items: center !important;
+  min-width: 88px !important;
+  padding: 0 16px !important;
+  border-right: 1px solid #dce4ed !important;
+  color: #17243a !important;
+  font-size: 13px !important;
+  font-weight: 850 !important;
+  letter-spacing: 0.01em !important;
+}
+
 main.editor-shell .text-format-settings .color-control,
 .editor-shell .text-format-settings .color-control {
   overflow: visible !important;
@@ -8253,4 +8427,52 @@ main.editor-shell .thumbnail-footer button:last-child,
   .editor-shell .more-menu-wrap {
     display: inline-flex !important;
   }
+}
+
+/* Keep this final: late legacy overrides above otherwise hide the released mode rail. */
+@media (min-width: 821px) {
+  main.editor-shell .workspace,
+  .editor-shell .workspace { grid-template-columns: 92px 144px minmax(0, 1fr) 62px !important; }
+
+  main.editor-shell .workspace.pages-collapsed,
+  .editor-shell .workspace.pages-collapsed { grid-template-columns: 92px minmax(0, 1fr) 62px !important; }
+
+  main.editor-shell .lumin-editor-rail,
+  .editor-shell .lumin-editor-rail {
+    display: grid !important;
+    grid-template-rows: repeat(6, minmax(68px, auto)) minmax(0, 1fr) !important;
+    width: 92px !important;
+    min-width: 92px !important;
+    padding: 6px 8px 12px !important;
+    border-right: 1px solid #e2e8f0 !important;
+    background: #f8fafc !important;
+  }
+
+  main.editor-shell .lumin-editor-rail button,
+  .editor-shell .lumin-editor-rail button {
+    display: grid !important;
+    width: 76px !important;
+    min-width: 0 !important;
+    height: 70px !important;
+    place-items: center !important;
+    align-content: center !important;
+    gap: 5px !important;
+    padding: 0 4px !important;
+    border: 0 !important;
+    border-radius: 10px !important;
+    background: transparent !important;
+    color: #475569 !important;
+    font-size: 11px !important;
+    font-weight: 750 !important;
+  }
+
+  main.editor-shell .lumin-editor-rail button.is-active,
+  .editor-shell .lumin-editor-rail button.is-active {
+    background: #e8eeff !important;
+    color: #2851eb !important;
+    box-shadow: inset 3px 0 0 #2851eb !important;
+  }
+
+  main.editor-shell .lumin-editor-rail button svg,
+  .editor-shell .lumin-editor-rail button svg { width: 22px !important; height: 22px !important; }
 }

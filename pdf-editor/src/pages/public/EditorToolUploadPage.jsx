@@ -37,7 +37,7 @@ const DROP_ACTION = Object.freeze({
   "comment-on-pdf": "comment on",
 });
 
-export function EditorToolUploadPage({ toolId, fileInputRef, onUpload, onDropFiles, uploadError, uploadStage }) {
+export function EditorToolUploadPage({ toolId, fileInputRef, onUpload, onDropFiles, onBlankPage, uploadError, uploadStage }) {
   const [dragging, setDragging] = useState(false);
   const dropDepth = useRef(0);
   const tool = TOOL_BY_ID.get(toolId) || TOOL_BY_ID.get("edit-pdf");
@@ -98,6 +98,11 @@ export function EditorToolUploadPage({ toolId, fileInputRef, onUpload, onDropFil
               {isUploading ? <Upload className="is-uploading" size={21} /> : <Zap size={21} fill="currentColor" />}
               {isUploading ? "Opening your PDF..." : "Upload from your device"}
             </button>
+            {tool.id === "edit-pdf" && onBlankPage && (
+              <button type="button" className="editor-tool-blank-action" disabled={isUploading} onClick={(event) => { event.stopPropagation(); onBlankPage(); }}>
+                <FileText size={18} /> Start with a blank page
+              </button>
+            )}
             <p className={uploadError ? "is-error" : ""} role={uploadError ? "alert" : undefined} aria-live="polite">
               {uploadError || (isUploading ? `${uploadStage.status}${uploadStage.fileName ? ` - ${uploadStage.fileName}` : ""}` : "PDF documents up to 8 MB")}
             </p>
