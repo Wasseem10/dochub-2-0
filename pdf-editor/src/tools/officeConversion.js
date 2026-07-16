@@ -121,7 +121,7 @@ export async function createDocxFromPdfPages(pages, options = {}) {
     mode === "visual" ? visualPageParagraphs(page, index) : editablePageParagraphs(page, index, baseFontSize)
   ));
   const document = new Document({
-    creator: "RealPDF",
+    creator: "FixThatPDF",
     title: options.title || "Converted PDF",
     description: mode === "visual" ? "PDF pages converted to visual Word pages" : "PDF text converted to editable Word paragraphs",
     styles: {
@@ -161,6 +161,6 @@ export async function createPdfFromRenderedDocxPages(pages, options = {}) {
     page.drawImage(image, { x: 0, y: 0, width, height });
   }
   pdf.setTitle(options.title || "Converted Word document");
-  pdf.setCreator("RealPDF");
+  pdf.setCreator("FixThatPDF");
   return pdf.save();
 }

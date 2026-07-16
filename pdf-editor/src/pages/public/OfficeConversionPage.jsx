@@ -51,7 +51,7 @@ function friendlyPdfError(error) {
   if (error?.name === "PasswordException" || message.includes("password")) return "This PDF is encrypted. Remove its password with an authorized tool, then try again.";
   if (message.includes("invalid pdf") || message.includes("missing pdf")) return "This PDF appears corrupted or incomplete. Try downloading a fresh copy.";
   if (message.includes("supports up to")) return error.message;
-  return "RealPDF could not read this PDF. Try a valid, unencrypted PDF under 20 MB.";
+  return "FixThatPDF could not read this PDF. Try a valid, unencrypted PDF under 20 MB.";
 }
 
 function ConversionDropzone({ accept, label, hint, onFile, disabled }) {
@@ -162,7 +162,7 @@ function PdfToWordWorkspace() {
       }
       const bytes = await createDocxFromPdfPages(conversionPages, { mode, title: file.name.replace(/\.pdf$/i, "") });
       setProgress(100);
-      downloadBytes(bytes, "application/vnd.openxmlformats-officedocument.wordprocessingml.document", `${file.name.replace(/\.pdf$/i, "") || "realpdf-document"}.docx`);
+      downloadBytes(bytes, "application/vnd.openxmlformats-officedocument.wordprocessingml.document", `${file.name.replace(/\.pdf$/i, "") || "fixthatpdf-document"}.docx`);
       setStatus("complete");
       window.setTimeout(() => setStatus("idle"), 1800);
     } catch (conversionError) {
@@ -254,7 +254,7 @@ function WordToPdfWorkspace() {
       }
       const bytes = await createPdfFromRenderedDocxPages(renderedPages, { title: file.name.replace(/\.docx$/i, "") });
       setProgress(100);
-      downloadBytes(bytes, "application/pdf", `${file.name.replace(/\.docx$/i, "") || "realpdf-document"}.pdf`);
+      downloadBytes(bytes, "application/pdf", `${file.name.replace(/\.docx$/i, "") || "fixthatpdf-document"}.pdf`);
       setStatus("complete");
       window.setTimeout(() => setStatus("idle"), 1800);
     } catch (conversionError) {
@@ -277,7 +277,7 @@ function WordToPdfWorkspace() {
       <aside className="conversion-settings-card">
         <span>PDF settings</span>
         <h2>Preserve the visible pages</h2>
-        <div className="office-mode-note"><strong>Browser-rendered PDF</strong><p>RealPDF renders the DOCX pages as high-resolution images. The appearance is retained, but PDF text will not be selectable and exact Microsoft Word pagination can vary.</p></div>
+        <div className="office-mode-note"><strong>Browser-rendered PDF</strong><p>FixThatPDF renders the DOCX pages as high-resolution images. The appearance is retained, but PDF text will not be selectable and exact Microsoft Word pagination can vary.</p></div>
         <div className="conversion-summary"><Check size={18} /><span>{file ? "DOCX ready to convert" : "Add a DOCX to continue"}</span></div>
         {status === "converting" && <div className="conversion-progress-bar"><i style={{ width: `${progress}%` }} /></div>}
         <button className="conversion-primary-action" type="button" disabled={!file || status === "reading" || status === "converting"} onClick={convert}>{status === "converting" ? <><LoaderCircle className="is-spinning" size={18} /> Converting {progress}%</> : <><Download size={18} /> Download PDF</>}</button>
@@ -299,7 +299,7 @@ export function OfficeConversionPage({ tool }) {
         <div><small>Beta · runs in your browser</small><h1>{tool.name}</h1><p>{tool.shortDescription} Files remain on this device during conversion.</p></div>
       </section>
       {pdfToWord ? <PdfToWordWorkspace /> : <WordToPdfWorkspace />}
-      <section className="conversion-privacy-note"><Check size={19} /><div><strong>Private browser processing</strong><p>This beta conversion runs locally in your browser. RealPDF does not upload the file to an Office, OCR, or AI service.</p></div></section>
+      <section className="conversion-privacy-note"><Check size={19} /><div><strong>Private browser processing</strong><p>This beta conversion runs locally in your browser. FixThatPDF does not upload the file to an Office, OCR, or AI service.</p></div></section>
     </main>
   );
 }

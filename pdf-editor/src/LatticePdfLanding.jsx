@@ -87,9 +87,9 @@ export function LatticePdfLanding({
 
   const whyGroups = [
     {
-      title: "The RealPDF advantage",
+      title: "The FixThatPDF advantage",
       links: [
-        ["Why RealPDF", "A focused workspace built around the document", "/features"],
+        ["Why FixThatPDF", "A focused workspace built around the document", "/features"],
         ["Browser-first", "No desktop install or setup", "/security"],
         ["One workflow", "Edit through delivery without switching tools", "/business"],
       ],
@@ -145,12 +145,12 @@ export function LatticePdfLanding({
 
   const resourceCards = [
     ["Document library", "Practical guides for editing, signing, organizing, and delivering PDFs.", FileText, "aqua"],
-    ["RealPDF academy", "Short walkthroughs that help your team build a faster document workflow.", ScanText, "pink"],
+    ["FixThatPDF academy", "Short walkthroughs that help your team build a faster document workflow.", ScanText, "pink"],
     ["Template center", "Start with useful contracts, forms, packets, and approval-ready documents.", FolderPlus, "green"],
     ["Live support", "Get a clear answer when a document or deadline needs extra attention.", MessageSquare, "purple"],
   ];
 
-  const menuMap = { Tools: toolGroups, Product: productGroups, "Why RealPDF": whyGroups, Resources: resourceGroups };
+  const menuMap = { Tools: toolGroups, Product: productGroups, "Why FixThatPDF": whyGroups, Resources: resourceGroups };
 
   useEffect(() => {
     if (storyPaused) return undefined;
@@ -219,7 +219,7 @@ export function LatticePdfLanding({
       )}
 
       <header className="lpdf-header">
-        <RouterLink className="lpdf-brand" to="/" onClick={closeMenus} aria-label="RealPDF home"><span><FileText size={22} /></span><strong>RealPDF</strong></RouterLink>
+        <RouterLink className="lpdf-brand" to="/" onClick={closeMenus} aria-label="FixThatPDF home"><strong>FixThatPDF</strong></RouterLink>
         <nav className="lpdf-desktop-nav" aria-label="Primary navigation">
           {Object.keys(menuMap).map((label) => (
             <button key={label} type="button" className={activeMenu === label ? "is-active" : ""} aria-expanded={activeMenu === label} onClick={() => setActiveMenu(activeMenu === label ? null : label)}>{label}<ChevronDown size={14} /></button>
@@ -260,7 +260,7 @@ export function LatticePdfLanding({
       <section id="top" className="lpdf-hero">
         <div className="lpdf-hero-copy">
           <h1>PDFs + AI:<br />Working better together</h1>
-          <p>Join fast-moving teams using RealPDF to edit, sign, organize, and deliver every PDF from one trusted workspace.</p>
+          <p>Join fast-moving teams using FixThatPDF to edit, sign, organize, and deliver every PDF from one trusted workspace.</p>
           <div className="lpdf-hero-actions"><button type="button" className="lpdf-primary" onClick={uploadClick}><Upload size={17} /> Upload a PDF</button><button type="button" className="lpdf-secondary" onClick={scrollToPlatform}>Take a tour</button></div>
         </div>
         <section
@@ -284,12 +284,12 @@ export function LatticePdfLanding({
       <div className="lpdf-trust-strip" aria-label="Popular PDF workflows">{["Contracts", "Offer letters", "Invoices", "Forms", "Resumes", "Approval packets"].map((item) => <span key={item}>{item}</span>)}</div>
 
       <section id="platform" className="lpdf-section lpdf-platform">
-        <div className="lpdf-section-heading lpdf-split-heading"><div><RouterLink className="lpdf-pill" to="#platform">Platform overview <ChevronDown size={14} /></RouterLink><h2>High-performing documents are built here</h2></div><p>RealPDF is your team’s daily destination for PDFs, combining focused editing and smart tools to move every file from draft to done. <button type="button" onClick={scrollToPlatform}>Take a tour</button></p></div>
+        <div className="lpdf-section-heading lpdf-split-heading"><div><RouterLink className="lpdf-pill" to="#platform">Platform overview <ChevronDown size={14} /></RouterLink><h2>High-performing documents are built here</h2></div><p>FixThatPDF is your team’s daily destination for PDFs, combining focused editing and smart tools to move every file from draft to done. <button type="button" onClick={scrollToPlatform}>Take a tour</button></p></div>
         <div className="lpdf-platform-grid">
           {platformCards.map(([title, copy, Icon, tone, visual, wide]) => (
             <article key={title} className={`lpdf-platform-card tone-${tone} ${wide ? "is-wide" : ""}`}>
               <header><span><Icon size={23} /></span><button type="button" onClick={uploadClick} aria-label={`Start with ${title}`}><ChevronDown size={18} /></button></header><h3>{title}</h3><p>{copy}</p>
-              {visual === "editor" && <img src="/product-assets/dashboard-pass-3.png" alt="RealPDF editing dashboard" />}
+              {visual === "editor" && <img src="/product-assets/dashboard-pass-3.png" alt="FixThatPDF PDF editor upload workspace" />}
               {visual === "sign" && <div className="lpdf-feature-panel"><PenLine size={36} /><strong>Signature ready</strong><span>Place and export</span></div>}
               {visual === "pages" && <div className="lpdf-page-stack"><FileText size={48} /><FileText size={48} /><FileText size={48} /></div>}
               {visual === "review" && <div className="lpdf-feature-panel"><MessageSquare size={36} /><strong>2 comments resolved</strong><span>Ready for approval</span></div>}
@@ -299,7 +299,7 @@ export function LatticePdfLanding({
       </section>
 
       <section id="smart-tools" className="lpdf-ai-section">
-        <div className="lpdf-section-heading lpdf-centered-heading"><RouterLink className="lpdf-pill lpdf-purple-pill" to="/ai-pdf"><ScanText size={15} /> Planned document AI <ChevronDown size={14} /></RouterLink><h2>Document intelligence is on the roadmap</h2><p>RealPDF does not currently analyze your PDF or generate answers. The planned workflow will add cited answers only after secure processing is connected.</p></div>
+        <div className="lpdf-section-heading lpdf-centered-heading"><RouterLink className="lpdf-pill lpdf-purple-pill" to="/ai-pdf"><ScanText size={15} /> Planned document AI <ChevronDown size={14} /></RouterLink><h2>Document intelligence is on the roadmap</h2><p>FixThatPDF does not currently analyze your PDF or generate answers. The planned workflow will add cited answers only after secure processing is connected.</p></div>
         <div className="lpdf-ai-workspace"><header><ScanText size={21} /><strong>AI PDF</strong><span>Coming soon</span></header><div className="lpdf-ai-conversation"><p className="is-question">Planned: ask a question about a document.</p><p className="is-answer">Unavailable today — no document analysis is running and no sample answer is presented as a real result.</p></div><RouterLink to="/ai-pdf">See the planned workflow <ChevronDown size={15} /></RouterLink></div>
       </section>
 
@@ -334,11 +334,11 @@ export function LatticePdfLanding({
         <div className="lpdf-footer-grid">
           {FOOTER_TOOL_GROUPS.map((group) => <section key={group.label}><small>{group.label}</small>{group.tools.map((tool) => <RouterLink key={tool.id} to={tool.route}>{tool.name}</RouterLink>)}</section>)}
         </div>
-        <div className="lpdf-footer-bottom"><RouterLink className="lpdf-brand" to="/"><span><FileText size={20} /></span><strong>RealPDF</strong></RouterLink><p><RouterLink to="/tools">View all 68 PDF tools</RouterLink>{documentCount ? ` · ${documentCount} document${documentCount === 1 ? "" : "s"} in your workspace` : " · Clear availability on every workflow."}</p><span>© 2026 RealPDF</span></div>
+        <div className="lpdf-footer-bottom"><RouterLink className="lpdf-brand" to="/"><strong>FixThatPDF</strong></RouterLink><p><RouterLink to="/tools">View all 68 PDF tools</RouterLink>{documentCount ? ` · ${documentCount} document${documentCount === 1 ? "" : "s"} in your workspace` : " · Clear availability on every workflow."}</p><span>© 2026 FixThatPDF</span></div>
       </footer>
 
       <aside id="assistant" className={`lpdf-assistant ${assistantOpen ? "is-open" : ""}`}>
-        {assistantOpen && <div id="lpdf-assistant-panel" className="lpdf-assistant-panel"><header><span><MessageSquare size={18} /></span><div><strong>RealPDF guide</strong><small>Static workflow help</small></div><button type="button" aria-label="Close guide" onClick={() => setAssistantOpen(false)}><X size={18} /></button></header><p>This guide can point you to a tool, but it does not read or analyze documents.</p>{assistantReply && <p className="is-reply">{assistantReply}</p>}<form onSubmit={submitAssistant}><input aria-label="Ask about a PDF workflow" value={assistantInput} onChange={(event) => setAssistantInput(event.target.value)} placeholder="Describe your PDF task" /><button type="submit" aria-label="Send question"><Send size={17} /></button></form></div>}
+        {assistantOpen && <div id="lpdf-assistant-panel" className="lpdf-assistant-panel"><header><span><MessageSquare size={18} /></span><div><strong>FixThatPDF guide</strong><small>Static workflow help</small></div><button type="button" aria-label="Close guide" onClick={() => setAssistantOpen(false)}><X size={18} /></button></header><p>This guide can point you to a tool, but it does not read or analyze documents.</p>{assistantReply && <p className="is-reply">{assistantReply}</p>}<form onSubmit={submitAssistant}><input aria-label="Ask about a PDF workflow" value={assistantInput} onChange={(event) => setAssistantInput(event.target.value)} placeholder="Describe your PDF task" /><button type="submit" aria-label="Send question"><Send size={17} /></button></form></div>}
         <button type="button" className="lpdf-assistant-trigger" aria-expanded={assistantOpen} aria-controls="lpdf-assistant-panel" onClick={() => setAssistantOpen((value) => !value)}><span><MessageSquare size={18} /></span> PDF workflow guide</button>
       </aside>
     </main>

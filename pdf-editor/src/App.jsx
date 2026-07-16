@@ -3766,7 +3766,7 @@ function AuthPage({ mode, setMode, onBack, onComplete, onPasswordReset, authRead
     <main className="auth-shell">
       <section className="auth-card" aria-label={isSignup ? "Create account" : isPasswordReset ? "Reset password" : "Log in"}>
         <button type="button" className="auth-back" onClick={onBack}>Back to home</button>
-        <button type="button" className="auth-mark auth-realpdf-brand" onClick={onBack} aria-label="RealPDF home"><span aria-hidden="true"><FileText size={22} /></span><strong>RealPDF</strong></button>
+        <button type="button" className="auth-mark auth-realpdf-brand" onClick={onBack} aria-label="FixThatPDF home"><strong>FixThatPDF</strong></button>
         <h2>{isSignup ? "Create your workspace" : isPasswordReset ? "Reset your password" : "Welcome back"}</h2>
         <p className="auth-intro">{isSignup ? "Start editing, signing, and organizing PDFs in one focused place." : isPasswordReset ? "Enter your account email and we will send the existing Firebase reset flow." : "Sign in to continue working with your PDFs."}</p>
         {routeNotice && <div className="auth-notice">{routeNotice}</div>}
@@ -3812,7 +3812,7 @@ function AuthPage({ mode, setMode, onBack, onComplete, onPasswordReset, authRead
         </form>
         <p className="auth-privacy">Check our <button type="button">Privacy Notice</button>.</p>
         <div className="auth-switch">
-          <span>{isSignup ? "Already have an account?" : isPasswordReset ? "Remembered your password?" : "New to RealPDF?"}</span>
+          <span>{isSignup ? "Already have an account?" : isPasswordReset ? "Remembered your password?" : "New to FixThatPDF?"}</span>
           <button type="button" onClick={isPasswordReset ? () => setMode("login") : switchMode}>{isSignup ? "Sign in" : isPasswordReset ? "Back to login" : "Create an account"}</button>
         </div>
       </section>
@@ -4627,7 +4627,7 @@ function UploadLanding({
     if (["Trash", "Billing", "Team", "Integrations"].includes(activeSection)) {
       const sectionDetails = {
         Trash: [Trash2, "Deleted documents", "Files moved to trash will be available here before permanent removal."],
-        Billing: [CreditCard, "Plans and billing", "Manage your RealPDF plan, invoices, and payment details."],
+        Billing: [CreditCard, "Plans and billing", "Manage your FixThatPDF plan, invoices, and payment details."],
         Team: [Users, "Workspace members", "Invite teammates and manage document collaboration access."],
         Integrations: [Plug, "Connected apps", "Connect cloud storage and workflow tools to your PDF workspace."],
       };
@@ -4658,7 +4658,7 @@ function UploadLanding({
           >
             <div className="dashboard-welcome-copy">
               <span className="dashboard-greeting"><Sparkles size={14} /> {dashboardGreeting}, {dashboardFirstName}!</span>
-              <h1>Work smarter with <strong>RealPDF</strong></h1>
+              <h1>Work smarter with <strong>FixThatPDF</strong></h1>
               <p>{isDraggingFile ? "Release to open your PDF." : isUploading ? `${uploadStage.status}: ${uploadStage.fileName}` : "Edit, organize, sign, and collaborate on PDFs in one delightful place."}</p>
               {uploadError && <p className="upload-error">{uploadError}</p>}
               <div className="dashboard-hero-actions">
@@ -4702,7 +4702,7 @@ function UploadLanding({
 
         <aside className="reference-dashboard-side">
           <section className="dashboard-ai-card">
-            <img src={`${import.meta.env.BASE_URL}dashboard-assets/ai-assistant.png`} alt="RealPDF AI assistant" />
+            <img src={`${import.meta.env.BASE_URL}dashboard-assets/ai-assistant.png`} alt="FixThatPDF AI assistant" />
             <div className="dashboard-ai-title"><h2>AI Assistant</h2><Sparkles size={15} /></div>
             <p>Hi {dashboardFirstName}! I can help you with:</p>
             <div className="dashboard-ai-actions">
@@ -4739,7 +4739,7 @@ function UploadLanding({
     <main className="upload-shell lumin-home">
       <input ref={fileInputRef} className="hidden-input" type="file" accept="application/pdf" onChange={onUpload} />
       <aside className="lumin-home-rail">
-        <button type="button" className="dashboard-brand" aria-label="Back to RealPDF website" onClick={() => onNavigate(ROUTE_PATHS.home)}><span><FileText size={22} /></span><strong>RealPDF</strong></button>
+        <button type="button" className="dashboard-brand" aria-label="Back to FixThatPDF website" onClick={() => onNavigate(ROUTE_PATHS.home)}><strong>FixThatPDF</strong></button>
         <nav className="upload-nav" aria-label="Primary">
           {primaryNav.map(({ label, section: navSection = label, icon: Icon, badge }) => (
             <button key={label} type="button" className={navSection === activeSection ? "is-active" : ""} onClick={() => setActiveSection(navSection)}>
@@ -5237,7 +5237,7 @@ function SignatureModal({ defaultName, mode = "signature", onClose, onSave }) {
 
   const saveSignature = () => {
     if (mode === "initials" && !typedName.trim()) {
-      setError("Enter your name so RealPDF can create your initials.");
+      setError("Enter your name so FixThatPDF can create your initials.");
       return;
     }
     if (tab === "upload" && !uploadedImage) {
@@ -5346,7 +5346,7 @@ function ShareModal({ fileName, onClose, onExport }) {
               <Lock size={20} />
               <div>
                 <h3>Secure sharing is unavailable</h3>
-                <p>RealPDF will not generate a public document URL until a server-side token service can enforce ownership, permissions, expiration, and revocation.</p>
+                <p>FixThatPDF will not generate a public document URL until a server-side token service can enforce ownership, permissions, expiration, and revocation.</p>
               </div>
             </div>
           </section>

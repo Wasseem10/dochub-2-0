@@ -151,7 +151,7 @@ describe("safe error routes", () => {
   it("renders a public route page", async () => {
     const { renderer } = await renderRoutes([{
       path: "/features",
-      element: <PublicPlaceholderPage title="Features" description="RealPDF features" status="Available" />,
+      element: <PublicPlaceholderPage title="Features" description="FixThatPDF features" status="Available" />,
     }], ["/features"], authValue());
     expect(renderer.root.findByType("h1").children.join("")).toBe("Features");
   });

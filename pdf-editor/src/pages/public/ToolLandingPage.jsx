@@ -42,7 +42,7 @@ export function ToolLandingPage({ tool }) {
   const relatedTools = getRelatedTools(tool);
   const isUsable = tool.status !== "coming-soon";
   const editorHref = publicEditorPath(tool.id);
-  const breadcrumbSchema = { "@context": "https://schema.org", "@type": "BreadcrumbList", itemListElement: [{ "@type": "ListItem", position: 1, name: "PDF tools", item: "https://realpdf.com/tools" }, { "@type": "ListItem", position: 2, name: tool.name, item: tool.canonicalUrl }] };
+  const breadcrumbSchema = { "@context": "https://schema.org", "@type": "BreadcrumbList", itemListElement: [{ "@type": "ListItem", position: 1, name: "PDF tools", item: "https://fixthatpdf.com/tools" }, { "@type": "ListItem", position: 2, name: tool.name, item: tool.canonicalUrl }] };
   const faqSchema = { "@context": "https://schema.org", "@type": "FAQPage", mainEntity: tool.faqEntries.map((entry) => ({ "@type": "Question", name: entry.question, acceptedAnswer: { "@type": "Answer", text: entry.answer } })) };
   const schemas = [breadcrumbSchema, faqSchema];
   if (tool.schemaType === "SoftwareApplication") schemas.push({ "@context": "https://schema.org", "@type": "SoftwareApplication", name: tool.name, applicationCategory: "BusinessApplication", operatingSystem: "Web", description: tool.metaDescription, url: tool.canonicalUrl, offers: { "@type": "Offer", price: "0", priceCurrency: "USD", availability: "https://schema.org/LimitedAvailability" } });
@@ -65,7 +65,7 @@ export function ToolLandingPage({ tool }) {
 
       <section className={`tool-action-panel ${isUsable ? "is-usable" : "is-coming"}`}>
         <span style={{ background: tool.accentColor }}><ToolIcon name={tool.icon} size={29} /></span>
-        <div><small>{isUsable ? "Existing RealPDF workflow" : "Tool status"}</small><h2>{isUsable ? `Continue to ${tool.name} in the editor` : `${tool.name} is currently in development`}</h2><p>{isUsable ? "RealPDF reuses the existing validated PDF upload and editor flow. No second uploader or duplicate file-processing path is created here." : "This page does not accept a file or show invented output. Use a related available editor workflow while this tool is being built."}</p></div>
+        <div><small>{isUsable ? "Existing FixThatPDF workflow" : "Tool status"}</small><h2>{isUsable ? `Continue to ${tool.name} in the editor` : `${tool.name} is currently in development`}</h2><p>{isUsable ? "FixThatPDF reuses the existing validated PDF upload and editor flow. No second uploader or duplicate file-processing path is created here." : "This page does not accept a file or show invented output. Use a related available editor workflow while this tool is being built."}</p></div>
         {isUsable && <Link to={editorHref}>Open {tool.name}</Link>}
       </section>
 
@@ -76,7 +76,7 @@ export function ToolLandingPage({ tool }) {
 
       <section className="tool-use-cases"><header><span className="public-eyebrow">Common uses</span><h2>When {tool.name.toLowerCase()} helps</h2></header><div>{tool.useCases.map((useCase) => <article key={useCase}><span style={{ background: tool.accentColor }}><ToolIcon name={tool.icon} size={21} /></span><h3>{useCase}</h3><p>{tool.shortDescription}</p></article>)}</div></section>
 
-      <section id="limitations" className="tool-limitations"><span><Info size={24} /></span><div><small>Current limitations</small><h2>What RealPDF does not claim</h2><p>{tool.currentLimitations}</p></div></section>
+      <section id="limitations" className="tool-limitations"><span><Info size={24} /></span><div><small>Current limitations</small><h2>What FixThatPDF does not claim</h2><p>{tool.currentLimitations}</p></div></section>
 
       <section className="tool-faq"><header><span className="public-eyebrow">Questions</span><h2>{tool.name} FAQ</h2></header><div>{tool.faqEntries.map((entry) => <details key={entry.question}><summary>{entry.question}</summary><p>{entry.answer}</p></details>)}</div></section>
 

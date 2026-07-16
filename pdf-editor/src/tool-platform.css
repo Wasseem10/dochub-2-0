@@ -48,16 +48,6 @@
   text-decoration: none;
 }
 
-.marketing-brand > span {
-  display: grid;
-  width: 38px;
-  height: 38px;
-  place-items: center;
-  border-radius: 12px;
-  background: var(--public-green);
-  color: var(--public-mint);
-}
-
 .marketing-desktop-nav,
 .marketing-header-actions {
   display: flex;

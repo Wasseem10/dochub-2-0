@@ -10,7 +10,7 @@ export function RouteErrorBoundary() {
   return (
     <main className="route-state-page">
       <section className="route-state-card" role="alert">
-        <span className="route-status-pill">RealPDF</span>
+        <span className="route-status-pill">FixThatPDF</span>
         <h1>Something went wrong</h1>
         <p>We could not render this page.</p>
         {detail && <pre className="route-error-detail">{detail}</pre>}

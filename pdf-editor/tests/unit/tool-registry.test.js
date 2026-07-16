@@ -9,7 +9,7 @@ const requiredFields = [
   "heroSubheadline", "benefits", "steps", "useCases", "faqEntries", "relatedTools", "canonicalUrl", "schemaType",
 ];
 
-describe("RealPDF tool registry", () => {
+describe("FixThatPDF tool registry", () => {
   it("contains the complete 68-tool catalog with a valid unique schema", () => {
     expect(TOOL_REGISTRY).toHaveLength(68);
     expect(TOOL_CATEGORIES).toHaveLength(11);

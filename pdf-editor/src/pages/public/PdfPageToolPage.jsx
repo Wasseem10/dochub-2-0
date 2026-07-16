@@ -45,7 +45,7 @@ function friendlyPdfError(error) {
   const message = String(error?.message || "").toLowerCase();
   if (error?.name === "PasswordException" || message.includes("encrypted") || message.includes("password")) return "This PDF is encrypted. Use an authorized password-removal workflow before organizing it.";
   if (message.includes("invalid pdf") || message.includes("missing pdf")) return "This PDF appears corrupted or incomplete. Try downloading a fresh copy.";
-  return error?.message || "RealPDF could not read this PDF. Try a valid, unencrypted file under 50 MB.";
+  return error?.message || "FixThatPDF could not read this PDF. Try a valid, unencrypted file under 50 MB.";
 }
 
 function PdfDropzone({ multiple, onFiles, disabled, label }) {
@@ -97,7 +97,7 @@ function MergeWorkspace() {
     setStatus("working"); setError("");
     try {
       const bytes = await mergePdfDocuments(files);
-      downloadBytes(bytes, "application/pdf", "merged-realpdf.pdf");
+      downloadBytes(bytes, "application/pdf", "merged-fixthatpdf.pdf");
       setStatus("complete"); window.setTimeout(() => setStatus("idle"), 1800);
     } catch (mergeError) { setError(friendlyPdfError(mergeError)); setStatus("idle"); }
   };
@@ -190,5 +190,5 @@ function SinglePdfWorkspace({ tool }) {
 export function PdfPageToolPage({ tool }) {
   const isMerge = tool.id === "merge-pdf";
   const schema = { "@context": "https://schema.org", "@type": "SoftwareApplication", name: tool.name, applicationCategory: "BusinessApplication", operatingSystem: "Web", url: tool.canonicalUrl, offers: { "@type": "Offer", price: "0", priceCurrency: "USD" } };
-  return <main className="image-conversion-page pdf-page-tool-page"><PageMetadata title={tool.seoTitle} description={tool.metaDescription} canonicalUrl={tool.canonicalUrl} schemas={[schema]} /><nav className="tool-breadcrumbs" aria-label="Breadcrumb"><Link to={ROUTE_PATHS.tools}>PDF tools</Link><span>/</span><span aria-current="page">{tool.name}</span></nav><section className="conversion-hero"><span style={{ background: tool.accentColor }}><ToolIcon name={tool.icon} size={29} /></span><div><small>Available now · preserves native PDF pages</small><h1>{tool.name}</h1><p>{tool.shortDescription} Processing stays on this device.</p></div></section>{isMerge ? <MergeWorkspace /> : <SinglePdfWorkspace tool={tool} />}<section className="conversion-privacy-note"><Check size={19} /><div><strong>High-fidelity browser processing</strong><p>RealPDF copies original PDF pages instead of converting them to screenshots. Text, vectors, dimensions, and supported page rotation remain native.</p></div></section></main>;
+  return <main className="image-conversion-page pdf-page-tool-page"><PageMetadata title={tool.seoTitle} description={tool.metaDescription} canonicalUrl={tool.canonicalUrl} schemas={[schema]} /><nav className="tool-breadcrumbs" aria-label="Breadcrumb"><Link to={ROUTE_PATHS.tools}>PDF tools</Link><span>/</span><span aria-current="page">{tool.name}</span></nav><section className="conversion-hero"><span style={{ background: tool.accentColor }}><ToolIcon name={tool.icon} size={29} /></span><div><small>Available now · preserves native PDF pages</small><h1>{tool.name}</h1><p>{tool.shortDescription} Processing stays on this device.</p></div></section>{isMerge ? <MergeWorkspace /> : <SinglePdfWorkspace tool={tool} />}<section className="conversion-privacy-note"><Check size={19} /><div><strong>High-fidelity browser processing</strong><p>FixThatPDF copies original PDF pages instead of converting them to screenshots. Text, vectors, dimensions, and supported page rotation remain native.</p></div></section></main>;
 }

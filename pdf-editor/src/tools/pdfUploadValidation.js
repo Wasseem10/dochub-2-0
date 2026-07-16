@@ -24,5 +24,5 @@ export function getPdfLoadErrorMessage(error) {
   if (name === "MissingPDFException") {
     return "The PDF could not be read from your device. Choose the file again.";
   }
-  return "RealPDF could not open this PDF. Try a valid, unencrypted file smaller than 8 MB.";
+  return "FixThatPDF could not open this PDF. Try a valid, unencrypted file smaller than 8 MB.";
 }

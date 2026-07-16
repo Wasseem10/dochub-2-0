@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://realpdf.com/sitemap.xml
+Sitemap: https://fixthatpdf.com/sitemap.xml

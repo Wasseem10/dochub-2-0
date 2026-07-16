@@ -46,7 +46,7 @@ export function EditorToolUploadPage({ toolId, fileInputRef, onUpload, onDropFil
       <input ref={fileInputRef} className="sr-only" type="file" accept="application/pdf,.pdf" onChange={onUpload} />
       <section className="editor-tool-upload-hero">
         <div className="editor-tool-heading">
-          <span><FileText size={17} /> RealPDF workspace</span>
+          <span><FileText size={17} /> FixThatPDF workspace</span>
           <h1>{headline}<em>.</em></h1>
           <p>{subheadline}</p>
         </div>
