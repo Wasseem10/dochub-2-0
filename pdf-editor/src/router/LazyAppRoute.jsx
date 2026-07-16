@@ -21,6 +21,10 @@ export function LazyPublicAppRoute(props) {
   );
 }
 
+export function LazyGuestAppRoute(props) {
+  return <LoadingBoundary><LazyApp {...props} /></LoadingBoundary>;
+}
+
 export function LazyAuthRouteProvider() {
   return (
     <LoadingBoundary>

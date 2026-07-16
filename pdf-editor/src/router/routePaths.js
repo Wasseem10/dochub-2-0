@@ -48,6 +48,14 @@ export function publicEditorPath(toolId) {
   return `${ROUTE_PATHS.editPdf}${query}`;
 }
 
+/** @param {string} toolId @param {string} documentId */
+export function publicEditorDocumentPath(toolId, documentId) {
+  const search = new URLSearchParams();
+  if (toolId) search.set("tool", toolId);
+  if (documentId) search.set("document", documentId);
+  return `${ROUTE_PATHS.editPdf}?${search.toString()}`;
+}
+
 /** @param {string} token */
 export function sharePath(token) {
   return `/share/${encodeURIComponent(token)}`;

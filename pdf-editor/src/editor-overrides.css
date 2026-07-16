@@ -2977,7 +2977,7 @@ main.editor-shell .page-surface,
 .annotation.fillable-field {
   display: flex;
   align-items: center;
-  padding: 0 10px;
+  padding: 3px 6px;
   border: 1.5px dashed var(--field-color, var(--pf-primary));
   border-radius: 4px;
   background: rgba(230, 244, 255, 0.62);
@@ -2985,6 +2985,59 @@ main.editor-shell .page-surface,
   cursor: move;
   font-size: 12px;
   font-weight: 780;
+}
+
+.annotation.fillable-field input {
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+  padding: 0 4px;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #123846;
+  font: inherit;
+}
+
+.annotation.fillable-field input::placeholder {
+  color: color-mix(in srgb, var(--field-color, var(--pf-primary)) 72%, #ffffff);
+}
+
+.annotation.fillable-field:focus-within {
+  border-style: solid;
+  box-shadow: 0 0 0 3px rgba(130, 215, 244, 0.24);
+}
+
+.form-field-info {
+  border: 1px solid #cdebf6;
+  background: #effbff;
+}
+
+.signature-modal-error {
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid #fecaca;
+  border-radius: 10px;
+  background: #fff5f5;
+  color: #a7253d;
+  font-size: 13px;
+  font-weight: 750;
+}
+
+.editor-offline-banner {
+  position: fixed;
+  top: 12px;
+  left: 50%;
+  z-index: 1200;
+  padding: 9px 14px;
+  border: 1px solid #f6c86d;
+  border-radius: 999px;
+  background: #fff8df;
+  color: #6d4b00;
+  font-size: 12px;
+  font-weight: 800;
+  box-shadow: 0 10px 28px rgba(64, 45, 0, 0.16);
+  transform: translateX(-50%);
 }
 
 .annotation.signature.initials {

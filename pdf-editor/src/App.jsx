@@ -77,9 +77,14 @@ import { db, isCloudPersistenceConfigured, storage } from "./firebase";
 import { useAuth } from "./auth/AuthContext.jsx";
 import { LatticePdfLanding } from "./LatticePdfLanding.jsx";
 import { EditorRouteStatePage } from "./pages/app/EditorRouteStatePage.jsx";
+import { EditorToolUploadPage } from "./pages/public/EditorToolUploadPage.jsx";
 import { resolveEditorDocument } from "./router/editorRouteState.js";
-import { editorPath, ROUTE_PATHS } from "./router/routePaths.js";
+import { editorPath, publicEditorDocumentPath, publicEditorPath, ROUTE_PATHS } from "./router/routePaths.js";
 import { getEditorToolPreset, resolveEditorActiveTool } from "./tools/editorToolPresets.js";
+import { loadLocalDocuments, saveLocalDocuments } from "./tools/localDocumentStore.js";
+import { extractPdfFormAnnotations } from "./tools/pdfFormFields.js";
+import { getPdfLoadErrorMessage, validatePdfUpload } from "./tools/pdfUploadValidation.js";
+import { drawFlattenedInputAnnotation } from "./tools/pdfEditorAnnotationExport.js";
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
   "pdfjs-dist/build/pdf.worker.mjs",
@@ -91,7 +96,7 @@ const BASE_PAGE_HEIGHT = 984;
 const EDITOR_PAGE_SCALE = 0.74;
 const TEXT_SCREEN_SCALE = 1 / EDITOR_PAGE_SCALE;
 const STORAGE_KEY = "paperflow.documents.v1";
-const MAX_FILE_BYTES = 8 * 1024 * 1024;
+const GUEST_OWNER_ID = "realpdf-local-guest";
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 const ZOOM_PRESETS = [60, 80, 90, 100, 120, 140, 160];
 
@@ -838,7 +843,19 @@ function Annotation({ annotation, selected, zoom, onSelect, onDrag, onResize, on
 
   if (annotation.type === "checkbox") {
     return (
-      <div className={`annotation checkbox-field ${selected ? "is-selected" : ""}`} style={{ ...commonStyle, "--checkbox-color": annotation.color }} onPointerDown={dragStart}>
+      <div
+        className={`annotation checkbox-field ${selected ? "is-selected" : ""}`}
+        style={{ ...commonStyle, "--checkbox-color": annotation.color }}
+        onPointerDown={dragStart}
+        onDoubleClick={(event) => {
+          event.stopPropagation();
+          onUpdate(annotation.id, { checked: !annotation.checked });
+        }}
+        role="checkbox"
+        aria-checked={Boolean(annotation.checked)}
+        aria-label={annotation.fieldName || "PDF checkbox"}
+        title="Double-click to toggle"
+      >
         {annotation.checked && <span className="checkbox-mark" />}
         {selected && <span className="resize-handle" onPointerDown={resizeStart} />}
       </div>
@@ -915,7 +932,16 @@ function Annotation({ annotation, selected, zoom, onSelect, onDrag, onResize, on
   if (annotation.type === "field") {
     return (
       <div className={`annotation fillable-field ${selected ? "is-selected" : ""}`} style={{ ...commonStyle, "--field-color": annotation.color }} onPointerDown={dragStart}>
-        <span>{annotation.content || "Text field"}</span>
+        <input
+          aria-label={annotation.fieldName || "PDF text field"}
+          value={annotation.content || ""}
+          placeholder={annotation.fieldName || "Enter text"}
+          onPointerDown={(event) => {
+            event.stopPropagation();
+            onSelect(annotation.id);
+          }}
+          onChange={(event) => onUpdate(annotation.id, { content: event.target.value })}
+        />
         {selected && <span className="resize-handle" onPointerDown={resizeStart} />}
       </div>
     );
@@ -972,6 +998,8 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     resetPassword,
     logout: logoutAuth,
   } = useAuth();
+  const storageOwnerId = currentUser?.uid || GUEST_OWNER_ID;
+  const isPublicEditor = view === "tool-upload" || view === "public-editor";
   const fileInputRef = useRef(null);
   const appendFileInputRef = useRef(null);
   const imageInputRef = useRef(null);
@@ -995,12 +1023,13 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   const [zoom, setZoom] = useState(100);
   const [saved, setSaved] = useState(true);
   const [saveState, setSaveState] = useState("saved");
+  const [isOffline, setIsOffline] = useState(() => typeof navigator !== "undefined" && !navigator.onLine);
   const [cloudSyncStatus, setCloudSyncStatus] = useState(isCloudPersistenceConfigured ? "idle" : "local");
   const [lastSavedAt, setLastSavedAt] = useState(null);
   const [undoStack, setUndoStack] = useState([]);
   const [redoStack, setRedoStack] = useState([]);
   const [draft, setDraft] = useState(null);
-  const [signatureText, setSignatureText] = useState("Jane Smith");
+  const [signatureText, setSignatureText] = useState("");
   const [viewMode, setViewMode] = useState("list");
   const [draggedPageIndex, setDraggedPageIndex] = useState(null);
   const [pageDropIndex, setPageDropIndex] = useState(null);
@@ -1013,6 +1042,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   const [isPageAppendMenuOpen, setIsPageAppendMenuOpen] = useState(false);
   const [isInspectorCollapsed, setIsInspectorCollapsed] = useState(false);
   const [signatureModalOpen, setSignatureModalOpen] = useState(false);
+  const [signatureModalMode, setSignatureModalMode] = useState("signature");
   const [shareModalOpen, setShareModalOpen] = useState(false);
   const [upgradeModalOpen, setUpgradeModalOpen] = useState(false);
   const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
@@ -1021,7 +1051,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   const [isCommentsOpen, setIsCommentsOpen] = useState(false);
   const [documentSearchQuery, setDocumentSearchQuery] = useState("");
   const [activeSearchIndex, setActiveSearchIndex] = useState(0);
-  const [activeSignature, setActiveSignature] = useState({ content: "Jane Smith", imageDataUrl: "", fontFamily: DEFAULT_SIGNATURE_FONT });
+  const [activeSignature, setActiveSignature] = useState({ content: "", imageDataUrl: "", fontFamily: DEFAULT_SIGNATURE_FONT });
   const [pendingImage, setPendingImage] = useState(null);
   const [toolSettings, setToolSettings] = useState({
     textColor: colors.black,
@@ -1116,23 +1146,47 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       .sort((a, b) => a.page - b.page)
   ), [annotations]);
   const saveStatusLabel = useMemo(() => {
+    if (saveState === "error") return "Save error";
     if (saveState === "unsaved") return "Unsaved changes";
     if (saveState === "saving") return "Saving...";
+    if (isOffline) return lastSavedAt ? "Saved offline" : "Offline";
     if (cloudSyncStatus === "syncing") return "Syncing to cloud...";
     if (cloudSyncStatus === "error") return "Saved locally";
     if (currentUser?.uid && cloudSyncStatus === "synced") return "Saved to cloud";
     return lastSavedAt ? `Saved ${formatDateTime(lastSavedAt)}` : "Saved";
-  }, [cloudSyncStatus, currentUser?.uid, lastSavedAt, saveState]);
+  }, [cloudSyncStatus, currentUser?.uid, isOffline, lastSavedAt, saveState]);
 
   useEffect(() => {
-    if (!currentUser?.uid) {
-      setDocuments([]);
-      setDocumentCatalogReady(true);
-      return;
+    const onOnline = () => setIsOffline(false);
+    const onOffline = () => setIsOffline(true);
+    window.addEventListener("online", onOnline);
+    window.addEventListener("offline", onOffline);
+    return () => {
+      window.removeEventListener("online", onOnline);
+      window.removeEventListener("offline", onOffline);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (storageOwnerId === GUEST_OWNER_ID) {
+      let cancelled = false;
+      setDocumentCatalogReady(false);
+      loadLocalDocuments(storageOwnerId)
+        .then((localDocuments) => {
+          if (!cancelled) setDocuments(localDocuments);
+        })
+        .catch(() => {
+          if (!cancelled) setDocuments(safeLoadDocuments(storageOwnerId));
+        })
+        .finally(() => {
+          if (!cancelled) setDocumentCatalogReady(true);
+        });
+      return () => { cancelled = true; };
     }
-    setDocuments(safeLoadDocuments(currentUser.uid));
+    setDocuments(safeLoadDocuments(storageOwnerId));
     setDocumentCatalogReady(!isCloudPersistenceConfigured);
-  }, [currentUser?.uid]);
+    return undefined;
+  }, [storageOwnerId]);
 
   useEffect(() => {
     if (!currentUser?.uid) {
@@ -1207,8 +1261,16 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   };
 
   const replaceDocuments = (nextDocuments) => {
+    if (storageOwnerId === GUEST_OWNER_ID) {
+      setDocuments(nextDocuments);
+      saveLocalDocuments(storageOwnerId, nextDocuments).catch(() => {
+        setSaveState("error");
+        setUploadError("This browser could not save the local workspace. Keep this tab open and download your PDF when finished.");
+      });
+      return true;
+    }
     try {
-      writeDocuments(currentUser?.uid, nextDocuments);
+      writeDocuments(storageOwnerId, nextDocuments);
       setDocuments(nextDocuments);
       syncDocumentsToCloud(documents, nextDocuments);
       return true;
@@ -1534,17 +1596,6 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     };
   }, [isZoomMenuOpen]);
 
-  const validatePdfFile = (file) => {
-    if (!file) return "No file selected.";
-    if (file.type !== "application/pdf" && !file.name.toLowerCase().endsWith(".pdf")) {
-      return "Please upload a PDF file.";
-    }
-    if (file.size > MAX_FILE_BYTES) {
-      return `For this local MVP, PDFs must be under ${formatBytes(MAX_FILE_BYTES)}.`;
-    }
-    return "";
-  };
-
   const requireAuthenticationForUpload = () => {
     if (currentUser) return true;
     openAuth("login", {
@@ -1560,7 +1611,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   };
 
   const handleLandingDropFiles = (files) => {
-    if (!currentUser) {
+    if (!currentUser && !isPublicEditor) {
       openAuth("login", {
         from: { pathname: location.pathname, search: location.search },
         intent: "upload",
@@ -1576,6 +1627,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     const document = await pdfjsLib.getDocument({ data: buffer.slice(0) }).promise;
     const loadedPages = [];
     const detectedItems = [];
+    const detectedFormFields = [];
 
     for (let index = 1; index <= document.numPages; index += 1) {
       setUploadStage({
@@ -1585,6 +1637,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       });
       const page = await document.getPage(index);
       const textContent = await page.getTextContent();
+      const pdfAnnotations = await page.getAnnotations({ intent: "display" });
       const pageText = textContent.items.map((item) => item.str).join(" ").replace(/\s+/g, " ").trim();
       const textViewport = page.getViewport({ scale: 1 });
       const viewport = page.getViewport({ scale: 1.35 });
@@ -1606,19 +1659,20 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
         source: "pdf",
       };
       detectedItems.push(...extractDetectedTextItems(textContent, textViewport, pageRecord, index - 1));
+      detectedFormFields.push(...extractPdfFormAnnotations(pdfAnnotations, textViewport, index - 1, makeId));
       loadedPages.push({
         ...pageRecord,
         hasDetectedText: pageText.length > 0,
       });
     }
 
-    return { buffer, loadedPages, detectedItems };
+    return { buffer, loadedPages, detectedItems, detectedFormFields };
   };
 
   const loadPdfFile = async (file) => {
     if (!file) return;
     setUploadStage({ status: "validating", percent: 8, fileName: file.name });
-    const validationError = validatePdfFile(file);
+    const validationError = validatePdfUpload(file);
     if (validationError) {
       setUploadError(validationError);
       setUploadStage({ status: "error", percent: 0, fileName: file.name });
@@ -1628,7 +1682,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     try {
       setUploadError("");
       setUploadStage({ status: "reading", percent: 18, fileName: file.name });
-      const { buffer, loadedPages, detectedItems } = await parsePdfFile(file, {
+      const { buffer, loadedPages, detectedItems, detectedFormFields } = await parsePdfFile(file, {
         startPercent: 24,
         endPercent: 80,
         stagePrefix: "Rendering page",
@@ -1638,7 +1692,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       const stamp = nowIso();
       const documentRecord = {
         id: makeId("doc"),
-        ownerId: currentUser.uid,
+        ownerId: storageOwnerId,
         name: file.name,
         size: file.size,
         source: "pdf",
@@ -1649,7 +1703,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
         updatedAt: stamp,
         pdfDataUrl: await arrayBufferToDataUrl(buffer.slice(0)),
         pages: loadedPages,
-        annotations: [],
+        annotations: detectedFormFields,
         detectedTextItems: detectedItems,
       };
 
@@ -1659,7 +1713,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       setPdfBytes(buffer);
       setFileName(file.name);
       setPageIndex(0);
-      setAnnotations([]);
+      setAnnotations(detectedFormFields);
       setDetectedTextItems(detectedItems);
       setUndoStack([]);
       setRedoStack([]);
@@ -1670,17 +1724,21 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       setSaveState("saved");
       setLastSavedAt(stamp);
       setUploadStage({ status: "complete", percent: 100, fileName: file.name });
-      showToast(detectedItems.length ? `Smart Edit detected ${detectedItems.length} text item${detectedItems.length === 1 ? "" : "s"}.` : "This looks scanned. OCR is not enabled in this browser build yet.");
-      navigate(editorPath(documentRecord.id), { state: { publicTool } });
+      showToast(detectedFormFields.length
+        ? `Found ${detectedFormFields.length} fillable field${detectedFormFields.length === 1 ? "" : "s"}.`
+        : detectedItems.length
+          ? `Smart Edit detected ${detectedItems.length} text item${detectedItems.length === 1 ? "" : "s"}.`
+          : "This looks scanned. OCR is not enabled in this browser build yet.");
+      navigate(isPublicEditor ? publicEditorDocumentPath(publicTool, documentRecord.id) : editorPath(documentRecord.id), { state: { publicTool } });
       window.setTimeout(() => setUploadStage({ status: "idle", percent: 0, fileName: "" }), 900);
-    } catch {
-      setUploadError("We could not read that PDF. Try a smaller or unprotected PDF file.");
+    } catch (error) {
+      setUploadError(getPdfLoadErrorMessage(error));
       setUploadStage({ status: "error", percent: 0, fileName: file.name });
     }
   };
 
   const onUpload = async (event) => {
-    if (!requireAuthenticationForUpload()) {
+    if (!isPublicEditor && !requireAuthenticationForUpload()) {
       event.target.value = "";
       return;
     }
@@ -1692,7 +1750,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     if (!file) return;
     setIsPageAppendMenuOpen(false);
     setUploadStage({ status: "validating", percent: 8, fileName: file.name });
-    const validationError = validatePdfFile(file);
+    const validationError = validatePdfUpload(file);
     if (validationError) {
       setUploadError(validationError);
       setUploadStage({ status: "error", percent: 0, fileName: file.name });
@@ -1702,7 +1760,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     try {
       setUploadError("");
       setUploadStage({ status: "reading append file", percent: 18, fileName: file.name });
-      const { loadedPages, detectedItems } = await parsePdfFile(file, {
+      const { loadedPages, detectedItems, detectedFormFields } = await parsePdfFile(file, {
         startPercent: 24,
         endPercent: 82,
         stagePrefix: "Rendering append page",
@@ -1720,10 +1778,16 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
         id: makeId("detected-text"),
         pageNumber: item.pageNumber + pageOffset,
       }));
+      const appendedFormFields = detectedFormFields.map((item) => ({
+        ...item,
+        id: makeId("form-field"),
+        page: item.page + pageOffset,
+      }));
 
       pushHistorySnapshot();
       setPages((items) => [...items, ...appendedPages].map((page, index) => ({ ...page, number: index + 1 })));
       setDetectedTextItems((items) => [...items, ...appendedDetectedItems]);
+      setAnnotations((items) => [...items, ...appendedFormFields]);
       setPageIndex(pageOffset);
       setSelectedId(null);
       setSelectedDetectedTextId(null);
@@ -2100,7 +2164,8 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
         y: clamp(point.y, 0, 0.93),
         w: 0.28,
         h: 0.055,
-        content: "Text field",
+        content: "",
+        fieldName: "Text field",
         color: colors.blue,
         fontSize: 12,
         opacity: 1,
@@ -2110,6 +2175,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
 
     if (tool === "signature") {
       if (!activeSignature.content && !activeSignature.imageDataUrl) {
+        setSignatureModalMode("signature");
         setSignatureModalOpen(true);
         return;
       }
@@ -2132,6 +2198,12 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     }
 
     if (tool === "initials") {
+      if (!signatureText.trim()) {
+        setSignatureModalMode("initials");
+        setSignatureModalOpen(true);
+        showToast("Enter your name, then click the page to place your initials.");
+        return;
+      }
       addAnnotation({
         id: makeId("initials"),
         type: "initials",
@@ -2140,7 +2212,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
         y: clamp(point.y, 0, 0.94),
         w: 0.12,
         h: 0.055,
-        content: (signatureText || "JS").split(/\s+/).map((part) => part[0]).join("").slice(0, 3).toUpperCase() || "JS",
+        content: signatureText.split(/\s+/).map((part) => part[0]).join("").slice(0, 3).toUpperCase(),
         color: "#0f172a",
         fontSize: 24,
         opacity: 1,
@@ -2557,6 +2629,10 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       const { width, height } = page.getSize();
       const color = hexToRgb(annotation.color || colors.black);
 
+      if (await drawFlattenedInputAnnotation({ pdfDoc, page, annotation, helvetica, timesItalic, pickPdfFont, embedDataUrlImage })) {
+        continue;
+      }
+
       if (annotation.type === "highlight") {
         page.drawRectangle({
           x: annotation.x * width,
@@ -2579,26 +2655,6 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
           opacity: annotation.opacity,
           borderOpacity: 0,
         });
-      }
-
-      if (annotation.type === "checkbox") {
-        const boxSize = Math.min(annotation.w * width, annotation.h * height);
-        const x = annotation.x * width;
-        const y = height - annotation.y * height - boxSize;
-        page.drawRectangle({
-          x,
-          y,
-          width: boxSize,
-          height: boxSize,
-          borderColor: color,
-          borderWidth: 1.5,
-          color: rgb(1, 1, 1),
-          opacity: annotation.opacity,
-        });
-        if (annotation.checked) {
-          page.drawLine({ start: { x: x + boxSize * 0.22, y: y + boxSize * 0.48 }, end: { x: x + boxSize * 0.42, y: y + boxSize * 0.25 }, thickness: 2, color });
-          page.drawLine({ start: { x: x + boxSize * 0.42, y: y + boxSize * 0.25 }, end: { x: x + boxSize * 0.78, y: y + boxSize * 0.76 }, thickness: 2, color });
-        }
       }
 
       if (annotation.type === "rectangle") {
@@ -2665,70 +2721,6 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
         });
       }
 
-      if (annotation.type === "field") {
-        const x = annotation.x * width;
-        const y = height - annotation.y * height - annotation.h * height;
-        page.drawRectangle({
-          x,
-          y,
-          width: annotation.w * width,
-          height: annotation.h * height,
-          borderColor: color,
-          borderWidth: 1.2,
-          opacity: annotation.opacity,
-        });
-        page.drawText(annotation.content || "Text field", {
-          x: x + 8,
-          y: y + Math.max(8, annotation.h * height * 0.32),
-          size: annotation.fontSize || 11,
-          font: helvetica,
-          color,
-          opacity: Math.min(0.82, annotation.opacity ?? 1),
-        });
-      }
-
-      if (annotation.type === "text") {
-        const lines = annotation.content.split("\n");
-        lines.forEach((line, index) => {
-          const font = pickPdfFont(annotation.fontFamily, annotation.bold);
-          const textWidth = font.widthOfTextAtSize(line, annotation.fontSize);
-          const boxWidth = annotation.w * width;
-          const alignOffset = annotation.textAlign === "center" ? Math.max(0, (boxWidth - textWidth) / 2) : annotation.textAlign === "right" ? Math.max(0, boxWidth - textWidth - 8) : 0;
-          page.drawText(line, {
-            x: annotation.x * width + 8 + alignOffset,
-            y: height - annotation.y * height - 22 - index * (annotation.fontSize * (annotation.lineHeight || 1.25)),
-            size: annotation.fontSize,
-            font,
-            color,
-            opacity: annotation.opacity,
-          });
-        });
-      }
-
-      if (annotation.type === "signature" || annotation.type === "initials") {
-        if (annotation.imageDataUrl) {
-          const image = await embedDataUrlImage(pdfDoc, annotation.imageDataUrl);
-          if (image) {
-            page.drawImage(image, {
-              x: annotation.x * width,
-              y: height - annotation.y * height - annotation.h * height,
-              width: annotation.w * width,
-              height: annotation.h * height,
-              opacity: annotation.opacity,
-            });
-          }
-        } else {
-          page.drawText(annotation.content, {
-            x: annotation.x * width + 6,
-            y: height - annotation.y * height - annotation.h * height + 7,
-            size: annotation.fontSize,
-            font: timesItalic,
-            color,
-            opacity: annotation.opacity,
-          });
-        }
-      }
-
       if (annotation.type === "image" && annotation.imageDataUrl) {
         const image = await embedDataUrlImage(pdfDoc, annotation.imageDataUrl);
         if (image) {
@@ -2769,7 +2761,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   };
 
   useEffect(() => {
-    if (view !== "editor") {
+    if (view !== "editor" && view !== "public-editor") {
       setEditorRouteState("idle");
       return;
     }
@@ -2785,7 +2777,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     const resolved = resolveEditorDocument({
       documentId,
       documents,
-      userId: currentUser?.uid,
+      userId: storageOwnerId,
       catalogReady: documentCatalogReady,
     });
     if (resolved.status !== "ready") {
@@ -2795,18 +2787,21 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
 
     setEditorRouteState("loading");
     hydrateDocument(resolved.document).catch(() => setEditorRouteState("error"));
-  }, [activeDocumentId, currentUser?.uid, documentCatalogReady, documentId, documents, hydrateDocument, pages.length, view]);
+  }, [activeDocumentId, documentCatalogReady, documentId, documents, hydrateDocument, pages.length, storageOwnerId, view]);
 
   useEffect(() => {
     const requestedTool = location.state?.publicTool;
-    if (view !== "editor" || editorRouteState !== "ready" || !requestedTool) return;
+    if ((view !== "editor" && view !== "public-editor") || editorRouteState !== "ready" || !requestedTool) return;
     const preset = getEditorToolPreset(requestedTool);
     if (!preset) return;
 
     setTool(resolveEditorActiveTool(requestedTool, detectedTextCount));
     if (preset.openPages) setIsPagesCollapsed(false);
     if (preset.openAppend) setIsPageAppendMenuOpen(true);
-    if (requestedTool === "sign-pdf") setSignatureModalOpen(true);
+    if (requestedTool === "sign-pdf" || requestedTool === "add-initials") {
+      setSignatureModalMode(requestedTool === "add-initials" ? "initials" : "signature");
+      setSignatureModalOpen(true);
+    }
     showToast(`${preset.label} tools are ready.`);
     navigate(location.pathname, { replace: true, state: null });
   }, [detectedTextCount, editorRouteState, location.pathname, location.state, navigate, view]);
@@ -2824,6 +2819,19 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
         uploadError={uploadError}
         uploadStage={uploadStage}
         documentCount={documents.length}
+      />
+    );
+  }
+
+  if (view === "tool-upload") {
+    return (
+      <EditorToolUploadPage
+        toolId={publicTool || "edit-pdf"}
+        fileInputRef={fileInputRef}
+        onUpload={onUpload}
+        onDropFiles={handleLandingDropFiles}
+        uploadError={uploadError}
+        uploadStage={uploadStage}
       />
     );
   }
@@ -2872,8 +2880,8 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     );
   }
 
-  if (view === "editor" && (editorRouteState !== "ready" || !pages.length)) {
-    return <EditorRouteStatePage state={editorRouteState} onBack={() => navigate(ROUTE_PATHS.documents)} />;
+  if ((view === "editor" || view === "public-editor") && (editorRouteState !== "ready" || !pages.length)) {
+    return <EditorRouteStatePage state={editorRouteState} onBack={() => navigate(view === "public-editor" ? publicEditorPath(publicTool) : ROUTE_PATHS.documents)} />;
   }
 
   return (
@@ -2881,6 +2889,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       <input ref={fileInputRef} className="hidden-input" type="file" accept="application/pdf" onChange={onUpload} />
       <input ref={appendFileInputRef} className="hidden-input" type="file" accept="application/pdf" onChange={onAppendUpload} />
       <input ref={imageInputRef} className="hidden-input" type="file" accept="image/png,image/jpeg" onChange={onImageUpload} />
+      {isOffline && <div className="editor-offline-banner" role="status">You are offline. Editing and local saves still work in this browser.</div>}
       <header className="file-header">
         <button
           type="button"
@@ -2991,7 +3000,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
           <button type="button" className="language-button" onClick={() => showToast("Language set to English.")}>◎ EN</button>
           <button type="button" className="share-button" onClick={() => setShareModalOpen(true)} title="Share"><Share2 size={18} /> Share</button>
           <button type="button" className="upgrade-button editor-upgrade-button" onClick={() => setUpgradeModalOpen(true)}>Upgrade</button>
-          <button type="button" className="sign-secure-button" onClick={() => setSignatureModalOpen(true)}><PenLine size={18} /> Sign securely <ChevronDown size={15} /></button>
+          <button type="button" className="sign-secure-button" onClick={() => { setSignatureModalMode("signature"); setSignatureModalOpen(true); }}><PenLine size={18} /> Sign securely <ChevronDown size={15} /></button>
         </div>
       </header>
 
@@ -3005,6 +3014,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
             className={`ribbon-tool ${tool === id ? "is-active" : ""}`}
             onClick={() => {
               if (id === "signature" && !activeSignature.content && !activeSignature.imageDataUrl) {
+                setSignatureModalMode("signature");
                 setSignatureModalOpen(true);
               }
               if (id === "image") {
@@ -3327,7 +3337,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
               onExport={exportPdf}
               onShare={() => setShareModalOpen(true)}
               onPrint={() => window.print()}
-              onSignatureModal={() => setSignatureModalOpen(true)}
+              onSignatureModal={() => { setSignatureModalMode("signature"); setSignatureModalOpen(true); }}
             />
           )}
         </aside>
@@ -3402,13 +3412,19 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       {signatureModalOpen && (
         <SignatureModal
           defaultName={signatureText}
+          mode={signatureModalMode}
           onClose={() => setSignatureModalOpen(false)}
           onSave={(signature) => {
-            setActiveSignature(signature);
             setSignatureText(signature.content || signatureText);
             setSignatureModalOpen(false);
-            setTool("signature");
-            showToast("Signature saved. Click the page to place it.");
+            if (signatureModalMode === "initials") {
+              setTool("initials");
+              showToast("Initials are ready. Click the page to place them.");
+            } else {
+              setActiveSignature(signature);
+              setTool("signature");
+              showToast("Signature saved. Click the page to place it.");
+            }
           }}
         />
       )}
@@ -4881,9 +4897,17 @@ function Inspector({
         <>
           {((selected.type === "text") || selected.type === "field" || selected.type === "initials" || (selected.type === "signature" && !selected.imageDataUrl)) && (
             <label className="field">
-              <span>{selected.type === "field" ? "Field label" : "Content"}</span>
+              <span>{selected.type === "field" ? "Field value" : "Content"}</span>
               <textarea value={selected.content} onChange={(event) => updateAnnotation(selected.id, { content: event.target.value })} />
             </label>
+          )}
+
+          {selected.type === "field" && selected.source === "pdf-form" && (
+            <div className="document-info form-field-info">
+              <span>Detected PDF form field</span>
+              <strong>{selected.fieldName || "Unnamed field"}</strong>
+              <small>{selected.required ? "Required field" : "Optional field"}</small>
+            </div>
           )}
 
           {selected.type === "comment" && (
@@ -5141,14 +5165,15 @@ function DocumentCommentsPanel({
   );
 }
 
-function SignatureModal({ defaultName, onClose, onSave }) {
+function SignatureModal({ defaultName, mode = "signature", onClose, onSave }) {
   const canvasRef = useRef(null);
   const fileRef = useRef(null);
   const [tab, setTab] = useState("draw");
-  const [typedName, setTypedName] = useState(defaultName || "Jane Smith");
+  const [typedName, setTypedName] = useState(defaultName || "");
   const [signatureFont, setSignatureFont] = useState(DEFAULT_SIGNATURE_FONT);
   const [uploadedImage, setUploadedImage] = useState("");
   const [hasInk, setHasInk] = useState(false);
+  const [error, setError] = useState("");
   const drawingRef = useRef(false);
 
   const getCanvasPoint = (event) => {
@@ -5195,13 +5220,39 @@ function SignatureModal({ defaultName, onClose, onSave }) {
   const onUploadSignature = (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
+    if (!/^image\/(png|jpeg)$/.test(file.type)) {
+      setError("Choose a PNG or JPG image.");
+      return;
+    }
+    if (file.size > MAX_IMAGE_BYTES) {
+      setError(`Signature images must be under ${formatBytes(MAX_IMAGE_BYTES)}.`);
+      return;
+    }
+    setError("");
     const reader = new FileReader();
     reader.onload = () => setUploadedImage(reader.result);
+    reader.onerror = () => setError("The signature image could not be read.");
     reader.readAsDataURL(file);
   };
 
   const saveSignature = () => {
-    if (tab === "upload" && uploadedImage) {
+    if (mode === "initials" && !typedName.trim()) {
+      setError("Enter your name so RealPDF can create your initials.");
+      return;
+    }
+    if (tab === "upload" && !uploadedImage) {
+      setError("Upload a signature image before saving.");
+      return;
+    }
+    if (tab === "draw" && !hasInk && mode !== "initials") {
+      setError("Draw your signature before saving.");
+      return;
+    }
+    if (tab === "type" && !typedName.trim()) {
+      setError("Enter the name you want to sign with.");
+      return;
+    }
+    if (tab === "upload") {
       onSave({ content: typedName || "Signature", imageDataUrl: uploadedImage, fontFamily: signatureFont });
       return;
     }
@@ -5209,29 +5260,29 @@ function SignatureModal({ defaultName, onClose, onSave }) {
       onSave({ content: typedName || "Signature", imageDataUrl: canvasRef.current.toDataURL("image/png"), fontFamily: signatureFont });
       return;
     }
-    onSave({ content: typedName || "Signature", imageDataUrl: "", fontFamily: signatureFont });
+    onSave({ content: typedName.trim(), imageDataUrl: "", fontFamily: signatureFont });
   };
 
   return (
-    <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="Create signature">
+    <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label={mode === "initials" ? "Create initials" : "Create signature"}>
       <section className="signature-modal">
         <header>
           <div>
-            <h2>Create signature</h2>
-            <p>Save a reusable signature, then click the PDF page to place it.</p>
+            <h2>{mode === "initials" ? "Create initials" : "Create signature"}</h2>
+            <p>{mode === "initials" ? "Enter your name, then click the PDF page to place the initials." : "Save a reusable signature, then click the PDF page to place it."}</p>
           </div>
           <button type="button" className="modal-close" onClick={onClose}><X size={18} /></button>
         </header>
 
-        <div className="signature-tabs">
+        {mode !== "initials" && <div className="signature-tabs">
           {["draw", "type", "upload"].map((item) => (
             <button key={item} type="button" className={tab === item ? "is-active" : ""} onClick={() => setTab(item)}>
               {item[0].toUpperCase() + item.slice(1)}
             </button>
           ))}
-        </div>
+        </div>}
 
-        {tab === "draw" && (
+        {mode !== "initials" && tab === "draw" && (
           <div className="signature-draw-pad">
             <canvas
               ref={canvasRef}
@@ -5246,21 +5297,21 @@ function SignatureModal({ defaultName, onClose, onSave }) {
           </div>
         )}
 
-        {tab === "type" && (
+        {(mode === "initials" || tab === "type") && (
           <label className="field signature-type">
             <span>Typed signature</span>
             <input value={typedName} onChange={(event) => setTypedName(event.target.value)} />
-            <label className="signature-font-picker">
+            <div className="signature-font-picker">
               <span>Cursive font</span>
               <select value={signatureFont} onChange={(event) => setSignatureFont(event.target.value)}>
                 {SIGNATURE_FONT_OPTIONS.map((font) => <option key={font.value} value={font.value}>{font.label}</option>)}
               </select>
-            </label>
-            <strong style={{ fontFamily: signatureFont }}>{typedName || "Signature"}</strong>
+            </div>
+            <strong style={{ fontFamily: signatureFont }}>{mode === "initials" ? typedName.split(/\s+/).filter(Boolean).map((part) => part[0]).join("").slice(0, 3).toUpperCase() || "Initials" : typedName || "Signature"}</strong>
           </label>
         )}
 
-        {tab === "upload" && (
+        {mode !== "initials" && tab === "upload" && (
           <div className="signature-upload">
             <input ref={fileRef} className="hidden-input" type="file" accept="image/png,image/jpeg" onChange={onUploadSignature} />
             <button type="button" onClick={() => fileRef.current?.click()}><Upload size={17} /> Upload image</button>
@@ -5268,9 +5319,10 @@ function SignatureModal({ defaultName, onClose, onSave }) {
           </div>
         )}
 
+        {error && <p className="signature-modal-error" role="alert">{error}</p>}
         <footer>
           <button type="button" className="modal-secondary" onClick={onClose}>Cancel</button>
-          <button type="button" className="modal-primary" onClick={saveSignature}>Save signature</button>
+          <button type="button" className="modal-primary" onClick={saveSignature}>Save {mode === "initials" ? "initials" : "signature"}</button>
         </footer>
       </section>
     </div>
