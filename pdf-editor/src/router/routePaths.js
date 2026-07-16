@@ -56,6 +56,15 @@ export function publicEditorDocumentPath(toolId, documentId) {
   return `${ROUTE_PATHS.editPdf}?${search.toString()}`;
 }
 
+/**
+ * Keep the complete browser route when replacing transient navigation state.
+ * @param {{ pathname?: string, search?: string, hash?: string } | null | undefined} location
+ */
+export function currentLocationPath(location) {
+  const pathname = location?.pathname || ROUTE_PATHS.home;
+  return `${pathname}${location?.search || ""}${location?.hash || ""}`;
+}
+
 /** @param {string} token */
 export function sharePath(token) {
   return `/share/${encodeURIComponent(token)}`;

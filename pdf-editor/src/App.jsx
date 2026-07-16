@@ -81,7 +81,7 @@ import { LatticePdfLanding } from "./LatticePdfLanding.jsx";
 import { EditorRouteStatePage } from "./pages/app/EditorRouteStatePage.jsx";
 import { EditorToolUploadPage } from "./pages/public/EditorToolUploadPage.jsx";
 import { resolveEditorDocument } from "./router/editorRouteState.js";
-import { editorPath, publicEditorDocumentPath, publicEditorPath, ROUTE_PATHS } from "./router/routePaths.js";
+import { currentLocationPath, editorPath, publicEditorDocumentPath, publicEditorPath, ROUTE_PATHS } from "./router/routePaths.js";
 import { getEditorToolPreset, resolveEditorActiveTool } from "./tools/editorToolPresets.js";
 import { claimGuestDocument, editorActionNeedsAccount, GUEST_OWNER_ID, recoverDocumentAsGuest, resolveEditorStorageOwnerId } from "./tools/guestDocumentSession.js";
 import { clearEditorSession, loadEditorSession, saveEditorSession } from "./tools/editorSessionStore.js";
@@ -3053,8 +3053,8 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       showToast(`${preset.label} tools are ready.`);
     }
 
-    if (preset || postAuthAction) navigate(location.pathname, { replace: true, state: null });
-  }, [detectedTextCount, editorRouteState, location.pathname, location.state, navigate, view]);
+    if (preset || postAuthAction) navigate(currentLocationPath(location), { replace: true, state: null });
+  }, [detectedTextCount, editorRouteState, location, navigate, view]);
 
   if (view === "landing") {
     return (
