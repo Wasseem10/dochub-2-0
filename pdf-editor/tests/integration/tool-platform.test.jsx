@@ -6,6 +6,7 @@ import { MarketingFooter } from "../../src/components/public/MarketingFooter.jsx
 import { MarketingHeader } from "../../src/components/public/MarketingHeader.jsx";
 import { ToolDirectoryPage } from "../../src/pages/public/ToolDirectoryPage.jsx";
 import { ImageConversionPage } from "../../src/pages/public/ImageConversionPage.jsx";
+import { OfficeConversionPage } from "../../src/pages/public/OfficeConversionPage.jsx";
 import { PdfPageToolPage } from "../../src/pages/public/PdfPageToolPage.jsx";
 import { EditorToolUploadPage } from "../../src/pages/public/EditorToolUploadPage.jsx";
 import { ToolLandingPage } from "../../src/pages/public/ToolLandingPage.jsx";
@@ -72,11 +73,11 @@ describe("public PDF tool platform", () => {
     expect(textOf(partial.root).includes("shared review sessions")).toBe(true);
     await unmount(partial);
 
-    const coming = await render(<ToolLandingPage tool={TOOL_BY_ID.get("pdf-to-word")} />);
+    const coming = await render(<ToolLandingPage tool={TOOL_BY_ID.get("pdf-to-excel")} />);
     expect(coming.root.findAllByType("input")).toHaveLength(0);
     expect(coming.root.findAllByType("button")).toHaveLength(0);
     expect(textOf(coming.root).includes("Coming soon")).toBe(true);
-    expect(textOf(coming.root).includes("Layout-preserving DOCX conversion is not implemented.")).toBe(true);
+    expect(textOf(coming.root).includes("Table detection and XLSX generation are not implemented.")).toBe(true);
     await unmount(coming);
   });
 
@@ -90,6 +91,20 @@ describe("public PDF tool platform", () => {
     expect(fromPdf.root.findAllByType("input").some((input) => input.props.type === "file" && !input.props.multiple)).toBe(true);
     expect(textOf(fromPdf.root).includes("Choose output quality")).toBe(true);
     await unmount(fromPdf);
+  });
+
+  it("renders honest beta workspaces for Office conversions", async () => {
+    const toWord = await render(<OfficeConversionPage tool={TOOL_BY_ID.get("pdf-to-word")} />);
+    expect(toWord.root.findAllByType("input").some((input) => input.props.type === "file" && input.props.accept.includes("application/pdf"))).toBe(true);
+    expect(toWord.root.findAllByType("option").map((option) => textOf(option))).toEqual(["Editable text", "Visual fidelity"]);
+    expect(textOf(toWord.root).includes("Complex columns, tables, fonts, and exact spacing can change.")).toBe(true);
+    await unmount(toWord);
+
+    const toPdf = await render(<OfficeConversionPage tool={TOOL_BY_ID.get("word-to-pdf")} />);
+    expect(toPdf.root.findAllByType("input").some((input) => input.props.type === "file" && input.props.accept.includes(".docx"))).toBe(true);
+    expect(textOf(toPdf.root).includes("Legacy .doc files are not supported yet.")).toBe(true);
+    expect(textOf(toPdf.root).includes("PDF text will not be selectable")).toBe(true);
+    await unmount(toPdf);
   });
 
   it("renders real merge and page organizer workspaces", async () => {

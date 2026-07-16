@@ -52,7 +52,7 @@ export const TOOL_CATEGORIES = Object.freeze([
 
 const PARTIAL_EDITOR_LIMIT = "This workflow opens the current browser editor. Supported edits are flattened during export, and source formatting or interactive PDF features may not be preserved.";
 const COMING_SOON_LIMIT = "This tool is not implemented yet. RealPDF does not upload or process files for this workflow today.";
-const DEDICATED_CONVERTER_IDS = new Set(["pdf-to-jpg", "pdf-to-png", "jpg-to-pdf", "png-to-pdf"]);
+const DEDICATED_CONVERTER_IDS = new Set(["pdf-to-word", "pdf-to-jpg", "pdf-to-png", "word-to-pdf", "jpg-to-pdf", "png-to-pdf"]);
 const DEDICATED_PAGE_TOOL_IDS = new Set(["merge-pdf", "split-pdf", "rotate-pdf", "delete-pdf-pages", "extract-pdf-pages", "reorder-pdf-pages", "organize-pdf"]);
 
 /** @type {ToolDefinition[]} */
@@ -78,7 +78,7 @@ const definitions = [
 
   ["compress-pdf", "Compress PDF", "Reduce a PDF's file size while balancing visual quality and readability.", "compress", "compress", "coming-soon", ["application/pdf"], ["application/pdf"], "Real PDF optimization and measurable size reduction are not implemented."],
 
-  ["pdf-to-word", "PDF to Word", "Convert PDF content into an editable Word document.", "from-pdf", "word", "coming-soon", ["application/pdf"], ["application/vnd.openxmlformats-officedocument.wordprocessingml.document"], "Layout-preserving DOCX conversion is not implemented."],
+  ["pdf-to-word", "PDF to Word", "Convert PDF content into an editable or visually faithful Word document.", "from-pdf", "word", "beta", ["application/pdf"], ["application/vnd.openxmlformats-officedocument.wordprocessingml.document"], "Editable mode reconstructs text and page breaks but not exact fonts, columns, or tables. Visual mode preserves each page as an image, so its text is not editable. Browser conversion supports valid, unencrypted PDFs up to 20 MB and 50 pages."],
   ["pdf-to-excel", "PDF to Excel", "Extract tables and structured values from a PDF into an Excel workbook.", "from-pdf", "sheet", "coming-soon", ["application/pdf"], ["application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"], "Table detection and XLSX generation are not implemented."],
   ["pdf-to-powerpoint", "PDF to PowerPoint", "Turn PDF pages into an editable or image-based presentation.", "from-pdf", "slides", "coming-soon", ["application/pdf"], ["application/vnd.openxmlformats-officedocument.presentationml.presentation"], "PPTX generation and editable slide reconstruction are not implemented."],
   ["pdf-to-jpg", "PDF to JPG", "Render selected PDF pages as individual JPG images.", "from-pdf", "image", "available", ["application/pdf"], ["image/jpeg", "application/zip"], "Browser conversion supports valid, unencrypted PDFs up to 50 MB and 100 pages. Complex transparency is flattened into JPG output."],
@@ -86,7 +86,7 @@ const definitions = [
   ["pdf-to-txt", "PDF to TXT", "Extract readable text from a text-based PDF into a plain text file.", "from-pdf", "text", "coming-soon", ["application/pdf"], ["text/plain"], "The editor extracts text for search, but a structured TXT conversion and download workflow is not implemented."],
   ["pdf-to-html", "PDF to HTML", "Convert PDF content into a browser-readable HTML document.", "from-pdf", "code", "coming-soon", ["application/pdf"], ["text/html"], "Semantic HTML reconstruction and asset packaging are not implemented."],
 
-  ["word-to-pdf", "Word to PDF", "Convert a DOC or DOCX document into a PDF while retaining its layout.", "to-pdf", "word", "coming-soon", ["application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"], ["application/pdf"], "Word document rendering and pagination are not implemented."],
+  ["word-to-pdf", "Word to PDF", "Convert a DOCX document into a visually faithful PDF in your browser.", "to-pdf", "word", "beta", ["application/vnd.openxmlformats-officedocument.wordprocessingml.document"], ["application/pdf"], "DOCX pages are rendered in the browser and exported as high-resolution page images. Selectable text, macros, live fields, and exact Microsoft Word pagination are not preserved. Files up to 20 MB and 50 rendered pages are supported."],
   ["excel-to-pdf", "Excel to PDF", "Convert spreadsheet sheets and print areas into a PDF.", "to-pdf", "sheet", "coming-soon", ["application/vnd.ms-excel", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"], ["application/pdf"], "Spreadsheet rendering, print areas, and page scaling are not implemented."],
   ["powerpoint-to-pdf", "PowerPoint to PDF", "Convert presentation slides into a PDF in slide order.", "to-pdf", "slides", "coming-soon", ["application/vnd.ms-powerpoint", "application/vnd.openxmlformats-officedocument.presentationml.presentation"], ["application/pdf"], "Presentation rendering and font substitution handling are not implemented."],
   ["jpg-to-pdf", "JPG to PDF", "Combine ordered JPG images into a PDF with configurable page sizing, orientation, and margins.", "to-pdf", "image", "available", ["image/jpeg"], ["application/pdf"], "Browser conversion supports up to 100 JPG images, with each source image limited to 50 MB."],
