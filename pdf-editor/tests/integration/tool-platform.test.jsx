@@ -140,6 +140,11 @@ describe("public PDF tool platform", () => {
     expect(textOf(crop.root).includes("Trim the edges")).toBe(true);
     expect(textOf(crop.root).includes("Download cropped PDF")).toBe(true);
     await unmount(crop);
+
+    const compress = await render(<PdfPageToolPage tool={TOOL_BY_ID.get("compress-pdf")} />);
+    expect(textOf(compress.root).includes("Make image-heavy PDFs lighter")).toBe(true);
+    expect(textOf(compress.root).includes("Download compressed PDF")).toBe(true);
+    await unmount(compress);
   });
 
   it("renders essential desktop and mobile navigation plus working footer links", async () => {

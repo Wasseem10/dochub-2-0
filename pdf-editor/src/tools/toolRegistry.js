@@ -55,7 +55,7 @@ export const TOOL_CATEGORIES = Object.freeze([
 const PARTIAL_EDITOR_LIMIT = "This workflow opens the current browser editor. Supported edits are flattened during export, and source formatting or interactive PDF features may not be preserved.";
 const COMING_SOON_LIMIT = "This tool is not implemented yet. FixThatPDF does not upload or process files for this workflow today.";
 const DEDICATED_CONVERTER_IDS = new Set(["pdf-to-word", "pdf-to-jpg", "pdf-to-png", "word-to-pdf", "jpg-to-pdf", "png-to-pdf"]);
-const DEDICATED_PAGE_TOOL_IDS = new Set(["merge-pdf", "split-pdf", "rotate-pdf", "delete-pdf-pages", "extract-pdf-pages", "reorder-pdf-pages", "organize-pdf", "add-page-numbers", "watermark-pdf", "crop-pdf"]);
+const DEDICATED_PAGE_TOOL_IDS = new Set(["merge-pdf", "split-pdf", "rotate-pdf", "delete-pdf-pages", "extract-pdf-pages", "reorder-pdf-pages", "organize-pdf", "add-page-numbers", "watermark-pdf", "crop-pdf", "compress-pdf"]);
 
 /** @type {ToolDefinition[]} */
 const definitions = [
@@ -78,7 +78,7 @@ const definitions = [
   ["reorder-pdf-pages", "Reorder PDF Pages", "Drag page thumbnails into a new order and download the reorganized PDF.", "organize", "reorder", "available", ["application/pdf"], ["application/pdf"], "Browser organization supports valid, unencrypted PDFs up to 50 MB and 200 output pages."],
   ["organize-pdf", "Organize PDF", "Reorder, rotate, duplicate, and delete PDF pages with undo.", "organize", "pages", "available", ["application/pdf"], ["application/pdf"], "Browser organization supports valid, unencrypted PDFs up to 50 MB and 200 output pages."],
 
-  ["compress-pdf", "Compress PDF", "Reduce a PDF's file size while balancing visual quality and readability.", "compress", "compress", "coming-soon", ["application/pdf"], ["application/pdf"], "Real PDF optimization and measurable size reduction are not implemented."],
+  ["compress-pdf", "Compress PDF", "Reduce image-heavy PDFs while balancing visual quality and file size.", "compress", "compress", "available", ["application/pdf"], ["application/pdf"], "Browser compression re-renders pages as JPEGs, preserving their visual appearance but flattening selectable text, links, forms, and layers. The app only offers a download when the result is smaller."],
 
   ["pdf-to-word", "PDF to Word", "Convert PDF content into an editable or visually faithful Word document.", "from-pdf", "word", "available", ["application/pdf"], ["application/vnd.openxmlformats-officedocument.wordprocessingml.document"], "Editable conversion preserves page breaks, text order, indentation, spacing, common font styling, and page proportions. Visual fidelity mode preserves the original page appearance. Browser conversion supports valid, unencrypted PDFs up to 20 MB and 50 pages; scanned documents need OCR before editable text can be recovered."],
   ["pdf-to-excel", "PDF to Excel", "Extract tables and structured values from a PDF into an Excel workbook.", "from-pdf", "sheet", "coming-soon", ["application/pdf"], ["application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"], "Table detection and XLSX generation are not implemented."],

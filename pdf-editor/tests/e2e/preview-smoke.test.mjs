@@ -61,6 +61,7 @@ const directRoutes = [
   "/add-date-fields",
   "/watermark-pdf",
   "/crop-pdf",
+  "/compress-pdf",
   "/pdf-to-word",
   "/jpg-to-pdf",
   "/ocr-pdf",
