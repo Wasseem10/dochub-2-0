@@ -10,4 +10,6 @@ For the editor page rail, use a narrow 144px white thumbnail sidebar with compac
 
 The product name is FixThatPDF. The landing hero’s right column must remain a functional PDF drag-and-drop upload zone; the supplied upload screenshot is an interaction/anatomy example, while the visual treatment must use the site’s own green, mint, cream, rounded-card design language. Selecting or dropping a PDF should open the editor without first forcing authentication.
 
+Every released PDF tool must have its own simple landing page using the same FixThatPDF typography and green, mint, cream visual system. The tool name and one-line explanation sit above a dominant upload workspace; secondary settings and explanatory content must not compete with the upload action before a file is chosen.
+
 The dashboard visual source of truth is the July 15, 2026 pink notebook dashboard screenshot: coral/pink FixThatPDF branding, a wide notebook hero, five compact quick-action cards, four real-account statistic cards, a dense recent-documents table, an AI assistant panel, recent activity, workspace folders, and a reusable-template promo. Never substitute the later blue dashboard treatment, and never populate the design with fake user documents or fabricated metrics.

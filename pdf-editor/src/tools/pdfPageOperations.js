@@ -1,4 +1,4 @@
-import { degrees, PDFDocument } from "pdf-lib";
+import { degrees, PDFDocument, rgb, StandardFonts } from "pdf-lib";
 
 export const PAGE_TOOL_LIMITS = Object.freeze({
   maxFileBytes: 50 * 1024 * 1024,
@@ -81,4 +81,38 @@ export async function splitPdfByRanges(sourceBytes, rangeGroups) {
     outputs.push({ name: `part-${String(index + 1).padStart(2, "0")}.pdf`, bytes });
   }
   return outputs;
+}
+
+export async function addPageNumbersToPdf(sourceBytes, options = {}) {
+  const {
+    position = "bottom-center",
+    startAt = 1,
+    fontSize = 12,
+    margin = 28,
+  } = options;
+  const safeStart = Number(startAt);
+  const safeSize = Number(fontSize);
+  if (!Number.isInteger(safeStart) || safeStart < 0 || safeStart > 999999) throw new Error("The starting page number must be a whole number between 0 and 999999.");
+  if (!Number.isFinite(safeSize) || safeSize < 8 || safeSize > 36) throw new Error("Page number size must be between 8 and 36 points.");
+
+  const [vertical, horizontal] = String(position).split("-");
+  if (!["top", "bottom"].includes(vertical) || !["left", "center", "right"].includes(horizontal)) throw new Error("Choose a valid page-number position.");
+
+  const pdf = await PDFDocument.load(sourceBytes, { updateMetadata: false });
+  if (pdf.getPageCount() > PAGE_TOOL_LIMITS.maxPages) throw new Error(`The PDF may contain no more than ${PAGE_TOOL_LIMITS.maxPages} pages.`);
+  const font = await pdf.embedFont(StandardFonts.Helvetica);
+  const color = rgb(0.12, 0.2, 0.18);
+
+  pdf.getPages().forEach((page, index) => {
+    const label = String(safeStart + index);
+    const labelWidth = font.widthOfTextAtSize(label, safeSize);
+    const { width, height } = page.getSize();
+    const x = horizontal === "left" ? margin : horizontal === "right" ? width - margin - labelWidth : (width - labelWidth) / 2;
+    const y = vertical === "top" ? height - margin - safeSize : margin;
+    page.drawText(label, { x, y, size: safeSize, font, color });
+  });
+
+  pdf.setTitle("Numbered PDF");
+  pdf.setCreator("FixThatPDF");
+  return pdf.save();
 }

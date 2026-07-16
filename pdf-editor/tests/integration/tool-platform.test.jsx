@@ -64,8 +64,7 @@ describe("public PDF tool platform", () => {
     expect(textOf(editor.root).includes("Sign a PDF online")).toBe(true);
     expect(textOf(editor.root).includes("Upload from your device")).toBe(true);
     expect(textOf(editor.root).includes("No account required to edit")).toBe(true);
-    expect(textOf(editor.root).includes("Sign in only to save or download")).toBe(true);
-    expect(editor.root.findAllByType("a").some((link) => textOf(link).includes("Back to FixThatPDF") && link.props.href === "/")).toBe(true);
+    expect(textOf(editor.root).includes("No login required to download")).toBe(true);
     expect(editor.root.findAllByProps({ role: "button" })).toHaveLength(1);
     await unmount(editor);
   });
@@ -120,6 +119,12 @@ describe("public PDF tool platform", () => {
     expect(organize.root.findAllByType("input").some((input) => input.props.type === "file" && !input.props.multiple)).toBe(true);
     expect(textOf(organize.root).includes("Arrange the final PDF")).toBe(true);
     await unmount(organize);
+
+    const pageNumbers = await render(<PdfPageToolPage tool={TOOL_BY_ID.get("add-page-numbers")} />);
+    expect(pageNumbers.root.findAllByType("input").some((input) => input.props.type === "file")).toBe(true);
+    expect(textOf(pageNumbers.root).includes("Choose the number style")).toBe(true);
+    expect(textOf(pageNumbers.root).includes("Download numbered PDF")).toBe(true);
+    await unmount(pageNumbers);
   });
 
   it("renders essential desktop and mobile navigation plus working footer links", async () => {

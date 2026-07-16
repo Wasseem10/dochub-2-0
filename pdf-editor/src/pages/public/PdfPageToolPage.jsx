@@ -6,6 +6,7 @@ import Check from "lucide-react/dist/esm/icons/check.mjs";
 import Copy from "lucide-react/dist/esm/icons/copy.mjs";
 import Download from "lucide-react/dist/esm/icons/download.mjs";
 import GripVertical from "lucide-react/dist/esm/icons/grip-vertical.mjs";
+import Hash from "lucide-react/dist/esm/icons/hash.mjs";
 import LoaderCircle from "lucide-react/dist/esm/icons/loader-circle.mjs";
 import RotateCw from "lucide-react/dist/esm/icons/rotate-cw.mjs";
 import Trash2 from "lucide-react/dist/esm/icons/trash-2.mjs";
@@ -14,8 +15,7 @@ import Upload from "lucide-react/dist/esm/icons/upload.mjs";
 import { PageMetadata } from "../../components/public/PageMetadata.jsx";
 import { ROUTE_PATHS } from "../../router/routePaths.js";
 import { createStoredZip } from "../../tools/imageConversion.js";
-import { buildPdfFromPagePlan, extractPdfPages, inspectPdfBytes, mergePdfDocuments, PAGE_TOOL_LIMITS, parsePageRanges, splitPdfByRanges } from "../../tools/pdfPageOperations.js";
-import { ToolIcon } from "../../tools/ToolIcon.jsx";
+import { addPageNumbersToPdf, buildPdfFromPagePlan, extractPdfPages, inspectPdfBytes, mergePdfDocuments, PAGE_TOOL_LIMITS, parsePageRanges, splitPdfByRanges } from "../../tools/pdfPageOperations.js";
 import { absoluteSiteUrl } from "../../config/site.js";
 import { ExportSuccessState } from "../../components/public/ExportSuccessState.jsx";
 
@@ -107,6 +107,58 @@ function MergeWorkspace({ tool }) {
   return <div className="conversion-workspace-grid"><section><PdfDropzone multiple label="Drop PDFs to merge" onFiles={addFiles} disabled={status === "working"} />{error && <div className="conversion-error" role="alert">{error}</div>}{files.length > 0 && <div className="merge-file-list">{files.map((file, index) => <article key={file.id} draggable className={draggedIndex === index ? "is-dragging" : ""} onDragStart={() => setDraggedIndex(index)} onDragOver={(event) => event.preventDefault()} onDrop={() => { if (draggedIndex !== null) move(draggedIndex, index); setDraggedIndex(null); }} onDragEnd={() => setDraggedIndex(null)}><GripVertical size={18} /><span>{index + 1}</span><div><strong>{file.name}</strong><small>{file.pageCount} page{file.pageCount === 1 ? "" : "s"} · {formatBytes(file.size)}</small></div><button type="button" onClick={() => move(index, index - 1)} disabled={!index} aria-label={`Move ${file.name} up`}><ArrowUp size={16} /></button><button type="button" onClick={() => move(index, index + 1)} disabled={index === files.length - 1} aria-label={`Move ${file.name} down`}><ArrowDown size={16} /></button><button type="button" onClick={() => setFiles((current) => current.filter((item) => item.id !== file.id))} aria-label={`Remove ${file.name}`}><Trash2 size={16} /></button></article>)}</div>}</section><aside className="conversion-settings-card"><span>Merge order</span><h2>Combine complete PDFs</h2><p className="page-tool-help">Drag files into order. Pages inside each PDF retain their native text, vectors, dimensions, and rotation.</p><div className="conversion-summary"><Check size={18} /><span>{files.length >= 2 ? `${files.length} PDFs ready · ${files.reduce((sum, file) => sum + file.pageCount, 0)} pages` : "Add at least two PDFs"}</span></div><button className="conversion-primary-action" type="button" disabled={files.length < 2 || status === "working"} onClick={merge}>{status === "working" ? <><LoaderCircle className="is-spinning" size={18} /> Merging...</> : <><Download size={18} /> Download merged PDF</>}</button>{status === "complete" && <ExportSuccessState toolId={tool.id} onDownloadAgain={merge} onStartAnother={() => { setFiles([]); setStatus("idle"); }} relatedRoute="/split-pdf" relatedName="Split PDF" />}</aside></div>;
 }
 
+function PageNumberWorkspace({ tool }) {
+  const [file, setFile] = useState(null);
+  const [bytes, setBytes] = useState(null);
+  const [pageCount, setPageCount] = useState(0);
+  const [position, setPosition] = useState("bottom-center");
+  const [startAt, setStartAt] = useState(1);
+  const [fontSize, setFontSize] = useState(12);
+  const [status, setStatus] = useState("idle");
+  const [error, setError] = useState("");
+
+  const loadPdf = async (fileList) => {
+    const nextFile = Array.from(fileList || [])[0];
+    if (!nextFile) return;
+    setError("");
+    if (nextFile.type !== "application/pdf" && !nextFile.name.toLowerCase().endsWith(".pdf")) return setError("Choose a PDF file.");
+    if (nextFile.size > PAGE_TOOL_LIMITS.maxFileBytes) return setError("PDFs must be under 50 MB.");
+    setStatus("reading");
+    try {
+      const nextBytes = new Uint8Array(await nextFile.arrayBuffer());
+      const details = await inspectPdfBytes(nextBytes);
+      if (details.pageCount > PAGE_TOOL_LIMITS.maxPages) throw new Error(`This PDF has ${details.pageCount} pages. The limit is ${PAGE_TOOL_LIMITS.maxPages}.`);
+      setFile(nextFile);
+      setBytes(nextBytes);
+      setPageCount(details.pageCount);
+    } catch (readError) {
+      setError(friendlyPdfError(readError));
+      setFile(null);
+      setBytes(null);
+      setPageCount(0);
+    } finally {
+      setStatus("idle");
+    }
+  };
+
+  const exportNumberedPdf = async () => {
+    if (!file || !bytes) return;
+    setStatus("working");
+    setError("");
+    try {
+      const output = await addPageNumbersToPdf(bytes, { position, startAt, fontSize });
+      const baseName = file.name.replace(/\.pdf$/i, "") || "document";
+      downloadBytes(output, "application/pdf", `${baseName}-numbered.pdf`);
+      setStatus("complete");
+    } catch (exportError) {
+      setError(friendlyPdfError(exportError));
+      setStatus("idle");
+    }
+  };
+
+  return <div className="conversion-workspace-grid"><section><PdfDropzone multiple={false} label="Drop a PDF to number its pages" onFiles={loadPdf} disabled={status === "reading" || status === "working"} />{status === "reading" && <div className="conversion-progress"><LoaderCircle className="is-spinning" size={18} /> Reading PDF...</div>}{error && <div className="conversion-error" role="alert">{error}</div>}{file && <article className="page-number-file-card"><Hash size={21} /><div><strong>{file.name}</strong><small>{pageCount} page{pageCount === 1 ? "" : "s"} · {formatBytes(file.size)}</small></div></article>}</section><aside className="conversion-settings-card"><span>Page number settings</span><h2>Choose the number style</h2><label>Position<select value={position} onChange={(event) => setPosition(event.target.value)}><option value="bottom-left">Bottom left</option><option value="bottom-center">Bottom center</option><option value="bottom-right">Bottom right</option><option value="top-left">Top left</option><option value="top-center">Top center</option><option value="top-right">Top right</option></select></label><label>Start at<input type="number" min="0" max="999999" value={startAt} onChange={(event) => setStartAt(Number(event.target.value))} /></label><label>Text size<select value={fontSize} onChange={(event) => setFontSize(Number(event.target.value))}><option value="10">Small</option><option value="12">Medium</option><option value="16">Large</option></select></label><div className="conversion-summary"><Check size={18} /><span>{file ? `${pageCount} page${pageCount === 1 ? "" : "s"} ready` : "Upload a PDF to continue"}</span></div><button className="conversion-primary-action" type="button" disabled={!file || status === "working" || status === "reading"} onClick={exportNumberedPdf}>{status === "working" ? <><LoaderCircle className="is-spinning" size={18} /> Adding numbers...</> : <><Download size={18} /> Download numbered PDF</>}</button>{status === "complete" && <ExportSuccessState toolId={tool.id} onDownloadAgain={exportNumberedPdf} onStartAnother={() => { setFile(null); setBytes(null); setPageCount(0); setStatus("idle"); }} relatedRoute="/organize-pdf" relatedName="Organize PDF" />}</aside></div>;
+}
+
 function SinglePdfWorkspace({ tool }) {
   const isSplit = tool.id === "split-pdf";
   const isExtract = tool.id === "extract-pdf-pages";
@@ -191,6 +243,7 @@ function SinglePdfWorkspace({ tool }) {
 
 export function PdfPageToolPage({ tool }) {
   const isMerge = tool.id === "merge-pdf";
+  const isPageNumbers = tool.id === "add-page-numbers";
   const schema = { "@context": "https://schema.org", "@type": "SoftwareApplication", name: tool.name, applicationCategory: "BusinessApplication", operatingSystem: "Web", url: absoluteSiteUrl(tool.canonicalUrl), offers: { "@type": "Offer", price: "0", priceCurrency: "USD" } };
-  return <main className="image-conversion-page pdf-page-tool-page"><PageMetadata title={tool.seoTitle} description={tool.metaDescription} canonicalUrl={tool.canonicalUrl} schemas={[schema]} /><nav className="tool-breadcrumbs" aria-label="Breadcrumb"><Link to={ROUTE_PATHS.tools}>PDF tools</Link><span>/</span><span aria-current="page">{tool.name}</span></nav><section className="conversion-hero"><span style={{ background: tool.accentColor }}><ToolIcon name={tool.icon} size={29} /></span><div><small>Available now · preserves native PDF pages</small><h1>{tool.name}</h1><p>{tool.shortDescription} Processing stays on this device.</p></div></section>{isMerge ? <MergeWorkspace tool={tool} /> : <SinglePdfWorkspace tool={tool} />}<section className="conversion-privacy-note"><Check size={19} /><div><strong>High-fidelity browser processing</strong><p>FixThatPDF copies original PDF pages instead of converting them to screenshots. Text, vectors, dimensions, and supported page rotation remain native.</p></div></section></main>;
+  return <main className="image-conversion-page pdf-page-tool-page"><PageMetadata title={tool.seoTitle} description={tool.metaDescription} canonicalUrl={tool.canonicalUrl} schemas={[schema]} /><nav className="tool-breadcrumbs" aria-label="Breadcrumb"><Link to={ROUTE_PATHS.tools}>PDF tools</Link><span>/</span><span aria-current="page">{tool.name}</span></nav><section className="conversion-hero"><div><small>Available now · runs in your browser</small><h1>{tool.name} online.</h1><p>{tool.shortDescription} Free to use and ready in seconds.</p></div></section>{isPageNumbers ? <PageNumberWorkspace tool={tool} /> : isMerge ? <MergeWorkspace tool={tool} /> : <SinglePdfWorkspace tool={tool} />}<section className="conversion-privacy-note"><Check size={19} /><div><strong>High-fidelity browser processing</strong><p>FixThatPDF keeps original PDF pages intact and adds only the changes you request. Processing stays on this device.</p></div></section></main>;
 }

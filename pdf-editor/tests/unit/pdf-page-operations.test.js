@@ -1,6 +1,6 @@
 import { PDFDocument, rgb } from "pdf-lib";
 import { describe, expect, it } from "vitest";
-import { buildPdfFromPagePlan, extractPdfPages, mergePdfDocuments, parsePageRanges, splitPdfByRanges } from "../../src/tools/pdfPageOperations.js";
+import { addPageNumbersToPdf, buildPdfFromPagePlan, extractPdfPages, mergePdfDocuments, parsePageRanges, splitPdfByRanges } from "../../src/tools/pdfPageOperations.js";
 
 async function createSourcePdf(widths) {
   const pdf = await PDFDocument.create();
@@ -44,5 +44,15 @@ describe("high-fidelity PDF page operations", () => {
     expect(split).toHaveLength(2);
     expect((await PDFDocument.load(split[0].bytes)).getPageCount()).toBe(2);
     expect((await PDFDocument.load(split[1].bytes)).getPages()[0].getWidth()).toBe(310);
+  });
+
+  it("adds sequential page numbers without changing page dimensions", async () => {
+    const source = await createSourcePdf([210, 220, 230]);
+    const numbered = await addPageNumbersToPdf(source, { position: "top-right", startAt: 7, fontSize: 16 });
+    const pdf = await PDFDocument.load(numbered);
+    expect(pdf.getPageCount()).toBe(3);
+    expect(pdf.getPages().map((page) => page.getWidth())).toEqual([210, 220, 230]);
+    expect(numbered.length).toBeGreaterThan(source.length);
+    await expect(addPageNumbersToPdf(source, { position: "middle-center" })).rejects.toThrow("valid page-number position");
   });
 });

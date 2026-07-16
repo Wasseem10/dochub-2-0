@@ -1,41 +1,48 @@
-# FixThatPDF tools mega-menu visual QA
+# Tool landing page design QA
 
-## Source and implementation
+- Source visual truth: `/var/folders/y5/5nxfxhk97_9fmsmdf8tqj81r0000gn/T/TemporaryItems/NSIRD_screencaptureui_qMn3X5/Screenshot 2026-07-16 at 12.36.17 PM.png`
+- Implementation screenshot: `/tmp/fixthatpdf-tool-landings-qa-2026-07-16/01-edit-pdf.png`
+- New tool screenshot: `/tmp/fixthatpdf-tool-landings-qa-2026-07-16/02-add-page-numbers.png`
+- Full comparison: `/tmp/fixthatpdf-tool-landings-qa-2026-07-16/04-reference-vs-implementation.png`
+- Viewport: source 2722 × 1102; implementation 1470 × 832, normalized side by side for comparison
+- State: desktop, logged-out upload state before file selection
 
-- Source screenshot: `/var/folders/y5/5nxfxhk97_9fmsmdf8tqj81r0000gn/T/TemporaryItems/NSIRD_screencaptureui_IcDr3v/Screenshot 2026-07-16 at 2.38.59 AM.png`
-- Browser-rendered implementation: `/tmp/fixthatpdf-tools-qa/implementation.png`
-- Combined comparison: `http://127.0.0.1:4178/comparison.html`
-- Browser QA viewport: 1280 × 720
-- State: public homepage with the All tools menu open
+**Findings**
 
-## Fidelity findings
+- No actionable P0, P1, or P2 mismatch remains.
+- The source anatomy is preserved: a short centered headline and explanation lead directly into a wide, elevated upload card with a large internal drop target and one dominant pill-shaped action.
+- The implementation intentionally uses FixThatPDF green, mint, cream, Funnel Display, and DM Sans instead of the source's blue palette. This follows the established product system and repository design instruction.
+- The 8 MB editor limit intentionally differs from the reference's 100 MB message because 8 MB is the current validated editor limit; the UI must not advertise an unsupported size.
 
-No actionable P0, P1, or P2 issues remain.
+**Required fidelity surfaces**
 
-- Information architecture: passed. The restored dropdown follows the reference with a top-level Tools control, multi-column category groups, featured tool descriptions, compact secondary links, and a dedicated all-tools destination.
-- Content completeness: passed. The menu exposes 30 direct tool links across Edit PDF, Organize PDF, Convert from PDF, Convert to PDF, Sign and protect, and AI and OCR, plus the complete tools directory link.
-- Typography: passed. DM Sans category labels, strong tool names, muted descriptions, and compact supporting links preserve the reference hierarchy while matching the current FixThatPDF landing page.
-- Color and styling: passed. The reference's green system is translated into the approved cobalt FixThatPDF palette. The open trigger uses a powder-blue fill and lavender focus treatment; the dropdown uses a white surface, subtle dividers, and restrained shadow.
-- Spacing and layout: passed. Six balanced columns fit the 1240 px content width with no horizontal overflow. The menu is 381 px tall at the QA viewport and overlays the hero without shifting the page.
-- Responsive behavior: passed. Below the existing 1060 px breakpoint, the desktop mega-menu is hidden and the mobile navigation retains a direct All tools link.
+- Fonts and typography: passed. Large Funnel Display headline, restrained optical weight, tight display tracking, and DM Sans support copy match the site's landing-page hierarchy.
+- Spacing and layout rhythm: passed. The upload card dominates the first viewport, has wide outer margins, generous vertical padding, a large dashed drop area, rounded corners, and restrained elevation.
+- Colors and visual tokens: passed. The implementation consistently maps the reference anatomy to `--public-green`, `--public-mint`, `--public-cream`, and the existing public text tokens.
+- Image quality and asset fidelity: passed. The design contains no raster image assets; the upload icon comes from the existing icon system and remains sharp at the displayed size.
+- Copy and content: passed. Each released route uses its own tool name, action-specific drop instruction, truthful file limit, and a concise one-line explanation.
 
-## Interaction checks
+**Interaction and responsive checks**
 
-- Clicking All tools opens and closes the menu and updates `aria-expanded`.
-- Escape closes the menu and returns focus to the All tools trigger.
-- Clicking outside the dropdown closes it.
-- View all tools navigates to `/tools`; browser Back returns to the homepage.
-- Every menu item is a real route link and closes the dropdown on navigation.
-- The open menu contains 31 links and document width remains equal to viewport width (1280 px), confirming no horizontal overflow.
+- File inputs and primary upload buttons render for editor, page, image, and Office workflows.
+- Drag/drop, keyboard activation, disabled processing states, errors, and post-upload controls remain connected to the existing workflows.
+- The grid collapses to one column below 900 px and the upload action becomes full width on small screens.
+- The new Add Page Numbers route exposes a file input, six positions, start-number input, three text sizes, and disabled download state until a PDF is loaded.
 
-## Comparison history
+**Comparison history**
 
-### Pass 1
+- Initial implementation comparison found no P0/P1/P2 visual issue. No visual correction loop was required.
 
-The first implementation matched the source structure but inherited the landing page's orange focus outline.
+**Follow-up polish**
 
-### Pass 2
+- P3: A future pass could add a compact review strip below the dropzone, but it is not needed for the requested simple workflow.
 
-The trigger focus treatment was aligned to the cobalt/lavender menu state. The final source comparison found no remaining P0/P1/P2 issues.
+**Implementation checklist**
+
+- Shared upload-first layout across released editor, page, image, and Office tools.
+- Dominant upload workspace above secondary detail.
+- Brand-consistent typography, color, radius, and elevation.
+- Truthful limits and anonymous-download language.
+- Real Add Page Numbers workflow and automated coverage.
 
 final result: passed
