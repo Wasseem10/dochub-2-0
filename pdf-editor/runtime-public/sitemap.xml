@@ -29,5 +29,6 @@
   <url><loc>http://localhost:4173/split-pdf</loc></url>
   <url><loc>http://localhost:4173/terms</loc></url>
   <url><loc>http://localhost:4173/tools</loc></url>
+  <url><loc>http://localhost:4173/watermark-pdf</loc></url>
   <url><loc>http://localhost:4173/word-to-pdf</loc></url>
 </urlset>
