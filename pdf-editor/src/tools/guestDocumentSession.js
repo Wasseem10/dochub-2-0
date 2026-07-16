@@ -11,6 +11,15 @@ export function resolveEditorStorageOwnerId(isPublicEditor, currentUser) {
   return isPublicEditor ? GUEST_OWNER_ID : currentUser?.uid || GUEST_OWNER_ID;
 }
 
+export function recoverDocumentAsGuest(documentRecord, now = () => new Date().toISOString()) {
+  if (!documentRecord?.id || !documentRecord.pages?.length) return null;
+  return {
+    ...documentRecord,
+    ownerId: GUEST_OWNER_ID,
+    updatedAt: now(),
+  };
+}
+
 export async function claimGuestDocument(userId, documentId, {
   loadDocuments = loadLocalDocuments,
   saveDocuments = saveLocalDocuments,

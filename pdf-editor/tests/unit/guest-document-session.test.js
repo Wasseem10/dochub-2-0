@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { claimGuestDocument, editorActionNeedsAccount, GUEST_OWNER_ID, resolveEditorStorageOwnerId } from "../../src/tools/guestDocumentSession.js";
+import { claimGuestDocument, editorActionNeedsAccount, GUEST_OWNER_ID, recoverDocumentAsGuest, resolveEditorStorageOwnerId } from "../../src/tools/guestDocumentSession.js";
 
 describe("guest document account handoff", () => {
   it("allows guest editing but gates account save and download actions", () => {
@@ -14,6 +14,15 @@ describe("guest document account handoff", () => {
     expect(resolveEditorStorageOwnerId(true, null)).toBe(GUEST_OWNER_ID);
     expect(resolveEditorStorageOwnerId(true, { uid: "user-1" })).toBe(GUEST_OWNER_ID);
     expect(resolveEditorStorageOwnerId(false, { uid: "user-1" })).toBe("user-1");
+  });
+
+  it("recovers an earlier account-owned editor document into the public guest session", () => {
+    expect(recoverDocumentAsGuest({ id: "doc-1", ownerId: "user-1", pages: [{ id: "page-1" }] }, () => "now")).toMatchObject({
+      id: "doc-1",
+      ownerId: GUEST_OWNER_ID,
+      updatedAt: "now",
+    });
+    expect(recoverDocumentAsGuest({ id: "metadata-only", ownerId: "user-1" })).toBeNull();
   });
 
   it("moves only the requested guest document into the signed-in workspace", async () => {
