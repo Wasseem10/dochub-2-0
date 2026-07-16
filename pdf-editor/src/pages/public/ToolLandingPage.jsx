@@ -3,7 +3,7 @@ import ArrowRight from "lucide-react/dist/esm/icons/arrow-right.mjs";
 import Check from "lucide-react/dist/esm/icons/check.mjs";
 import Info from "lucide-react/dist/esm/icons/info.mjs";
 import { PageMetadata } from "../../components/public/PageMetadata.jsx";
-import { ROUTE_PATHS } from "../../router/routePaths.js";
+import { publicEditorPath, ROUTE_PATHS } from "../../router/routePaths.js";
 import { ToolIcon } from "../../tools/ToolIcon.jsx";
 import { getRelatedTools } from "../../tools/toolRegistry.js";
 
@@ -41,6 +41,7 @@ function ToolWorkflowPreview({ tool }) {
 export function ToolLandingPage({ tool }) {
   const relatedTools = getRelatedTools(tool);
   const isUsable = tool.status !== "coming-soon";
+  const editorHref = publicEditorPath(tool.id);
   const breadcrumbSchema = { "@context": "https://schema.org", "@type": "BreadcrumbList", itemListElement: [{ "@type": "ListItem", position: 1, name: "PDF tools", item: "https://realpdf.com/tools" }, { "@type": "ListItem", position: 2, name: tool.name, item: tool.canonicalUrl }] };
   const faqSchema = { "@context": "https://schema.org", "@type": "FAQPage", mainEntity: tool.faqEntries.map((entry) => ({ "@type": "Question", name: entry.question, acceptedAnswer: { "@type": "Answer", text: entry.answer } })) };
   const schemas = [breadcrumbSchema, faqSchema];
@@ -57,7 +58,7 @@ export function ToolLandingPage({ tool }) {
           <h1>{tool.heroHeadline}</h1>
           <p>{tool.heroSubheadline}</p>
           <div className="tool-format-row"><span>Input: <strong>{tool.supportedInputTypes.length ? tool.supportedInputTypes.map(formatType).join(", ") : "No upload"}</strong></span><span>Output: <strong>{tool.supportedOutputTypes.length ? tool.supportedOutputTypes.map(formatType).join(", ") : "No output yet"}</strong></span></div>
-          <div className="tool-hero-actions">{isUsable ? <Link className="marketing-primary" to={ROUTE_PATHS.editPdf}>Open the real editor <ArrowRight size={17} /></Link> : <Link className="marketing-primary" to={ROUTE_PATHS.tools}>Browse available tools <ArrowRight size={17} /></Link>}<a href="#limitations">Read limitations</a></div>
+          <div className="tool-hero-actions">{isUsable ? <Link className="marketing-primary" to={editorHref}>Open {tool.name} <ArrowRight size={17} /></Link> : <Link className="marketing-primary" to={ROUTE_PATHS.tools}>Browse available tools <ArrowRight size={17} /></Link>}<a href="#limitations">Read limitations</a></div>
         </div>
         <ToolWorkflowPreview tool={tool} />
       </section>
@@ -65,7 +66,7 @@ export function ToolLandingPage({ tool }) {
       <section className={`tool-action-panel ${isUsable ? "is-usable" : "is-coming"}`}>
         <span style={{ background: tool.accentColor }}><ToolIcon name={tool.icon} size={29} /></span>
         <div><small>{isUsable ? "Existing RealPDF workflow" : "Tool status"}</small><h2>{isUsable ? `Continue to ${tool.name} in the editor` : `${tool.name} is currently in development`}</h2><p>{isUsable ? "RealPDF reuses the existing validated PDF upload and editor flow. No second uploader or duplicate file-processing path is created here." : "This page does not accept a file or show invented output. Use a related available editor workflow while this tool is being built."}</p></div>
-        {isUsable && <Link to={ROUTE_PATHS.editPdf}>Open editor</Link>}
+        {isUsable && <Link to={editorHref}>Open {tool.name}</Link>}
       </section>
 
       <section className="tool-content-grid">
@@ -81,7 +82,7 @@ export function ToolLandingPage({ tool }) {
 
       <section className="related-tools"><header><span className="public-eyebrow">Keep working</span><h2>Related {tool.categoryName.toLowerCase()} tools</h2></header><div>{relatedTools.map((related) => <Link key={related.id} to={related.route}><span style={{ background: related.accentColor }}><ToolIcon name={related.icon} size={22} /></span><div><h3>{related.name}</h3><p>{related.shortDescription}</p><small>{related.availabilityLabel}</small></div></Link>)}</div></section>
 
-      <section className="tool-final-cta"><span style={{ background: tool.accentColor }}><ToolIcon name={tool.icon} size={31} /></span><h2>{isUsable ? `Ready to try the supported ${tool.name} workflow?` : `Need a working PDF tool today?`}</h2><p>{isUsable ? "Open the real editor, upload a supported PDF, and verify the exported result before sharing it." : "Browse the complete directory for editor-backed workflows that are already available with clearly documented limitations."}</p><Link className="marketing-primary" to={isUsable ? ROUTE_PATHS.editPdf : ROUTE_PATHS.tools}>{isUsable ? "Open RealPDF editor" : "View all PDF tools"}</Link></section>
+      <section className="tool-final-cta"><span style={{ background: tool.accentColor }}><ToolIcon name={tool.icon} size={31} /></span><h2>{isUsable ? `Ready to try the supported ${tool.name} workflow?` : `Need a working PDF tool today?`}</h2><p>{isUsable ? "Open the real editor, upload a supported PDF, and verify the exported result before sharing it." : "Browse the complete directory for editor-backed workflows that are already available with clearly documented limitations."}</p><Link className="marketing-primary" to={isUsable ? editorHref : ROUTE_PATHS.tools}>{isUsable ? `Open ${tool.name}` : "View all PDF tools"}</Link></section>
     </main>
   );
 }

@@ -42,6 +42,12 @@ export function editorPath(documentId) {
   return `/app/editor/${encodeURIComponent(documentId)}`;
 }
 
+/** @param {string} toolId */
+export function publicEditorPath(toolId) {
+  const query = toolId ? `?tool=${encodeURIComponent(toolId)}` : "";
+  return `${ROUTE_PATHS.editPdf}${query}`;
+}
+
 /** @param {string} token */
 export function sharePath(token) {
   return `/share/${encodeURIComponent(token)}`;
