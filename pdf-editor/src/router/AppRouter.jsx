@@ -6,6 +6,7 @@ import { NotFoundPage } from "../pages/errors/NotFoundPage.jsx";
 import { PublicPlaceholderPage } from "../pages/public/PublicPlaceholderPage.jsx";
 import { ToolDirectoryPage } from "../pages/public/ToolDirectoryPage.jsx";
 import { ImageConversionPage } from "../pages/public/ImageConversionPage.jsx";
+import { OfficeConversionPage } from "../pages/public/OfficeConversionPage.jsx";
 import { PdfPageToolPage } from "../pages/public/PdfPageToolPage.jsx";
 import { ToolLandingPage } from "../pages/public/ToolLandingPage.jsx";
 import { WorkflowUnavailablePage } from "../pages/public/WorkflowUnavailablePage.jsx";
@@ -41,7 +42,9 @@ const toolRouteObjects = TOOL_REGISTRY
   .map((tool) => ({
     path: tool.route,
     element: tool.workflowType === "converter"
-      ? <ImageConversionPage tool={tool} />
+      ? ["pdf-to-word", "word-to-pdf"].includes(tool.id)
+        ? <OfficeConversionPage tool={tool} />
+        : <ImageConversionPage tool={tool} />
       : tool.workflowType === "page-tool"
         ? <PdfPageToolPage tool={tool} />
         : tool.workflowType === "editor"
