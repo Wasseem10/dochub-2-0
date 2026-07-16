@@ -82,7 +82,7 @@ import { EditorToolUploadPage } from "./pages/public/EditorToolUploadPage.jsx";
 import { resolveEditorDocument } from "./router/editorRouteState.js";
 import { editorPath, publicEditorDocumentPath, publicEditorPath, ROUTE_PATHS } from "./router/routePaths.js";
 import { getEditorToolPreset, resolveEditorActiveTool } from "./tools/editorToolPresets.js";
-import { claimGuestDocument, editorActionNeedsAccount, GUEST_OWNER_ID, resolveEditorStorageOwnerId } from "./tools/guestDocumentSession.js";
+import { claimGuestDocument, editorActionNeedsAccount, GUEST_OWNER_ID, recoverDocumentAsGuest, resolveEditorStorageOwnerId } from "./tools/guestDocumentSession.js";
 import { loadLocalDocuments, saveLocalDocuments } from "./tools/localDocumentStore.js";
 import { extractPdfFormAnnotations } from "./tools/pdfFormFields.js";
 import { getPdfLoadErrorMessage, validatePdfUpload } from "./tools/pdfUploadValidation.js";
@@ -1002,6 +1002,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   const moreMenuRef = useRef(null);
   const zoomMenuRef = useRef(null);
   const canvasColumnRef = useRef(null);
+  const publicDocumentRecoveryRef = useRef(new Set());
   const lastPagePointRef = useRef({ x: 0.52, y: 0.28 });
   const [documents, setDocuments] = useState([]);
   const [documentCatalogReady, setDocumentCatalogReady] = useState(!isCloudPersistenceConfigured);
@@ -1179,6 +1180,36 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       });
     return () => { cancelled = true; };
   }, [currentUser?.uid, isPublicEditor, storageOwnerId]);
+
+  useEffect(() => {
+    if (view !== "public-editor" || !documentId || !documentCatalogReady || !currentUser?.uid) return undefined;
+    if (documents.some((documentRecord) => documentRecord.id === documentId)) return undefined;
+    const recoveryKey = `${currentUser.uid}:${documentId}`;
+    if (publicDocumentRecoveryRef.current.has(recoveryKey)) return undefined;
+    publicDocumentRecoveryRef.current.add(recoveryKey);
+    let cancelled = false;
+
+    const recoverDocument = async () => {
+      const localDocuments = await loadLocalDocuments(currentUser.uid).catch(() => safeLoadDocuments(currentUser.uid));
+      let candidate = localDocuments.find((documentRecord) => documentRecord.id === documentId);
+      if (!candidate && isCloudPersistenceConfigured) {
+        const cloudDocuments = await loadCloudDocumentRecords(currentUser.uid).catch(() => []);
+        candidate = cloudDocuments.find((documentRecord) => documentRecord.id === documentId);
+      }
+      const recoveredDocument = recoverDocumentAsGuest(candidate);
+      if (!recoveredDocument || cancelled) return;
+      const guestDocuments = await loadLocalDocuments(GUEST_OWNER_ID).catch(() => documents);
+      const nextDocuments = [recoveredDocument, ...guestDocuments.filter((documentRecord) => documentRecord.id !== documentId)];
+      await saveLocalDocuments(GUEST_OWNER_ID, nextDocuments);
+      if (!cancelled) {
+        setDocuments(nextDocuments);
+        setEditorRouteState("loading");
+      }
+    };
+
+    recoverDocument().catch(() => {});
+    return () => { cancelled = true; };
+  }, [currentUser?.uid, documentCatalogReady, documentId, documents, view]);
 
   useEffect(() => {
     if (isPublicEditor || !currentUser?.uid) {
