@@ -67,6 +67,11 @@ describe("public PDF tool platform", () => {
     expect(textOf(editor.root).includes("No login required to download")).toBe(true);
     expect(editor.root.findAllByProps({ role: "button" })).toHaveLength(1);
     await unmount(editor);
+
+    const protect = await render(<EditorToolUploadPage toolId="protect-pdf" fileInputRef={{ current: null }} onUpload={() => {}} onDropFiles={() => {}} uploadError="" uploadStage={{ status: "idle" }} />);
+    expect(textOf(protect.root).includes("Protect a PDF with a password")).toBe(true);
+    expect(protect.root.findAllByType("input").some((input) => input.props.type === "file")).toBe(true);
+    await unmount(protect);
   });
 
   it("opens complete review tools and keeps unavailable tools informational", async () => {

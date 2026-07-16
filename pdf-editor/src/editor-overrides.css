@@ -3081,6 +3081,49 @@ main.editor-shell .page-surface,
   box-shadow: var(--pf-shadow-strong);
 }
 
+.workflow-modal {
+  width: min(520px, calc(100vw - 32px));
+}
+
+.workflow-modal-body {
+  display: grid;
+  gap: 14px;
+  padding: 20px 24px 24px;
+}
+
+.workflow-modal-body > p,
+.workflow-modal-body > small {
+  margin: 0;
+  color: #5d6878;
+  line-height: 1.5;
+}
+
+.workflow-modal-body label {
+  display: grid;
+  gap: 7px;
+  color: #243144;
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.workflow-modal-body input,
+.workflow-modal-body textarea {
+  width: 100%;
+  border: 1px solid var(--pf-border);
+  border-radius: 10px;
+  padding: 11px 12px;
+  background: #fff;
+  color: #111827;
+  font: inherit;
+  font-weight: 500;
+  resize: vertical;
+}
+
+.workflow-error {
+  color: #b42318 !important;
+  font-weight: 700;
+}
+
 .modal-backdrop {
   background: rgba(15, 23, 42, 0.42);
   backdrop-filter: blur(10px);
