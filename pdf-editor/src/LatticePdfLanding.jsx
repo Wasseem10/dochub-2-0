@@ -55,6 +55,33 @@ const taskLanes = [
   },
 ];
 
+const footerToolGroups = [
+  {
+    title: "Edit PDF",
+    links: [["Edit PDF", "/edit-pdf"], ["Annotate PDF", "/annotate-pdf"], ["PDF Reader", "/pdf-reader"], ["Fill PDF", "/fill-pdf"], ["PDF Form Filler", "/pdf-form-filler"]],
+  },
+  {
+    title: "Organize PDF",
+    links: [["Merge PDF", "/merge-pdf"], ["Split PDF", "/split-pdf"], ["Rotate PDF", "/rotate-pdf"], ["Delete PDF Pages", "/delete-pdf-pages"], ["Extract PDF Pages", "/extract-pdf-pages"]],
+  },
+  {
+    title: "Convert from PDF",
+    links: [["PDF to Word", "/pdf-to-word"], ["PDF to JPG", "/pdf-to-jpg"], ["PDF to PNG", "/pdf-to-png"], ["PDF to Excel", "/pdf-to-excel"], ["PDF to PowerPoint", "/pdf-to-powerpoint"]],
+  },
+  {
+    title: "Convert to PDF",
+    links: [["Word to PDF", "/word-to-pdf"], ["JPG to PDF", "/jpg-to-pdf"], ["PNG to PDF", "/png-to-pdf"], ["Excel to PDF", "/excel-to-pdf"], ["PowerPoint to PDF", "/powerpoint-to-pdf"]],
+  },
+  {
+    title: "Sign and protect",
+    links: [["Sign PDF", "/sign-pdf"], ["Add Initials", "/add-initials"], ["Add Date Fields", "/add-date-fields"], ["Request Signatures", "/request-signatures"], ["Protect PDF", "/protect-pdf"]],
+  },
+  {
+    title: "AI and OCR",
+    links: [["OCR PDF", "/ocr-pdf"], ["PDF Scanner", "/pdf-scanner"], ["Scan to PDF", "/scan-to-pdf"], ["Image to Searchable PDF", "/image-to-searchable-pdf"], ["AI PDF Assistant", "/ai-pdf"]],
+  },
+];
+
 function Brand() {
   return <Link className="freepdf-brand" to={ROUTE_PATHS.home} aria-label="RealPDF home"><span><FileText size={20} /></span><strong>RealPDF</strong></Link>;
 }
@@ -117,6 +144,15 @@ function PopularTools() {
   </section>;
 }
 
+function FooterToolDirectory() {
+  return <section className="freepdf-footer-directory" aria-label="PDF tool directory">
+    {footerToolGroups.map((group) => <nav key={group.title} aria-label={group.title}>
+      <h2>{group.title}</h2>
+      {group.links.map(([label, route]) => <Link key={label} to={route}>{label}</Link>)}
+    </nav>)}
+  </section>;
+}
+
 export function LatticePdfLanding({ fileInputRef, onUpload, onSelectFiles, onDropFiles, uploadError = "", uploadStage = { status: "idle", percent: 0, fileName: "" } }) {
   const fallbackInputRef = useRef(null);
   const inputRef = fileInputRef || fallbackInputRef;
@@ -172,6 +208,8 @@ export function LatticePdfLanding({ fileInputRef, onUpload, onSelectFiles, onDro
     <section className="freepdf-section freepdf-faq" aria-labelledby="faq-title"><div className="freepdf-section-heading"><span>Good to know</span><h2 id="faq-title">Clear answers before you upload.</h2></div><div>{faqs.map(([question, answer]) => <details key={question}><summary>{question}</summary><p>{answer}</p></details>)}</div></section>
 
     <section className="freepdf-final"><span>Ready when you are</span><h2>Finish that PDF today.</h2><p>Choose a supported PDF and start immediately. No signup, no watermark, no payment screen.</p><button type="button" onClick={choose}><Upload size={18} /> Choose a PDF</button><Link to={ROUTE_PATHS.privacy}>Privacy and file handling</Link></section>
+
+    <FooterToolDirectory />
 
     <footer className="freepdf-footer"><div><Brand /><p>Every PDF task, finally in one place.</p></div><nav aria-label="Footer"><Link to={ROUTE_PATHS.tools}>All tools</Link><Link to={ROUTE_PATHS.help}>Help</Link><Link to={ROUTE_PATHS.privacy}>Privacy</Link><Link to={ROUTE_PATHS.terms}>Terms</Link></nav><span>© 2026 RealPDF</span></footer>
   </main>;

@@ -1,36 +1,51 @@
-# RealPDF homepage design QA
+# RealPDF footer, headline, and upload-panel design QA
 
 ## Source and implementation
 
-- Approved source mockup: `/Users/wasseemdabbas/.codex/generated_images/019f6936-fa87-7811-b78f-f28c20e79dae/exec-9b008a1d-4ec1-4cc8-b55a-8fbacb5235cd.png` (1487 × 1058)
-- Desktop implementation capture: `/tmp/realpdf-implementation-desktop.png` (1440 × 6282, captured at a 1440 × 1024 viewport)
-- Mobile implementation capture: `/tmp/realpdf-implementation-mobile.png` (390 px wide, captured at a 390 × 844 viewport)
-- Side-by-side comparison: `/tmp/realpdf-design-comparison.png`
+- Headline source visual: `/var/folders/y5/5nxfxhk97_9fmsmdf8tqj81r0000gn/T/TemporaryItems/NSIRD_screencaptureui_IkmUjj/Screenshot 2026-07-16 at 2.14.37 AM.png`
+- Footer-directory source visual: `/var/folders/y5/5nxfxhk97_9fmsmdf8tqj81r0000gn/T/TemporaryItems/NSIRD_screencaptureui_s0HCB2/Screenshot 2026-07-16 at 2.11.11 AM.png`
+- Desktop implementation: `/tmp/realpdf-hero-update-desktop.png` and `/tmp/realpdf-footer-directory-desktop.png`
+- Mobile implementation: `/tmp/realpdf-footer-hero-mobile.png`
+- Focused combined comparison: `/tmp/realpdf-footer-hero-comparison.png`
+- Desktop viewport: 1440 × 1024
+- Mobile viewport tested: 390 × 844
+- State: public homepage, upload idle, navigation closed; mobile navigation additionally tested open and closed
+
+## Findings
+
+No actionable P0, P1, or P2 differences remain.
+
+- Fonts and typography: passed. The main hero headline now uses locally bundled DM Sans at weight 500, matching the reference's thinner neo-grotesque appearance. The display size, two-line wrap, tight tracking, and centered hierarchy are preserved. Supporting display headings remain intentionally heavier to maintain the existing approved system.
+- Spacing and layout rhythm: passed. The functional upload panel grew from 470 × 365 px to 620 × 400 px at desktop, with more internal padding, a stronger border, and a more prominent shadow. The footer directory follows the reference's six evenly spaced desktop columns, three-column tablet layout, and two-column small-screen layout.
+- Colors and visual tokens: passed. The new elements reuse RealPDF's existing black, muted gray, cobalt, white, and border tokens. The footer reference's subdued headings and dark links are reproduced without introducing a competing palette.
+- Image quality and asset fidelity: passed. The existing generated hero product-stage asset remains sharp and correctly cropped. The requested changes did not introduce placeholder, CSS-drawn, or approximate raster assets.
+- Copy and content: passed. The footer reproduces all six requested categories and 30 tool labels. Every label links to the corresponding RealPDF route, including honest coming-soon information pages where a workflow is not released.
+
+## Full-view comparison evidence
+
+The rendered desktop homepage shows the lighter headline and enlarged upload surface in the existing hero composition without changing the approved cobalt product stage or causing horizontal overflow. The footer directory sits below the final CTA and above the legal footer, matching the reference's wide, low-density link layout.
+
+## Focused comparison evidence
+
+`/tmp/realpdf-footer-hero-comparison.png` places both supplied references and their coded regions in one view. The headline weight and letter shapes now align closely with the supplied typography reference. The directory matches the source's column count, uppercase category hierarchy, five-link groups, muted colors, and bottom divider.
 
 ## Comparison history
 
-### Pass 1 — desktop, 1440 × 1024
+### Pass 1
 
-The approved mockup and coded implementation were placed together in one comparison view. The implementation matches the approved direction: compact white navigation, handwritten blue eyebrow with orange accent, oversized black display headline, cobalt primary action, layered blue product stage, centered white upload panel, trust strip, and cream-backed visual task lanes.
-
-- Layout and spacing: passed. The hero hierarchy, product-stage proportions, trust strip, and task-lane rhythm align with the source. The implementation adds intentional below-fold detail without changing the approved first-screen composition.
-- Typography: passed. Funnel Display, DM Sans, and Caveat reproduce the source's bold display, readable body, and handwritten accent roles.
-- Color and surfaces: passed. Cobalt, sky blue, white, black, and warm cream are consistent with the approved palette.
-- Imagery: passed. Purpose-built hero and task-workflow assets fit their measured containers without stretching, placeholder art, or unintended cropping.
-- Controls and states: passed. Buttons, links, upload panel, focus styles, drag state, progress state, error state, and mobile navigation are present and visually consistent.
-
-No P1 or P2 fidelity issues were found. Minor copy and below-fold density differences are intentional product-content adaptations, not visual defects.
-
-### Pass 2 — mobile, 390 × 844
-
-The layout was captured as a full page after the desktop comparison. Headline wrapping, upload affordance, task cards, tools, process steps, privacy panel, FAQ, final CTA, and footer all stack cleanly. `documentElement.scrollWidth` equals the 390 px viewport width, confirming no horizontal overflow.
+The first post-implementation focused comparison found no actionable P0/P1/P2 differences. No additional corrective visual iteration was required. The implementation intentionally keeps the existing RealPDF words, cobalt CTA, and product-stage imagery while matching the requested typography weight, upload-panel prominence, and footer information architecture.
 
 ## Interaction and runtime checks
 
-- Mobile navigation: open button resolved uniquely, menu appeared with the expected links, and close button resolved uniquely and dismissed it.
-- Primary upload actions: all visible “Choose a PDF” controls remain wired to the existing file-selection flow; drag-and-drop, upload progress, and error handling are preserved.
-- Task lanes: Edit, Organize, and Convert link to their working product routes.
-- Console: no errors or warnings were recorded during desktop/mobile visual and navigation checks.
-- Accessibility: semantic headings, labeled navigation regions, labeled upload region, keyboard focus styles, escape-to-close behavior, and reduced-motion support are present.
+- Mobile menu open and close controls each resolved uniquely and worked.
+- Existing Choose a PDF buttons, drag-and-drop handling, progress, error state, and privacy link remain wired to the functional upload flow.
+- Footer links are semantic router links to all 30 named tool routes.
+- Desktop document width equals the viewport width; the 390 px responsive check also reported no horizontal overflow.
+- Browser console: no errors or warnings during desktop, responsive, menu, and footer checks.
+- Automated validation: typecheck passed; lint passed with existing warnings only; 53 unit/integration tests and 47 route smoke tests passed; production audit found zero vulnerabilities.
+
+## Follow-up polish
+
+No blocking or requested polish remains.
 
 final result: passed
