@@ -7,7 +7,7 @@ describe("editor tool launch presets", () => {
   it("routes every implemented screenshot workflow to a specific editor intent", () => {
     const expectedTools = [
       "edit-pdf", "annotate-pdf", "pdf-reader", "fill-pdf", "pdf-form-filler",
-      "sign-pdf", "add-initials", "add-date-fields", "review-pdf", "comment-on-pdf",
+      "sign-pdf", "add-initials", "add-date-fields", "request-signatures", "protect-pdf", "review-pdf", "comment-on-pdf",
     ];
     expect(Object.keys(EDITOR_TOOL_PRESETS)).toEqual(expectedTools);
     expectedTools.forEach((toolId) => {
@@ -20,6 +20,8 @@ describe("editor tool launch presets", () => {
     expect(resolveEditorActiveTool("annotate-pdf", 12)).toBe("highlight");
     expect(resolveEditorActiveTool("fill-pdf", 12)).toBe("field");
     expect(resolveEditorActiveTool("add-initials", 12)).toBe("initials");
+    expect(resolveEditorActiveTool("request-signatures", 12)).toBe("field");
+    expect(resolveEditorActiveTool("protect-pdf", 12)).toBe("select");
     expect(resolveEditorActiveTool("edit-pdf", 12)).toBe("editText");
     expect(resolveEditorActiveTool("edit-pdf", 0)).toBe("text");
     expect(resolveEditorActiveTool("review-pdf", 12)).toBe("highlight");

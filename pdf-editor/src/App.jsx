@@ -90,6 +90,7 @@ import { extractPdfFormAnnotations } from "./tools/pdfFormFields.js";
 import { getPdfLoadErrorMessage, validatePdfUpload } from "./tools/pdfUploadValidation.js";
 import { drawFlattenedInputAnnotation } from "./tools/pdfEditorAnnotationExport.js";
 import { attachPdfCommentAnnotation } from "./tools/pdfCommentAnnotations.js";
+import { protectPdfBytes } from "./tools/protectPdf.js";
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
   "pdfjs-dist/build/pdf.worker.mjs",
@@ -1046,6 +1047,8 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   const [signatureModalOpen, setSignatureModalOpen] = useState(false);
   const [signatureModalMode, setSignatureModalMode] = useState("signature");
   const [shareModalOpen, setShareModalOpen] = useState(false);
+  const [signatureRequestModalOpen, setSignatureRequestModalOpen] = useState(false);
+  const [protectModalOpen, setProtectModalOpen] = useState(false);
   const [upgradeModalOpen, setUpgradeModalOpen] = useState(false);
   const [authRequiredAction, setAuthRequiredAction] = useState("");
   const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
@@ -2730,7 +2733,9 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [pages, pageIndex, selectedId, selectedDetectedTextId, selected?.type, annotations, detectedTextItems, undoStack, redoStack, saveState]);
 
-  const exportPdf = async () => {
+  const exportPdf = async (options = {}) => {
+    const shouldDownload = options?.download !== false;
+    const shouldShowResult = options?.showResult !== false;
     setIsExporting(true);
     try {
     await saveActiveDocument(true);
@@ -2936,15 +2941,55 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     }
 
     const bytes = await pdfDoc.save();
-    downloadBlob(new Blob([bytes], { type: "application/pdf" }), fileName.replace(/\.pdf$/i, "") + "-edited.pdf");
+    const exported = {
+      bytes,
+      blob: new Blob([bytes], { type: "application/pdf" }),
+      name: fileName.replace(/\.pdf$/i, "") + "-edited.pdf",
+    };
+    if (shouldDownload) downloadBlob(exported.blob, exported.name);
     setSaved(true);
     setSaveState("saved");
-    showToast("Exported PDF with current edits.");
+    if (shouldShowResult) showToast("Exported PDF with current edits.");
+    return exported;
     } catch {
       showToast("Export failed. Try saving locally, then export again.");
+      return null;
     } finally {
     setIsExporting(false);
     }
+  };
+
+  const prepareSignatureRequest = async ({ recipient, message }) => {
+    const exported = await exportPdf({ download: false, showResult: false });
+    if (!exported) throw new Error("The signing copy could not be created.");
+    const shareFile = new File([exported.blob], exported.name, { type: "application/pdf" });
+    const shareData = {
+      title: `Signature requested: ${fileName}`,
+      text: message || `Please review and sign ${fileName}.`,
+      files: [shareFile],
+    };
+
+    if (navigator.share && navigator.canShare?.(shareData)) {
+      await navigator.share(shareData);
+      showToast("Signing copy handed off to your share app.");
+    } else {
+      downloadBlob(exported.blob, exported.name);
+      const subject = encodeURIComponent(`Signature requested: ${fileName}`);
+      const body = encodeURIComponent(`${message || `Please review and sign ${fileName}.`}\n\nThe signing copy was downloaded—attach it to this message before sending.`);
+      window.location.href = `mailto:${encodeURIComponent(recipient)}?subject=${subject}&body=${body}`;
+      showToast("Signing copy downloaded. Attach it to the email draft before sending.");
+    }
+    setSignatureRequestModalOpen(false);
+  };
+
+  const protectDocument = async (password) => {
+    const exported = await exportPdf({ download: false, showResult: false });
+    if (!exported) throw new Error("The PDF could not be prepared for protection.");
+    const protectedBytes = await protectPdfBytes(exported.bytes, password);
+    const protectedName = `${exported.name.replace(/\.pdf$/i, "")}-protected.pdf`;
+    downloadBlob(new Blob([protectedBytes], { type: "application/pdf" }), protectedName);
+    setProtectModalOpen(false);
+    showToast("Protected PDF downloaded. Keep the password somewhere safe.");
   };
 
   useEffect(() => {
@@ -2994,6 +3039,8 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
         setSignatureModalMode(requestedTool === "add-initials" ? "initials" : "signature");
         setSignatureModalOpen(true);
       }
+      if (requestedTool === "request-signatures") setSignatureRequestModalOpen(true);
+      if (requestedTool === "protect-pdf") setProtectModalOpen(true);
     }
 
     if (postAuthAction === "save") {
@@ -3640,6 +3687,20 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
           fileName={fileName}
           onExport={exportPdf}
           onClose={() => setShareModalOpen(false)}
+        />
+      )}
+      {signatureRequestModalOpen && (
+        <SignatureRequestModal
+          fileName={fileName}
+          onClose={() => setSignatureRequestModalOpen(false)}
+          onPrepare={prepareSignatureRequest}
+        />
+      )}
+      {protectModalOpen && (
+        <ProtectPdfModal
+          fileName={fileName}
+          onClose={() => setProtectModalOpen(false)}
+          onProtect={protectDocument}
         />
       )}
       {upgradeModalOpen && (
@@ -5631,6 +5692,100 @@ function ShareModal({ fileName, onClose, onExport }) {
         <footer>
           <button type="button" className="modal-secondary" onClick={onClose}>Done</button>
           <button type="button" className="modal-primary" onClick={onExport}><Download size={16} /> Export PDF</button>
+        </footer>
+      </section>
+    </div>
+  );
+}
+
+function SignatureRequestModal({ fileName, onClose, onPrepare }) {
+  const [recipient, setRecipient] = useState("");
+  const [message, setMessage] = useState(`Please review and sign ${fileName}.`);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  const prepare = async () => {
+    if (!recipient || !recipient.includes("@")) {
+      setError("Enter a valid recipient email address.");
+      return;
+    }
+    setBusy(true);
+    setError("");
+    try {
+      await onPrepare({ recipient, message });
+    } catch (requestError) {
+      if (requestError?.name !== "AbortError") setError("The signing copy could not be shared. Try again or export it normally.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="Request signatures">
+      <section className="share-modal workflow-modal">
+        <header>
+          <div><h2>Request a signature</h2><p>{fileName}</p></div>
+          <button type="button" className="modal-close" onClick={onClose}><X size={18} /></button>
+        </header>
+        <div className="workflow-modal-body">
+          <p>Place signature or text fields on the page first. This creates the current PDF and hands it to your device’s share sheet; no copy is uploaded to FixThatPDF.</p>
+          <label><span>Recipient email</span><input type="email" value={recipient} onChange={(event) => setRecipient(event.target.value)} placeholder="name@example.com" /></label>
+          <label><span>Message</span><textarea value={message} onChange={(event) => setMessage(event.target.value)} rows="4" /></label>
+          <small>Local handoff does not provide reminders, completion tracking, identity checks, or an audit certificate.</small>
+          {error && <p className="workflow-error" role="alert">{error}</p>}
+        </div>
+        <footer>
+          <button type="button" className="modal-secondary" onClick={onClose}>Keep editing</button>
+          <button type="button" className="modal-primary" disabled={busy} onClick={prepare}><Send size={16} /> {busy ? "Preparing…" : "Prepare and share"}</button>
+        </footer>
+      </section>
+    </div>
+  );
+}
+
+function ProtectPdfModal({ fileName, onClose, onProtect }) {
+  const [password, setPassword] = useState("");
+  const [confirmation, setConfirmation] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  const protect = async () => {
+    if (password.length < 8) {
+      setError("Use at least 8 characters.");
+      return;
+    }
+    if (password !== confirmation) {
+      setError("The passwords do not match.");
+      return;
+    }
+    setBusy(true);
+    setError("");
+    try {
+      await onProtect(password);
+    } catch {
+      setError("Password protection failed. Your original PDF was not changed.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="Protect PDF">
+      <section className="share-modal workflow-modal">
+        <header>
+          <div><h2>Protect PDF with a password</h2><p>{fileName}</p></div>
+          <button type="button" className="modal-close" onClick={onClose}><X size={18} /></button>
+        </header>
+        <div className="workflow-modal-body">
+          <p>Real AES-256 PDF encryption runs locally in this browser. The downloaded copy will require this password to open.</p>
+          <label><span>Password</span><input type="password" autoComplete="new-password" value={password} onChange={(event) => setPassword(event.target.value)} /></label>
+          <label><span>Confirm password</span><input type="password" autoComplete="new-password" value={confirmation} onChange={(event) => setConfirmation(event.target.value)} /></label>
+          <small>There is no password recovery. Save the password separately before sharing the file.</small>
+          {error && <p className="workflow-error" role="alert">{error}</p>}
+        </div>
+        <footer>
+          <button type="button" className="modal-secondary" onClick={onClose}>Cancel</button>
+          <button type="button" className="modal-primary" disabled={busy} onClick={protect}><Lock size={16} /> {busy ? "Encrypting locally…" : "Protect and download"}</button>
         </footer>
       </section>
     </div>
