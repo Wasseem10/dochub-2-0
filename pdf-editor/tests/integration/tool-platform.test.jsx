@@ -7,6 +7,7 @@ import { MarketingHeader } from "../../src/components/public/MarketingHeader.jsx
 import { ToolDirectoryPage } from "../../src/pages/public/ToolDirectoryPage.jsx";
 import { ImageConversionPage } from "../../src/pages/public/ImageConversionPage.jsx";
 import { PdfPageToolPage } from "../../src/pages/public/PdfPageToolPage.jsx";
+import { EditorToolUploadPage } from "../../src/pages/public/EditorToolUploadPage.jsx";
 import { ToolLandingPage } from "../../src/pages/public/ToolLandingPage.jsx";
 import { TOOL_BY_ID } from "../../src/tools/toolRegistry.js";
 
@@ -46,10 +47,29 @@ describe("public PDF tool platform", () => {
     await unmount(renderer);
   });
 
-  it("shows real editor CTAs only for partial tools and no uploader for coming-soon tools", async () => {
-    const partial = await render(<ToolLandingPage tool={TOOL_BY_ID.get("sign-pdf")} />);
-    expect(partial.root.findAllByType("a").some((link) => textOf(link).includes("Open Sign PDF") && link.props.href === "/edit-pdf?tool=sign-pdf")).toBe(true);
-    expect(textOf(partial.root).includes("Identity verification")).toBe(true);
+  it("renders the large functional upload workspace for released editor tools", async () => {
+    const fileInputRef = { current: null };
+    const editor = await render(
+      <EditorToolUploadPage
+        toolId="sign-pdf"
+        fileInputRef={fileInputRef}
+        onUpload={() => {}}
+        onDropFiles={() => {}}
+        uploadError=""
+        uploadStage={{ status: "idle", percent: 0, fileName: "" }}
+      />,
+    );
+    expect(editor.root.findAllByType("input").some((input) => input.props.type === "file" && input.props.accept.includes("application/pdf"))).toBe(true);
+    expect(textOf(editor.root).includes("Sign a PDF online")).toBe(true);
+    expect(textOf(editor.root).includes("Upload from your device")).toBe(true);
+    expect(editor.root.findAllByProps({ role: "button" })).toHaveLength(1);
+    await unmount(editor);
+  });
+
+  it("keeps a limitation page for partial review tools and no uploader for coming-soon tools", async () => {
+    const partial = await render(<ToolLandingPage tool={TOOL_BY_ID.get("review-pdf")} />);
+    expect(partial.root.findAllByType("a").some((link) => textOf(link).includes("Open Review PDF") && link.props.href === "/edit-pdf?tool=review-pdf")).toBe(true);
+    expect(textOf(partial.root).includes("shared review sessions")).toBe(true);
     await unmount(partial);
 
     const coming = await render(<ToolLandingPage tool={TOOL_BY_ID.get("pdf-to-word")} />);

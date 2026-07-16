@@ -11,7 +11,7 @@ describe("editor tool launch presets", () => {
     ];
     expect(Object.keys(EDITOR_TOOL_PRESETS)).toEqual(expectedTools);
     expectedTools.forEach((toolId) => {
-      expect(TOOL_BY_ID.get(toolId)?.status).toBe("partial");
+      expect(TOOL_BY_ID.get(toolId)?.status).toBe("available");
       expect(publicEditorPath(toolId)).toBe(`/edit-pdf?tool=${toolId}`);
     });
   });

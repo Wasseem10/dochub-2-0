@@ -11,7 +11,7 @@ import { ToolLandingPage } from "../pages/public/ToolLandingPage.jsx";
 import { WorkflowUnavailablePage } from "../pages/public/WorkflowUnavailablePage.jsx";
 import { TOOL_REGISTRY } from "../tools/toolRegistry.js";
 import { getEditorToolPreset } from "../tools/editorToolPresets.js";
-import { LazyAppContent, LazyAuthRouteProvider, LazyPublicAppRoute } from "./LazyAppRoute.jsx";
+import { LazyAppContent, LazyAuthRouteProvider, LazyGuestAppRoute, LazyPublicAppRoute } from "./LazyAppRoute.jsx";
 import { ProtectedRoute } from "./ProtectedRoute.jsx";
 import { PublicOnlyRoute } from "./PublicOnlyRoute.jsx";
 import { RouteErrorBoundary } from "./RouteErrorBoundary.jsx";
@@ -27,7 +27,8 @@ export function PublicEditorRoute() {
   const [searchParams] = useSearchParams();
   const requestedTool = searchParams.get("tool") || "edit-pdf";
   const publicTool = getEditorToolPreset(requestedTool) ? requestedTool : "edit-pdf";
-  return <LazyPublicAppRoute view="landing" publicTool={publicTool} />;
+  const documentId = searchParams.get("document") || "";
+  return <LazyGuestAppRoute view={documentId ? "public-editor" : "tool-upload"} publicTool={publicTool} documentId={documentId} />;
 }
 
 const publicPlaceholderRouteObjects = PUBLIC_PLACEHOLDER_ROUTES.map((route) => ({
@@ -43,6 +44,8 @@ const toolRouteObjects = TOOL_REGISTRY
       ? <ImageConversionPage tool={tool} />
       : tool.workflowType === "page-tool"
         ? <PdfPageToolPage tool={tool} />
+        : tool.workflowType === "editor"
+          ? <LazyGuestAppRoute view="tool-upload" publicTool={tool.id} />
         : <ToolLandingPage tool={tool} />,
   }));
 
