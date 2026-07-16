@@ -1,3 +1,5 @@
+import { absoluteSiteUrl } from "../config/site.js";
+
 /** @typedef {"available" | "beta" | "partial" | "coming-soon"} ToolStatus */
 /** @typedef {[string, string, string, string, string, ToolStatus, string[], string[], string]} ToolDefinition */
 /** @typedef {{ question: string, answer: string }} FaqEntry */
@@ -51,7 +53,7 @@ export const TOOL_CATEGORIES = Object.freeze([
 ]);
 
 const PARTIAL_EDITOR_LIMIT = "This workflow opens the current browser editor. Supported edits are flattened during export, and source formatting or interactive PDF features may not be preserved.";
-const COMING_SOON_LIMIT = "This tool is not implemented yet. FixThatPDF does not upload or process files for this workflow today.";
+const COMING_SOON_LIMIT = "This tool is not implemented yet. RealPDF does not upload or process files for this workflow today.";
 const DEDICATED_CONVERTER_IDS = new Set(["pdf-to-word", "pdf-to-jpg", "pdf-to-png", "word-to-pdf", "jpg-to-pdf", "png-to-pdf"]);
 const DEDICATED_PAGE_TOOL_IDS = new Set(["merge-pdf", "split-pdf", "rotate-pdf", "delete-pdf-pages", "extract-pdf-pages", "reorder-pdf-pages", "organize-pdf"]);
 
@@ -122,7 +124,7 @@ const definitions = [
   ["extract-data-from-pdf", "Extract Data from PDF", "Pull selected fields, tables, and structured records from a PDF.", "ai", "database", "coming-soon", ["application/pdf"], ["application/json", "text/csv"], "Schema selection, table extraction, validation, and structured export are not implemented."],
   ["ask-pdf", "Ask Questions About PDF", "Ask a focused question and receive an answer with source references.", "ai", "question", "coming-soon", ["application/pdf"], [], "Question answering and source-reference verification are not implemented."],
   ["ai-question-generator", "AI Question Generator", "Create study or review questions from a document's actual content.", "ai", "question", "coming-soon", ["application/pdf"], ["text/plain"], "Document-based question generation and answer-key validation are not implemented."],
-  ["contract-analyzer", "Contract Analyzer", "Identify clauses, obligations, dates, and areas that may need review.", "ai", "contract", "coming-soon", ["application/pdf"], [], "Clause extraction is not implemented and FixThatPDF does not provide legal advice."],
+  ["contract-analyzer", "Contract Analyzer", "Identify clauses, obligations, dates, and areas that may need review.", "ai", "contract", "coming-soon", ["application/pdf"], [], "Clause extraction is not implemented and RealPDF does not provide legal advice."],
   ["resume-analyzer", "Resume Analyzer", "Review resume structure and surface role-relevant content for a user to assess.", "ai", "resume", "coming-soon", ["application/pdf"], [], "Resume analysis, job matching, and scoring are not implemented."],
 
   ["compare-pdf", "Compare PDFs", "Compare two PDFs and identify page-level or content-level differences.", "compare-review", "compare", "coming-soon", ["application/pdf"], ["application/pdf"], "Two-document comparison and difference visualization are not implemented."],
@@ -143,7 +145,7 @@ const CATEGORY_BY_ID = new Map(TOOL_CATEGORIES.map((category) => [category.id, c
 const categoryContent = {
   "edit-view": {
     benefit: "Work directly on familiar PDF pages without rebuilding the document from scratch.",
-    steps: ["Open the PDF in the FixThatPDF editor.", "Choose the supported editing or viewing control you need.", "Review the result and export a new PDF when ready."],
+    steps: ["Open the PDF in the RealPDF editor.", "Choose the supported editing or viewing control you need.", "Review the result and export a new PDF when ready."],
     uses: ["Correcting a document before delivery", "Marking up a draft for personal review", "Completing a form-like document"],
   },
   organize: {
@@ -234,7 +236,7 @@ function buildBaseTool([slug, name, shortDescription, category, icon, status, su
     route,
     name,
     shortDescription,
-    longDescription: `${shortDescription} ${isUsable ? hasDedicatedWorkflow ? "Use the dedicated FixThatPDF workflow and review the downloaded result carefully." : "Use the supported workflow in the current FixThatPDF editor and review the exported result carefully." : "The page explains the intended workflow without pretending that file processing is available."}`,
+    longDescription: `${shortDescription} ${isUsable ? hasDedicatedWorkflow ? "Use the dedicated RealPDF workflow and review the downloaded result carefully." : "Use the supported workflow in the current RealPDF editor and review the exported result carefully." : "The page explains the intended workflow without pretending that file processing is available."}`,
     category,
     categoryName: categoryRecord.name,
     icon,
@@ -247,8 +249,8 @@ function buildBaseTool([slug, name, shortDescription, category, icon, status, su
     workflowType: isDedicatedConverter ? "converter" : isDedicatedPageTool ? "page-tool" : isUsable ? "editor" : "information",
     currentLimitations: currentLimitations || (isUsable ? PARTIAL_EDITOR_LIMIT : COMING_SOON_LIMIT),
     availabilityLabel,
-    seoTitle: `${name} Online | FixThatPDF`,
-    metaDescription: `${shortDescription} See current availability, supported formats, and limitations in FixThatPDF.`,
+    seoTitle: `${name} Online | RealPDF`,
+    metaDescription: `${shortDescription} See current availability, supported formats, and limitations in RealPDF.`,
     heroHeadline: `${name}, with honest limits`,
     heroSubheadline: shortDescription,
     benefits: [content.benefit, `Inputs: ${inputLabel}.`, `Outputs: ${outputLabel}.`],
@@ -256,11 +258,11 @@ function buildBaseTool([slug, name, shortDescription, category, icon, status, su
     useCases: content.uses,
     faqEntries: [
       { question: `What does ${name} do?`, answer: shortDescription },
-      { question: `Is ${name} available in FixThatPDF today?`, answer: `${availabilityLabel}. ${currentLimitations}` },
+      { question: `Is ${name} available in RealPDF today?`, answer: `${availabilityLabel}. ${currentLimitations}` },
       { question: `What should I verify after using ${name}?`, answer: isUsable ? "Open the exported PDF, check every changed page, and confirm that text, images, signatures, and page order look correct before sharing it." : "No file is processed today. Use the related available editor workflows shown on this page, and return when this tool is implemented." },
     ],
     relatedTools: /** @type {string[]} */ ([]),
-    canonicalUrl: `https://fixthatpdf.com${route}`,
+    canonicalUrl: absoluteSiteUrl(route),
     schemaType: isUsable ? "SoftwareApplication" : "WebPage",
   };
 }
@@ -277,6 +279,25 @@ export const TOOL_REGISTRY = Object.freeze(builtTools.map((tool) => ({
 
 export const TOOL_BY_ID = new Map(TOOL_REGISTRY.map((tool) => [tool.id, tool]));
 export const TOOL_BY_ROUTE = new Map(TOOL_REGISTRY.map((tool) => [tool.route, tool]));
+
+export const POPULAR_TOOL_IDS = Object.freeze([
+  "edit-pdf",
+  "annotate-pdf",
+  "fill-pdf",
+  "pdf-form-filler",
+  "sign-pdf",
+  "merge-pdf",
+  "split-pdf",
+  "organize-pdf",
+  "rotate-pdf",
+  "delete-pdf-pages",
+  "pdf-to-jpg",
+  "pdf-to-png",
+  "jpg-to-pdf",
+  "png-to-pdf",
+]);
+
+export const POPULAR_TOOLS = Object.freeze(POPULAR_TOOL_IDS.map((id) => TOOL_BY_ID.get(id)).filter((tool) => tool && tool.status !== "coming-soon"));
 
 /** @param {string} slug */
 export function getToolBySlug(slug) {
@@ -318,4 +339,4 @@ export function validateToolRegistry(tools = TOOL_REGISTRY) {
 }
 
 const registryErrors = validateToolRegistry();
-if (registryErrors.length) throw new Error(`Invalid FixThatPDF tool registry:\n${registryErrors.join("\n")}`);
+if (registryErrors.length) throw new Error(`Invalid RealPDF tool registry:\n${registryErrors.join("\n")}`);

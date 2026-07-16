@@ -1,4 +1,8 @@
 User-agent: *
 Allow: /
+Disallow: /app/
+Disallow: /login
+Disallow: /signup
+Disallow: /forgot-password
 
-Sitemap: https://fixthatpdf.com/sitemap.xml
+Sitemap: http://localhost:4173/sitemap.xml
