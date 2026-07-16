@@ -17,16 +17,15 @@ describe("FixThatPDF tool registry", () => {
     TOOL_REGISTRY.forEach((tool) => requiredFields.forEach((field) => expect(tool, `${tool.id}.${field}`).toHaveProperty(field)));
   });
 
-  it("truthfully exposes released editor workflows and the remaining review limitations", () => {
+  it("truthfully exposes released editor and conversion workflows", () => {
     const counts = Object.groupBy(TOOL_REGISTRY, (tool) => tool.status);
-    expect(counts.partial).toHaveLength(2);
-    expect(counts.available).toHaveLength(20);
-    expect(counts.beta).toHaveLength(2);
+    expect(counts.partial || []).toHaveLength(0);
+    expect(counts.available).toHaveLength(24);
+    expect(counts.beta || []).toHaveLength(0);
     expect(counts["coming-soon"]).toHaveLength(44);
-    expect(TOOL_REGISTRY.filter((tool) => tool.workflowType === "converter").every((tool) => tool.uploadEnabled && !tool.opensEditor && ["available", "beta"].includes(tool.status))).toBe(true);
+    expect(TOOL_REGISTRY.filter((tool) => tool.workflowType === "converter").every((tool) => tool.uploadEnabled && !tool.opensEditor && tool.status === "available")).toBe(true);
     expect(TOOL_REGISTRY.filter((tool) => tool.workflowType === "page-tool").every((tool) => tool.uploadEnabled && !tool.opensEditor && tool.status === "available")).toBe(true);
-    expect(TOOL_REGISTRY.filter((tool) => tool.workflowType === "editor").every((tool) => tool.opensEditor && ["available", "partial"].includes(tool.status))).toBe(true);
-    expect(TOOL_REGISTRY.filter((tool) => tool.status === "partial").map((tool) => tool.id).sort()).toEqual(["comment-on-pdf", "review-pdf"]);
+    expect(TOOL_REGISTRY.filter((tool) => tool.workflowType === "editor").every((tool) => tool.opensEditor && tool.status === "available")).toBe(true);
     expect(TOOL_REGISTRY.filter((tool) => tool.status === "coming-soon").every((tool) => !tool.uploadEnabled && !tool.opensEditor)).toBe(true);
   });
 

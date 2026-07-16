@@ -69,11 +69,15 @@ describe("public PDF tool platform", () => {
     await unmount(editor);
   });
 
-  it("keeps a limitation page for partial review tools and no uploader for coming-soon tools", async () => {
-    const partial = await render(<ToolLandingPage tool={TOOL_BY_ID.get("review-pdf")} />);
-    expect(partial.root.findAllByType("a").some((link) => textOf(link).includes("Open Review PDF") && link.props.href === "/edit-pdf?tool=review-pdf")).toBe(true);
-    expect(textOf(partial.root).includes("shared review sessions")).toBe(true);
-    await unmount(partial);
+  it("opens complete review tools and keeps unavailable tools informational", async () => {
+    const review = await render(<EditorToolUploadPage toolId="review-pdf" fileInputRef={{ current: null }} onUpload={() => {}} onDropFiles={() => {}} uploadError="" uploadStage={{ status: "idle" }} />);
+    expect(textOf(review.root).includes("Review a PDF online")).toBe(true);
+    expect(review.root.findAllByType("input").some((input) => input.props.type === "file")).toBe(true);
+    await unmount(review);
+
+    const comment = await render(<EditorToolUploadPage toolId="comment-on-pdf" fileInputRef={{ current: null }} onUpload={() => {}} onDropFiles={() => {}} uploadError="" uploadStage={{ status: "idle" }} />);
+    expect(textOf(comment.root).includes("Comment on a PDF online")).toBe(true);
+    await unmount(comment);
 
     const coming = await render(<ToolLandingPage tool={TOOL_BY_ID.get("pdf-to-excel")} />);
     expect(coming.root.findAllByType("input")).toHaveLength(0);
@@ -95,17 +99,17 @@ describe("public PDF tool platform", () => {
     await unmount(fromPdf);
   });
 
-  it("renders honest beta workspaces for Office conversions", async () => {
+  it("renders complete browser workspaces for Office conversions", async () => {
     const toWord = await render(<OfficeConversionPage tool={TOOL_BY_ID.get("pdf-to-word")} />);
     expect(toWord.root.findAllByType("input").some((input) => input.props.type === "file" && input.props.accept.includes("application/pdf"))).toBe(true);
     expect(toWord.root.findAllByType("option").map((option) => textOf(option))).toEqual(["Editable text", "Visual fidelity"]);
-    expect(textOf(toWord.root).includes("Complex columns, tables, fonts, and exact spacing can change.")).toBe(true);
+    expect(textOf(toWord.root).includes("page breaks, indentation, vertical spacing")).toBe(true);
     await unmount(toWord);
 
     const toPdf = await render(<OfficeConversionPage tool={TOOL_BY_ID.get("word-to-pdf")} />);
     expect(toPdf.root.findAllByType("input").some((input) => input.props.type === "file" && input.props.accept.includes(".docx"))).toBe(true);
     expect(textOf(toPdf.root).includes("Legacy .doc files are not supported yet.")).toBe(true);
-    expect(textOf(toPdf.root).includes("PDF text will not be selectable")).toBe(true);
+    expect(textOf(toPdf.root).includes("searchable and selectable")).toBe(true);
     await unmount(toPdf);
   });
 

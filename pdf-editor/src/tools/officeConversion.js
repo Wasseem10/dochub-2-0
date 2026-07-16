@@ -8,7 +8,7 @@ import {
   Paragraph,
   TextRun,
 } from "docx";
-import { PDFDocument } from "pdf-lib";
+import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 
 export const OFFICE_CONVERSION_LIMITS = Object.freeze({
   maxInputBytes: 20 * 1024 * 1024,
@@ -44,7 +44,7 @@ function joinPdfLineItems(items) {
   }, "").replace(/\s+/g, " ").trim();
 }
 
-export function groupPdfTextItems(items = []) {
+export function groupPdfTextItems(items = [], styles = {}) {
   const positioned = items
     .filter((item) => String(item?.str || "").trim())
     .map((item) => ({
@@ -52,6 +52,9 @@ export function groupPdfTextItems(items = []) {
       x: Number(item.transform?.[4] || 0),
       y: Number(item.transform?.[5] || 0),
       fontSize: Math.max(6, Math.abs(Number(item.transform?.[3] || item.height || 11))),
+      fontFamily: styles[item.fontName]?.fontFamily || "",
+      bold: /bold|black|heavy|semibold|demi/i.test(`${item.fontName || ""} ${styles[item.fontName]?.fontFamily || ""}`),
+      italic: /italic|oblique/i.test(`${item.fontName || ""} ${styles[item.fontName]?.fontFamily || ""}`),
     }))
     .sort((a, b) => Math.abs(b.y - a.y) > Math.max(a.fontSize, b.fontSize) * 0.45 ? b.y - a.y : a.x - b.x);
 
@@ -69,15 +72,49 @@ export function groupPdfTextItems(items = []) {
 
   return lines
     .sort((a, b) => b.y - a.y)
-    .map((line) => ({
-      text: joinPdfLineItems(line.items.sort((a, b) => a.x - b.x)),
-      fontSize: line.fontSize,
-    }))
+    .map((line) => {
+      const orderedItems = line.items.sort((a, b) => a.x - b.x);
+      const text = joinPdfLineItems(orderedItems);
+      const segments = [];
+      orderedItems.forEach((item, index) => {
+        const value = String(item.str || "").trim();
+        if (!value) return;
+        const previous = orderedItems[index - 1];
+        const previousEnd = Number(previous?.x || 0) + Number(previous?.width || 0);
+        const needsSpace = index > 0
+          && Number(item.x || 0) - previousEnd > Math.max(5, item.fontSize) * 0.12
+          && !/[-/(‘“]$/.test(segments.at(-1)?.text || "")
+          && !/^[,.;:!?%)/’”]/.test(value);
+        segments.push({
+          text: `${needsSpace ? " " : ""}${value}`,
+          fontSize: item.fontSize,
+          fontFamily: item.fontFamily,
+          bold: item.bold,
+          italic: item.italic,
+        });
+      });
+      const left = Math.min(...orderedItems.map((item) => item.x));
+      const right = Math.max(...orderedItems.map((item) => item.x + Number(item.width || 0)));
+      return {
+        text,
+        segments,
+        x: left,
+        y: line.y,
+        width: Math.max(0, right - left),
+        fontSize: line.fontSize,
+      };
+    })
     .filter((line) => line.text);
 }
 
 function docxPageBreak() {
   return new Paragraph({ children: [new PageBreak()] });
+}
+
+function safeWordFont(value = "") {
+  if (/times|serif/i.test(value)) return "Times New Roman";
+  if (/courier|mono/i.test(value)) return "Courier New";
+  return "Arial";
 }
 
 function editablePageParagraphs(page, pageIndex, baseFontSize) {
@@ -87,12 +124,30 @@ function editablePageParagraphs(page, pageIndex, baseFontSize) {
     children.push(new Paragraph({ children: [new TextRun({ text: "This page does not contain extractable text.", italics: true, color: "64748B" })] }));
     return children;
   }
-  page.lines.forEach((line) => {
+  let previousTop = 0;
+  page.lines.forEach((line, lineIndex) => {
     const heading = line.fontSize >= baseFontSize * 1.45 && line.text.length <= 140;
+    const pageWidth = Math.max(1, Number(page.pageWidth || 612));
+    const pageHeight = Math.max(1, Number(page.pageHeight || 792));
+    const top = Math.max(0, pageHeight - Number(line.y || pageHeight));
+    const verticalGap = lineIndex ? Math.max(0, top - previousTop - line.fontSize * 1.15) : Math.max(0, top - 28);
+    previousTop = top;
+    const leftIndent = Math.round(Math.max(0, Math.min(0.78, Number(line.x || 0) / pageWidth)) * 10080);
+    const centered = Math.abs((Number(line.x || 0) + Number(line.width || 0) / 2) - pageWidth / 2) < pageWidth * 0.045
+      && Number(line.width || 0) < pageWidth * 0.82;
+    const runs = (line.segments?.length ? line.segments : [{ text: line.text, fontSize: line.fontSize }]).map((segment) => new TextRun({
+      text: segment.text,
+      size: Math.round(Math.max(8, Math.min(36, Number(segment.fontSize || line.fontSize || 11))) * 2),
+      font: safeWordFont(segment.fontFamily),
+      bold: heading || Boolean(segment.bold),
+      italics: Boolean(segment.italic),
+    }));
     children.push(new Paragraph({
       heading: heading ? HeadingLevel.HEADING_1 : undefined,
-      spacing: heading ? { before: 180, after: 100 } : { after: 80, line: 276 },
-      children: [new TextRun({ text: line.text, size: heading ? 30 : 22, bold: heading })],
+      alignment: centered ? AlignmentType.CENTER : undefined,
+      indent: centered ? undefined : { left: leftIndent },
+      spacing: { before: Math.min(720, Math.round(verticalGap * 20)), after: heading ? 80 : 20, line: 276 },
+      children: runs,
     }));
   });
   return children;
@@ -150,6 +205,9 @@ export async function createPdfFromRenderedDocxPages(pages, options = {}) {
   if (!Array.isArray(pages) || !pages.length) throw new Error("No rendered Word pages were provided.");
   if (pages.length > OFFICE_CONVERSION_LIMITS.maxPages) throw new Error(`Word to PDF supports up to ${OFFICE_CONVERSION_LIMITS.maxPages} pages.`);
   const pdf = await PDFDocument.create();
+  const searchableFont = pages.some((page) => page.textItems?.length)
+    ? await pdf.embedFont(StandardFonts.Helvetica)
+    : null;
   for (const renderedPage of pages) {
     const bytes = renderedPage.bytes instanceof Uint8Array ? renderedPage.bytes : new Uint8Array(renderedPage.bytes);
     const image = await pdf.embedPng(bytes);
@@ -159,8 +217,19 @@ export async function createPdfFromRenderedDocxPages(pages, options = {}) {
     const height = isLetterLike ? 792 : Math.min(1008, Math.max(432, width * aspect));
     const page = pdf.addPage([width, height]);
     page.drawImage(image, { x: 0, y: 0, width, height });
+    if (searchableFont) {
+      (renderedPage.textItems || []).forEach((item) => {
+        const text = String(item.text || "").trim();
+        if (!text) return;
+        const x = Math.max(0, Math.min(width - 2, Number(item.x || 0) * width));
+        const y = Math.max(0, Math.min(height - 2, height - (Number(item.y || 0) + Number(item.h || 0)) * height));
+        const size = Math.max(4, Math.min(72, Number(item.h || 0.018) * height * 0.82));
+        page.drawText(text, { x, y, size, font: searchableFont, color: rgb(0, 0, 0), opacity: 0 });
+      });
+    }
   }
   pdf.setTitle(options.title || "Converted Word document");
   pdf.setCreator("FixThatPDF");
+  pdf.setProducer("FixThatPDF browser conversion");
   return pdf.save();
 }

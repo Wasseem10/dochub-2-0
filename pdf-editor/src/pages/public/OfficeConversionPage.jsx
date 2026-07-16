@@ -45,6 +45,35 @@ function formatBytes(bytes) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+function collectRenderedTextItems(pageElement) {
+  const pageBounds = pageElement.getBoundingClientRect();
+  if (!pageBounds.width || !pageBounds.height) return [];
+  const walker = document.createTreeWalker(pageElement, window.NodeFilter.SHOW_TEXT);
+  const textItems = [];
+  let node = walker.nextNode();
+  while (node) {
+    const value = node.nodeValue || "";
+    for (const match of value.matchAll(/\S+/g)) {
+      const range = document.createRange();
+      range.setStart(node, match.index);
+      range.setEnd(node, match.index + match[0].length);
+      const rect = range.getBoundingClientRect();
+      if (rect.width > 0 && rect.height > 0) {
+        textItems.push({
+          text: match[0],
+          x: Math.max(0, Math.min(1, (rect.left - pageBounds.left) / pageBounds.width)),
+          y: Math.max(0, Math.min(1, (rect.top - pageBounds.top) / pageBounds.height)),
+          w: Math.max(0, Math.min(1, rect.width / pageBounds.width)),
+          h: Math.max(0, Math.min(1, rect.height / pageBounds.height)),
+        });
+      }
+      range.detach();
+    }
+    node = walker.nextNode();
+  }
+  return textItems;
+}
+
 function friendlyPdfError(error) {
   const message = String(error?.message || "").toLowerCase();
   if (error?.name === "PasswordException" || message.includes("password")) return "This PDF is encrypted. Remove its password with an authorized tool, then try again.";
@@ -103,6 +132,7 @@ function PdfToWordWorkspace() {
       for (let pageNumber = 1; pageNumber <= documentProxy.numPages; pageNumber += 1) {
         const page = await documentProxy.getPage(pageNumber);
         const textContent = await page.getTextContent();
+        const sourceViewport = page.getViewport({ scale: 1 });
         const previewViewport = page.getViewport({ scale: 0.32 });
         const canvas = document.createElement("canvas");
         canvas.width = Math.max(1, Math.round(previewViewport.width));
@@ -113,10 +143,12 @@ function PdfToWordWorkspace() {
         previewUrlsRef.current.push(previewUrl);
         pageRecords.push({
           pageNumber,
-          lines: groupPdfTextItems(textContent.items),
+          lines: groupPdfTextItems(textContent.items, textContent.styles),
           previewUrl,
           width: previewViewport.width,
           height: previewViewport.height,
+          pageWidth: sourceViewport.width,
+          pageHeight: sourceViewport.height,
         });
         setProgress(Math.round((pageNumber / documentProxy.numPages) * 100));
       }
@@ -186,7 +218,7 @@ function PdfToWordWorkspace() {
         <span>Word settings</span>
         <h2>Choose the result</h2>
         <label>Conversion mode<select value={mode} onChange={(event) => setMode(event.target.value)}><option value="editable">Editable text</option><option value="visual">Visual fidelity</option></select></label>
-        <div className="office-mode-note"><strong>{mode === "editable" ? "Best for editing" : "Best for appearance"}</strong><p>{mode === "editable" ? "Rebuilds selectable PDF text as Word paragraphs. Complex columns, tables, fonts, and exact spacing can change." : "Places each PDF page into Word as a high-quality image. The layout is preserved, but page text is not editable."}</p></div>
+        <div className="office-mode-note"><strong>{mode === "editable" ? "Best for editing" : "Best for appearance"}</strong><p>{mode === "editable" ? "Rebuilds selectable text with page breaks, indentation, vertical spacing, common font styling, and heading detection." : "Places each PDF page into Word as a high-quality image so the original page appearance stays intact."}</p></div>
         <div className="conversion-summary"><Check size={18} /><span>{pages.length ? `${pages.length} page${pages.length === 1 ? "" : "s"} ready` : "Add a PDF to continue"}</span></div>
         {status === "converting" && <div className="conversion-progress-bar"><i style={{ width: `${progress}%` }} /></div>}
         <button className="conversion-primary-action" type="button" disabled={!pages.length || status === "reading" || status === "converting"} onClick={convert}>{status === "converting" ? <><LoaderCircle className="is-spinning" size={18} /> Converting {progress}%</> : <><Download size={18} /> Download DOCX</>}</button>
@@ -202,6 +234,7 @@ function WordToPdfWorkspace() {
   const [status, setStatus] = useState("idle");
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState("");
+  const [searchableWordCount, setSearchableWordCount] = useState(0);
   const renderHostRef = useRef(null);
 
   const loadDocx = async (nextFile) => {
@@ -209,6 +242,7 @@ function WordToPdfWorkspace() {
     const validationError = validateOfficeConversionFile(nextFile, "docx");
     if (validationError) { setError(validationError); return; }
     setStatus("reading");
+    setSearchableWordCount(0);
     setError("");
     try {
       setBuffer(await nextFile.arrayBuffer());
@@ -248,10 +282,12 @@ function WordToPdfWorkspace() {
       for (let index = 0; index < pageElements.length; index += 1) {
         const pageCanvas = await html2canvas(pageElements[index], { scale: 1.5, backgroundColor: "#ffffff", useCORS: true, logging: false });
         if (pageCanvas.width * pageCanvas.height > OFFICE_CONVERSION_LIMITS.maxRenderedPixels) throw new Error(`Page ${index + 1} is too large to convert safely in this browser.`);
-        renderedPages.push({ bytes: await canvasToPngBytes(pageCanvas) });
+        const textItems = collectRenderedTextItems(pageElements[index]);
+        renderedPages.push({ bytes: await canvasToPngBytes(pageCanvas), textItems });
         setProgress(Math.round(10 + ((index + 1) / pageElements.length) * 80));
       }
       const bytes = await createPdfFromRenderedDocxPages(renderedPages, { title: file.name.replace(/\.docx$/i, "") });
+      setSearchableWordCount(renderedPages.reduce((total, page) => total + page.textItems.length, 0));
       setProgress(100);
       downloadBytes(bytes, "application/pdf", `${file.name.replace(/\.docx$/i, "") || "fixthatpdf-document"}.pdf`);
       setStatus("complete");
@@ -276,11 +312,11 @@ function WordToPdfWorkspace() {
       <aside className="conversion-settings-card">
         <span>PDF settings</span>
         <h2>Preserve the visible pages</h2>
-        <div className="office-mode-note"><strong>Browser-rendered PDF</strong><p>FixThatPDF renders the DOCX pages as high-resolution images. The appearance is retained, but PDF text will not be selectable and exact Microsoft Word pagination can vary.</p></div>
+        <div className="office-mode-note"><strong>Visual pages + searchable text</strong><p>FixThatPDF renders each DOCX page at high resolution, then adds an invisible text layer so words remain searchable and selectable in standard PDF readers.</p></div>
         <div className="conversion-summary"><Check size={18} /><span>{file ? "DOCX ready to convert" : "Add a DOCX to continue"}</span></div>
         {status === "converting" && <div className="conversion-progress-bar"><i style={{ width: `${progress}%` }} /></div>}
         <button className="conversion-primary-action" type="button" disabled={!file || status === "reading" || status === "converting"} onClick={convert}>{status === "converting" ? <><LoaderCircle className="is-spinning" size={18} /> Converting {progress}%</> : <><Download size={18} /> Download PDF</>}</button>
-        {status === "complete" && <p className="conversion-success">Your PDF is ready.</p>}
+        {status === "complete" && <p className="conversion-success">Your searchable PDF is ready{searchableWordCount ? ` with ${searchableWordCount} selectable words` : ""}.</p>}
       </aside>
     </div>
   );
@@ -294,10 +330,10 @@ export function OfficeConversionPage({ tool }) {
       <PageMetadata title={tool.seoTitle} description={tool.metaDescription} canonicalUrl={tool.canonicalUrl} schemas={[schema]} />
       <nav className="tool-breadcrumbs" aria-label="Breadcrumb"><Link to={ROUTE_PATHS.tools}>PDF tools</Link><span>/</span><span aria-current="page">{tool.name}</span></nav>
       <section className="conversion-hero">
-        <div><small>Beta · runs in your browser</small><h1>{tool.name} online.</h1><p>{tool.shortDescription} Free to use and ready in seconds.</p></div>
+        <div><small>Available · runs in your browser</small><h1>{tool.name} online.</h1><p>{tool.shortDescription} Free to use and ready in seconds.</p></div>
       </section>
       {pdfToWord ? <PdfToWordWorkspace /> : <WordToPdfWorkspace />}
-      <section className="conversion-privacy-note"><Check size={19} /><div><strong>Private browser processing</strong><p>This beta conversion runs locally in your browser. FixThatPDF does not upload the file to an Office, OCR, or AI service.</p></div></section>
+      <section className="conversion-privacy-note"><Check size={19} /><div><strong>Private browser processing</strong><p>This conversion runs locally in your browser. FixThatPDF does not upload the file to an Office, OCR, or AI service.</p></div></section>
     </main>
   );
 }
