@@ -1,51 +1,40 @@
-# RealPDF footer, headline, and upload-panel design QA
+# RealPDF upload-stage refinement QA
 
 ## Source and implementation
 
-- Headline source visual: `/var/folders/y5/5nxfxhk97_9fmsmdf8tqj81r0000gn/T/TemporaryItems/NSIRD_screencaptureui_IkmUjj/Screenshot 2026-07-16 at 2.14.37 AM.png`
-- Footer-directory source visual: `/var/folders/y5/5nxfxhk97_9fmsmdf8tqj81r0000gn/T/TemporaryItems/NSIRD_screencaptureui_s0HCB2/Screenshot 2026-07-16 at 2.11.11 AM.png`
-- Desktop implementation: `/tmp/realpdf-hero-update-desktop.png` and `/tmp/realpdf-footer-directory-desktop.png`
-- Mobile implementation: `/tmp/realpdf-footer-hero-mobile.png`
-- Focused combined comparison: `/tmp/realpdf-footer-hero-comparison.png`
-- Desktop viewport: 1440 × 1024
-- Mobile viewport tested: 390 × 844
-- State: public homepage, upload idle, navigation closed; mobile navigation additionally tested open and closed
+- Source visual truth: `/tmp/realpdf-hero-update-desktop.png` (the previously approved homepage before this scoped adjustment)
+- Browser-rendered implementation: `/tmp/realpdf-raised-upload-stage.png`
+- Combined comparison: `/tmp/realpdf-raised-upload-comparison.png`
+- Viewport: 1440 × 1024
+- State: public homepage, upload idle, navigation closed
 
 ## Findings
 
-No actionable P0, P1, or P2 differences remain.
+No actionable P0, P1, or P2 issues remain.
 
-- Fonts and typography: passed. The main hero headline now uses locally bundled DM Sans at weight 500, matching the reference's thinner neo-grotesque appearance. The display size, two-line wrap, tight tracking, and centered hierarchy are preserved. Supporting display headings remain intentionally heavier to maintain the existing approved system.
-- Spacing and layout rhythm: passed. The functional upload panel grew from 470 × 365 px to 620 × 400 px at desktop, with more internal padding, a stronger border, and a more prominent shadow. The footer directory follows the reference's six evenly spaced desktop columns, three-column tablet layout, and two-column small-screen layout.
-- Colors and visual tokens: passed. The new elements reuse RealPDF's existing black, muted gray, cobalt, white, and border tokens. The footer reference's subdued headings and dark links are reproduced without introducing a competing palette.
-- Image quality and asset fidelity: passed. The existing generated hero product-stage asset remains sharp and correctly cropped. The requested changes did not introduce placeholder, CSS-drawn, or approximate raster assets.
-- Copy and content: passed. The footer reproduces all six requested categories and 30 tool labels. Every label links to the corresponding RealPDF route, including honest coming-soon information pages where a workflow is not released.
+- Fonts and typography: unchanged and passed. The lighter DM Sans hero headline, supporting copy, and upload typography retain their approved sizes, weights, wrapping, and hierarchy.
+- Spacing and layout rhythm: passed. The gap between the hero copy and the blue product stage is now 26 px instead of 46 px, making the stage visible 20 px sooner. The white upload panel is 660 px wide instead of 620 px while preserving its 400 px height, centered alignment, internal padding, radius, and shadow.
+- Colors and visual tokens: unchanged and passed. The cobalt stage, white upload panel, gray dashed border, and surrounding white space remain consistent with the approved palette.
+- Image quality and asset fidelity: unchanged and passed. The existing hero product-stage asset remains sharp, correctly cropped, and unobstructed by the wider functional panel.
+- Copy and content: unchanged and passed. Upload instructions, file limits, privacy link, and primary action remain intact.
 
-## Full-view comparison evidence
+## Full-view and focused comparison evidence
 
-The rendered desktop homepage shows the lighter headline and enlarged upload surface in the existing hero composition without changing the approved cobalt product stage or causing horizontal overflow. The footer directory sits below the final CTA and above the legal footer, matching the reference's wide, low-density link layout.
+The full hero remains balanced and free of horizontal overflow. The combined before/after comparison clearly shows the blue stage beginning higher in the viewport and the centered white upload surface gaining a modest 40 px of width. The change is visually noticeable without crowding the decorative PDF elements.
 
-## Focused comparison evidence
-
-`/tmp/realpdf-footer-hero-comparison.png` places both supplied references and their coded regions in one view. The headline weight and letter shapes now align closely with the supplied typography reference. The directory matches the source's column count, uppercase category hierarchy, five-link groups, muted colors, and bottom divider.
+No separate tighter crop was required because the combined 1440 × 1024 comparison keeps the headline, CTA, blue stage edge, complete upload panel, and surrounding artwork readable at once.
 
 ## Comparison history
 
 ### Pass 1
 
-The first post-implementation focused comparison found no actionable P0/P1/P2 differences. No additional corrective visual iteration was required. The implementation intentionally keeps the existing RealPDF words, cobalt CTA, and product-stage imagery while matching the requested typography weight, upload-panel prominence, and footer information architecture.
+The first post-change comparison found no P0/P1/P2 issues. No corrective iteration was required.
 
 ## Interaction and runtime checks
 
-- Mobile menu open and close controls each resolved uniquely and worked.
-- Existing Choose a PDF buttons, drag-and-drop handling, progress, error state, and privacy link remain wired to the functional upload flow.
-- Footer links are semantic router links to all 30 named tool routes.
-- Desktop document width equals the viewport width; the 390 px responsive check also reported no horizontal overflow.
-- Browser console: no errors or warnings during desktop, responsive, menu, and footer checks.
-- Automated validation: typecheck passed; lint passed with existing warnings only; 53 unit/integration tests and 47 route smoke tests passed; production audit found zero vulnerabilities.
-
-## Follow-up polish
-
-No blocking or requested polish remains.
+- Existing Choose a PDF, drag-and-drop, progress, error, and privacy-link behavior is unchanged.
+- Desktop viewport and document scroll width both measured 1440 px.
+- Browser console reported no errors or warnings.
+- Typecheck and lint passed; lint retains only the repository's existing warnings.
 
 final result: passed
