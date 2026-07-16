@@ -36,6 +36,25 @@ main.editor-shell .file-header {
   box-shadow: none !important;
 }
 
+main.editor-shell .editor-home-button {
+  display: inline-grid;
+  flex: 0 0 auto;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  border: 1px solid #d8e2eb;
+  border-radius: 10px;
+  background: #fff;
+  color: #26384a;
+  cursor: pointer;
+}
+
+main.editor-shell .editor-home-button:hover {
+  border-color: #8bcde6;
+  background: #effaff;
+  color: #087ca5;
+}
+
 main.editor-shell .pdfnet-brand {
   display: inline-flex !important;
   align-items: center !important;

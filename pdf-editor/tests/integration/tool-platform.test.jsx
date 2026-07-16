@@ -63,6 +63,9 @@ describe("public PDF tool platform", () => {
     expect(editor.root.findAllByType("input").some((input) => input.props.type === "file" && input.props.accept.includes("application/pdf"))).toBe(true);
     expect(textOf(editor.root).includes("Sign a PDF online")).toBe(true);
     expect(textOf(editor.root).includes("Upload from your device")).toBe(true);
+    expect(textOf(editor.root).includes("No account required to edit")).toBe(true);
+    expect(textOf(editor.root).includes("Sign in only to save or download")).toBe(true);
+    expect(editor.root.findAllByType("a").some((link) => textOf(link).includes("Back to FixThatPDF") && link.props.href === "/")).toBe(true);
     expect(editor.root.findAllByProps({ role: "button" })).toHaveLength(1);
     await unmount(editor);
   });

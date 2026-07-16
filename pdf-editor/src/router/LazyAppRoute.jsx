@@ -22,7 +22,11 @@ export function LazyPublicAppRoute(props) {
 }
 
 export function LazyGuestAppRoute(props) {
-  return <LoadingBoundary><LazyApp {...props} /></LoadingBoundary>;
+  return (
+    <LoadingBoundary>
+      <LazyFirebaseAuthProvider><LazyApp {...props} /></LazyFirebaseAuthProvider>
+    </LoadingBoundary>
+  );
 }
 
 export function LazyAuthRouteProvider() {
