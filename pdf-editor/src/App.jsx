@@ -52,6 +52,7 @@ import Send from "lucide-react/dist/esm/icons/send.mjs";
 import Settings from "lucide-react/dist/esm/icons/settings.mjs";
 import Share2 from "lucide-react/dist/esm/icons/share-2.mjs";
 import Link from "lucide-react/dist/esm/icons/link.mjs";
+import LayoutDashboard from "lucide-react/dist/esm/icons/layout-dashboard.mjs";
 import Lock from "lucide-react/dist/esm/icons/lock.mjs";
 import Circle from "lucide-react/dist/esm/icons/circle.mjs";
 import Minus from "lucide-react/dist/esm/icons/minus.mjs";
@@ -81,6 +82,7 @@ import { EditorToolUploadPage } from "./pages/public/EditorToolUploadPage.jsx";
 import { resolveEditorDocument } from "./router/editorRouteState.js";
 import { editorPath, publicEditorDocumentPath, publicEditorPath, ROUTE_PATHS } from "./router/routePaths.js";
 import { getEditorToolPreset, resolveEditorActiveTool } from "./tools/editorToolPresets.js";
+import { claimGuestDocument, editorActionNeedsAccount, GUEST_OWNER_ID } from "./tools/guestDocumentSession.js";
 import { loadLocalDocuments, saveLocalDocuments } from "./tools/localDocumentStore.js";
 import { extractPdfFormAnnotations } from "./tools/pdfFormFields.js";
 import { getPdfLoadErrorMessage, validatePdfUpload } from "./tools/pdfUploadValidation.js";
@@ -96,7 +98,6 @@ const BASE_PAGE_HEIGHT = 984;
 const EDITOR_PAGE_SCALE = 0.74;
 const TEXT_SCREEN_SCALE = 1 / EDITOR_PAGE_SCALE;
 const STORAGE_KEY = "paperflow.documents.v1";
-const GUEST_OWNER_ID = "realpdf-local-guest";
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 const ZOOM_PRESETS = [60, 80, 90, 100, 120, 140, 160];
 
@@ -223,11 +224,6 @@ function safeLoadDocuments(userId) {
   } catch {
     return [];
   }
-}
-
-function writeDocuments(userId, documents) {
-  if (!userId) throw new Error("An authenticated user is required to persist documents.");
-  window.localStorage.setItem(userDocumentStorageKey(userId), JSON.stringify(documents));
 }
 
 function cloudDocumentPayloadPath(userId, documentId) {
@@ -1152,6 +1148,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     if (isOffline) return lastSavedAt ? "Saved offline" : "Offline";
     if (cloudSyncStatus === "syncing") return "Syncing to cloud...";
     if (cloudSyncStatus === "error") return "Saved locally";
+    if (!currentUser?.uid && lastSavedAt) return "Guest draft · sign in to save";
     if (currentUser?.uid && cloudSyncStatus === "synced") return "Saved to cloud";
     return lastSavedAt ? `Saved ${formatDateTime(lastSavedAt)}` : "Saved";
   }, [cloudSyncStatus, currentUser?.uid, isOffline, lastSavedAt, saveState]);
@@ -1168,24 +1165,19 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   }, []);
 
   useEffect(() => {
-    if (storageOwnerId === GUEST_OWNER_ID) {
-      let cancelled = false;
-      setDocumentCatalogReady(false);
-      loadLocalDocuments(storageOwnerId)
-        .then((localDocuments) => {
-          if (!cancelled) setDocuments(localDocuments);
-        })
-        .catch(() => {
-          if (!cancelled) setDocuments(safeLoadDocuments(storageOwnerId));
-        })
-        .finally(() => {
-          if (!cancelled) setDocumentCatalogReady(true);
-        });
-      return () => { cancelled = true; };
-    }
-    setDocuments(safeLoadDocuments(storageOwnerId));
-    setDocumentCatalogReady(!isCloudPersistenceConfigured);
-    return undefined;
+    let cancelled = false;
+    setDocumentCatalogReady(false);
+    loadLocalDocuments(storageOwnerId)
+      .then((localDocuments) => {
+        if (!cancelled) setDocuments(localDocuments.length ? localDocuments : safeLoadDocuments(storageOwnerId));
+      })
+      .catch(() => {
+        if (!cancelled) setDocuments(safeLoadDocuments(storageOwnerId));
+      })
+      .finally(() => {
+        if (!cancelled && (!currentUser?.uid || !isCloudPersistenceConfigured)) setDocumentCatalogReady(true);
+      });
+    return () => { cancelled = true; };
   }, [storageOwnerId]);
 
   useEffect(() => {
@@ -1205,12 +1197,12 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     setDocumentCatalogReady(false);
     setCloudSyncStatus("syncing");
     loadCloudDocumentRecords(currentUser.uid)
-      .then((cloudDocuments) => {
+      .then(async (cloudDocuments) => {
         if (cancelled) return;
-        const localDocuments = safeLoadDocuments(currentUser.uid);
+        const localDocuments = await loadLocalDocuments(currentUser.uid).catch(() => safeLoadDocuments(currentUser.uid));
         const mergedDocuments = mergeDocumentsByUpdatedAt(localDocuments, cloudDocuments);
         if (mergedDocuments.length) {
-          writeDocuments(currentUser.uid, mergedDocuments);
+          await saveLocalDocuments(currentUser.uid, mergedDocuments);
           setDocuments(mergedDocuments);
           if (cloudDocuments.length) {
             showToast(`Loaded ${cloudDocuments.length} cloud document${cloudDocuments.length === 1 ? "" : "s"}.`);
@@ -1260,24 +1252,16 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       });
   };
 
-  const replaceDocuments = (nextDocuments) => {
-    if (storageOwnerId === GUEST_OWNER_ID) {
-      setDocuments(nextDocuments);
-      saveLocalDocuments(storageOwnerId, nextDocuments).catch(() => {
-        setSaveState("error");
-        setUploadError("This browser could not save the local workspace. Keep this tab open and download your PDF when finished.");
-      });
-      return true;
-    }
+  const replaceDocuments = async (nextDocuments) => {
+    const previousDocuments = documents;
+    setDocuments(nextDocuments);
     try {
-      writeDocuments(storageOwnerId, nextDocuments);
-      setDocuments(nextDocuments);
-      syncDocumentsToCloud(documents, nextDocuments);
+      await saveLocalDocuments(storageOwnerId, nextDocuments);
+      if (currentUser?.uid) syncDocumentsToCloud(previousDocuments, nextDocuments);
       return true;
     } catch {
-      setDocuments(nextDocuments);
-      syncDocumentsToCloud(documents, nextDocuments);
-      setUploadError("This browser storage is full. The document is open, but it may not persist after refresh.");
+      setSaveState("error");
+      setUploadError("This browser could not preserve the working copy. Keep this tab open and try again.");
       return false;
     }
   };
@@ -1290,10 +1274,23 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     const result = await authenticate({ mode: authMode, email, password, name, provider });
     if (result?.ok) {
       const requested = location.state?.from;
-      const returnTo = requested?.pathname?.startsWith("/")
+      const guestDocumentId = location.state?.guestDocumentId;
+      const intent = location.state?.intent;
+      const claimedDocument = guestDocumentId ? await claimGuestDocument(result.user.uid, guestDocumentId, {
+        loadDocuments: async (ownerId) => {
+          const localDocuments = await loadLocalDocuments(ownerId);
+          return localDocuments.length ? localDocuments : safeLoadDocuments(ownerId);
+        },
+      }) : null;
+      const returnTo = claimedDocument
+        ? editorPath(claimedDocument.id)
+        : requested?.pathname?.startsWith("/")
         ? `${requested.pathname}${requested.search || ""}${requested.hash || ""}`
         : ROUTE_PATHS.dashboard;
-      navigate(returnTo, { replace: true });
+      navigate(returnTo, {
+        replace: true,
+        state: claimedDocument ? { publicTool: location.state?.publicTool, postAuthAction: intent } : undefined,
+      });
     }
     return result;
   };
@@ -1307,9 +1304,10 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     showToast("Signed out.");
   };
 
-  const upsertDocument = (document) => {
-    const nextDocuments = [document, ...documents.filter((item) => item.id !== document.id)];
-    replaceDocuments(nextDocuments);
+  const upsertDocument = async (document) => {
+    const persistedDocuments = await loadLocalDocuments(storageOwnerId).catch(() => documents);
+    const nextDocuments = [document, ...persistedDocuments.filter((item) => item.id !== document.id)];
+    return replaceDocuments(nextDocuments);
   };
 
   const markUnsaved = () => {
@@ -1610,6 +1608,26 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     if (requireAuthenticationForUpload()) fileInputRef.current?.click();
   };
 
+  const requireAuthenticationForEditorAction = (intent) => {
+    if (!editorActionNeedsAccount(intent, currentUser)) return true;
+    openAuth("login", {
+      from: { pathname: location.pathname, search: location.search },
+      intent,
+      guestDocumentId: activeDocumentId,
+      publicTool,
+      notice: intent === "download"
+        ? "Your edits are ready. Sign in to download the finished PDF."
+        : "Your guest draft is ready. Sign in to save it to your FixThatPDF workspace.",
+    });
+    return false;
+  };
+
+  const saveDocumentToAccount = () => {
+    if (!requireAuthenticationForEditorAction("save")) return;
+    saveActiveDocument(true);
+    showToast("Saved to your FixThatPDF workspace.");
+  };
+
   const handleLandingDropFiles = (files) => {
     if (!currentUser && !isPublicEditor) {
       openAuth("login", {
@@ -1707,7 +1725,8 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
         detectedTextItems: detectedItems,
       };
 
-      upsertDocument(documentRecord);
+      const persisted = await upsertDocument(documentRecord);
+      if (!persisted) throw new Error("The working copy could not be stored.");
       setActiveDocumentId(documentRecord.id);
       setPages(loadedPages);
       setPdfBytes(buffer);
@@ -2501,8 +2520,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
 
       if ((event.metaKey || event.ctrlKey) && key === "s") {
         event.preventDefault();
-        saveActiveDocument(true);
-        showToast("Saved locally.");
+        saveDocumentToAccount();
         return;
       }
 
@@ -2545,6 +2563,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   }, [pages, pageIndex, selectedId, selectedDetectedTextId, selected?.type, annotations, detectedTextItems, undoStack, redoStack, saveState]);
 
   const exportPdf = async () => {
+    if (!requireAuthenticationForEditorAction("download")) return;
     setIsExporting(true);
     try {
     saveActiveDocument(true);
@@ -2802,7 +2821,12 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       setSignatureModalMode(requestedTool === "add-initials" ? "initials" : "signature");
       setSignatureModalOpen(true);
     }
-    showToast(`${preset.label} tools are ready.`);
+    const postAuthAction = location.state?.postAuthAction;
+    showToast(postAuthAction === "download"
+      ? "Signed in successfully. Click Download PDF to finish."
+      : postAuthAction === "save"
+        ? "This document is now saved to your workspace."
+        : `${preset.label} tools are ready.`);
     navigate(location.pathname, { replace: true, state: null });
   }, [detectedTextCount, editorRouteState, location.pathname, location.state, navigate, view]);
 
@@ -2881,7 +2905,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   }
 
   if ((view === "editor" || view === "public-editor") && (editorRouteState !== "ready" || !pages.length)) {
-    return <EditorRouteStatePage state={editorRouteState} onBack={() => navigate(view === "public-editor" ? publicEditorPath(publicTool) : ROUTE_PATHS.documents)} />;
+    return <EditorRouteStatePage state={editorRouteState} onBack={() => navigate(view === "public-editor" ? publicEditorPath(publicTool) : ROUTE_PATHS.documents)} backLabel={view === "public-editor" ? `Back to ${getEditorToolPreset(publicTool)?.label || "PDF tools"}` : "Back to documents"} onHome={view === "public-editor" ? () => navigate(ROUTE_PATHS.home) : undefined} />;
   }
 
   return (
@@ -2891,6 +2915,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       <input ref={imageInputRef} className="hidden-input" type="file" accept="image/png,image/jpeg" onChange={onImageUpload} />
       {isOffline && <div className="editor-offline-banner" role="status">You are offline. Editing and local saves still work in this browser.</div>}
       <header className="file-header">
+        <button type="button" className="editor-home-button" onClick={() => navigate(ROUTE_PATHS.home)} title="Back to FixThatPDF home" aria-label="Back to FixThatPDF home"><Home size={21} /></button>
         <button
           type="button"
           className="pdfnet-brand"
@@ -2960,10 +2985,18 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
             {isMoreMenuOpen && (
               <div className="document-more-menu" role="menu" aria-label="Document actions">
                 <button type="button" role="menuitem" onClick={() => {
-                  saveActiveDocument(true);
                   setIsMoreMenuOpen(false);
-                  navigate(ROUTE_PATHS.dashboard);
-                }}><Home size={16} /> Dashboard</button>
+                  navigate(ROUTE_PATHS.home);
+                }}><Home size={16} /> Back to home</button>
+                <button type="button" role="menuitem" onClick={() => {
+                  setIsMoreMenuOpen(false);
+                  if (currentUser?.uid) {
+                    saveActiveDocument(true);
+                    navigate(ROUTE_PATHS.dashboard);
+                  } else {
+                    requireAuthenticationForEditorAction("save");
+                  }
+                }}><LayoutDashboard size={16} /> Save to dashboard</button>
                 <button type="button" role="menuitem" onClick={() => {
                   renameActiveDocument();
                   setIsMoreMenuOpen(false);
@@ -2973,10 +3006,9 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
                   setIsMoreMenuOpen(false);
                 }}><FilePlus2 size={16} /> Duplicate document</button>
                 <button type="button" role="menuitem" onClick={() => {
-                  saveActiveDocument(true);
-                  showToast("Saved locally.");
+                  saveDocumentToAccount();
                   setIsMoreMenuOpen(false);
-                }}><Save size={16} /> Save locally</button>
+                }}><Save size={16} /> Save document</button>
                 <span />
                 <button type="button" role="menuitem" onClick={() => {
                   addBlankPage();
@@ -3330,10 +3362,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
               annotations={annotations}
               saveState={saveState}
               saveStatusLabel={saveStatusLabel}
-              onSave={() => {
-                saveActiveDocument(true);
-                showToast(currentUser?.uid ? "Saved and queued for cloud sync." : "Saved locally.");
-              }}
+              onSave={saveDocumentToAccount}
               onExport={exportPdf}
               onShare={() => setShareModalOpen(true)}
               onPrint={() => window.print()}
@@ -5065,7 +5094,7 @@ function Inspector({
             <input value={signatureText} onChange={(event) => setSignatureText(event.target.value)} />
           </label>
           <button type="button" className="panel-action" onClick={onSignatureModal}><PenLine size={17} /> Create signature</button>
-          <button type="button" className="panel-action" onClick={onSave}><Save size={17} /> Save locally</button>
+          <button type="button" className="panel-action" onClick={onSave}><Save size={17} /> Save document</button>
           <button type="button" className="panel-action" onClick={onExport}><Download size={17} /> Export PDF</button>
           <button type="button" className="panel-action" onClick={onShare}><Share2 size={17} /> Share</button>
           <button type="button" className="panel-action" onClick={onPrint}><Printer size={17} /> Print</button>

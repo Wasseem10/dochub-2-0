@@ -1,4 +1,4 @@
-export function EditorRouteStatePage({ state, onBack }) {
+export function EditorRouteStatePage({ state, onBack, backLabel = "Back to documents", onHome }) {
   const isLoading = state === "idle" || state === "loading";
   const title = isLoading
     ? "Opening document"
@@ -17,7 +17,7 @@ export function EditorRouteStatePage({ state, onBack }) {
         <span className="route-status-pill">{isLoading ? "Loading" : "Editor unavailable"}</span>
         <h1>{title}</h1>
         <p>{message}</p>
-        {!isLoading && <div className="route-state-actions"><button type="button" onClick={onBack}>Back to documents</button></div>}
+        {!isLoading && <div className="route-state-actions"><button type="button" onClick={onBack}>{backLabel}</button>{onHome && <button type="button" onClick={onHome}>FixThatPDF home</button>}</div>}
       </section>
     </main>
   );
