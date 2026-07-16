@@ -2,10 +2,13 @@ import { describe, expect, it, vi } from "vitest";
 import { claimGuestDocument, editorActionNeedsAccount, GUEST_OWNER_ID, recoverDocumentAsGuest, resolveEditorStorageOwnerId } from "../../src/tools/guestDocumentSession.js";
 
 describe("guest document account handoff", () => {
-  it("allows guest editing but gates account save and download actions", () => {
+  it("allows guest editing and download but gates cloud-only actions", () => {
     expect(editorActionNeedsAccount("edit", null)).toBe(false);
     expect(editorActionNeedsAccount("save", null)).toBe(true);
-    expect(editorActionNeedsAccount("download", null)).toBe(true);
+    expect(editorActionNeedsAccount("download", null)).toBe(false);
+    expect(editorActionNeedsAccount("share", null)).toBe(true);
+    expect(editorActionNeedsAccount("saved-signature", null)).toBe(true);
+    expect(editorActionNeedsAccount("template", null)).toBe(true);
     expect(editorActionNeedsAccount("save", { uid: "user-1" })).toBe(false);
     expect(editorActionNeedsAccount("download", { uid: "user-1" })).toBe(false);
   });

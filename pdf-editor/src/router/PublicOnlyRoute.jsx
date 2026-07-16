@@ -14,6 +14,10 @@ export function PublicOnlyRoute() {
   const location = useLocation();
 
   if (!authReady) return <AuthLoadingScreen />;
+  // Keep an in-editor sign-in mounted until App completes the guest-document
+  // claim and original cloud action. This prevents an auth-state update from
+  // racing the handoff and briefly opening a second editor instance.
+  if (currentUser && location.state?.guestDocumentId) return <Outlet />;
   if (currentUser) return <Navigate to={safeReturnPath(location)} replace />;
   return <Outlet />;
 }

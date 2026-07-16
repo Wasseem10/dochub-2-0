@@ -3074,7 +3074,8 @@ main.editor-shell .page-surface,
 .inspector,
 .signature-modal,
 .share-modal,
-.upgrade-modal {
+.upgrade-modal,
+.auth-required-modal {
   border-color: var(--pf-border);
   border-radius: 18px;
   box-shadow: var(--pf-shadow-strong);

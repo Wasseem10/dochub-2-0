@@ -449,7 +449,8 @@
 
 .signature-modal,
 .share-modal,
-.upgrade-modal {
+.upgrade-modal,
+.auth-required-modal {
   width: min(720px, 100%);
   overflow: hidden;
   border: 1px solid #d9e2ef;
@@ -473,7 +474,8 @@
 
 .signature-modal header,
 .share-modal header,
-.upgrade-modal header {
+.upgrade-modal header,
+.auth-required-modal header {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
@@ -484,7 +486,8 @@
 
 .signature-modal h2,
 .share-modal h2,
-.upgrade-modal h2 {
+.upgrade-modal h2,
+.auth-required-modal h2 {
   margin: 0;
   color: #0f172a;
   font-size: 22px;
@@ -492,7 +495,8 @@
 
 .signature-modal p,
 .share-modal p,
-.upgrade-modal p {
+.upgrade-modal p,
+.auth-required-modal p {
   margin: 6px 0 0;
   color: #64748b;
 }
@@ -590,7 +594,8 @@
 
 .signature-modal footer,
 .share-modal footer,
-.upgrade-modal footer {
+.upgrade-modal footer,
+.auth-required-modal footer {
   display: flex;
   justify-content: flex-end;
   gap: 10px;
@@ -606,6 +611,36 @@
   border-radius: 7px;
   cursor: pointer;
   font-weight: 850;
+}
+
+.auth-required-modal {
+  width: min(560px, 100%);
+}
+
+.auth-required-modal header {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+}
+
+.auth-required-icon {
+  display: grid;
+  width: 46px;
+  height: 46px;
+  place-items: center;
+  border-radius: 13px;
+  background: #e8f1ff;
+  color: #2851eb;
+}
+
+.auth-required-note {
+  margin: 22px 24px;
+  padding: 14px 16px;
+  border: 1px solid #dce3ff;
+  border-radius: 12px;
+  background: #f5f8ff;
+  color: #4f5972;
+  font-size: 13px;
+  line-height: 1.45;
 }
 
 .modal-primary {

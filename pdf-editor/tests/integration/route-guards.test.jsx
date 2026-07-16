@@ -66,6 +66,21 @@ describe("route guards", () => {
     expect(renderer.root.findByProps({ className: "app-route-layout" })).toBeTruthy();
   });
 
+  it("keeps the editor public while dashboard routes remain protected", async () => {
+    const routes = [
+      { element: <AppLayout />, children: [{ path: "/app/editor/:documentId", element: <EditorParamProbe /> }] },
+      { element: <ProtectedRoute />, children: [{ path: "/app/dashboard", element: <div>Private dashboard</div> }] },
+      { path: "/login", element: <div>Login page</div> },
+    ];
+    const editor = await renderRoutes(routes, ["/app/editor/guest-document"], authValue());
+    expect(editor.router.state.location.pathname).toBe("/app/editor/guest-document");
+    expect(renderedText(editor.renderer)).toContain("guest-document");
+
+    const dashboard = await renderRoutes(routes, ["/app/dashboard"], authValue());
+    expect(dashboard.router.state.location.pathname).toBe("/login");
+    expect(renderedText(dashboard.renderer)).toContain("Login page");
+  });
+
   it("returns authenticated users from public-only auth routes to the requested app route", async () => {
     const routes = [
       { element: <PublicOnlyRoute />, children: [{ path: "/login", element: <div>Login page</div> }] },
@@ -74,6 +89,20 @@ describe("route guards", () => {
     const { router, renderer } = await renderRoutes(routes, [{ pathname: "/login", state: { from: { pathname: "/app/documents" } } }], authValue({ currentUser: { uid: "user-1" } }));
     expect(router.state.location.pathname).toBe("/app/documents");
     expect(renderedText(renderer)).toContain("Documents");
+  });
+
+  it("keeps the auth route mounted while an editor guest document is being claimed", async () => {
+    const routes = [
+      { element: <PublicOnlyRoute />, children: [{ path: "/login", element: <div>Completing document sign-in</div> }] },
+      { path: "/app/editor/:documentId", element: <EditorParamProbe /> },
+    ];
+    const entry = {
+      pathname: "/login",
+      state: { from: { pathname: "/app/editor/guest-1" }, guestDocumentId: "guest-1", intent: "save" },
+    };
+    const { router, renderer } = await renderRoutes(routes, [entry], authValue({ currentUser: { uid: "user-1" } }));
+    expect(router.state.location.pathname).toBe("/login");
+    expect(renderedText(renderer)).toContain("Completing document sign-in");
   });
 });
 
