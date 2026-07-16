@@ -55,7 +55,7 @@ export const TOOL_CATEGORIES = Object.freeze([
 const PARTIAL_EDITOR_LIMIT = "This workflow opens the current browser editor. Supported edits are flattened during export, and source formatting or interactive PDF features may not be preserved.";
 const COMING_SOON_LIMIT = "This tool is not implemented yet. FixThatPDF does not upload or process files for this workflow today.";
 const DEDICATED_CONVERTER_IDS = new Set(["pdf-to-word", "pdf-to-jpg", "pdf-to-png", "word-to-pdf", "jpg-to-pdf", "png-to-pdf"]);
-const DEDICATED_PAGE_TOOL_IDS = new Set(["merge-pdf", "split-pdf", "rotate-pdf", "delete-pdf-pages", "extract-pdf-pages", "reorder-pdf-pages", "organize-pdf", "add-page-numbers", "watermark-pdf"]);
+const DEDICATED_PAGE_TOOL_IDS = new Set(["merge-pdf", "split-pdf", "rotate-pdf", "delete-pdf-pages", "extract-pdf-pages", "reorder-pdf-pages", "organize-pdf", "add-page-numbers", "watermark-pdf", "crop-pdf"]);
 
 /** @type {ToolDefinition[]} */
 const definitions = [
@@ -64,7 +64,7 @@ const definitions = [
   ["pdf-reader", "PDF Reader", "Open a PDF in the browser, move between pages, zoom, and search extracted text.", "edit-view", "reader", "available", ["application/pdf"], [], "Supports valid, unencrypted PDFs up to 8 MB. Search works on embedded text; image-only pages require OCR."],
   ["fill-pdf", "Fill PDF", "Place text, checkboxes, dates, initials, and signature content on a PDF.", "edit-view", "form", "available", ["application/pdf"], ["application/pdf"], "Completed values are flattened into the exported PDF for consistent display in standard readers."],
   ["pdf-form-filler", "PDF Form Filler", "Detect supported PDF form widgets, enter responses, and export a completed PDF.", "edit-view", "form", "available", ["application/pdf"], ["application/pdf"], "Text and checkbox AcroForm widgets are detected and completed as flattened output. Dynamic XFA forms are outside this browser workflow."],
-  ["crop-pdf", "Crop PDF", "Trim page boundaries to keep only the area you need.", "edit-view", "crop", "coming-soon", ["application/pdf"], ["application/pdf"], "Page-box cropping is not implemented."],
+  ["crop-pdf", "Crop PDF", "Trim page boundaries to keep only the area you need.", "edit-view", "crop", "available", ["application/pdf"], ["application/pdf"], "Browser cropping sets accurate PDF page bounds on selected pages. Original content is preserved outside the visible page box and can be recovered from the source file."],
   ["watermark-pdf", "Watermark PDF", "Apply text or image marks across selected PDF pages.", "edit-view", "watermark", "available", ["application/pdf", "image/png", "image/jpeg"], ["application/pdf"], "Browser watermarking keeps original PDF pages intact and supports text or PNG/JPG marks, selected pages, position, tiling, opacity, rotation, and scale. Encrypted PDFs are not supported."],
   ["add-page-numbers", "Add Page Numbers", "Place consistent page numbers in headers or footers across a PDF.", "edit-view", "numbers", "available", ["application/pdf"], ["application/pdf"], "Browser page numbering supports valid, unencrypted PDFs up to 50 MB and 200 pages, with six header and footer positions."],
   ["redact-pdf", "Redact PDF", "Permanently remove sensitive content from a PDF before sharing it.", "edit-view", "redact", "coming-soon", ["application/pdf"], ["application/pdf"], "Secure permanent redaction is not available. The editor's current whiteout is visual only and must not be treated as redaction."],

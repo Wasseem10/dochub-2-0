@@ -135,6 +135,11 @@ describe("public PDF tool platform", () => {
     expect(textOf(watermark.root).includes("Make it unmistakable")).toBe(true);
     expect(textOf(watermark.root).includes("Download watermarked PDF")).toBe(true);
     await unmount(watermark);
+
+    const crop = await render(<PdfPageToolPage tool={TOOL_BY_ID.get("crop-pdf")} />);
+    expect(textOf(crop.root).includes("Trim the edges")).toBe(true);
+    expect(textOf(crop.root).includes("Download cropped PDF")).toBe(true);
+    await unmount(crop);
   });
 
   it("renders essential desktop and mobile navigation plus working footer links", async () => {
