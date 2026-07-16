@@ -16,7 +16,7 @@ const legalDescriptions = {
   [ROUTE_PATHS.terms]: "Current terms for using RealPDF's free browser PDF tools and optional account features.",
 };
 const routeRecords = [
-  { path: "/", title: "Edit PDFs Online — Completely Free | RealPDF", description: "Edit, sign, fill, merge, split, organize, and convert PDFs without subscriptions, watermarks, or forced signup.", noIndex: false },
+  { path: "/", title: "Every PDF Task in One Place | RealPDF", description: "Edit, sign, fill, merge, split, organize, and convert PDFs without subscriptions, watermarks, or forced signup.", noIndex: false },
   { path: ROUTE_PATHS.tools, title: "Free PDF Tools | RealPDF", description: "Browse working free PDF tools with clear formats, limits, and availability labels.", noIndex: false },
   ...PUBLIC_PLACEHOLDER_ROUTES.map((route) => ({ ...route, title: `${route.title} | RealPDF`, description: legalDescriptions[route.path] || route.description, noIndex: !Object.hasOwn(legalDescriptions, route.path) })),
   ...TOOL_REGISTRY.map((tool) => ({ path: tool.route, title: tool.seoTitle, description: tool.metaDescription, noIndex: tool.status === "coming-soon" })),
