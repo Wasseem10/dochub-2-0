@@ -129,6 +129,12 @@ describe("public PDF tool platform", () => {
     expect(textOf(pageNumbers.root).includes("Choose the number style")).toBe(true);
     expect(textOf(pageNumbers.root).includes("Download numbered PDF")).toBe(true);
     await unmount(pageNumbers);
+
+    const watermark = await render(<PdfPageToolPage tool={TOOL_BY_ID.get("watermark-pdf")} />);
+    expect(watermark.root.findAllByType("input").some((input) => input.props.type === "file" && input.props.accept.includes("application/pdf"))).toBe(true);
+    expect(textOf(watermark.root).includes("Make it unmistakable")).toBe(true);
+    expect(textOf(watermark.root).includes("Download watermarked PDF")).toBe(true);
+    await unmount(watermark);
   });
 
   it("renders essential desktop and mobile navigation plus working footer links", async () => {

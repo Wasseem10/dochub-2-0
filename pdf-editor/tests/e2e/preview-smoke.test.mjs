@@ -59,6 +59,7 @@ const directRoutes = [
   "/sign-pdf",
   "/add-initials",
   "/add-date-fields",
+  "/watermark-pdf",
   "/pdf-to-word",
   "/jpg-to-pdf",
   "/ocr-pdf",
