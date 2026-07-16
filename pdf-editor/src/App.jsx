@@ -2231,7 +2231,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     await loadPdfFile(event.dataTransfer.files?.[0]);
   };
 
-  const startBlankDocument = () => {
+  const startBlankDocument = async () => {
     const stamp = nowIso();
     const blankPages = [{ id: makeId("blank-page"), number: 1, originalIndex: null, width: BASE_PAGE_WIDTH, height: BASE_PAGE_HEIGHT, source: "blank" }];
     const documentRecord = {
@@ -2251,7 +2251,8 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       detectedTextItems: [],
     };
 
-    upsertDocument(documentRecord);
+    const wasPersisted = await upsertDocument(documentRecord);
+    if (!wasPersisted) return;
     setActiveDocumentId(documentRecord.id);
     setPages(blankPages);
     setPdfBytes(null);
