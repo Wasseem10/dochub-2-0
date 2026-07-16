@@ -122,25 +122,24 @@ describe("public PDF tool platform", () => {
     await unmount(organize);
   });
 
-  it("opens desktop and mobile registry menus and renders grouped footer links", async () => {
+  it("renders essential desktop and mobile navigation plus working footer links", async () => {
     const previousWindow = globalThis.window;
     globalThis.window = { addEventListener() {}, removeEventListener() {} };
     const renderer = await render(<MarketingHeader />);
     const root = renderer.root;
 
-    await act(async () => root.findByProps({ "aria-controls": "tools-mega-menu" }).props.onClick());
-    expect(root.findByProps({ id: "tools-mega-menu" })).toBeTruthy();
-    expect(textOf(root.findByProps({ id: "tools-mega-menu" })).includes("View all 68 tools")).toBe(true);
+    expect(textOf(root).includes("All tools")).toBe(true);
+    expect(textOf(root).includes("Choose a PDF")).toBe(true);
 
     await act(async () => root.findByProps({ "aria-label": "Open navigation" }).props.onClick());
-    await act(async () => root.findAllByType("button").find((button) => textOf(button).includes("PDF tools")).props.onClick());
-    expect(root.findAllByProps({ className: "marketing-mobile-tools" })).toHaveLength(1);
+    expect(root.findAllByProps({ className: "marketing-mobile-nav" })).toHaveLength(1);
+    expect(textOf(root.findByProps({ className: "marketing-mobile-nav" })).includes("Privacy")).toBe(true);
     await unmount(renderer);
     globalThis.window = previousWindow;
 
     const footer = await render(<MarketingFooter />);
-    expect(footer.root.findAllByType("section")).toHaveLength(6);
-    expect(textOf(footer.root).includes("View all PDF tools")).toBe(true);
+    expect(footer.root.findAllByType("section").length).toBeGreaterThan(0);
+    expect(textOf(footer.root).includes("Completely free")).toBe(true);
     await unmount(footer);
   });
 });

@@ -13,6 +13,8 @@ import { PageMetadata } from "../../components/public/PageMetadata.jsx";
 import { ROUTE_PATHS } from "../../router/routePaths.js";
 import { ToolIcon } from "../../tools/ToolIcon.jsx";
 import { createPdfFromImages, createStoredZip, IMAGE_CONVERSION_LIMITS, isSupportedImageType } from "../../tools/imageConversion.js";
+import { absoluteSiteUrl } from "../../config/site.js";
+import { ExportSuccessState } from "../../components/public/ExportSuccessState.jsx";
 
 async function loadPdfRenderer() {
   const pdfjsLib = await import("pdfjs-dist");
@@ -61,7 +63,7 @@ function getFriendlyPdfError(error) {
   const message = String(error?.message || "").toLowerCase();
   if (error?.name === "PasswordException" || message.includes("password")) return "This PDF is encrypted. Remove its password with an authorized tool, then try again.";
   if (message.includes("invalid pdf") || message.includes("missing pdf")) return "This PDF appears corrupted or incomplete. Try downloading a fresh copy.";
-  return "FixThatPDF could not read this PDF. Try a valid, unencrypted file under 50 MB.";
+  return "RealPDF could not read this PDF. Try a valid, unencrypted file under 50 MB.";
 }
 
 function ConversionDropzone({ accept, multiple, label, hint, onFiles, disabled }) {
@@ -154,7 +156,6 @@ function ImagesToPdfWorkspace({ tool }) {
       const bytes = await createPdfFromImages(images, { pageSize, orientation, margin, title: `${tool.name} conversion` });
       downloadBytes(bytes, "application/pdf", `${acceptsPng ? "png" : "jpg"}-images.pdf`);
       setStatus("complete");
-      window.setTimeout(() => setStatus("idle"), 1800);
     } catch (conversionError) {
       setStatus("idle");
       setError(conversionError.message || "The PDF could not be created.");
@@ -193,7 +194,7 @@ function ImagesToPdfWorkspace({ tool }) {
         <label>Margins<select value={margin} onChange={(event) => setMargin(Number(event.target.value))}><option value="0">None</option><option value="24">Small</option><option value="48">Large</option></select></label>
         <div className="conversion-summary"><Check size={18} /><span>{images.length ? `${images.length} image${images.length === 1 ? "" : "s"} ready` : "Add images to continue"}</span></div>
         <button className="conversion-primary-action" type="button" disabled={!images.length || status === "converting" || status === "reading"} onClick={exportPdf}>{status === "converting" ? <><LoaderCircle className="is-spinning" size={18} /> Creating PDF...</> : <><Download size={18} /> Download PDF</>}</button>
-        {status === "complete" && <p className="conversion-success">Your PDF was created successfully.</p>}
+        {status === "complete" && <ExportSuccessState toolId={tool.id} onDownloadAgain={exportPdf} onStartAnother={() => { images.forEach((image) => URL.revokeObjectURL(image.previewUrl)); setImages([]); setStatus("idle"); }} relatedRoute="/organize-pdf" relatedName="Organize PDF" />}
       </aside>
     </div>
   );
@@ -295,11 +296,10 @@ function PdfToImagesWorkspace({ tool }) {
         outputFiles.push({ name: `page-${String(pageNumber).padStart(3, "0")}.${extension}`, data });
         setProgress(Math.round(((index + 1) / chosen.length) * 100));
       }
-      const baseName = pdfFile.name.replace(/\.pdf$/i, "") || "fixthatpdf-pages";
+      const baseName = pdfFile.name.replace(/\.pdf$/i, "") || "realpdf-pages";
       if (outputFiles.length === 1) downloadBytes(outputFiles[0].data, outputPng ? "image/png" : "image/jpeg", `${baseName}-${outputFiles[0].name}`);
       else downloadBytes(createStoredZip(outputFiles), "application/zip", `${baseName}-${outputPng ? "png" : "jpg"}.zip`);
       setStatus("complete");
-      window.setTimeout(() => setStatus("idle"), 1800);
     } catch (conversionError) {
       setStatus("idle");
       setError(conversionError.message || "The selected pages could not be converted.");
@@ -326,7 +326,7 @@ function PdfToImagesWorkspace({ tool }) {
         <div className="conversion-summary"><ImageIcon size={18} /><span>{selectedPages.size ? `${selectedPages.size} page${selectedPages.size === 1 ? "" : "s"} selected` : "Select at least one page"}</span></div>
         {status === "converting" && <div className="conversion-progress-bar"><i style={{ width: `${progress}%` }} /></div>}
         <button className="conversion-primary-action" type="button" disabled={!selectedPages.size || status === "converting" || status === "reading"} onClick={exportImages}>{status === "converting" ? <><LoaderCircle className="is-spinning" size={18} /> Converting {progress}%</> : <><Download size={18} /> Download {selectedPages.size > 1 ? "ZIP" : outputPng ? "PNG" : "JPG"}</>}</button>
-        {status === "complete" && <p className="conversion-success">Your image download is ready.</p>}
+        {status === "complete" && <ExportSuccessState toolId={tool.id} onDownloadAgain={exportImages} onStartAnother={() => { setPdfFile(null); setPdfDocument(null); setPages([]); setSelectedPages(new Set()); setStatus("idle"); }} relatedRoute="/jpg-to-pdf" relatedName="JPG to PDF" />}
       </aside>
     </div>
   );
@@ -334,7 +334,7 @@ function PdfToImagesWorkspace({ tool }) {
 
 export function ImageConversionPage({ tool }) {
   const imagesToPdf = tool.category === "to-pdf";
-  const schema = { "@context": "https://schema.org", "@type": "SoftwareApplication", name: tool.name, applicationCategory: "BusinessApplication", operatingSystem: "Web", url: tool.canonicalUrl, offers: { "@type": "Offer", price: "0", priceCurrency: "USD" } };
+  const schema = { "@context": "https://schema.org", "@type": "SoftwareApplication", name: tool.name, applicationCategory: "BusinessApplication", operatingSystem: "Web", url: absoluteSiteUrl(tool.canonicalUrl), offers: { "@type": "Offer", price: "0", priceCurrency: "USD" } };
   return (
     <main className="image-conversion-page">
       <PageMetadata title={tool.seoTitle} description={tool.metaDescription} canonicalUrl={tool.canonicalUrl} schemas={[schema]} />
@@ -344,7 +344,7 @@ export function ImageConversionPage({ tool }) {
         <div><small>Available now · runs in your browser</small><h1>{tool.name}</h1><p>{tool.shortDescription} Files remain on this device during conversion.</p></div>
       </section>
       {imagesToPdf ? <ImagesToPdfWorkspace tool={tool} /> : <PdfToImagesWorkspace tool={tool} />}
-      <section className="conversion-privacy-note"><Check size={19} /><div><strong>Private browser processing</strong><p>This conversion runs locally in your browser. FixThatPDF does not send these files to an Office, OCR, or AI service.</p></div></section>
+      <section className="conversion-privacy-note"><Check size={19} /><div><strong>Private browser processing</strong><p>This conversion runs locally in your browser. RealPDF does not send these files to an Office, OCR, or AI service.</p></div></section>
     </main>
   );
 }

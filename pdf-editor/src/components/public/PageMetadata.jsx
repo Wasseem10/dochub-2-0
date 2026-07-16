@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { absoluteSiteUrl } from "../../config/site.js";
 
 function setMeta(name, content, attribute = "name") {
   let element = document.head.querySelector(`meta[${attribute}="${name}"]`);
@@ -10,10 +11,10 @@ function setMeta(name, content, attribute = "name") {
   element.setAttribute("content", content);
 }
 
-export function PageMetadata({ title, description, canonicalUrl, schemas = [] }) {
+export function PageMetadata({ title, description, canonicalUrl, schemas = [], noIndex = false }) {
   useEffect(() => {
     if (typeof document === "undefined") return undefined;
-    const absoluteCanonical = new URL(canonicalUrl, window.location.origin).toString();
+    const absoluteCanonical = absoluteSiteUrl(canonicalUrl);
     document.title = title;
     setMeta("description", description);
     setMeta("og:title", title, "property");
@@ -23,6 +24,7 @@ export function PageMetadata({ title, description, canonicalUrl, schemas = [] })
     setMeta("twitter:card", "summary_large_image");
     setMeta("twitter:title", title);
     setMeta("twitter:description", description);
+    setMeta("robots", noIndex ? "noindex, follow" : "index, follow");
 
     let canonical = document.head.querySelector('link[rel="canonical"]');
     if (!canonical) {
@@ -42,6 +44,6 @@ export function PageMetadata({ title, description, canonicalUrl, schemas = [] })
       document.head.appendChild(script);
     }
     return () => document.getElementById(scriptId)?.remove();
-  }, [canonicalUrl, description, schemas, title]);
+  }, [canonicalUrl, description, noIndex, schemas, title]);
   return null;
 }

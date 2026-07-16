@@ -1,9 +1,8 @@
 import { mkdir, writeFile } from "node:fs/promises";
-import { PUBLIC_PLACEHOLDER_ROUTES } from "../src/router/routes.js";
 import { ROUTE_PATHS } from "../src/router/routePaths.js";
 import { TOOL_REGISTRY, validateToolRegistry } from "../src/tools/toolRegistry.js";
 
-const siteUrl = (process.env.SITE_URL || "https://fixthatpdf.com").replace(/\/$/, "");
+const siteUrl = (process.env.SITE_URL || process.env.VITE_SITE_URL || "http://localhost:4173").replace(/\/$/, "");
 const registryErrors = validateToolRegistry();
 
 if (registryErrors.length) {
@@ -13,8 +12,11 @@ if (registryErrors.length) {
 const paths = [
   ROUTE_PATHS.home,
   ROUTE_PATHS.tools,
-  ...PUBLIC_PLACEHOLDER_ROUTES.map(({ path }) => path),
-  ...TOOL_REGISTRY.map(({ route }) => route),
+  ROUTE_PATHS.privacy,
+  ROUTE_PATHS.security,
+  ROUTE_PATHS.help,
+  ROUTE_PATHS.terms,
+  ...TOOL_REGISTRY.filter(({ status }) => status !== "coming-soon").map(({ route }) => route),
 ];
 
 const uniquePaths = [...new Set(paths)].sort();
@@ -25,4 +27,5 @@ const sitemap = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://w
 
 await mkdir("runtime-public", { recursive: true });
 await writeFile("runtime-public/sitemap.xml", sitemap, "utf8");
+await writeFile("runtime-public/robots.txt", `User-agent: *\nAllow: /\nDisallow: /app/\nDisallow: /login\nDisallow: /signup\nDisallow: /forgot-password\n\nSitemap: ${siteUrl}/sitemap.xml\n`, "utf8");
 console.log(`Generated sitemap.xml with ${uniquePaths.length} public routes.`);

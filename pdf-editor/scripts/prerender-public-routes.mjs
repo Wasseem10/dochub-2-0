@@ -1,0 +1,38 @@
+import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { dirname, join } from "node:path";
+import { PUBLIC_PLACEHOLDER_ROUTES } from "../src/router/routes.js";
+import { ROUTE_PATHS } from "../src/router/routePaths.js";
+import { TOOL_REGISTRY } from "../src/tools/toolRegistry.js";
+
+const siteUrl = (process.env.SITE_URL || process.env.VITE_SITE_URL || "http://localhost:4173").replace(/\/$/, "");
+const template = await readFile("dist/index.html", "utf8");
+/** @param {unknown} value */
+const escapeHtml = (value) => String(value).replaceAll("&", "&amp;").replaceAll('"', "&quot;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
+/** @type {Record<string, string>} */
+const legalDescriptions = {
+  [ROUTE_PATHS.privacy]: "How RealPDF handles browser processing, local storage, optional Firebase cloud history, analytics, and deletion.",
+  [ROUTE_PATHS.security]: "Current RealPDF browser-processing safeguards, account boundaries, and honest security limitations.",
+  [ROUTE_PATHS.help]: "Help for uploading, editing, signing, organizing, converting, and downloading PDFs with RealPDF.",
+  [ROUTE_PATHS.terms]: "Current terms for using RealPDF's free browser PDF tools and optional account features.",
+};
+const routeRecords = [
+  { path: "/", title: "Edit PDFs Online — Completely Free | RealPDF", description: "Edit, sign, fill, merge, split, organize, and convert PDFs without subscriptions, watermarks, or forced signup.", noIndex: false },
+  { path: ROUTE_PATHS.tools, title: "Free PDF Tools | RealPDF", description: "Browse working free PDF tools with clear formats, limits, and availability labels.", noIndex: false },
+  ...PUBLIC_PLACEHOLDER_ROUTES.map((route) => ({ ...route, title: `${route.title} | RealPDF`, description: legalDescriptions[route.path] || route.description, noIndex: !Object.hasOwn(legalDescriptions, route.path) })),
+  ...TOOL_REGISTRY.map((tool) => ({ path: tool.route, title: tool.seoTitle, description: tool.metaDescription, noIndex: tool.status === "coming-soon" })),
+];
+
+/** @param {{ path: string, title: string, description: string, noIndex: boolean }} record */
+function metadataFor(record) {
+  const canonical = `${siteUrl}${record.path === "/" ? "/" : record.path}`;
+  return `<title>${escapeHtml(record.title)}</title>\n    <meta name="description" content="${escapeHtml(record.description)}" />\n    <meta name="robots" content="${record.noIndex ? "noindex, follow" : "index, follow"}" />\n    <meta property="og:title" content="${escapeHtml(record.title)}" />\n    <meta property="og:description" content="${escapeHtml(record.description)}" />\n    <meta property="og:type" content="website" />\n    <meta property="og:url" content="${escapeHtml(canonical)}" />\n    <meta name="twitter:card" content="summary" />\n    <meta name="twitter:title" content="${escapeHtml(record.title)}" />\n    <meta name="twitter:description" content="${escapeHtml(record.description)}" />\n    <link rel="canonical" href="${escapeHtml(canonical)}" />`;
+}
+
+for (const record of routeRecords) {
+  const html = template.replace(/<title>[\s\S]*?<\/title>[\s\S]*?<link rel="canonical"[^>]*>/, metadataFor(record));
+  const outputPath = record.path === "/" ? "dist/index.html" : join("dist", record.path.slice(1), "index.html");
+  await mkdir(dirname(outputPath), { recursive: true });
+  await writeFile(outputPath, html, "utf8");
+}
+
+console.log(`Prerendered ${routeRecords.length} public routes with route-specific metadata.`);
