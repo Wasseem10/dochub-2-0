@@ -16,6 +16,8 @@ const UPLOAD_COPY = Object.freeze({
   "sign-pdf": ["Sign a PDF online", "Type, draw, or upload your signature and place it precisely on the document."],
   "add-initials": ["Add initials to a PDF", "Create your initials once, place them anywhere, and download the completed PDF."],
   "add-date-fields": ["Add date fields to a PDF", "Place today’s date or enter a custom date wherever the document needs it."],
+  "review-pdf": ["Review a PDF online", "Highlight, draw, add shapes, and keep a complete local review trail in one workspace."],
+  "comment-on-pdf": ["Comment on a PDF online", "Place comment threads on any page, add replies, resolve feedback, and export the reviewed PDF."],
 });
 
 const DROP_ACTION = Object.freeze({
@@ -27,6 +29,8 @@ const DROP_ACTION = Object.freeze({
   "sign-pdf": "sign",
   "add-initials": "add initials",
   "add-date-fields": "add dates",
+  "review-pdf": "review",
+  "comment-on-pdf": "comment on",
 });
 
 export function EditorToolUploadPage({ toolId, fileInputRef, onUpload, onDropFiles, uploadError, uploadStage }) {

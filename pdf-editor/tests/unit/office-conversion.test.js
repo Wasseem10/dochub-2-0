@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { PDFDocument } from "pdf-lib";
+import * as pdfjsLib from "pdfjs-dist/legacy/build/pdf.mjs";
 import {
   createDocxFromPdfPages,
   createPdfFromRenderedDocxPages,
@@ -28,6 +29,7 @@ describe("Office conversion primitives", () => {
       { str: "Hello", transform: [1, 0, 0, 11, 10, 100], width: 28, height: 11 },
     ]);
     expect(lines.map((line) => line.text)).toEqual(["Hello world", "Second line"]);
+    expect(lines[0]).toMatchObject({ x: 10, y: 100, width: 60 });
   });
 
   it("creates a real editable DOCX package", async () => {
@@ -44,5 +46,19 @@ describe("Office conversion primitives", () => {
     const pdf = await PDFDocument.load(pdfBytes);
     expect(pdf.getPageCount()).toBe(2);
     expect(pdf.getTitle()).toBe("Two pages");
+  });
+
+  it("adds a searchable text layer to visually rendered Word pages", async () => {
+    const pdfBytes = await createPdfFromRenderedDocxPages([{
+      bytes: onePixelPng,
+      textItems: [
+        { text: "Searchable", x: 0.1, y: 0.1, w: 0.12, h: 0.03 },
+        { text: "document", x: 0.24, y: 0.1, w: 0.12, h: 0.03 },
+      ],
+    }]);
+    const standardFontDataUrl = new URL("../../node_modules/pdfjs-dist/standard_fonts/", import.meta.url).toString();
+    const renderedPdf = await pdfjsLib.getDocument({ data: pdfBytes, standardFontDataUrl }).promise;
+    const textContent = await (await renderedPdf.getPage(1)).getTextContent();
+    expect(textContent.items.map((item) => item.str.trim()).filter(Boolean)).toEqual(["Searchable", "document"]);
   });
 });

@@ -436,6 +436,90 @@
   padding: 18px 24px 0;
 }
 
+.comment-status-pill {
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: #e8f0ff;
+  color: #2851eb !important;
+  font-size: 10px !important;
+}
+
+.comment-status-pill.is-resolved {
+  background: #e9f8ef;
+  color: #177245 !important;
+}
+
+.comment-thread {
+  display: grid;
+  gap: 8px;
+  padding: 0 24px 14px;
+}
+
+.comment-thread article {
+  padding: 10px;
+  border: 1px solid #e1e7ee;
+  border-radius: 7px;
+  background: #f8fafc;
+}
+
+.comment-thread article div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.comment-thread article span,
+.comment-history-summary {
+  color: #64748b;
+  font-size: 11px;
+}
+
+.comment-thread article p,
+.comment-thread-empty {
+  margin: 6px 0 0;
+  color: #334155;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.comment-thread-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  padding: 0 24px 12px;
+}
+
+.comment-thread-actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 34px;
+  border: 1px solid #d8e0e7;
+  border-radius: 7px;
+  background: #f8fafc;
+  color: #26313d;
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.comment-thread-actions button:first-child {
+  border-color: #2851eb;
+  background: #2851eb;
+  color: #fff;
+}
+
+.comment-thread-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.comment-history-summary {
+  display: block;
+  padding: 0 24px 16px;
+}
+
 .modal-backdrop {
   position: fixed;
   inset: 0;
@@ -2617,7 +2701,7 @@ main.editor-shell .sign-secure-button svg {
 }
 
 .document-comments-panel {
-  grid-template-rows: auto auto minmax(0, 1fr);
+  grid-template-rows: auto auto auto minmax(0, 1fr);
 }
 
 .document-search-panel header,
@@ -2681,6 +2765,31 @@ main.editor-shell .sign-secure-button svg {
   cursor: pointer;
   font-size: 13px;
   font-weight: 850;
+}
+
+.comment-filter-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  padding: 0 14px 12px;
+}
+
+.comment-filter-tabs button {
+  height: 30px;
+  border: 1px solid #d8e0e7;
+  border-radius: 7px;
+  background: #fff;
+  color: #64748b;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 850;
+  text-transform: capitalize;
+}
+
+.comment-filter-tabs button.is-active {
+  border-color: #2851eb;
+  background: #eef2ff;
+  color: #2851eb;
 }
 
 .document-search-input {

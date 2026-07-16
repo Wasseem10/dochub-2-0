@@ -7,6 +7,8 @@ const PRESETS = Object.freeze({
   "sign-pdf": { activeTool: "signature", label: "Sign PDF" },
   "add-initials": { activeTool: "initials", label: "Add Initials" },
   "add-date-fields": { activeTool: "date", label: "Add Date Fields" },
+  "review-pdf": { activeTool: "highlight", label: "Review PDF", openComments: true },
+  "comment-on-pdf": { activeTool: "comment", label: "Comment on PDF", openComments: true },
 });
 
 export const EDITOR_TOOL_PRESETS = PRESETS;

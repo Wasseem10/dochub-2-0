@@ -89,6 +89,7 @@ import { loadLocalDocuments, saveLocalDocuments } from "./tools/localDocumentSto
 import { extractPdfFormAnnotations } from "./tools/pdfFormFields.js";
 import { getPdfLoadErrorMessage, validatePdfUpload } from "./tools/pdfUploadValidation.js";
 import { drawFlattenedInputAnnotation } from "./tools/pdfEditorAnnotationExport.js";
+import { attachPdfCommentAnnotation } from "./tools/pdfCommentAnnotations.js";
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
   "pdfjs-dist/build/pdf.worker.mjs",
@@ -1144,6 +1145,10 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
         content: annotation.content || "Add a comment",
         author: annotation.author || "You",
         updatedAt: annotation.updatedAt,
+        replies: annotation.replies || [],
+        status: annotation.status || "open",
+        assignee: annotation.assignee || "Unassigned",
+        history: annotation.history || [],
       }))
       .sort((a, b) => a.page - b.page)
   ), [annotations]);
@@ -2397,6 +2402,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     }
 
     if (tool === "comment") {
+      const createdAt = nowIso();
       addAnnotation({
         id: makeId("comment"),
         type: "comment",
@@ -2407,7 +2413,12 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
         h: 0.048,
         content: "Add a comment",
         author: "You",
-        updatedAt: nowIso(),
+        createdAt,
+        updatedAt: createdAt,
+        status: "open",
+        assignee: "Unassigned",
+        replies: [],
+        history: [{ type: "created", author: "You", at: createdAt }],
         color: "#f59e0b",
         opacity: 1,
       });
@@ -2894,6 +2905,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
           font: helveticaBold,
           color: rgb(0.5, 0.25, 0.03),
         });
+        attachPdfCommentAnnotation({ pdfDoc, page, annotation, x, y, size: markerSize });
       }
 
       if (annotation.type === "image" && annotation.imageDataUrl) {
@@ -2974,6 +2986,10 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       setTool(resolveEditorActiveTool(requestedTool, detectedTextCount));
       if (preset.openPages) setIsPagesCollapsed(false);
       if (preset.openAppend) setIsPageAppendMenuOpen(true);
+      if (preset.openComments) {
+        setIsCommentsOpen(true);
+        setIsSearchOpen(false);
+      }
       if (requestedTool === "sign-pdf" || requestedTool === "add-initials") {
         setSignatureModalMode(requestedTool === "add-initials" ? "initials" : "signature");
         setSignatureModalOpen(true);
@@ -5086,11 +5102,13 @@ function Inspector({
   const title = selected?.type ? selected.type[0].toUpperCase() + selected.type.slice(1) : activeTool === "signature" ? "Signature" : "Properties";
   const [isCustomColorOpen, setIsCustomColorOpen] = useState(false);
   const [customColorDraft, setCustomColorDraft] = useState(selected?.color || colors.black);
+  const [commentReplyDraft, setCommentReplyDraft] = useState("");
   const updateToolSettings = (patch) => setToolSettings?.((current) => ({ ...current, ...patch }));
 
   useEffect(() => {
     setCustomColorDraft(selected?.color || colors.black);
     setIsCustomColorOpen(false);
+    setCommentReplyDraft("");
   }, [selected?.id]);
 
   return (
@@ -5121,7 +5139,7 @@ function Inspector({
             <div className="comment-editor">
               <div className="comment-meta">
                 <strong>{selected.author || "You"}</strong>
-                <span>{formatDateTime(selected.updatedAt)}</span>
+                <span className={`comment-status-pill is-${selected.status || "open"}`}>{selected.status === "resolved" ? "Resolved" : "Open"}</span>
               </div>
               <label className="field">
                 <span>Comment</span>
@@ -5130,6 +5148,52 @@ function Inspector({
                   onChange={(event) => updateAnnotation(selected.id, { content: event.target.value, updatedAt: nowIso() })}
                 />
               </label>
+              <label className="field">
+                <span>Assigned to</span>
+                <select value={selected.assignee || "Unassigned"} onChange={(event) => {
+                  const at = nowIso();
+                  updateAnnotation(selected.id, {
+                    assignee: event.target.value,
+                    updatedAt: at,
+                    history: [...(selected.history || []), { type: "assigned", author: "You", value: event.target.value, at }],
+                  });
+                }}><option>Unassigned</option><option>Me</option></select>
+              </label>
+              <div className="comment-thread" aria-label="Comment replies">
+                {(selected.replies || []).map((reply) => (
+                  <article key={reply.id}>
+                    <div><strong>{reply.author || "You"}</strong><span>{formatDateTime(reply.createdAt)}</span></div>
+                    <p>{reply.content}</p>
+                  </article>
+                ))}
+                {!(selected.replies || []).length && <p className="comment-thread-empty">No replies yet.</p>}
+              </div>
+              <label className="field comment-reply-field">
+                <span>Add reply</span>
+                <textarea value={commentReplyDraft} placeholder="Write a reply..." onChange={(event) => setCommentReplyDraft(event.target.value)} />
+              </label>
+              <div className="comment-thread-actions">
+                <button type="button" disabled={!commentReplyDraft.trim()} onClick={() => {
+                  const at = nowIso();
+                  const reply = { id: makeId("reply"), author: "You", content: commentReplyDraft.trim(), createdAt: at };
+                  updateAnnotation(selected.id, {
+                    replies: [...(selected.replies || []), reply],
+                    updatedAt: at,
+                    history: [...(selected.history || []), { type: "replied", author: "You", at }],
+                  });
+                  setCommentReplyDraft("");
+                }}><Send size={15} /> Reply</button>
+                <button type="button" onClick={() => {
+                  const nextStatus = selected.status === "resolved" ? "open" : "resolved";
+                  const at = nowIso();
+                  updateAnnotation(selected.id, {
+                    status: nextStatus,
+                    updatedAt: at,
+                    history: [...(selected.history || []), { type: nextStatus, author: "You", at }],
+                  });
+                }}>{selected.status === "resolved" ? "Reopen" : "Resolve"}</button>
+              </div>
+              <small className="comment-history-summary">{(selected.history || []).length} review event{(selected.history || []).length === 1 ? "" : "s"} stored locally</small>
             </div>
           )}
 
@@ -5341,30 +5405,36 @@ function DocumentCommentsPanel({
   onAddComment,
   onSelect,
 }) {
+  const [filter, setFilter] = useState("open");
+  const visibleComments = comments.filter((comment) => filter === "all" || (comment.status || "open") === filter);
+  const openCount = comments.filter((comment) => (comment.status || "open") === "open").length;
   return (
     <section className="document-comments-panel" aria-label="Document comments">
       <header>
         <div>
           <h3>Comments</h3>
-          <span>{comments.length ? `${comments.length} open thread${comments.length === 1 ? "" : "s"}` : "No comments yet"}</span>
+          <span>{comments.length ? `${openCount} open · ${comments.length - openCount} resolved` : "No comments yet"}</span>
         </div>
         <button type="button" onClick={onClose} aria-label="Close comments"><X size={16} /></button>
       </header>
       <button type="button" className="comment-add-button" onClick={onAddComment}><MessageSquare size={16} /> Add comment</button>
+      <div className="comment-filter-tabs" role="tablist" aria-label="Filter comments">
+        {["open", "resolved", "all"].map((value) => <button key={value} type="button" role="tab" aria-selected={filter === value} className={filter === value ? "is-active" : ""} onClick={() => setFilter(value)}>{value}</button>)}
+      </div>
       <div className="document-comment-list">
-        {!comments.length && (
-          <p>Click Add comment, then click anywhere on the PDF to place a review note.</p>
+        {!visibleComments.length && (
+          <p>{comments.length ? `No ${filter} comments.` : "Click Add comment, then click anywhere on the PDF to place a review note."}</p>
         )}
-        {comments.map((comment) => (
+        {visibleComments.map((comment) => (
           <button
             key={comment.id}
             type="button"
             className={selectedId === comment.id ? "is-active" : ""}
             onClick={() => onSelect(comment)}
           >
-            <span>Page {comment.page + 1}</span>
+            <span>Page {comment.page + 1} · {comment.status || "open"}</span>
             <strong>{comment.content}</strong>
-            <small>{comment.author} · {formatDateTime(comment.updatedAt)}</small>
+            <small>{comment.author} · {(comment.replies || []).length} repl{(comment.replies || []).length === 1 ? "y" : "ies"} · {comment.assignee || "Unassigned"}</small>
           </button>
         ))}
       </div>

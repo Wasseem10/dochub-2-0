@@ -65,6 +65,8 @@ const directRoutes = [
   "/redact-pdf",
   "/ai-pdf",
   "/word-to-pdf",
+  "/review-pdf",
+  "/comment-on-pdf",
   "/protect-pdf",
   "/compare-pdf",
   "/request-signatures",
