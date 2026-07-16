@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+Disallow: /login
+Disallow: /signup
+Disallow: /forgot-password
+Disallow: /app/
+Disallow: /share/
+Disallow: /sign/
+Sitemap: http://localhost:4173/sitemap.xml

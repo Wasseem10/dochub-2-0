@@ -6,10 +6,11 @@ console.log("creating vite server");
 const server = await createServer({
   configFile: false,
   root: process.cwd(),
+  publicDir: "runtime-public",
   optimizeDeps: {
     entries: ["index.html"],
-    include: ["react", "react-dom/client"],
-    exclude: ["pdfjs-dist", "pdf-lib"],
+    include: ["react", "react-dom/client", "pdf-lib"],
+    exclude: ["pdfjs-dist"],
   },
   server: {
     host: "127.0.0.1",

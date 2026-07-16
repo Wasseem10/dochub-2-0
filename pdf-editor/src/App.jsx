@@ -1,4 +1,18 @@
 import { forwardRef, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import "./styles.css";
+import "./editor-overrides.css";
+import "./dashboard-redesign.css";
+import Mail from "lucide-react/dist/esm/icons/mail.mjs";
+import LogOut from "lucide-react/dist/esm/icons/log-out.mjs";
+import ChevronRight from "lucide-react/dist/esm/icons/chevron-right.mjs";
+import ChevronLeft from "lucide-react/dist/esm/icons/chevron-left.mjs";
+import Sparkles from "lucide-react/dist/esm/icons/sparkles.mjs";
+import Plug from "lucide-react/dist/esm/icons/plug.mjs";
+import HardDrive from "lucide-react/dist/esm/icons/hard-drive.mjs";
+import Crown from "lucide-react/dist/esm/icons/crown.mjs";
+import CreditCard from "lucide-react/dist/esm/icons/credit-card.mjs";
+import ChartNoAxesColumnIncreasing from "lucide-react/dist/esm/icons/chart-no-axes-column-increasing.mjs";
+import Activity from "lucide-react/dist/esm/icons/activity.mjs";
 import ArrowDownToLine from "lucide-react/dist/esm/icons/arrow-down-to-line.mjs";
 import AlignCenter from "lucide-react/dist/esm/icons/align-center.mjs";
 import AlignLeft from "lucide-react/dist/esm/icons/align-left.mjs";
@@ -56,35 +70,42 @@ import Upload from "lucide-react/dist/esm/icons/upload.mjs";
 import Users from "lucide-react/dist/esm/icons/users.mjs";
 import X from "lucide-react/dist/esm/icons/x.mjs";
 import Zap from "lucide-react/dist/esm/icons/zap.mjs";
-import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
-import * as pdfjsLib from "pdfjs-dist";
-import "pdfjs-dist/build/pdf.worker.mjs";
-import {
-  createUserWithEmailAndPassword,
-  onAuthStateChanged,
-  sendPasswordResetEmail,
-  signInWithEmailAndPassword,
-  signInWithPopup,
-  signOut,
-  updateProfile,
-} from "firebase/auth";
+import { PDFDocument, StandardFonts, degrees, rgb } from "pdf-lib";
+import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { collection, deleteDoc, doc, getDocs, setDoc } from "firebase/firestore";
 import { deleteObject, getDownloadURL, ref as storageReference, uploadString } from "firebase/storage";
-import { auth, db, googleProvider, isCloudPersistenceConfigured, isFirebaseConfigured, storage } from "./firebase";
+import { db, isCloudPersistenceConfigured, storage } from "./firebase";
+import { useAuth } from "./auth/AuthContext.jsx";
+import { fileSizeBucket, pageCountBucket, trackProductEvent } from "./analytics/productAnalytics.js";
+import { EDITOR_LIMITS, validateEditorPageCount, validateEditorPdfFile } from "./config/editorLimits.js";
+import { consolidatePdfSources, finalizePdfExport } from "./editor/exportPdf.js";
+import { EDITOR_MODE_TOOLS, rotateEditorObjectWithPage, unrotateEditorObjectFromPage } from "./editor/editorModel.js";
+import { protectPdfBytes } from "./editor/protectPdf.js";
+import { LatticePdfLanding } from "./LatticePdfLanding.jsx";
+import { EditorRouteStatePage } from "./pages/app/EditorRouteStatePage.jsx";
+import { resolveEditorDocument } from "./router/editorRouteState.js";
+import { consumePendingPdfFile } from "./router/pendingUpload.js";
+import { editorPath, ROUTE_PATHS } from "./router/routePaths.js";
+import { getEditorToolPreset, resolveEditorActiveTool } from "./tools/editorToolPresets.js";
 
-pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
-  "pdfjs-dist/build/pdf.worker.mjs",
-  import.meta.url,
-).toString();
+let pdfRendererPromise;
+async function loadPdfRenderer() {
+  if (!pdfRendererPromise) {
+    pdfRendererPromise = import("pdfjs-dist").then((pdfjsLib) => {
+      pdfjsLib.GlobalWorkerOptions.workerSrc = new URL("pdfjs-dist/build/pdf.worker.mjs", import.meta.url).toString();
+      return pdfjsLib;
+    });
+  }
+  return pdfRendererPromise;
+}
 
 const BASE_PAGE_WIDTH = 760;
 const BASE_PAGE_HEIGHT = 984;
 const EDITOR_PAGE_SCALE = 0.74;
 const TEXT_SCREEN_SCALE = 1 / EDITOR_PAGE_SCALE;
 const STORAGE_KEY = "paperflow.documents.v1";
-const APP_SCREEN_KEY = "paperflow.lastScreen.v1";
-const MAX_FILE_BYTES = 8 * 1024 * 1024;
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+const GUEST_OWNER_ID = "guest";
 const ZOOM_PRESETS = [60, 80, 90, 100, 120, 140, 160];
 
 const colors = {
@@ -167,6 +188,22 @@ const toolConfig = [
   { id: "signature", label: "Signature", icon: PenLine },
 ];
 
+const editorModes = [
+  { id: "view", label: "View", icon: MousePointer2, defaultTool: "select", tools: EDITOR_MODE_TOOLS.view },
+  { id: "annotate", label: "Annotate", icon: Highlighter, defaultTool: "highlight", tools: EDITOR_MODE_TOOLS.annotate },
+  { id: "shapes", label: "Shapes", icon: RectangleHorizontal, defaultTool: "rectangle", tools: EDITOR_MODE_TOOLS.shapes },
+  { id: "insert", label: "Insert", icon: Plus, defaultTool: "text", tools: EDITOR_MODE_TOOLS.insert },
+  { id: "edit", label: "Edit", icon: ScanText, defaultTool: "editText", tools: EDITOR_MODE_TOOLS.edit },
+  { id: "fill", label: "Fill & Sign", icon: PenLine, defaultTool: "field", tools: EDITOR_MODE_TOOLS.fill },
+];
+
+const eraseTool = { id: "erase", label: "Erase", icon: Eraser };
+const toolById = new Map([...toolConfig, eraseTool].map((item) => [item.id, item]));
+
+function modeForTool(activeTool) {
+  return editorModes.find((mode) => mode.tools.includes(activeTool)) || editorModes[0];
+}
+
 function makeId(prefix) {
   return `${prefix}-${Math.random().toString(36).slice(2, 9)}`;
 }
@@ -177,28 +214,6 @@ function clamp(value, min, max) {
 
 function nowIso() {
   return new Date().toISOString();
-}
-
-function mapFirebaseUser(user) {
-  if (!user) return null;
-  const fallbackName = user.email?.split("@")[0] || "Workspace owner";
-  return {
-    uid: user.uid,
-    email: user.email || "",
-    name: user.displayName || fallbackName,
-    photoURL: user.photoURL || "",
-  };
-}
-
-function formatAuthError(error) {
-  const code = error?.code || "";
-  if (code.includes("auth/email-already-in-use")) return "That email already has an account. Log in instead.";
-  if (code.includes("auth/invalid-credential") || code.includes("auth/wrong-password")) return "Email or password is incorrect.";
-  if (code.includes("auth/user-not-found")) return "No account exists for that email.";
-  if (code.includes("auth/weak-password")) return "Use a password with at least 6 characters.";
-  if (code.includes("auth/popup-closed-by-user")) return "Google sign-in was closed before it finished.";
-  if (code.includes("auth/unauthorized-domain")) return "This domain is not authorized in Firebase Authentication settings.";
-  return error?.message || "Authentication failed. Try again.";
 }
 
 function isEditableTarget(target) {
@@ -220,38 +235,21 @@ function formatBytes(bytes = 0) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-function safeLoadDocuments() {
+function userDocumentStorageKey(userId) {
+  return `${STORAGE_KEY}:${userId || GUEST_OWNER_ID}`;
+}
+
+function safeLoadDocuments(userId) {
   try {
-    const parsed = JSON.parse(window.localStorage.getItem(STORAGE_KEY) || "[]");
+    const parsed = JSON.parse(window.localStorage.getItem(userDocumentStorageKey(userId)) || "[]");
     return Array.isArray(parsed) ? parsed : [];
   } catch {
     return [];
   }
 }
 
-function writeDocuments(documents) {
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(documents));
-}
-
-function safeLoadScreen() {
-  const urlView = new URLSearchParams(window.location.search).get("view");
-  if (urlView === "dashboard") return "upload";
-
-  try {
-    const savedScreen = window.localStorage.getItem(APP_SCREEN_KEY);
-    return savedScreen === "upload" || savedScreen === "editor" ? "upload" : "landing";
-  } catch {
-    return "landing";
-  }
-}
-
-function writeLastScreen(screen) {
-  try {
-    if (screen === "auth") return;
-    window.localStorage.setItem(APP_SCREEN_KEY, screen === "editor" ? "upload" : screen);
-  } catch {
-    // Ignore private browsing or disabled storage; Firebase auth still owns login state.
-  }
+function writeDocuments(userId, documents) {
+  window.localStorage.setItem(userDocumentStorageKey(userId), JSON.stringify(documents));
 }
 
 function cloudDocumentPayloadPath(userId, documentId) {
@@ -262,6 +260,7 @@ function toCloudDocumentMetadata(userId, documentRecord) {
   const payloadPath = cloudDocumentPayloadPath(userId, documentRecord.id);
   return {
     id: documentRecord.id,
+    ownerId: userId,
     name: documentRecord.name || "Untitled document.pdf",
     size: documentRecord.size || 0,
     source: documentRecord.source || "blank",
@@ -406,7 +405,7 @@ function pointerToNormalized(event, pageElement) {
   };
 }
 
-function extractDetectedTextItems(textContent, viewport, pageRecord, pageIndex) {
+function extractDetectedTextItems(pdfjsLib, textContent, viewport, pageRecord, pageIndex) {
   const rawItems = textContent.items
     .filter((item) => item.str?.trim())
     .map((item, index) => {
@@ -738,7 +737,7 @@ const EditableTextContent = forwardRef(function EditableTextContent({
   );
 });
 
-function Annotation({ annotation, selected, zoom, onSelect, onDrag, onResize, onUpdate, onDelete }) {
+function Annotation({ annotation, selected, zoom, activeTool, onSelect, onDrag, onResize, onUpdate, onDelete, onInteractionStart }) {
   const textContentRef = useRef(null);
   const textWasFocusedRef = useRef(false);
   const displayScale = (zoom / 100) * EDITOR_PAGE_SCALE;
@@ -749,9 +748,15 @@ function Annotation({ annotation, selected, zoom, onSelect, onDrag, onResize, on
     width: `${annotation.w * 100}%`,
     height: `${annotation.h * 100}%`,
     opacity: annotation.opacity,
+    transform: `rotate(${annotation.rotation || 0}deg)`,
   };
 
   const dragStart = (event) => {
+    if (activeTool === "erase") {
+      event.stopPropagation();
+      onDelete(annotation.id);
+      return;
+    }
     if (event.target.closest?.(".text-content")) {
       event.stopPropagation();
       onSelect(annotation.id);
@@ -761,6 +766,7 @@ function Annotation({ annotation, selected, zoom, onSelect, onDrag, onResize, on
     event.currentTarget.setPointerCapture(event.pointerId);
     const pageRect = event.currentTarget.closest(".page-surface").getBoundingClientRect();
     const origin = { clientX: event.clientX, clientY: event.clientY, x: annotation.x, y: annotation.y };
+    onInteractionStart?.();
     onSelect(annotation.id);
     const move = (moveEvent) => {
       onDrag(annotation.id, {
@@ -807,6 +813,7 @@ function Annotation({ annotation, selected, zoom, onSelect, onDrag, onResize, on
     event.stopPropagation();
     const pageRect = event.currentTarget.closest(".page-surface").getBoundingClientRect();
     const origin = { clientX: event.clientX, clientY: event.clientY, w: annotation.w, h: annotation.h };
+    onInteractionStart?.();
     const move = (moveEvent) => {
       onResize(annotation.id, {
         w: origin.w + (moveEvent.clientX - origin.clientX) / pageRect.width,
@@ -820,6 +827,33 @@ function Annotation({ annotation, selected, zoom, onSelect, onDrag, onResize, on
     window.addEventListener("pointermove", move);
     window.addEventListener("pointerup", up);
   };
+
+  const rotateStart = (event) => {
+    event.stopPropagation();
+    const rect = event.currentTarget.closest(".annotation")?.getBoundingClientRect();
+    if (!rect) return;
+    const center = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+    const startAngle = Math.atan2(event.clientY - center.y, event.clientX - center.x) * (180 / Math.PI);
+    const origin = annotation.rotation || 0;
+    onInteractionStart?.();
+    const move = (moveEvent) => {
+      const angle = Math.atan2(moveEvent.clientY - center.y, moveEvent.clientX - center.x) * (180 / Math.PI);
+      onUpdate(annotation.id, { rotation: Math.round(origin + angle - startAngle) });
+    };
+    const up = () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+    };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+  };
+
+  const selectionHandles = selected && (
+    <>
+      <span className="rotate-handle" title="Rotate" onPointerDown={rotateStart}><RotateCw size={12} /></span>
+      <span className="resize-handle" onPointerDown={resizeStart} />
+    </>
+  );
 
   const updateTextContent = (textElement) => {
     const pageRect = textElement.closest(".page-surface")?.getBoundingClientRect();
@@ -839,19 +873,70 @@ function Annotation({ annotation, selected, zoom, onSelect, onDrag, onResize, on
   };
 
   if (annotation.type === "draw") {
-    const points = annotation.points.map((point) => `${point.x * 100},${point.y * 100}`).join(" ");
-    const normalizedStrokeWidth = Math.max(0.15, (annotation.strokeWidth / BASE_PAGE_WIDTH) * 100);
+    const xs = annotation.points.map((point) => point.x);
+    const ys = annotation.points.map((point) => point.y);
+    const minX = Math.min(...xs);
+    const minY = Math.min(...ys);
+    const width = Math.max(0.012, Math.max(...xs) - minX);
+    const height = Math.max(0.012, Math.max(...ys) - minY);
+    const points = annotation.points.map((point) => `${((point.x - minX) / width) * 100},${((point.y - minY) / height) * 100}`).join(" ");
+    const normalizedStrokeWidth = Math.max(0.5, (annotation.strokeWidth / (BASE_PAGE_WIDTH * width)) * 100);
+    const drawDragStart = (event) => {
+      event.stopPropagation();
+      if (activeTool === "erase") {
+        onDelete(annotation.id);
+        return;
+      }
+      const pageRect = event.currentTarget.closest(".page-surface").getBoundingClientRect();
+      const origin = { clientX: event.clientX, clientY: event.clientY, points: annotation.points };
+      onInteractionStart?.();
+      onSelect(annotation.id);
+      const move = (moveEvent) => {
+        const rawDx = (moveEvent.clientX - origin.clientX) / pageRect.width;
+        const rawDy = (moveEvent.clientY - origin.clientY) / pageRect.height;
+        const dx = clamp(rawDx, -minX, 1 - minX - width);
+        const dy = clamp(rawDy, -minY, 1 - minY - height);
+        onUpdate(annotation.id, { points: origin.points.map((point) => ({ x: point.x + dx, y: point.y + dy })) });
+      };
+      const up = () => {
+        window.removeEventListener("pointermove", move);
+        window.removeEventListener("pointerup", up);
+      };
+      window.addEventListener("pointermove", move);
+      window.addEventListener("pointerup", up);
+    };
+    const drawResizeStart = (event) => {
+      event.stopPropagation();
+      const pageRect = event.currentTarget.closest(".page-surface").getBoundingClientRect();
+      const origin = { clientX: event.clientX, clientY: event.clientY, points: annotation.points };
+      onInteractionStart?.();
+      const move = (moveEvent) => {
+        const nextWidth = clamp(width + (moveEvent.clientX - origin.clientX) / pageRect.width, 0.012, 1 - minX);
+        const nextHeight = clamp(height + (moveEvent.clientY - origin.clientY) / pageRect.height, 0.012, 1 - minY);
+        onUpdate(annotation.id, { points: origin.points.map((point) => ({
+          x: minX + ((point.x - minX) / width) * nextWidth,
+          y: minY + ((point.y - minY) / height) * nextHeight,
+        })) });
+      };
+      const up = () => {
+        window.removeEventListener("pointermove", move);
+        window.removeEventListener("pointerup", up);
+      };
+      window.addEventListener("pointermove", move);
+      window.addEventListener("pointerup", up);
+    };
     return (
-      <svg className={`ink-layer ${selected ? "is-selected" : ""}`} viewBox="0 0 100 100" preserveAspectRatio="none" onPointerDown={(event) => { event.stopPropagation(); onSelect(annotation.id); }}>
-        <polyline points={points} fill="none" stroke={annotation.color} strokeWidth={normalizedStrokeWidth} strokeLinecap="round" strokeLinejoin="round" opacity={annotation.opacity} />
-      </svg>
+      <div className={`annotation draw-annotation ${selected ? "is-selected" : ""}`} style={{ left: `${minX * 100}%`, top: `${minY * 100}%`, width: `${width * 100}%`, height: `${height * 100}%`, transform: `rotate(${annotation.rotation || 0}deg)` }} onPointerDown={drawDragStart}>
+        <svg viewBox="0 0 100 100" preserveAspectRatio="none"><polyline points={points} fill="none" stroke={annotation.color} strokeWidth={normalizedStrokeWidth} strokeLinecap="round" strokeLinejoin="round" opacity={annotation.opacity} /></svg>
+        {selected && <><span className="rotate-handle" title="Rotate" onPointerDown={rotateStart}><RotateCw size={12} /></span><span className="resize-handle" onPointerDown={drawResizeStart} /></>}
+      </div>
     );
   }
 
   if (annotation.type === "highlight") {
     return (
       <div className={`annotation highlight ${selected ? "is-selected" : ""}`} style={{ ...commonStyle, backgroundColor: annotation.color }} onPointerDown={dragStart}>
-        {selected && <span className="resize-handle" onPointerDown={resizeStart} />}
+        {selectionHandles}
       </div>
     );
   }
@@ -859,7 +944,7 @@ function Annotation({ annotation, selected, zoom, onSelect, onDrag, onResize, on
   if (annotation.type === "whiteout") {
     return (
       <div className={`annotation whiteout ${selected ? "is-selected" : ""}`} style={commonStyle} onPointerDown={dragStart}>
-        {selected && <span className="resize-handle" onPointerDown={resizeStart} />}
+        {selectionHandles}
       </div>
     );
   }
@@ -868,7 +953,8 @@ function Annotation({ annotation, selected, zoom, onSelect, onDrag, onResize, on
     return (
       <div className={`annotation checkbox-field ${selected ? "is-selected" : ""}`} style={{ ...commonStyle, "--checkbox-color": annotation.color }} onPointerDown={dragStart}>
         {annotation.checked && <span className="checkbox-mark" />}
-        {selected && <span className="resize-handle" onPointerDown={resizeStart} />}
+        {selected && <button type="button" className="checkbox-toggle" onPointerDown={(event) => event.stopPropagation()} onClick={() => { onInteractionStart?.(); onUpdate(annotation.id, { checked: !annotation.checked }); }}>{annotation.checked ? "Uncheck" : "Check"}</button>}
+        {selectionHandles}
       </div>
     );
   }
@@ -885,7 +971,7 @@ function Annotation({ annotation, selected, zoom, onSelect, onDrag, onResize, on
         }}
         onPointerDown={dragStart}
       >
-        {selected && <span className="resize-handle" onPointerDown={resizeStart} />}
+        {selectionHandles}
       </div>
     );
   }
@@ -899,7 +985,7 @@ function Annotation({ annotation, selected, zoom, onSelect, onDrag, onResize, on
             <polyline points="78,100 100,100 100,78" fill="none" stroke={annotation.color} strokeWidth={Math.max(1, annotation.strokeWidth || 3)} strokeLinecap="round" strokeLinejoin="round" opacity={annotation.opacity} />
           )}
         </svg>
-        {selected && <span className="resize-handle" onPointerDown={resizeStart} />}
+        {selectionHandles}
       </div>
     );
   }
@@ -908,7 +994,8 @@ function Annotation({ annotation, selected, zoom, onSelect, onDrag, onResize, on
     return (
       <div className={`annotation comment-marker ${selected ? "is-selected" : ""}`} style={commonStyle} onPointerDown={dragStart}>
         <MessageSquare size={Math.max(16, 20 * (zoom / 100))} />
-        {selected && <span className="resize-handle" onPointerDown={resizeStart} />}
+        {selected && <textarea className="comment-editor" aria-label="Comment text" value={annotation.content || ""} onPointerDown={(event) => event.stopPropagation()} onFocus={onInteractionStart} onChange={(event) => onUpdate(annotation.id, { content: event.target.value, updatedAt: nowIso() })} placeholder="Write a comment…" autoFocus />}
+        {selectionHandles}
       </div>
     );
   }
@@ -926,7 +1013,7 @@ function Annotation({ annotation, selected, zoom, onSelect, onDrag, onResize, on
         onPointerDown={dragStart}
       >
         {annotation.imageDataUrl ? <img src={annotation.imageDataUrl} alt="Signature" /> : annotation.content}
-        {selected && <span className="resize-handle" onPointerDown={resizeStart} />}
+        {selectionHandles}
       </div>
     );
   }
@@ -935,7 +1022,7 @@ function Annotation({ annotation, selected, zoom, onSelect, onDrag, onResize, on
     return (
       <div className={`annotation image-annotation ${selected ? "is-selected" : ""}`} style={commonStyle} onPointerDown={dragStart}>
         <img src={annotation.imageDataUrl} alt={annotation.content || "Inserted image"} />
-        {selected && <span className="resize-handle" onPointerDown={resizeStart} />}
+        {selectionHandles}
       </div>
     );
   }
@@ -943,8 +1030,16 @@ function Annotation({ annotation, selected, zoom, onSelect, onDrag, onResize, on
   if (annotation.type === "field") {
     return (
       <div className={`annotation fillable-field ${selected ? "is-selected" : ""}`} style={{ ...commonStyle, "--field-color": annotation.color }} onPointerDown={dragStart}>
-        <span>{annotation.content || "Text field"}</span>
-        {selected && <span className="resize-handle" onPointerDown={resizeStart} />}
+        <EditableTextContent
+          className="field-content"
+          editable={selected}
+          spellCheck="false"
+          value={annotation.content || ""}
+          onPointerDown={(event) => { event.stopPropagation(); onSelect(annotation.id); }}
+          onFocus={onInteractionStart}
+          onChange={(element) => onUpdate(annotation.id, { content: element.innerText || " " })}
+        />
+        {selectionHandles}
       </div>
     );
   }
@@ -982,26 +1077,63 @@ function Annotation({ annotation, selected, zoom, onSelect, onDrag, onResize, on
           event.stopPropagation();
           onSelect(annotation.id);
         }}
+        onFocus={onInteractionStart}
         onChange={updateTextContent}
       />
-      {selected && <span className="resize-handle" onPointerDown={resizeStart} />}
+      {selectionHandles}
     </div>
   );
 }
 
-export function App() {
+function LazyThumbnailPage({ page, index, onVisible }) {
+  const previewRef = useRef(null);
+  useEffect(() => {
+    const element = previewRef.current;
+    if (!element || page.image || page.source !== "pdf") return undefined;
+    if (typeof IntersectionObserver === "undefined") {
+      onVisible(index, page);
+      return undefined;
+    }
+    const observer = new IntersectionObserver((entries) => {
+      if (entries.some((entry) => entry.isIntersecting)) {
+        onVisible(index, page);
+        observer.disconnect();
+      }
+    }, { rootMargin: "180px 0px" });
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [index, onVisible, page]);
+
+  return (
+    <div ref={previewRef} className="thumb-page">
+      {page.image ? <img src={page.image} alt={`Page ${index + 1}`} /> : page.source === "blank" ? <BlankDocument /> : <div className="thumbnail-skeleton" aria-label={`Loading page ${index + 1}`} />}
+    </div>
+  );
+}
+
+export function App({ view = "landing", appSection = "Home", authMode = "login", documentId = "", publicTool = "", pendingUploadToken = "" }) {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const {
+    authReady,
+    currentUser,
+    isFirebaseConfigured,
+    authenticate,
+    resetPassword,
+    logout: logoutAuth,
+  } = useAuth();
   const fileInputRef = useRef(null);
+  const lastExportRef = useRef(null);
   const appendFileInputRef = useRef(null);
   const imageInputRef = useRef(null);
   const moreMenuRef = useRef(null);
   const zoomMenuRef = useRef(null);
   const canvasColumnRef = useRef(null);
   const lastPagePointRef = useRef({ x: 0.52, y: 0.28 });
-  const [screen, setScreen] = useState(() => safeLoadScreen());
-  const [authMode, setAuthMode] = useState("signup");
-  const [currentUser, setCurrentUser] = useState(null);
-  const [authReady, setAuthReady] = useState(!isFirebaseConfigured);
-  const [documents, setDocuments] = useState(() => safeLoadDocuments());
+  const renderingPagesRef = useRef(new Set());
+  const [documents, setDocuments] = useState([]);
+  const [documentCatalogReady, setDocumentCatalogReady] = useState(!isCloudPersistenceConfigured);
+  const [editorRouteState, setEditorRouteState] = useState("idle");
   const [activeDocumentId, setActiveDocumentId] = useState(null);
   const [pages, setPages] = useState([]);
   const [pdfBytes, setPdfBytes] = useState(null);
@@ -1022,9 +1154,13 @@ export function App() {
   const [draft, setDraft] = useState(null);
   const [signatureText, setSignatureText] = useState("Jane Smith");
   const [viewMode, setViewMode] = useState("list");
+  const [draggedPageIndex, setDraggedPageIndex] = useState(null);
+  const [pageDropIndex, setPageDropIndex] = useState(null);
   const [isExporting, setIsExporting] = useState(false);
+  const [exportSuccess, setExportSuccess] = useState(false);
   const [uploadError, setUploadError] = useState("");
   const [uploadStage, setUploadStage] = useState({ status: "idle", percent: 0, fileName: "" });
+  const pendingUploadHandledRef = useRef(false);
   const [isDraggingFile, setIsDraggingFile] = useState(false);
   const [toast, setToast] = useState("");
   const [isPagesCollapsed, setIsPagesCollapsed] = useState(false);
@@ -1032,6 +1168,8 @@ export function App() {
   const [isInspectorCollapsed, setIsInspectorCollapsed] = useState(false);
   const [signatureModalOpen, setSignatureModalOpen] = useState(false);
   const [shareModalOpen, setShareModalOpen] = useState(false);
+  const [signatureRequestModalOpen, setSignatureRequestModalOpen] = useState(false);
+  const [protectModalOpen, setProtectModalOpen] = useState(false);
   const [upgradeModalOpen, setUpgradeModalOpen] = useState(false);
   const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
   const [isZoomMenuOpen, setIsZoomMenuOpen] = useState(false);
@@ -1060,6 +1198,7 @@ export function App() {
   });
 
   const selected = useMemo(() => annotations.find((annotation) => annotation.id === selectedId), [annotations, selectedId]);
+  const activeMode = modeForTool(tool);
   const selectedDetectedText = useMemo(() => detectedTextItems.find((item) => item.id === selectedDetectedTextId), [detectedTextItems, selectedDetectedTextId]);
   const activeDocument = useMemo(() => documents.find((document) => document.id === activeDocumentId), [documents, activeDocumentId]);
   const currentPage = pages[pageIndex] || pages[0];
@@ -1143,46 +1282,38 @@ export function App() {
   }, [cloudSyncStatus, currentUser?.uid, lastSavedAt, saveState]);
 
   useEffect(() => {
-    if (!auth) {
-      setAuthReady(true);
-      return undefined;
+    if (!currentUser?.uid) {
+      setDocuments(safeLoadDocuments(GUEST_OWNER_ID));
+      setDocumentCatalogReady(true);
+      return;
     }
-
-    return onAuthStateChanged(auth, (user) => {
-      setCurrentUser(mapFirebaseUser(user));
-      setAuthReady(true);
-    });
-  }, []);
-
-  useEffect(() => {
-    writeLastScreen(screen);
-  }, [screen]);
-
-  useEffect(() => {
-    if (!authReady || !currentUser || pages.length || screen !== "landing") return;
-    setScreen("upload");
-  }, [authReady, currentUser, pages.length, screen]);
+    setDocuments(safeLoadDocuments(currentUser.uid));
+    setDocumentCatalogReady(!isCloudPersistenceConfigured);
+  }, [currentUser?.uid]);
 
   useEffect(() => {
     if (!currentUser?.uid) {
       setCloudSyncStatus(isCloudPersistenceConfigured ? "idle" : "local");
+      setDocumentCatalogReady(true);
       return undefined;
     }
 
     if (!isCloudPersistenceConfigured) {
       setCloudSyncStatus("local");
+      setDocumentCatalogReady(true);
       return undefined;
     }
 
     let cancelled = false;
+    setDocumentCatalogReady(false);
     setCloudSyncStatus("syncing");
     loadCloudDocumentRecords(currentUser.uid)
       .then((cloudDocuments) => {
         if (cancelled) return;
-        const localDocuments = safeLoadDocuments();
+        const localDocuments = safeLoadDocuments(currentUser.uid);
         const mergedDocuments = mergeDocumentsByUpdatedAt(localDocuments, cloudDocuments);
         if (mergedDocuments.length) {
-          writeDocuments(mergedDocuments);
+          writeDocuments(currentUser.uid, mergedDocuments);
           setDocuments(mergedDocuments);
           if (cloudDocuments.length) {
             showToast(`Loaded ${cloudDocuments.length} cloud document${cloudDocuments.length === 1 ? "" : "s"}.`);
@@ -1192,10 +1323,12 @@ export function App() {
           }
         }
         if (!localDocuments.length) setCloudSyncStatus("synced");
+        setDocumentCatalogReady(true);
       })
       .catch(() => {
         if (cancelled) return;
         setCloudSyncStatus("error");
+        setDocumentCatalogReady(true);
         showToast("Cloud sync is unavailable. Changes are saved locally.");
       });
 
@@ -1232,7 +1365,7 @@ export function App() {
 
   const replaceDocuments = (nextDocuments) => {
     try {
-      writeDocuments(nextDocuments);
+      writeDocuments(currentUser?.uid || GUEST_OWNER_ID, nextDocuments);
       setDocuments(nextDocuments);
       syncDocumentsToCloud(documents, nextDocuments);
       return true;
@@ -1244,59 +1377,28 @@ export function App() {
     }
   };
 
-  const openAuth = (mode = "signup") => {
-    setAuthMode(mode);
-    setScreen("auth");
+  const openAuth = (mode = "signup", state = undefined) => {
+    navigate(mode === "login" ? ROUTE_PATHS.login : ROUTE_PATHS.signup, { state });
   };
 
   const completeAuth = async ({ email, password, name, provider }) => {
-    if (!auth) {
-      return { ok: false, error: "Firebase is not configured yet. Add the VITE_FIREBASE_* env vars first." };
+    const result = await authenticate({ mode: authMode, email, password, name, provider });
+    if (result?.ok) {
+      const requested = location.state?.from;
+      const returnTo = requested?.pathname?.startsWith("/")
+        ? `${requested.pathname}${requested.search || ""}${requested.hash || ""}`
+        : ROUTE_PATHS.dashboard;
+      navigate(returnTo, { replace: true });
     }
-
-    try {
-      const credential = provider === "google"
-        ? await signInWithPopup(auth, googleProvider)
-        : authMode === "signup"
-          ? await createUserWithEmailAndPassword(auth, email, password)
-          : await signInWithEmailAndPassword(auth, email, password);
-
-      if (authMode === "signup" && provider !== "google" && name?.trim()) {
-        await updateProfile(credential.user, { displayName: name.trim() });
-      }
-
-      setCurrentUser(mapFirebaseUser(auth.currentUser || credential.user));
-      setScreen("upload");
-      return { ok: true };
-    } catch (error) {
-      return { ok: false, error: formatAuthError(error) };
-    }
+    return result;
   };
 
-  const sendAuthPasswordReset = async (email) => {
-    if (!auth) {
-      return { ok: false, error: "Firebase is not configured yet. Add the VITE_FIREBASE_* env vars first." };
-    }
-
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
-      return { ok: false, error: "Enter your email address first." };
-    }
-
-    try {
-      await sendPasswordResetEmail(auth, email.trim());
-      return { ok: true };
-    } catch (error) {
-      return { ok: false, error: formatAuthError(error) };
-    }
-  };
+  const sendAuthPasswordReset = (email) => resetPassword(email);
 
   const logout = async () => {
-    if (auth) {
-      await signOut(auth);
-    }
-    setCurrentUser(null);
+    await logoutAuth();
     setPages([]);
-    setScreen("landing");
+    navigate(ROUTE_PATHS.home);
     showToast("Signed out.");
   };
 
@@ -1310,10 +1412,11 @@ export function App() {
     setSaveState("unsaved");
   };
 
-  const saveActiveDocument = (immediate = false) => {
+  const saveActiveDocument = async (immediate = false) => {
     if (!activeDocumentId) return;
     const stamp = nowIso();
     setSaveState(immediate ? "saved" : "saving");
+    const pdfDataUrl = pdfBytes ? await arrayBufferToDataUrl(pdfBytes) : "";
     const nextDocuments = documents.map((document) => (
       document.id === activeDocumentId
         ? {
@@ -1322,6 +1425,7 @@ export function App() {
           pages,
           annotations,
           detectedTextItems,
+          pdfDataUrl,
           pageCount: pages.length,
           updatedAt: stamp,
         }
@@ -1389,6 +1493,8 @@ export function App() {
     annotations,
     detectedTextItems,
     pageIndex,
+    pdfBytes,
+    toolSettings,
   });
 
   const pushHistorySnapshot = () => {
@@ -1405,6 +1511,8 @@ export function App() {
     setAnnotations(snapshot.annotations || []);
     setDetectedTextItems(snapshot.detectedTextItems || []);
     setPageIndex(clamp(snapshot.pageIndex || 0, 0, Math.max(0, (snapshot.pages || []).length - 1)));
+    if (Object.prototype.hasOwnProperty.call(snapshot, "pdfBytes")) setPdfBytes(snapshot.pdfBytes || null);
+    if (snapshot.toolSettings) setToolSettings(snapshot.toolSettings);
   };
 
   const commitAnnotations = (next) => {
@@ -1590,19 +1698,26 @@ export function App() {
   }, [isZoomMenuOpen]);
 
   const validatePdfFile = (file) => {
-    if (!file) return "No file selected.";
-    if (file.type !== "application/pdf" && !file.name.toLowerCase().endsWith(".pdf")) {
-      return "Please upload a PDF file.";
-    }
-    if (file.size > MAX_FILE_BYTES) {
-      return `For this local MVP, PDFs must be under ${formatBytes(MAX_FILE_BYTES)}.`;
-    }
-    return "";
+    return validateEditorPdfFile(file)?.message || "";
+  };
+
+  const selectPdfFile = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleLandingDropFiles = (files) => {
+    onUpload({ target: { files, value: "" } });
   };
 
   const parsePdfFile = async (file, { startPercent = 18, endPercent = 80, stagePrefix = "Rendering page" } = {}) => {
     const buffer = await file.arrayBuffer();
-    const document = await pdfjsLib.getDocument({ data: buffer.slice(0) }).promise;
+    const pdfjsLib = await loadPdfRenderer();
+    const loadingTask = pdfjsLib.getDocument({ data: buffer.slice(0) });
+    const document = await loadingTask.promise;
+    if (validateEditorPageCount(document.numPages)) {
+      await document.destroy();
+      throw new Error(`page-limit:${document.numPages}`);
+    }
     const loadedPages = [];
     const detectedItems = [];
 
@@ -1617,11 +1732,18 @@ export function App() {
       const pageText = textContent.items.map((item) => item.str).join(" ").replace(/\s+/g, " ").trim();
       const textViewport = page.getViewport({ scale: 1 });
       const viewport = page.getViewport({ scale: 1.35 });
-      const canvas = window.document.createElement("canvas");
-      const context = canvas.getContext("2d");
-      canvas.width = viewport.width;
-      canvas.height = viewport.height;
-      await page.render({ canvasContext: context, viewport }).promise;
+      const shouldRenderPreview = index <= 6;
+      let image = null;
+      if (shouldRenderPreview) {
+        const canvas = window.document.createElement("canvas");
+        const context = canvas.getContext("2d");
+        canvas.width = viewport.width;
+        canvas.height = viewport.height;
+        await page.render({ canvasContext: context, viewport }).promise;
+        image = canvas.toDataURL("image/png");
+        canvas.width = 0;
+        canvas.height = 0;
+      }
       const displayWidth = BASE_PAGE_WIDTH;
       const displayHeight = Math.round(BASE_PAGE_WIDTH * (viewport.height / viewport.width));
       const pageRecord = {
@@ -1630,19 +1752,46 @@ export function App() {
         originalIndex: index - 1,
         width: displayWidth,
         height: displayHeight,
-        image: canvas.toDataURL("image/png"),
+        image,
         text: pageText,
         source: "pdf",
+        annotationBaseRotation: page.rotate || 0,
       };
-      detectedItems.push(...extractDetectedTextItems(textContent, textViewport, pageRecord, index - 1));
+      detectedItems.push(...extractDetectedTextItems(pdfjsLib, textContent, textViewport, pageRecord, index - 1));
       loadedPages.push({
         ...pageRecord,
         hasDetectedText: pageText.length > 0,
       });
+      page.cleanup();
     }
-
+    await document.destroy();
     return { buffer, loadedPages, detectedItems };
   };
+
+  const ensurePagePreview = useCallback(async (targetIndex, pageRecord) => {
+    if (!pdfBytes || !pageRecord || pageRecord.source !== "pdf" || pageRecord.image || renderingPagesRef.current.has(pageRecord.id)) return;
+    renderingPagesRef.current.add(pageRecord.id);
+    (async () => {
+      const pdfjsLib = await loadPdfRenderer();
+      const document = await pdfjsLib.getDocument({ data: pdfBytes.slice(0) }).promise;
+      const page = await document.getPage((pageRecord.originalIndex ?? targetIndex) + 1);
+      const viewport = page.getViewport({ scale: 1.35 });
+      const canvas = window.document.createElement("canvas");
+      canvas.width = viewport.width;
+      canvas.height = viewport.height;
+      await page.render({ canvasContext: canvas.getContext("2d"), viewport }).promise;
+      const image = canvas.toDataURL("image/png");
+      setPages((items) => items.map((item) => (item.id === pageRecord.id ? { ...item, image } : item)));
+      page.cleanup();
+      canvas.width = 0;
+      canvas.height = 0;
+      await document.destroy();
+    })().catch(() => showToast("This page preview could not be rendered.")).finally(() => renderingPagesRef.current.delete(pageRecord.id));
+  }, [pdfBytes]);
+
+  useEffect(() => {
+    ensurePagePreview(pageIndex, pages[pageIndex]);
+  }, [ensurePagePreview, pageIndex, pages]);
 
   const loadPdfFile = async (file) => {
     if (!file) return;
@@ -1651,6 +1800,7 @@ export function App() {
     if (validationError) {
       setUploadError(validationError);
       setUploadStage({ status: "error", percent: 0, fileName: file.name });
+      trackProductEvent("upload_validation_failed", { toolId: publicTool || "edit-pdf", fileSizeBucket: fileSizeBucket(file.size), errorCategory: file.size > EDITOR_LIMITS.maxFileBytes ? "file_size" : "file_type" });
       return;
     }
 
@@ -1667,6 +1817,7 @@ export function App() {
       const stamp = nowIso();
       const documentRecord = {
         id: makeId("doc"),
+        ownerId: currentUser?.uid || GUEST_OWNER_ID,
         name: file.name,
         size: file.size,
         source: "pdf",
@@ -1693,24 +1844,47 @@ export function App() {
       setRedoStack([]);
       setSelectedId(null);
       setSelectedDetectedTextId(null);
-      setTool(detectedItems.length ? "editText" : "select");
-      setScreen("editor");
+      setTool(resolveEditorActiveTool(publicTool, detectedItems.length));
       setSaved(true);
       setSaveState("saved");
       setLastSavedAt(stamp);
       setUploadStage({ status: "complete", percent: 100, fileName: file.name });
+      trackProductEvent("document_opened", { toolId: publicTool || "edit-pdf", fileSizeBucket: fileSizeBucket(file.size), pageCountBucket: pageCountBucket(loadedPages.length) });
       showToast(detectedItems.length ? `Smart Edit detected ${detectedItems.length} text item${detectedItems.length === 1 ? "" : "s"}.` : "This looks scanned. OCR is not enabled in this browser build yet.");
+      navigate(editorPath(documentRecord.id), { state: { publicTool } });
       window.setTimeout(() => setUploadStage({ status: "idle", percent: 0, fileName: "" }), 900);
-    } catch {
-      setUploadError("We could not read that PDF. Try a smaller or unprotected PDF file.");
+    } catch (error) {
+      const message = String(error?.message || "").toLowerCase();
+      const friendlyError = message.startsWith("page-limit:")
+        ? validateEditorPageCount(Number(message.split(":")[1]))?.message
+        : error?.name === "PasswordException" || message.includes("password")
+          ? "This PDF is encrypted. Remove its password with an authorized tool, then try again."
+          : message.includes("invalid pdf") || message.includes("missing pdf")
+            ? "This PDF appears corrupted or incomplete. Try downloading a fresh copy."
+            : "We could not read that PDF. Try a valid, unencrypted PDF under 8 MB.";
+      setUploadError(friendlyError);
       setUploadStage({ status: "error", percent: 0, fileName: file.name });
+      trackProductEvent("upload_validation_failed", { toolId: publicTool || "edit-pdf", fileSizeBucket: fileSizeBucket(file.size), errorCategory: message.startsWith("page-limit:") ? "page_count" : message.includes("password") ? "encrypted" : "corrupted_or_unreadable" });
     }
   };
 
   const onUpload = async (event) => {
-    await loadPdfFile(event.target.files?.[0]);
+    const selectedFile = event.target.files?.[0];
+    if (selectedFile) trackProductEvent("upload_started", { toolId: publicTool || "edit-pdf", fileSizeBucket: fileSizeBucket(selectedFile.size) });
+    await loadPdfFile(selectedFile);
     event.target.value = "";
   };
+
+  useEffect(() => {
+    if (!pendingUploadToken || pendingUploadHandledRef.current) return;
+    pendingUploadHandledRef.current = true;
+    const pendingFile = consumePendingPdfFile(pendingUploadToken);
+    if (pendingFile) loadPdfFile(pendingFile);
+    else {
+      setUploadError("That upload session expired. Choose the PDF again to continue.");
+      pendingUploadHandledRef.current = false;
+    }
+  }, [pendingUploadToken]);
 
   const mergeAndAppendPdfFile = async (file) => {
     if (!file) return;
@@ -1726,28 +1900,49 @@ export function App() {
     try {
       setUploadError("");
       setUploadStage({ status: "reading append file", percent: 18, fileName: file.name });
-      const { loadedPages, detectedItems } = await parsePdfFile(file, {
+      const { buffer, loadedPages, detectedItems } = await parsePdfFile(file, {
         startPercent: 24,
         endPercent: 82,
         stagePrefix: "Rendering append page",
       });
       const pageOffset = pages.length;
+      const consolidatedBytes = await consolidatePdfSources({ baseBytes: pdfBytes, pages, appendBytes: buffer });
+      const normalizedCurrentPages = pages.map((page, index) => ({
+        ...page,
+        originalIndex: index,
+        source: "pdf",
+        annotationBaseRotation: ((page.annotationBaseRotation || 0) + (page.rotation || 0)) % 360,
+        rotation: 0,
+      }));
       const appendedPages = loadedPages.map((page, index) => ({
         ...page,
         id: makeId("page"),
         number: pageOffset + index + 1,
-        originalIndex: null,
-        source: "image",
+        originalIndex: pageOffset + index,
+        source: "pdf",
       }));
       const appendedDetectedItems = detectedItems.map((item) => ({
         ...item,
         id: makeId("detected-text"),
         pageNumber: item.pageNumber + pageOffset,
       }));
+      const nextPages = [...normalizedCurrentPages, ...appendedPages].map((page, index) => ({ ...page, number: index + 1 }));
+      const nextDetectedTextItems = [...detectedTextItems, ...appendedDetectedItems];
+      const consolidatedDataUrl = await arrayBufferToDataUrl(consolidatedBytes);
 
       pushHistorySnapshot();
-      setPages((items) => [...items, ...appendedPages].map((page, index) => ({ ...page, number: index + 1 })));
-      setDetectedTextItems((items) => [...items, ...appendedDetectedItems]);
+      setPdfBytes(consolidatedBytes);
+      setPages(nextPages);
+      setDetectedTextItems(nextDetectedTextItems);
+      replaceDocuments(documents.map((documentRecord) => documentRecord.id === activeDocumentId ? {
+        ...documentRecord,
+        pdfDataUrl: consolidatedDataUrl,
+        pages: nextPages,
+        annotations,
+        detectedTextItems: nextDetectedTextItems,
+        pageCount: nextPages.length,
+        updatedAt: nowIso(),
+      } : documentRecord));
       setPageIndex(pageOffset);
       setSelectedId(null);
       setSelectedDetectedTextId(null);
@@ -1810,6 +2005,7 @@ export function App() {
     const blankPages = [{ id: makeId("blank-page"), number: 1, originalIndex: null, width: BASE_PAGE_WIDTH, height: BASE_PAGE_HEIGHT, source: "blank" }];
     const documentRecord = {
       id: makeId("doc"),
+      ownerId: currentUser?.uid || GUEST_OWNER_ID,
       name: "Untitled blank document.pdf",
       size: 0,
       source: "blank",
@@ -1837,10 +2033,10 @@ export function App() {
     setSelectedId(null);
     setSelectedDetectedTextId(null);
     setTool("text");
-    setScreen("editor");
     setSaved(true);
     setSaveState("saved");
     setLastSavedAt(stamp);
+    navigate(editorPath(documentRecord.id), { state: { publicTool } });
   };
 
   const addBlankPage = () => {
@@ -1861,6 +2057,30 @@ export function App() {
     setIsPageAppendMenuOpen(false);
     markUnsaved();
     showToast("Blank page added.");
+  };
+
+  const duplicateCurrentPage = () => {
+    const insertionIndex = pageIndex + 1;
+    const sourcePage = pages[pageIndex];
+    if (!sourcePage) return;
+    const duplicatePage = { ...sourcePage, id: makeId("page"), number: insertionIndex + 1 };
+    const shiftedAnnotations = annotations.map((annotation) => annotation.page >= insertionIndex ? { ...annotation, page: annotation.page + 1 } : annotation);
+    const duplicatedAnnotations = annotations
+      .filter((annotation) => annotation.page === pageIndex)
+      .map((annotation) => ({ ...annotation, id: makeId(annotation.type || "annotation"), page: insertionIndex }));
+    const shiftedText = detectedTextItems.map((item) => item.pageNumber >= insertionIndex ? { ...item, pageNumber: item.pageNumber + 1 } : item);
+    const duplicatedText = detectedTextItems
+      .filter((item) => item.pageNumber === pageIndex)
+      .map((item) => ({ ...item, id: makeId("detected-text"), pageNumber: insertionIndex }));
+    pushHistorySnapshot();
+    setPages((items) => [...items.slice(0, insertionIndex), duplicatePage, ...items.slice(insertionIndex)].map((page, index) => ({ ...page, number: index + 1 })));
+    setAnnotations([...shiftedAnnotations, ...duplicatedAnnotations]);
+    setDetectedTextItems([...shiftedText, ...duplicatedText]);
+    setPageIndex(insertionIndex);
+    setSelectedId(null);
+    setSelectedDetectedTextId(null);
+    markUnsaved();
+    showToast("Page duplicated.");
   };
 
   const deleteCurrentPage = () => {
@@ -1886,8 +2106,22 @@ export function App() {
   const rotateCurrentPage = () => {
     const targetIndex = pageIndex;
     const page = pages[targetIndex];
-    if (!page?.image) {
-      showToast("This blank page has no content to rotate.");
+    if (!page) {
+      return;
+    }
+    const rotatePageEdits = () => {
+      setAnnotations((items) => items.map((annotation) => annotation.page === targetIndex ? rotateEditorObjectWithPage(annotation) : annotation));
+      setDetectedTextItems((items) => items.map((item) => item.pageNumber === targetIndex ? rotateEditorObjectWithPage(item) : item));
+      setSelectedId(null);
+      setSelectedDetectedTextId(null);
+    };
+
+    if (!page.image) {
+      pushHistorySnapshot();
+      setPages((items) => items.map((item, index) => index === targetIndex ? { ...item, rotation: ((item.rotation || 0) + 90) % 360, width: item.height, height: item.width } : item));
+      rotatePageEdits();
+      markUnsaved();
+      showToast("Page rotated clockwise.");
       return;
     }
 
@@ -1900,11 +2134,13 @@ export function App() {
       context.translate(canvas.width, 0);
       context.rotate(Math.PI / 2);
       context.drawImage(image, 0, 0);
+      pushHistorySnapshot();
       setPages((items) => items.map((item, index) => (
         index === targetIndex
-          ? { ...item, image: canvas.toDataURL("image/png"), width: item.height, height: item.width }
+          ? { ...item, image: canvas.toDataURL("image/png"), rotation: ((item.rotation || 0) + 90) % 360, width: item.height, height: item.width }
           : item
       )));
+      rotatePageEdits();
       markUnsaved();
       showToast("Page rotated clockwise.");
     };
@@ -1912,30 +2148,35 @@ export function App() {
     image.src = page.image;
   };
 
-  const moveCurrentPage = (direction) => {
-    const nextIndex = pageIndex + direction;
-    if (nextIndex < 0 || nextIndex >= pages.length) return;
+  const reorderPage = (fromIndex, toIndex) => {
+    if (fromIndex < 0 || fromIndex >= pages.length || toIndex < 0 || toIndex >= pages.length || fromIndex === toIndex) return;
+    const remapIndex = (index) => {
+      if (index === fromIndex) return toIndex;
+      if (fromIndex < toIndex && index > fromIndex && index <= toIndex) return index - 1;
+      if (toIndex < fromIndex && index >= toIndex && index < fromIndex) return index + 1;
+      return index;
+    };
     pushHistorySnapshot();
     setPages((items) => {
       const next = [...items];
-      [next[pageIndex], next[nextIndex]] = [next[nextIndex], next[pageIndex]];
+      const [movedPage] = next.splice(fromIndex, 1);
+      next.splice(toIndex, 0, movedPage);
       return next.map((page, index) => ({ ...page, number: index + 1 }));
     });
-    setAnnotations((items) => items.map((annotation) => {
-      if (annotation.page === pageIndex) return { ...annotation, page: nextIndex };
-      if (annotation.page === nextIndex) return { ...annotation, page: pageIndex };
-      return annotation;
-    }));
-    setDetectedTextItems((items) => items.map((item) => {
-      if (item.pageNumber === pageIndex) return { ...item, pageNumber: nextIndex };
-      if (item.pageNumber === nextIndex) return { ...item, pageNumber: pageIndex };
-      return item;
-    }));
-    setPageIndex(nextIndex);
+    setAnnotations((items) => items.map((annotation) => ({ ...annotation, page: remapIndex(annotation.page) })));
+    setDetectedTextItems((items) => items.map((item) => ({ ...item, pageNumber: remapIndex(item.pageNumber) })));
+    setSelectedId(null);
+    setSelectedDetectedTextId(null);
+    setPageIndex(toIndex);
     markUnsaved();
+    showToast(`Moved page ${fromIndex + 1} to position ${toIndex + 1}.`);
   };
 
-  const openDocument = async (documentRecord) => {
+  const moveCurrentPage = (direction) => {
+    reorderPage(pageIndex, pageIndex + direction);
+  };
+
+  const hydrateDocument = useCallback(async (documentRecord) => {
     setActiveDocumentId(documentRecord.id);
     setPages((documentRecord.pages || []).map((page, index) => ({
       ...page,
@@ -1952,10 +2193,21 @@ export function App() {
     setSelectedId(null);
     setSelectedDetectedTextId(null);
     setTool("select");
-    setScreen("editor");
     setSaved(true);
     setSaveState("saved");
     setLastSavedAt(documentRecord.updatedAt);
+    setEditorRouteState("ready");
+  }, []);
+
+  const openDocument = async (documentRecord) => {
+    if (documentRecord.ownerId && documentRecord.ownerId !== currentUser?.uid) {
+      setEditorRouteState("unauthorized");
+      navigate(editorPath(documentRecord.id));
+      return;
+    }
+    setEditorRouteState("loading");
+    await hydrateDocument(documentRecord);
+    navigate(editorPath(documentRecord.id));
   };
 
   const renameActiveDocument = () => {
@@ -1991,7 +2243,7 @@ export function App() {
       setPages([]);
       setAnnotations([]);
       setPdfBytes(null);
-      setScreen("upload");
+      navigate(ROUTE_PATHS.documents);
     }
   };
 
@@ -2276,7 +2528,11 @@ export function App() {
       duplicateDetectedTextItem(selectedDetectedText);
       return;
     }
-    if (!selected || selected.type === "draw") return;
+    if (!selected) return;
+    if (selected.type === "draw") {
+      addAnnotation({ ...selected, id: makeId("draw"), points: selected.points.map((point) => ({ x: clamp(point.x + 0.025, 0, 1), y: clamp(point.y + 0.025, 0, 1) })) });
+      return;
+    }
     addAnnotation({ ...selected, id: makeId(selected.type), x: clamp(selected.x + 0.025, 0, 0.86), y: clamp(selected.y + 0.025, 0, 0.94) });
   };
 
@@ -2476,8 +2732,10 @@ export function App() {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [pages, pageIndex, selectedId, selectedDetectedTextId, selected?.type, annotations, detectedTextItems, undoStack, redoStack, saveState]);
 
-  const exportPdf = async () => {
+  const exportPdf = async ({ download = true, showResult = true } = {}) => {
     setIsExporting(true);
+    setExportSuccess(false);
+    trackProductEvent("export_started", { toolId: publicTool || "edit-pdf", pageCountBucket: pageCountBucket(pages.length) });
     try {
     saveActiveDocument(true);
     const pdfDoc = await PDFDocument.create();
@@ -2486,9 +2744,11 @@ export function App() {
     for (const pageRecord of pages) {
       if (sourcePdf && pageRecord.source === "pdf" && Number.isInteger(pageRecord.originalIndex)) {
         const [copiedPage] = await pdfDoc.copyPages(sourcePdf, [pageRecord.originalIndex]);
+        if (pageRecord.rotation) copiedPage.setRotation(degrees((copiedPage.getRotation().angle + pageRecord.rotation) % 360));
         pdfDoc.addPage(copiedPage);
       } else {
         const fallbackPage = pdfDoc.addPage([612, Math.round(612 * ((pageRecord.height || BASE_PAGE_HEIGHT) / (pageRecord.width || BASE_PAGE_WIDTH)))]);
+        if (pageRecord.rotation) fallbackPage.setRotation(degrees(pageRecord.rotation));
         if (pageRecord.image) {
           const pageImage = await embedDataUrlImage(pdfDoc, pageRecord.image);
           if (pageImage) {
@@ -2517,7 +2777,9 @@ export function App() {
       return helvetica;
     };
 
-    for (const item of detectedTextItems.filter((candidate) => candidate.isEdited || candidate.isDeleted)) {
+    for (const storedItem of detectedTextItems.filter((candidate) => candidate.isEdited || candidate.isDeleted)) {
+      const itemPage = pages[storedItem.pageNumber] || {};
+      const item = unrotateEditorObjectFromPage(storedItem, ((itemPage.annotationBaseRotation || 0) + (itemPage.rotation || 0)) % 360);
       const page = pdfDoc.getPages()[item.pageNumber];
       if (!page) continue;
       const { width, height } = page.getSize();
@@ -2539,6 +2801,7 @@ export function App() {
         color: rgb(1, 1, 1),
         opacity: 1,
         borderOpacity: 0,
+        rotate: degrees(item.rotation || 0),
       });
 
       if (!item.isDeleted && String(item.currentText || "").trim()) {
@@ -2550,16 +2813,20 @@ export function App() {
             font,
             color,
             opacity: 1,
+            rotate: degrees(item.rotation || 0),
           });
         });
       }
     }
 
-    for (const annotation of annotations) {
+    for (const storedAnnotation of annotations) {
+      const annotationPage = pages[storedAnnotation.page] || {};
+      const annotation = unrotateEditorObjectFromPage(storedAnnotation, ((annotationPage.annotationBaseRotation || 0) + (annotationPage.rotation || 0)) % 360);
       const page = pdfDoc.getPages()[annotation.page];
       if (!page) continue;
       const { width, height } = page.getSize();
       const color = hexToRgb(annotation.color || colors.black);
+      const annotationRotation = degrees(annotation.rotation || 0);
 
       if (annotation.type === "highlight") {
         page.drawRectangle({
@@ -2570,6 +2837,7 @@ export function App() {
           color,
           opacity: annotation.opacity,
           borderOpacity: 0,
+          rotate: annotationRotation,
         });
       }
 
@@ -2581,6 +2849,7 @@ export function App() {
           height: annotation.h * height,
           color: rgb(1, 1, 1),
           opacity: annotation.opacity,
+          rotate: annotationRotation,
           borderOpacity: 0,
         });
       }
@@ -2614,6 +2883,7 @@ export function App() {
           borderColor: color,
           borderWidth: annotation.strokeWidth || 2,
           opacity: annotation.opacity,
+          rotate: annotationRotation,
         });
       }
 
@@ -2626,12 +2896,22 @@ export function App() {
           borderColor: color,
           borderWidth: annotation.strokeWidth || 2,
           opacity: annotation.opacity,
+          rotate: annotationRotation,
         });
       }
 
       if (annotation.type === "line" || annotation.type === "arrow") {
-        const start = { x: annotation.x * width, y: height - annotation.y * height };
-        const end = { x: (annotation.x + annotation.w) * width, y: height - (annotation.y + annotation.h) * height };
+        const radians = ((annotation.rotation || 0) * Math.PI) / 180;
+        const center = { x: annotation.x + annotation.w / 2, y: annotation.y + annotation.h / 2 };
+        const rotatePoint = (point) => {
+          const dx = point.x - center.x;
+          const dy = point.y - center.y;
+          return { x: center.x + dx * Math.cos(radians) - dy * Math.sin(radians), y: center.y + dx * Math.sin(radians) + dy * Math.cos(radians) };
+        };
+        const startPoint = rotatePoint({ x: annotation.x, y: annotation.y });
+        const endPoint = rotatePoint({ x: annotation.x + annotation.w, y: annotation.y + annotation.h });
+        const start = { x: startPoint.x * width, y: height - startPoint.y * height };
+        const end = { x: endPoint.x * width, y: height - endPoint.y * height };
         page.drawLine({
           start,
           end,
@@ -2667,6 +2947,15 @@ export function App() {
           font: helveticaBold,
           color: rgb(0.5, 0.25, 0.03),
         });
+        const commentText = String(annotation.content || "").trim();
+        if (commentText && commentText !== "Add a comment") {
+          const noteX = Math.min(width - 124, x + markerSize + 4);
+          const noteWidth = Math.max(80, Math.min(180, width - noteX - 4));
+          const noteLines = commentText.match(/.{1,34}(?:\s|$)/g)?.slice(0, 5).map((line) => line.trim()) || [commentText.slice(0, 34)];
+          const noteHeight = Math.max(30, 12 + noteLines.length * 10);
+          page.drawRectangle({ x: noteX, y: Math.max(2, y), width: noteWidth, height: noteHeight, color: rgb(1, 0.98, 0.78), borderColor: rgb(0.86, 0.67, 0.2), borderWidth: 0.8 });
+          noteLines.forEach((line, index) => page.drawText(line, { x: noteX + 6, y: Math.max(6, y + noteHeight - 13 - index * 10), size: 7.5, font: helvetica, color: rgb(0.28, 0.22, 0.08) }));
+        }
       }
 
       if (annotation.type === "field") {
@@ -2680,6 +2969,7 @@ export function App() {
           borderColor: color,
           borderWidth: 1.2,
           opacity: annotation.opacity,
+          rotate: annotationRotation,
         });
         page.drawText(annotation.content || "Text field", {
           x: x + 8,
@@ -2688,6 +2978,7 @@ export function App() {
           font: helvetica,
           color,
           opacity: Math.min(0.82, annotation.opacity ?? 1),
+          rotate: annotationRotation,
         });
       }
 
@@ -2705,6 +2996,7 @@ export function App() {
             font,
             color,
             opacity: annotation.opacity,
+            rotate: annotationRotation,
           });
         });
       }
@@ -2719,6 +3011,7 @@ export function App() {
               width: annotation.w * width,
               height: annotation.h * height,
               opacity: annotation.opacity,
+              rotate: annotationRotation,
             });
           }
         } else {
@@ -2729,6 +3022,7 @@ export function App() {
             font: timesItalic,
             color,
             opacity: annotation.opacity,
+            rotate: annotationRotation,
           });
         }
       }
@@ -2742,13 +3036,26 @@ export function App() {
             width: annotation.w * width,
             height: annotation.h * height,
             opacity: annotation.opacity,
+            rotate: annotationRotation,
           });
         }
       }
 
       if (annotation.type === "draw") {
-        annotation.points.slice(1).forEach((point, index) => {
-          const previous = annotation.points[index];
+        const xs = annotation.points.map((point) => point.x);
+        const ys = annotation.points.map((point) => point.y);
+        const center = { x: (Math.min(...xs) + Math.max(...xs)) / 2, y: (Math.min(...ys) + Math.max(...ys)) / 2 };
+        const radians = ((annotation.rotation || 0) * Math.PI) / 180;
+        const rotatedPoints = annotation.points.map((point) => {
+          const dx = point.x - center.x;
+          const dy = point.y - center.y;
+          return {
+            x: center.x + dx * Math.cos(radians) - dy * Math.sin(radians),
+            y: center.y + dx * Math.sin(radians) + dy * Math.cos(radians),
+          };
+        });
+        rotatedPoints.slice(1).forEach((point, index) => {
+          const previous = rotatedPoints[index];
           page.drawLine({
             start: { x: previous.x * width, y: height - previous.y * height },
             end: { x: point.x * width, y: height - point.y * height },
@@ -2760,72 +3067,147 @@ export function App() {
       }
     }
 
-    const bytes = await pdfDoc.save();
-    downloadBlob(new Blob([bytes], { type: "application/pdf" }), fileName.replace(/\.pdf$/i, "") + "-edited.pdf");
+    const exported = await finalizePdfExport(pdfDoc, fileName);
+    lastExportRef.current = { blob: exported.blob, name: exported.name };
+    if (download) downloadBlob(exported.blob, exported.name);
     setSaved(true);
     setSaveState("saved");
-    showToast("Exported PDF with current edits.");
+    if (showResult) setExportSuccess(true);
+    trackProductEvent("export_succeeded", { toolId: publicTool || "edit-pdf", pageCountBucket: pageCountBucket(pages.length) });
+    if (showResult) showToast("Exported PDF with current edits.");
+    return exported;
     } catch {
+      trackProductEvent("export_failed", { toolId: publicTool || "edit-pdf", errorCategory: "export_processing" });
       showToast("Export failed. Try saving locally, then export again.");
     } finally {
     setIsExporting(false);
     }
   };
 
-  if (!authReady) {
-    return (
-      <main className="auth-shell">
-        <section className="auth-card" aria-label="Restoring session">
-          <button type="button" className="auth-mark blank-brand" aria-label="Loading workspace"><span aria-hidden="true" /></button>
-          <h2>Opening workspace</h2>
-          <p className="auth-privacy">Checking your saved sign-in before loading the app.</p>
-        </section>
-      </main>
-    );
-  }
+  const prepareSignatureRequest = async ({ recipient, message }) => {
+    const exported = await exportPdf({ download: false, showResult: false });
+    if (!exported) throw new Error("The signing copy could not be created.");
+    const shareFile = new File([exported.blob], exported.name, { type: "application/pdf" });
+    const shareData = {
+      title: `Signature requested: ${fileName}`,
+      text: message || `Please review and sign ${fileName}.`,
+      files: [shareFile],
+    };
 
-  if (!pages.length && screen === "landing") {
+    if (navigator.share && navigator.canShare?.(shareData)) {
+      await navigator.share(shareData);
+      showToast("Signing copy handed off to your share app.");
+    } else {
+      downloadBlob(exported.blob, exported.name);
+      const subject = encodeURIComponent(`Signature requested: ${fileName}`);
+      const body = encodeURIComponent(`${message || `Please review and sign ${fileName}.`}\n\nThe signing copy was downloaded—attach it to this message before sending.`);
+      window.location.href = `mailto:${encodeURIComponent(recipient)}?subject=${subject}&body=${body}`;
+      showToast("Signing copy downloaded. Attach it to the email draft before sending.");
+    }
+    setSignatureRequestModalOpen(false);
+  };
+
+  const protectDocument = async (password) => {
+    const exported = await exportPdf({ download: false, showResult: false });
+    if (!exported) throw new Error("The PDF could not be prepared for protection.");
+    const protectedBytes = await protectPdfBytes(new Uint8Array(await exported.blob.arrayBuffer()), password);
+    const protectedName = `${exported.name.replace(/\.pdf$/i, "")}-protected.pdf`;
+    downloadBlob(new Blob([protectedBytes], { type: "application/pdf" }), protectedName);
+    setProtectModalOpen(false);
+    showToast("Protected PDF downloaded. Keep the password somewhere safe.");
+  };
+
+  useEffect(() => {
+    if (view !== "editor") {
+      setEditorRouteState("idle");
+      return;
+    }
+    if (!documentId) {
+      setEditorRouteState("not-found");
+      return;
+    }
+    if (activeDocumentId === documentId && pages.length) {
+      setEditorRouteState("ready");
+      return;
+    }
+
+    const resolved = resolveEditorDocument({
+      documentId,
+      documents,
+      userId: currentUser?.uid,
+      catalogReady: documentCatalogReady,
+    });
+    if (resolved.status !== "ready") {
+      setEditorRouteState(resolved.status);
+      return;
+    }
+
+    setEditorRouteState("loading");
+    hydrateDocument(resolved.document).catch(() => setEditorRouteState("error"));
+  }, [activeDocumentId, currentUser?.uid, documentCatalogReady, documentId, documents, hydrateDocument, pages.length, view]);
+
+  useEffect(() => {
+    const requestedTool = location.state?.publicTool;
+    if (view !== "editor" || editorRouteState !== "ready" || !requestedTool) return;
+    const preset = getEditorToolPreset(requestedTool);
+    if (!preset) return;
+
+    setTool(resolveEditorActiveTool(requestedTool, detectedTextCount));
+    if (preset.openPages) setIsPagesCollapsed(false);
+    if (preset.openAppend) setIsPageAppendMenuOpen(true);
+    if (requestedTool === "sign-pdf") setSignatureModalOpen(true);
+    if (requestedTool === "request-signatures") setSignatureRequestModalOpen(true);
+    if (requestedTool === "protect-pdf") setProtectModalOpen(true);
+    showToast(`${preset.label} tools are ready.`);
+    navigate(location.pathname, { replace: true, state: null });
+  }, [detectedTextCount, editorRouteState, location.pathname, location.state, navigate, view]);
+
+  if (view === "landing") {
     return (
-      <LandingPage
+      <LatticePdfLanding
         fileInputRef={fileInputRef}
         onUpload={onUpload}
-        onStart={() => (currentUser ? setScreen("upload") : openAuth("signup"))}
         onLogin={() => openAuth("login")}
         onSignup={() => openAuth("signup")}
-        onSelectFiles={() => (currentUser ? fileInputRef.current?.click() : openAuth("signup"))}
+        onSelectFiles={selectPdfFile}
+        onDropFiles={handleLandingDropFiles}
         onBlankPage={startBlankDocument}
+        uploadError={uploadError}
+        uploadStage={uploadStage}
         documentCount={documents.length}
       />
     );
   }
 
-  if (!pages.length && screen === "auth") {
+  if (view === "auth") {
     return (
       <AuthPage
         mode={authMode}
-        setMode={setAuthMode}
-        onBack={() => setScreen("landing")}
+        setMode={(mode) => navigate(mode === "signup" ? ROUTE_PATHS.signup : mode === "forgot-password" ? ROUTE_PATHS.forgotPassword : ROUTE_PATHS.login, { state: location.state })}
+        onBack={() => navigate(ROUTE_PATHS.home)}
         onComplete={completeAuth}
         onPasswordReset={sendAuthPasswordReset}
         authReady={authReady}
         isFirebaseConfigured={isFirebaseConfigured}
+        routeNotice={location.state?.notice}
       />
     );
   }
 
-  if (!pages.length) {
+  if (view === "dashboard") {
     return (
       <UploadLanding
+        section={appSection}
+        onNavigate={navigate}
         fileInputRef={fileInputRef}
         onUpload={onUpload}
-        onSelectFiles={() => fileInputRef.current?.click()}
+        onSelectFiles={selectPdfFile}
         onDropFile={onDropFile}
         onBlankPage={startBlankDocument}
         uploadError={uploadError}
         uploadStage={uploadStage}
         isDraggingFile={isDraggingFile}
         setIsDraggingFile={setIsDraggingFile}
-        onBackToLanding={() => setScreen("landing")}
         documents={documents}
         onOpenDocument={openDocument}
         onRenameDocument={renameDocument}
@@ -2841,17 +3223,25 @@ export function App() {
     );
   }
 
+  if (view === "editor" && (editorRouteState !== "ready" || !pages.length)) {
+    return <EditorRouteStatePage state={editorRouteState} onBack={() => navigate(ROUTE_PATHS.documents)} />;
+  }
+
   return (
     <main className={`editor-shell ${tool === "editText" ? "is-smart-text-mode" : ""}`}>
       <input ref={fileInputRef} className="hidden-input" type="file" accept="application/pdf" onChange={onUpload} />
       <input ref={appendFileInputRef} className="hidden-input" type="file" accept="application/pdf" onChange={onAppendUpload} />
       <input ref={imageInputRef} className="hidden-input" type="file" accept="image/png,image/jpeg" onChange={onImageUpload} />
       <header className="file-header">
-        <button type="button" className="pdfnet-brand" onClick={() => {
-          saveActiveDocument(true);
-          setPages([]);
-          setScreen("upload");
-        }} title="Back to dashboard">
+        <button
+          type="button"
+          className="pdfnet-brand"
+          onClick={() => setIsPagesCollapsed((value) => !value)}
+          title={isPagesCollapsed ? "Open thumbnails" : "Close thumbnails"}
+          aria-label={isPagesCollapsed ? "Open thumbnails" : "Close thumbnails"}
+          aria-controls="page-thumbnails"
+          aria-expanded={!isPagesCollapsed}
+        >
           <List size={27} aria-hidden="true" />
         </button>
         <div className="file-meta">
@@ -2912,6 +3302,11 @@ export function App() {
             {isMoreMenuOpen && (
               <div className="document-more-menu" role="menu" aria-label="Document actions">
                 <button type="button" role="menuitem" onClick={() => {
+                  saveActiveDocument(true);
+                  setIsMoreMenuOpen(false);
+                  navigate(ROUTE_PATHS.dashboard);
+                }}><Home size={16} /> Dashboard</button>
+                <button type="button" role="menuitem" onClick={() => {
                   renameActiveDocument();
                   setIsMoreMenuOpen(false);
                 }}><PenLine size={16} /> Rename document</button>
@@ -2944,51 +3339,45 @@ export function App() {
               </div>
             )}
           </div>
-          <button type="button" className="language-button" onClick={() => showToast("Language set to English.")}>◎ EN</button>
           <button type="button" className="share-button" onClick={() => setShareModalOpen(true)} title="Share"><Share2 size={18} /> Share</button>
-          <button type="button" className="upgrade-button editor-upgrade-button" onClick={() => setUpgradeModalOpen(true)}>Upgrade</button>
-          <button type="button" className="sign-secure-button" onClick={() => setSignatureModalOpen(true)}><PenLine size={18} /> Sign securely <ChevronDown size={15} /></button>
+          <button type="button" className="sign-secure-button" onClick={exportPdf} disabled={isExporting}><Download size={18} /> {isExporting ? "Exporting…" : "Download"}</button>
         </div>
       </header>
 
       <section className="tool-ribbon">
-        {toolConfig.filter(({ id }) => ["select", "editText", "text", "draw", "image", "field", "signature", "comment", "rectangle", "whiteout"].includes(id)).map(({ id, label, icon: Icon }) => (
-          <button
-            key={id}
-            type="button"
-            title={label}
-            aria-label={label}
-            className={`ribbon-tool ${tool === id ? "is-active" : ""}`}
-            onClick={() => {
-              if (id === "signature" && !activeSignature.content && !activeSignature.imageDataUrl) {
-                setSignatureModalOpen(true);
-              }
-              if (id === "image") {
-                imageInputRef.current?.click();
-                showToast(pendingImage ? "Click the page to place the selected image." : "Choose a PNG or JPG to insert.");
-              }
-              if (id === "editText") {
-                showToast(detectedTextCount ? `${detectedTextCount} original PDF text item${detectedTextCount === 1 ? "" : "s"} ready. Click a blue outline to edit.` : "Upload a text-based PDF to edit the original words.");
-              }
-              setTool(id);
-            }}
-          >
-            {id === "text" ? <span className="text-tool-glyph" aria-hidden="true">A</span> : <Icon size={25} />}
-            <span>{label === "Text field" ? "Field" : label === "Signature" ? "Sign" : label === "Edit PDF Text" ? "Edit PDF" : label}</span>
-          </button>
-        ))}
-        <div className={`smart-text-chip ${tool === "editText" ? "is-active" : ""}`}>
-          <ScanText size={17} />
-          {detectedTextCount ? `${detectedTextCount} original text boxes detected` : "Original text edit works after uploading a text PDF"}
+        <nav className="mode-tabs" aria-label="Editor modes">
+          {editorModes.map(({ id, label, icon: Icon, defaultTool }) => (
+            <button key={id} type="button" className={activeMode.id === id ? "is-active" : ""} aria-pressed={activeMode.id === id} onClick={() => setTool(defaultTool)}>
+              <Icon size={16} /><span>{label}</span>
+            </button>
+          ))}
+        </nav>
+        <div className="context-tools" role="toolbar" aria-label={`${activeMode.label} tools`}>
+          {activeMode.tools.map((id) => {
+            const config = toolById.get(id);
+            if (!config) return null;
+            const Icon = config.icon;
+            return (
+              <button key={id} type="button" title={config.label} aria-label={config.label} className={`ribbon-tool ${tool === id ? "is-active" : ""}`} onClick={() => {
+                if (id === "signature" && !activeSignature.content && !activeSignature.imageDataUrl) setSignatureModalOpen(true);
+                if (id === "image") imageInputRef.current?.click();
+                if (id === "editText") showToast(detectedTextCount ? `${detectedTextCount} original text boxes ready to edit.` : "This PDF has no editable text layer. Add a text box instead.");
+                if (id === "erase") showToast("Click an annotation or object to erase it.");
+                setTool(id);
+              }}>
+                {id === "text" ? <span className="text-tool-glyph" aria-hidden="true">A</span> : <Icon size={19} />}
+                <span>{config.label === "Edit PDF Text" ? "Edit text" : config.label === "Text field" ? "Field" : config.label}</span>
+              </button>
+            );
+          })}
+          {activeMode.id === "view" && <>
+            <button className="ribbon-tool" type="button" onClick={rotateCurrentPage}><RotateCw size={19} /><span>Rotate page</span></button>
+            <button className="ribbon-tool" type="button" onClick={duplicateCurrentPage}><Copy size={19} /><span>Duplicate page</span></button>
+            <button className="ribbon-tool" type="button" onClick={addBlankPage}><FilePlus2 size={19} /><span>Insert page</span></button>
+            <button className="ribbon-tool" type="button" onClick={deleteCurrentPage} disabled={pages.length <= 1}><Trash2 size={19} /><span>Delete page</span></button>
+          </>}
+          {activeMode.id === "insert" && <button className="ribbon-tool" type="button" onClick={() => appendFileInputRef.current?.click()}><Copy size={19} /><span>Insert PDF</span></button>}
         </div>
-        <div className="ribbon-divider" />
-        <button className="ribbon-tool" type="button" onClick={() => showToast("Auto-fill reads form fields from uploaded PDFs.")} title="Auto-Fill" aria-label="Auto-Fill"><FilePlus2 size={24} /><span>Auto-Fill</span></button>
-        <button className="ribbon-tool" type="button" onClick={() => showToast("Ask AI is ready for document summary prompts.")} title="Ask AI" aria-label="Ask AI"><Zap size={24} /><span>Ask AI</span></button>
-        <button className="ribbon-tool" type="button" onClick={() => appendFileInputRef.current?.click()} title="Merge and append file" aria-label="Merge and append file"><Copy size={24} /><span>Merge</span></button>
-        <button className="ribbon-tool" type="button" onClick={() => setIsPagesCollapsed(false)} title="Rearrange" aria-label="Rearrange"><Grid2X2 size={24} /><span>Rearrange</span></button>
-        <button className="ribbon-tool" type="button" onClick={addBlankPage} title="Page numbers" aria-label="Page numbers"><FileText size={24} /><span>Page numbers</span></button>
-        <button className="ribbon-tool" type="button" onClick={() => showToast("Conversion tools will use the exported PDF.")} title="Convert" aria-label="Convert"><Redo2 size={24} /><span>Convert</span></button>
-        <button className="ribbon-tool" type="button" onClick={() => showToast("Compression runs when exporting optimized PDFs.")} title="Compress" aria-label="Compress"><Box size={24} /><span>Compress</span></button>
       </section>
 
       <ToolSettingsPanel
@@ -2997,6 +3386,7 @@ export function App() {
         setSettings={setToolSettings}
         selectedTextAnnotation={selected?.type === "text" ? selected : null}
         updateAnnotation={updateAnnotation}
+        onBeforeChange={pushHistorySnapshot}
       />
 
       <section className={`workspace ${isPagesCollapsed ? "pages-collapsed" : ""}`}>
@@ -3021,7 +3411,7 @@ export function App() {
             </button>
           ))}
         </aside>
-        <aside className={`pages-panel ${isPagesCollapsed ? "is-collapsed" : ""}`}>
+        <aside id="page-thumbnails" className={`pages-panel ${isPagesCollapsed ? "is-collapsed" : ""}`}>
           <div className="panel-title pdfnet-page-title">
             <strong>Thumbnails</strong>
             <div>
@@ -3050,15 +3440,43 @@ export function App() {
               <button
                 key={page.id}
                 type="button"
-                className={`thumbnail ${pageIndex === index ? "is-selected" : ""}`}
+                className={`thumbnail ${pageIndex === index ? "is-selected" : ""} ${draggedPageIndex === index ? "is-dragging" : ""} ${pageDropIndex === index && draggedPageIndex !== index ? "is-drop-target" : ""}`}
                 aria-current={pageIndex === index ? "page" : undefined}
+                aria-label={`Page ${index + 1}. Use Alt+Arrow Up or Alt+Arrow Down to reorder.`}
+                aria-keyshortcuts="Alt+ArrowUp Alt+ArrowDown"
                 title={`Page ${index + 1}`}
                 onClick={() => setPageIndex(index)}
+                draggable
+                onDragStart={(event) => {
+                  event.dataTransfer.effectAllowed = "move";
+                  event.dataTransfer.setData("text/plain", String(index));
+                  setDraggedPageIndex(index);
+                  setPageDropIndex(index);
+                }}
+                onDragEnter={() => setPageDropIndex(index)}
+                onDragOver={(event) => {
+                  event.preventDefault();
+                  event.dataTransfer.dropEffect = "move";
+                }}
+                onDrop={(event) => {
+                  event.preventDefault();
+                  const fromIndex = Number.parseInt(event.dataTransfer.getData("text/plain"), 10);
+                  if (Number.isInteger(fromIndex)) reorderPage(fromIndex, index);
+                  setDraggedPageIndex(null);
+                  setPageDropIndex(null);
+                }}
+                onDragEnd={() => {
+                  setDraggedPageIndex(null);
+                  setPageDropIndex(null);
+                }}
+                onKeyDown={(event) => {
+                  if (!event.altKey || (event.key !== "ArrowUp" && event.key !== "ArrowDown")) return;
+                  event.preventDefault();
+                  reorderPage(index, clamp(index + (event.key === "ArrowUp" ? -1 : 1), 0, pages.length - 1));
+                }}
               >
                 <div className="thumbnail-preview" style={{ "--thumbnail-aspect": `${page.width || BASE_PAGE_WIDTH} / ${page.height || BASE_PAGE_HEIGHT}` }}>
-                  <div className="thumb-page">
-                    {page.image ? <img src={page.image} alt={`Page ${index + 1}`} /> : page.source === "blank" ? <BlankDocument /> : <SampleDocument pageIndex={index} />}
-                  </div>
+                  <LazyThumbnailPage page={page} index={index} onVisible={ensurePagePreview} />
                 </div>
                 <span className="thumbnail-label">{index + 1}</span>
               </button>
@@ -3066,13 +3484,16 @@ export function App() {
           </div>
           <div className="thumbnail-footer" aria-label="Page actions">
             <button type="button" title="Delete page" aria-label="Delete page" onClick={deleteCurrentPage} disabled={pages.length <= 1}>
-              <Trash2 size={31} strokeWidth={3} />
+              <Trash2 size={18} strokeWidth={2.6} />
             </button>
             <button type="button" title="Rotate page clockwise" aria-label="Rotate page clockwise" onClick={rotateCurrentPage}>
-              <RotateCw size={35} strokeWidth={3} />
+              <RotateCw size={20} strokeWidth={2.6} />
             </button>
             <button type="button" title="Add page" aria-label="Add page" onClick={addBlankPage}>
-              <FilePlus2 size={34} strokeWidth={2.6} />
+              <FilePlus2 size={20} strokeWidth={2.4} />
+            </button>
+            <button type="button" title="Download PDF" aria-label="Download PDF" onClick={exportPdf} disabled={isExporting}>
+              <Download size={19} strokeWidth={2.5} />
             </button>
           </div>
           <div className="saved-foot"><CheckCircle2 size={22} /> {saveStatusLabel}</div>
@@ -3111,6 +3532,7 @@ export function App() {
                       top: `${Math.max(0, item.y * 100 - 0.18)}%`,
                       width: `${Math.min(100, item.w * 100 + 0.5)}%`,
                       height: `${Math.min(100, item.h * 100 + 0.36)}%`,
+                      transform: `rotate(${item.rotation || 0}deg)`,
                     }}
                     aria-hidden="true"
                   />
@@ -3131,11 +3553,12 @@ export function App() {
                         color: item.color || colors.black,
                         fontSize: `${Math.max(6, item.fontSize * displayScale)}px`,
                         fontFamily: item.fontFamily || '"PP Agrandir", Inter, Arial, sans-serif',
+                        transform: `rotate(${item.rotation || 0}deg)`,
                       }}
                       onPointerDown={(event) => startDetectedTextDrag(event, item)}
                     >
                       {isActive && (
-                        <div className="detected-text-toolbar" onPointerDown={(event) => event.stopPropagation()}>
+                        <div className="detected-text-toolbar" onPointerDownCapture={pushHistorySnapshot} onPointerDown={(event) => event.stopPropagation()}>
                           <button type="button" className="mini-grip" title="Move" onPointerDown={(event) => startDetectedTextDrag(event, item)}><GripVertical size={15} /></button>
                           <button type="button" title="Smaller text" onClick={() => updateDetectedTextItem(item.id, { fontSize: clamp(item.fontSize - 1, 6, 54) })}>-</button>
                           <span>{Math.round(item.fontSize)}</span>
@@ -3158,6 +3581,7 @@ export function App() {
                           setTool("editText");
                         }}
                         onFocus={() => {
+                          pushHistorySnapshot();
                           setSelectedDetectedTextId(item.id);
                           setSelectedId(null);
                           setTool("editText");
@@ -3174,7 +3598,9 @@ export function App() {
                     annotation={annotation}
                     selected={annotation.id === selectedId}
                     zoom={zoom}
+                    activeTool={tool}
                     onSelect={setSelectedId}
+                    onInteractionStart={pushHistorySnapshot}
                     onDrag={(id, patch) => updateAnnotation(id, { x: clamp(patch.x, 0, 0.95), y: clamp(patch.y, 0, 0.96) })}
                     onResize={(id, patch) => updateAnnotation(id, { w: clamp(patch.w, 0.03, 0.7), h: clamp(patch.h, 0.018, 0.45) })}
                     onUpdate={updateAnnotation}
@@ -3342,15 +3768,21 @@ export function App() {
           onClose={() => setShareModalOpen(false)}
         />
       )}
-      {upgradeModalOpen && (
-        <UpgradeModal
-          onClose={() => setUpgradeModalOpen(false)}
-          onSelectPlan={(plan) => {
-            setUpgradeModalOpen(false);
-            showToast(`${plan} workspace selected. Billing checkout can be connected next.`);
-          }}
+      {signatureRequestModalOpen && (
+        <SignatureRequestModal
+          fileName={fileName}
+          onClose={() => setSignatureRequestModalOpen(false)}
+          onPrepare={prepareSignatureRequest}
         />
       )}
+      {protectModalOpen && (
+        <ProtectPdfModal
+          fileName={fileName}
+          onClose={() => setProtectModalOpen(false)}
+          onProtect={protectDocument}
+        />
+      )}
+      {exportSuccess && <aside className="export-success-panel" aria-live="polite"><button className="export-success-close" type="button" aria-label="Close export success" onClick={() => setExportSuccess(false)}><X size={16} /></button><CheckCircle2 size={24} /><div><strong>Your file is ready.</strong><p>RealPDF added no watermark.</p><div><button type="button" onClick={() => { const result = lastExportRef.current; if (result) downloadBlob(result.blob, result.name); }}>Download again</button><button type="button" onClick={() => { setExportSuccess(false); fileInputRef.current?.click(); }}>Start another file</button><button type="button" onClick={() => navigate("/organize-pdf")}>Open Organize PDF</button></div><small>Did RealPDF complete your task?</small><span><button type="button" onClick={() => trackProductEvent("task_feedback_submitted", { toolId: publicTool || "edit-pdf", result: "yes" })}>Yes</button><button type="button" onClick={() => trackProductEvent("task_feedback_submitted", { toolId: publicTool || "edit-pdf", result: "not_quite" })}>Not quite</button></span></div></aside>}
       {toast && <div className="toast">{toast}</div>}
     </main>
   );
@@ -3609,8 +4041,9 @@ function LandingPage({ fileInputRef, onUpload, onSelectFiles, onLogin }) {
   );
 }
 
-function AuthPage({ mode, setMode, onBack, onComplete, onPasswordReset, authReady, isFirebaseConfigured }) {
+function AuthPage({ mode, setMode, onBack, onComplete, onPasswordReset, authReady, isFirebaseConfigured, routeNotice = "" }) {
   const isSignup = mode === "signup";
+  const isPasswordReset = mode === "forgot-password";
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -3622,11 +4055,20 @@ function AuthPage({ mode, setMode, onBack, onComplete, onPasswordReset, authRead
     event.preventDefault();
     setNotice("");
     if (!isFirebaseConfigured) {
-      setError("Firebase is not configured yet. Add your VITE_FIREBASE_* env vars.");
+      setError("Sign-in is temporarily unavailable while the secure connection is being set up.");
       return;
     }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
       setError("Enter a valid email to continue.");
+      return;
+    }
+    if (isPasswordReset) {
+      setError("");
+      setIsSubmitting(true);
+      const result = await onPasswordReset(email);
+      setIsSubmitting(false);
+      if (result?.ok) setNotice("Password reset email sent.");
+      else setError(result?.error || "Could not send a password reset email.");
       return;
     }
     if (password.length < 6) {
@@ -3643,7 +4085,7 @@ function AuthPage({ mode, setMode, onBack, onComplete, onPasswordReset, authRead
   const submitGoogleAuth = async () => {
     setNotice("");
     if (!isFirebaseConfigured) {
-      setError("Firebase is not configured yet. Add your VITE_FIREBASE_* env vars.");
+      setError("Sign-in is temporarily unavailable while the secure connection is being set up.");
       return;
     }
     setError("");
@@ -3651,17 +4093,6 @@ function AuthPage({ mode, setMode, onBack, onComplete, onPasswordReset, authRead
     const result = await onComplete({ provider: "google" });
     setIsSubmitting(false);
     if (!result?.ok) setError(result?.error || "Google sign-in failed.");
-  };
-
-  const requestPasswordReset = async () => {
-    setNotice("");
-    setError("");
-    const result = await onPasswordReset(email);
-    if (result?.ok) {
-      setNotice("Password reset email sent.");
-    } else {
-      setError(result?.error || "Could not send a password reset email.");
-    }
   };
 
   const switchMode = () => {
@@ -3672,20 +4103,26 @@ function AuthPage({ mode, setMode, onBack, onComplete, onPasswordReset, authRead
 
   return (
     <main className="auth-shell">
-      <section className="auth-card" aria-label={isSignup ? "Create account" : "Log in"}>
+      <section className="auth-card" aria-label={isSignup ? "Create account" : isPasswordReset ? "Reset password" : "Log in"}>
         <button type="button" className="auth-back" onClick={onBack}>Back to home</button>
-        <button type="button" className="auth-mark blank-brand" onClick={onBack} aria-label="Back to home"><span aria-hidden="true" /></button>
-        <h2>{isSignup ? "Create account" : "Sign in"}</h2>
+        <button type="button" className="auth-mark auth-realpdf-brand" onClick={onBack} aria-label="RealPDF home"><span aria-hidden="true"><FileText size={22} /></span><strong>RealPDF</strong></button>
+        <h2>{isSignup ? "Create your workspace" : isPasswordReset ? "Reset your password" : "Welcome back"}</h2>
+        <p className="auth-intro">{isSignup ? "Start editing, signing, and organizing PDFs in one focused place." : isPasswordReset ? "Enter your account email and we will send the existing Firebase reset flow." : "Sign in to continue working with your PDFs."}</p>
+        {routeNotice && <div className="auth-notice">{routeNotice}</div>}
         {!isFirebaseConfigured && (
           <div className="auth-error">
-            Firebase config is missing. Add `VITE_FIREBASE_API_KEY`, `VITE_FIREBASE_AUTH_DOMAIN`, `VITE_FIREBASE_PROJECT_ID`, and `VITE_FIREBASE_APP_ID`.
+            Sign-in is temporarily unavailable while the secure connection is being set up.
           </div>
         )}
-        <button type="button" className="sso-button google-button" onClick={submitGoogleAuth} disabled={!authReady || isSubmitting || !isFirebaseConfigured}>
-          <span aria-hidden="true">G</span>
-          Sign in with Google
-        </button>
-        <div className="auth-divider"><span /> Or continue with <span /></div>
+        {!isPasswordReset && (
+          <>
+            <button type="button" className="sso-button google-button" onClick={submitGoogleAuth} disabled={!authReady || isSubmitting || !isFirebaseConfigured}>
+              <span aria-hidden="true">G</span>
+              Sign in with Google
+            </button>
+            <div className="auth-divider"><span /> Or continue with <span /></div>
+          </>
+        )}
         <form onSubmit={submitAuth}>
           {isSignup && (
             <label>
@@ -3695,31 +4132,34 @@ function AuthPage({ mode, setMode, onBack, onComplete, onPasswordReset, authRead
           )}
           <label>
             Email address
-            <input type="email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" />
+            <input type="email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" placeholder="you@example.com" />
           </label>
-          <label>
-            <span className="auth-label-row">
-              Password
-              {!isSignup && <button type="button" onClick={requestPasswordReset}>Forgot password?</button>}
-            </span>
-            <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete={isSignup ? "new-password" : "current-password"} />
-          </label>
+          {!isPasswordReset && (
+            <label>
+              <span className="auth-label-row">
+                Password
+                {!isSignup && <button type="button" onClick={() => setMode("forgot-password")}>Forgot password?</button>}
+              </span>
+              <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete={isSignup ? "new-password" : "current-password"} placeholder={isSignup ? "At least 6 characters" : "Enter your password"} />
+            </label>
+          )}
           {error && <div className="auth-error">{error}</div>}
           {notice && <div className="auth-notice">{notice}</div>}
           <button type="submit" className="auth-submit" disabled={!authReady || isSubmitting || !isFirebaseConfigured}>
-            {isSubmitting ? "Connecting..." : isSignup ? "Create account" : "Sign in with password"}
+            {isSubmitting ? "Connecting..." : isSignup ? "Create account" : isPasswordReset ? "Send reset email" : "Sign in with password"}
           </button>
         </form>
         <p className="auth-privacy">Check our <button type="button">Privacy Notice</button>.</p>
         <div className="auth-switch">
-          <button type="button" onClick={switchMode}>{isSignup ? "sign in instead" : "create new account"}</button>
+          <span>{isSignup ? "Already have an account?" : isPasswordReset ? "Remembered your password?" : "New to RealPDF?"}</span>
+          <button type="button" onClick={isPasswordReset ? () => setMode("login") : switchMode}>{isSignup ? "Sign in" : isPasswordReset ? "Back to login" : "Create an account"}</button>
         </div>
       </section>
     </main>
   );
 }
 
-function ToolSettingsPanel({ tool, settings, setSettings, selectedTextAnnotation, updateAnnotation }) {
+function ToolSettingsPanel({ tool, settings, setSettings, selectedTextAnnotation, updateAnnotation, onBeforeChange }) {
   const [isFontMenuOpen, setIsFontMenuOpen] = useState(false);
   const [fontSearch, setFontSearch] = useState("");
   const isEditingSelectedText = selectedTextAnnotation?.type === "text";
@@ -3769,7 +4209,7 @@ function ToolSettingsPanel({ tool, settings, setSettings, selectedTextAnnotation
 
   if (effectiveTool === "text" || effectiveTool === "field") {
     return (
-      <div className={`tool-settings ${effectiveTool === "text" ? "text-format-settings" : "field-format-settings"}`}>
+      <div className={`tool-settings ${effectiveTool === "text" ? "text-format-settings" : "field-format-settings"}`} onPointerDownCapture={onBeforeChange} onKeyDownCapture={onBeforeChange}>
         {effectiveTool === "text" && (
           <button type="button" className="text-format-add" onClick={() => update({ textSize: activeSettings.textSize })}><span>A</span></button>
         )}
@@ -3837,7 +4277,7 @@ function ToolSettingsPanel({ tool, settings, setSettings, selectedTextAnnotation
 
   if (tool === "draw") {
     return (
-      <div className="tool-settings draw-tool-settings">
+      <div className="tool-settings draw-tool-settings" onPointerDownCapture={onBeforeChange} onKeyDownCapture={onBeforeChange}>
         <span className="settings-title">Pen</span>
         <div className="draw-color-field">
           <span>Color</span>
@@ -3866,7 +4306,7 @@ function ToolSettingsPanel({ tool, settings, setSettings, selectedTextAnnotation
 
   if (tool === "highlight") {
     return (
-      <div className="tool-settings">
+      <div className="tool-settings" onPointerDownCapture={onBeforeChange} onKeyDownCapture={onBeforeChange}>
         <ColorControl value={settings.highlightColor} onChange={(color) => update({ highlightColor: color })} />
         <label>Opacity
           <input type="range" min="25" max="95" value={Math.round(settings.highlightOpacity * 100)} onChange={(event) => update({ highlightOpacity: Number(event.target.value) / 100 })} />
@@ -3878,7 +4318,7 @@ function ToolSettingsPanel({ tool, settings, setSettings, selectedTextAnnotation
 
   if (tool === "rectangle" || tool === "circle" || tool === "line" || tool === "arrow") {
     return (
-      <div className="tool-settings">
+      <div className="tool-settings" onPointerDownCapture={onBeforeChange} onKeyDownCapture={onBeforeChange}>
         <ColorControl value={settings.shapeColor} onChange={(color) => update({ shapeColor: color })} />
         <label>Stroke
           <input type="range" min="1" max="12" value={settings.shapeStroke} onChange={(event) => update({ shapeStroke: Number(event.target.value) })} />
@@ -3889,7 +4329,7 @@ function ToolSettingsPanel({ tool, settings, setSettings, selectedTextAnnotation
   }
 
   return (
-    <div className="tool-settings">
+    <div className="tool-settings" onPointerDownCapture={onBeforeChange} onKeyDownCapture={onBeforeChange}>
       <label>Whiteout opacity
         <input type="range" min="70" max="100" value={Math.round(settings.whiteoutOpacity * 100)} onChange={(event) => update({ whiteoutOpacity: Number(event.target.value) / 100 })} />
       </label>
@@ -4064,6 +4504,8 @@ function ColorControl({ value, onChange }) {
 }
 
 function UploadLanding({
+  section,
+  onNavigate,
   fileInputRef,
   onUpload,
   onSelectFiles,
@@ -4084,13 +4526,27 @@ function UploadLanding({
   currentUser,
   onLogout,
 }) {
-  const [activeSection, setActiveSection] = useState("Home");
+  const activeSection = section || "Home";
+  const sectionPaths = {
+    Home: ROUTE_PATHS.dashboard,
+    Documents: ROUTE_PATHS.documents,
+    Templates: ROUTE_PATHS.appTemplates,
+    Agreements: ROUTE_PATHS.signatures,
+    Signatures: ROUTE_PATHS.signatures,
+    "AI Tools": ROUTE_PATHS.tools,
+    Shared: ROUTE_PATHS.documents,
+    Settings: ROUTE_PATHS.settings,
+    Trash: ROUTE_PATHS.trash,
+    Billing: ROUTE_PATHS.settings,
+    Team: ROUTE_PATHS.settings,
+    Integrations: ROUTE_PATHS.settings,
+  };
+  const setActiveSection = (nextSection) => onNavigate(sectionPaths[nextSection] || ROUTE_PATHS.dashboard);
   const [searchQuery, setSearchQuery] = useState("");
   const [suggestionView, setSuggestionView] = useState("recent");
   const [openPanel, setOpenPanel] = useState(null);
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteDrafts, setInviteDrafts] = useState([]);
-  const [favoriteTrendingIds, setFavoriteTrendingIds] = useState([]);
   const [workspaceNotice, setWorkspaceNotice] = useState("");
   const [openDocumentMenuId, setOpenDocumentMenuId] = useState(null);
   const [upgradeModalOpen, setUpgradeModalOpen] = useState(false);
@@ -4101,23 +4557,33 @@ function UploadLanding({
     .slice(0, 2)
     .map((part) => part[0]?.toUpperCase())
     .join("") || "U";
+  const dashboardFirstName = currentUser?.name?.trim().split(/\s+/)[0]
+    || currentUser?.email?.split("@")[0]
+    || "there";
+  const dashboardAccountName = currentUser?.name?.trim()
+    || currentUser?.email?.split("@")[0]
+    || "Account";
+  const dashboardHour = new Date().getHours();
+  const dashboardGreeting = dashboardHour < 12
+    ? "Good morning"
+    : dashboardHour < 18
+      ? "Good afternoon"
+      : "Good evening";
 
   const primaryNav = [
-    { label: "Home", icon: Home },
+    { label: "Dashboard", section: "Home", icon: Home },
     { label: "Documents", icon: FileText },
+    { label: "Signatures", icon: PenLine },
     { label: "Templates", icon: Grid2X2 },
-    { label: "Agreements", icon: Box },
-    { label: "Sign", icon: PenLine },
-    { label: "Settings", icon: Settings },
+    { label: "AI Tools", icon: Sparkles, badge: "New" },
+    { label: "Shared with me", section: "Shared", icon: Users },
   ];
 
-  const quickActions = [
-    { label: "Upload a PDF", icon: Upload, action: onSelectFiles },
-    { label: "Write my agreement", icon: Box, action: () => setActiveSection("Agreements") },
-    { label: "Edit a PDF", icon: FileText, action: onSelectFiles },
-    { label: "Get signatures", icon: PenLine, action: () => setActiveSection("Sign") },
-    { label: "Find a template", icon: Grid2X2, action: () => setActiveSection("Templates") },
+  const utilityNav = [
+    { label: "Trash", icon: Trash2 },
   ];
+
+  const workspaceFolders = ["My documents", "Projects"];
 
   const templateCards = [
     { title: "NDA agreement", detail: "Confidentiality, non-compete, and signature fields", icon: Box },
@@ -4134,38 +4600,52 @@ function UploadLanding({
 
   const normalizedQuery = searchQuery.trim().toLowerCase();
   const matchesSearch = (value) => !normalizedQuery || value.toLowerCase().includes(normalizedQuery);
-  const filteredDocuments = documents.filter((documentRecord) => (
+  const userDocuments = currentUser?.uid
+    ? documents.filter((documentRecord) => documentRecord.ownerId === currentUser.uid)
+    : documents;
+  const filteredDocuments = userDocuments.filter((documentRecord) => (
     matchesSearch(documentRecord.name)
   ));
   const filteredTemplateCards = templateCards.filter(({ title, detail }) => matchesSearch(`${title} ${detail}`));
   const filteredAgreementFlows = agreementFlows.filter(({ title, detail }) => matchesSearch(`${title} ${detail}`));
 
-  const trendingRows = [
-    { id: "trend-nda", name: "Mutual NDA template", location: "Templates", updatedAt: nowIso(), favorite: favoriteTrendingIds.includes("trend-nda") },
-    { id: "trend-sign", name: "Signature request packet", location: "Signatures", updatedAt: nowIso(), favorite: favoriteTrendingIds.includes("trend-sign") },
-    { id: "trend-review", name: "Contract review workspace", location: "Agreements", updatedAt: nowIso(), favorite: favoriteTrendingIds.includes("trend-review") },
-  ].filter((row) => matchesSearch(row.name));
-
-  const demoRecentRows = normalizedQuery ? [] : [{
-    id: "demo-minoria-nda",
-    name: "Minoria_Tech_Intern_NDA_Wasseem_Dabbas",
-    location: "My documents",
-    updatedAt: nowIso(),
-    pageCount: 9,
-    demo: true,
-  }];
-  const visibleRows = suggestionView === "recent" ? (filteredDocuments.length ? filteredDocuments : demoRecentRows) : trendingRows;
-  const totalPages = documents.reduce((total, documentRecord) => total + (documentRecord.pageCount || documentRecord.pages?.length || 1), 0);
-  const favoriteCount = documents.filter((documentRecord) => documentRecord.favorite).length;
-  const storageUsed = documents.reduce((total, documentRecord) => total + (documentRecord.size || 0), 0);
+  const dashboardDocumentPool = suggestionView === "starred"
+    ? filteredDocuments.filter((documentRecord) => documentRecord.favorite)
+    : suggestionView === "shared"
+      ? filteredDocuments.filter((documentRecord) => /shared/i.test(documentRecord.location || ""))
+      : filteredDocuments;
+  const recentDashboardRows = [...dashboardDocumentPool]
+    .sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0))
+    .slice(0, 5);
+  const activityFeed = [...userDocuments]
+    .sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0))
+    .slice(0, 5)
+    .map((documentRecord) => {
+      const annotationCount = documentRecord.annotations?.length || 0;
+      const action = documentRecord.status === "Draft" && annotationCount === 0
+        ? "created"
+        : annotationCount > 0
+          ? "edited"
+          : documentRecord.source === "pdf" ? "uploaded" : "updated";
+      return {
+        id: documentRecord.id,
+        initials: userInitials,
+        tone: "blue",
+        text: `You ${action} ${documentRecord.name}`,
+        date: formatDateTime(documentRecord.updatedAt),
+      };
+    });
+  const totalPages = userDocuments.reduce((total, documentRecord) => total + (documentRecord.pageCount || documentRecord.pages?.length || 1), 0);
+  const signatureCount = userDocuments.reduce((total, documentRecord) => total + (documentRecord.annotations || []).filter((annotation) => annotation.type === "signature" || annotation.type === "initials").length, 0);
+  const storageUsed = userDocuments.reduce((total, documentRecord) => total + (documentRecord.size || 0), 0);
+  const storageLimit = 15 * 1024 * 1024 * 1024;
+  const storagePercentage = Math.min(100, (storageUsed / storageLimit) * 100);
+  const storagePercentageLabel = storagePercentage === 0 ? "0%" : storagePercentage < 1 ? "<1%" : `${Math.round(storagePercentage)}%`;
+  const weekAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
+  const weeklyActivityCount = userDocuments.filter((documentRecord) => new Date(documentRecord.updatedAt || 0).getTime() >= weekAgo).length;
   const isUploading = uploadStage?.status && !["idle", "complete", "error"].includes(uploadStage.status);
 
   const closePanel = () => setOpenPanel(null);
-
-  const toggleTrendingFavorite = (id) => {
-    setFavoriteTrendingIds((items) => (items.includes(id) ? items.filter((item) => item !== id) : [...items, id]));
-    setWorkspaceNotice(favoriteTrendingIds.includes(id) ? "Removed suggestion from favorites." : "Added suggestion to favorites.");
-  };
 
   const createInviteDraft = () => {
     const cleanedEmail = inviteEmail.trim();
@@ -4179,26 +4659,6 @@ function UploadLanding({
   };
 
   const closeDocumentMenu = () => setOpenDocumentMenuId(null);
-
-  const documentLink = (documentRecord) => {
-    const origin = window.location.origin || "http://127.0.0.1:5173";
-    const slug = documentRecord.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") || "document";
-    return `${origin}/share/${slug}?doc=${encodeURIComponent(documentRecord.id)}`;
-  };
-
-  const copyDocumentLink = async (documentRecord, label = "Link copied.") => {
-    try {
-      await navigator.clipboard.writeText(documentLink(documentRecord));
-    } catch {
-      const input = window.document.createElement("input");
-      input.value = documentLink(documentRecord);
-      window.document.body.appendChild(input);
-      input.select();
-      window.document.execCommand?.("copy");
-      input.remove();
-    }
-    setWorkspaceNotice(label);
-  };
 
   const showFileInfo = (documentRecord) => {
     const details = [
@@ -4259,7 +4719,7 @@ function UploadLanding({
                   if (isStoredDocument) {
                     onToggleFavorite(documentRecord);
                   } else {
-                    toggleTrendingFavorite(documentRecord.id);
+                    setWorkspaceNotice("Open a saved document to add it to favorites.");
                   }
                 }}
               >
@@ -4290,8 +4750,8 @@ function UploadLanding({
                         <button type="button" role="menuitem" onClick={(event) => runDocumentMenuAction(event, () => onDuplicateDocument(documentRecord))}><Copy size={20} /> Make a copy</button>
                         <span />
                         <button type="button" role="menuitem" onClick={(event) => runDocumentMenuAction(event, () => onRenameDocument(documentRecord))}><PenLine size={20} /> Rename</button>
-                        <button type="button" role="menuitem" onClick={(event) => runDocumentMenuAction(event, () => copyDocumentLink(documentRecord))}><Link size={20} /> Copy link</button>
-                        <button type="button" role="menuitem" onClick={(event) => runDocumentMenuAction(event, () => copyDocumentLink(documentRecord, "Share link copied."))}><Share2 size={20} /> Share</button>
+                        <button type="button" role="menuitem" disabled title="Secure document links require the future token service"><Link size={20} /> Copy link unavailable</button>
+                        <button type="button" role="menuitem" disabled title="Secure sharing requires the future token service"><Share2 size={20} /> Share unavailable</button>
                         <button type="button" role="menuitem" onClick={(event) => runDocumentMenuAction(event, () => onDownloadDocument(documentRecord))}><Download size={20} /> Download</button>
                         <button type="button" role="menuitem" onClick={(event) => runDocumentMenuAction(event, () => onToggleFavorite(documentRecord))}><Star size={20} /> {documentRecord.favorite ? "Unstar" : "Star"}</button>
                         <button type="button" role="menuitem" onClick={(event) => runDocumentMenuAction(event, () => onMoveDocument(documentRecord))}><Move size={20} /> Move</button>
@@ -4317,6 +4777,54 @@ function UploadLanding({
         <p>{normalizedQuery ? "Try a different search term or upload a PDF." : "Upload a PDF or create a blank agreement. Your recent files will appear in this table."}</p>
       </div>
     )
+  );
+
+  const renderRecentDashboardTable = () => (
+    <div className="reference-document-table">
+      <div className="reference-doc-row reference-doc-head">
+        <span>Name</span><span>Owner</span><span>Last opened</span><span>Status</span><span />
+      </div>
+      {recentDashboardRows.length ? recentDashboardRows.map((documentRecord) => {
+        const status = documentRecord.status || "Ready";
+        const statusClass = status.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+        return (
+          <article key={documentRecord.id} className="reference-doc-row">
+            <button type="button" className="reference-doc-name" onClick={() => onOpenDocument(documentRecord)}>
+              <span className="reference-file-icon"><FileText size={20} /></span>
+              <span><strong>{documentRecord.name}</strong><small>{documentRecord.location || "My Documents"}</small></span>
+              <Star size={15} className="reference-row-star" fill={documentRecord.favorite ? "currentColor" : "none"} />
+            </button>
+            <span className="reference-doc-owner"><span>{userInitials}</span> You</span>
+            <span>{formatDashboardDate(documentRecord.updatedAt)}</span>
+            <span><em className={`reference-status is-${statusClass}`}>{status}</em></span>
+            <div className="doc-actions">
+              <div className="doc-menu-wrap">
+                <button type="button" className={`doc-menu-trigger ${openDocumentMenuId === documentRecord.id ? "is-open" : ""}`} title="Document actions" aria-haspopup="menu" aria-expanded={openDocumentMenuId === documentRecord.id} onClick={(event) => {
+                  event.stopPropagation();
+                  setOpenDocumentMenuId((id) => (id === documentRecord.id ? null : documentRecord.id));
+                }}><EllipsisVertical size={18} /></button>
+                {openDocumentMenuId === documentRecord.id && (
+                  <div className="doc-row-menu" role="menu" aria-label={`${documentRecord.name} actions`}>
+                    <button type="button" role="menuitem" onClick={(event) => runDocumentMenuAction(event, () => onOpenDocument(documentRecord))}><FilePlus2 size={18} /> Open</button>
+                    <button type="button" role="menuitem" onClick={(event) => runDocumentMenuAction(event, () => onRenameDocument(documentRecord))}><PenLine size={18} /> Rename</button>
+                    <button type="button" role="menuitem" onClick={(event) => runDocumentMenuAction(event, () => onDownloadDocument(documentRecord))}><Download size={18} /> Download</button>
+                    <button type="button" role="menuitem" onClick={(event) => runDocumentMenuAction(event, () => onDeleteDocument(documentRecord))}><Trash2 size={18} /> Remove</button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </article>
+        );
+      }) : (
+        <div className="reference-dashboard-empty">
+          <FileText size={26} />
+          <strong>{normalizedQuery ? "No matching documents" : suggestionView === "starred" ? "No starred documents" : suggestionView === "shared" ? "No shared documents" : "No documents yet"}</strong>
+          <span>{normalizedQuery ? "Try a different search." : "Upload a PDF and it will appear here."}</span>
+          {!normalizedQuery && suggestionView === "recent" && <button type="button" onClick={onSelectFiles}>Upload PDF</button>}
+        </div>
+      )}
+      {recentDashboardRows.length > 0 && <button type="button" className="reference-show-more" onClick={() => setActiveSection("Documents")}>View all documents <ChevronDown size={15} /></button>}
+    </div>
   );
 
   const renderTemplateGrid = () => (
@@ -4390,8 +4898,8 @@ function UploadLanding({
       );
     }
 
-    if (activeSection === "Agreements" || activeSection === "Sign") {
-      const isSign = activeSection === "Sign";
+    if (activeSection === "Agreements" || activeSection === "Signatures") {
+      const isSign = activeSection === "Signatures";
       return (
         <section className="document-library enterprise-workspace-panel">
           <div className="library-head">
@@ -4423,7 +4931,6 @@ function UploadLanding({
     }
 
     if (activeSection === "Settings") {
-      const storageUsed = documents.reduce((total, documentRecord) => total + (documentRecord.size || 0), 0);
       return (
         <section className="document-library enterprise-workspace-panel">
           <div className="library-head">
@@ -4437,7 +4944,7 @@ function UploadLanding({
             </article>
             <article>
               <strong>Favorites</strong>
-              <span>{documents.filter((documentRecord) => documentRecord.favorite).length} saved document{documents.filter((documentRecord) => documentRecord.favorite).length === 1 ? "" : "s"} marked for quick access.</span>
+              <span>{userDocuments.filter((documentRecord) => documentRecord.favorite).length} saved document{userDocuments.filter((documentRecord) => documentRecord.favorite).length === 1 ? "" : "s"} marked for quick access.</span>
             </article>
             <article>
               <strong>Invites</strong>
@@ -4445,7 +4952,7 @@ function UploadLanding({
             </article>
             <article>
               <strong>Storage</strong>
-              <span>{documents.length} document{documents.length === 1 ? "" : "s"} saved locally, {formatBytes(storageUsed)} used.</span>
+              <span>{userDocuments.length} document{userDocuments.length === 1 ? "" : "s"} saved for this account, {formatBytes(storageUsed)} used.</span>
             </article>
             <article>
               <strong>Export policy</strong>
@@ -4456,70 +4963,114 @@ function UploadLanding({
       );
     }
 
-    return (
-      <>
-        <section
-          className={`dashboard-drop-hero ${isDraggingFile ? "is-dragging" : ""} ${isUploading ? "is-uploading" : ""}`}
-          onDragEnter={(event) => {
-            event.preventDefault();
-            setIsDraggingFile(true);
-          }}
-          onDragOver={(event) => {
-            event.preventDefault();
-            setIsDraggingFile(true);
-          }}
-          onDragLeave={(event) => {
-            if (event.currentTarget === event.target) {
-              setIsDraggingFile(false);
-            }
-          }}
-          onDrop={onDropFile}
-        >
-          <div className="dashboard-hero-copy">
-            <p className="eyebrow">Secure browser workspace</p>
-            <h1>Edit, sign, and manage PDFs in one place.</h1>
-            <p>Drop in a PDF to start editing immediately, or create a reusable document workflow for signing, review, and export.</p>
-            <div className="dashboard-hero-actions">
-              <button type="button" className="dashboard-primary" onClick={onSelectFiles}><Upload size={18} /> Upload PDF</button>
-              <button type="button" className="dashboard-secondary" onClick={onBlankPage}><FilePlus2 size={18} /> Start blank</button>
-            </div>
-          </div>
-          <div className="dashboard-upload-panel">
-            <Upload size={30} />
-            <strong>{isDraggingFile ? "Drop your PDF to upload" : isUploading ? uploadStage.status : "Drag and drop PDF"}</strong>
-            <span>{isUploading ? uploadStage.fileName : "PDFs are validated, rendered, and saved locally before opening in the editor."}</span>
-            <div className="upload-progress-track"><span style={{ width: `${uploadStage?.percent || 0}%` }} /></div>
-            {uploadError && <p className="upload-error">{uploadError}</p>}
-          </div>
-        </section>
-
-        <section className="dashboard-stat-grid" aria-label="Workspace stats">
-          <article><strong>{documents.length}</strong><span>Documents</span></article>
-          <article><strong>{totalPages}</strong><span>Pages managed</span></article>
-          <article><strong>{favoriteCount}</strong><span>Starred</span></article>
-          <article><strong>{formatBytes(storageUsed)}</strong><span>Local storage</span></article>
-        </section>
-
-        <section className="lumin-action-grid">
-          {quickActions.map(({ label, icon: Icon, action }) => (
-            <button key={label} type="button" className="lumin-action-card" onClick={action}>
-              <Icon size={31} />
-              <span>{label}</span>
+    if (["Trash", "Billing", "Team", "Integrations"].includes(activeSection)) {
+      const sectionDetails = {
+        Trash: [Trash2, "Deleted documents", "Files moved to trash will be available here before permanent removal."],
+        Billing: [CreditCard, "Plans and billing", "Manage your RealPDF plan, invoices, and payment details."],
+        Team: [Users, "Workspace members", "Invite teammates and manage document collaboration access."],
+        Integrations: [Plug, "Connected apps", "Connect cloud storage and workflow tools to your PDF workspace."],
+      };
+      const [SectionIcon, title, detail] = sectionDetails[activeSection];
+      return (
+        <section className="document-library enterprise-workspace-panel dashboard-simple-section">
+          <div className="library-head"><h2>{activeSection}</h2></div>
+          <div className="dashboard-simple-card">
+            <SectionIcon size={28} />
+            <div><h3>{title}</h3><p>{detail}</p></div>
+            <button type="button" onClick={activeSection === "Team" ? () => setOpenPanel("invite") : () => setWorkspaceNotice(`${activeSection} settings are ready to connect.`)}>
+              {activeSection === "Team" ? "Invite member" : "Open settings"}
             </button>
-          ))}
+          </div>
         </section>
+      );
+    }
 
-        <section className="document-library">
-          <div className="library-head">
-            <h2>Suggested documents</h2>
-          </div>
-          <div className="suggestion-tabs">
-            <button type="button" className={suggestionView === "recent" ? "is-active" : ""} onClick={() => setSuggestionView("recent")}><Undo2 size={22} /> You opened recently</button>
-            <button type="button" className={suggestionView === "trending" ? "is-active" : ""} onClick={() => setSuggestionView("trending")}><ArrowDownToLine size={22} /> Trending</button>
-          </div>
-          {renderDocumentTable(visibleRows, suggestionView === "recent" ? "documents" : "trending")}
-        </section>
-      </>
+    return (
+      <div className="reference-dashboard-grid">
+        <div className="reference-dashboard-main">
+          <section
+            className={`dashboard-welcome-panel ${isDraggingFile ? "is-dragging" : ""} ${isUploading ? "is-uploading" : ""}`}
+            onDragEnter={(event) => { event.preventDefault(); setIsDraggingFile(true); }}
+            onDragOver={(event) => { event.preventDefault(); setIsDraggingFile(true); }}
+            onDragLeave={(event) => { if (event.currentTarget === event.target) setIsDraggingFile(false); }}
+            onDrop={onDropFile}
+          >
+            <div className="dashboard-welcome-copy">
+              <span className="dashboard-greeting"><Sparkles size={14} /> {dashboardGreeting}, {dashboardFirstName}!</span>
+              <h1>Work smarter with <strong>RealPDF</strong></h1>
+              <p>{isDraggingFile ? "Release to open your PDF." : isUploading ? `${uploadStage.status}: ${uploadStage.fileName}` : "Edit, organize, sign, and collaborate on PDFs in one delightful place."}</p>
+              {uploadError && <p className="upload-error">{uploadError}</p>}
+              <div className="dashboard-hero-actions">
+                <button type="button" className="dashboard-hero-upload" onClick={onSelectFiles}><Upload size={17} /> Upload PDF</button>
+                <button type="button" className="dashboard-hero-ai" onClick={() => onNavigate(ROUTE_PATHS.tools)}><Sparkles size={17} /> Explore AI Tools</button>
+              </div>
+            </div>
+            <div className="dashboard-hero-visual" aria-hidden="true">
+              <img src={`${import.meta.env.BASE_URL}dashboard-pdf-hero.jpg`} alt="" />
+            </div>
+          </section>
+
+          <section className="dashboard-quick-grid" aria-label="Quick actions">
+            <button type="button" onClick={onSelectFiles}><span className="tone-coral"><Upload size={21} /></span><div><strong>Upload PDF</strong><small>Upload files from your device</small></div></button>
+            <button type="button" onClick={onSelectFiles}><span className="tone-purple"><PenLine size={21} /></span><div><strong>Edit PDF</strong><small>Edit text, images, pages</small></div></button>
+            <button type="button" onClick={() => setActiveSection("Signatures")}><span className="tone-blue"><PenLine size={21} /></span><div><strong>Request Signatures</strong><small>Get documents signed</small></div></button>
+            <button type="button" onClick={() => setActiveSection("Templates")}><span className="tone-violet"><FilePlus2 size={21} /></span><div><strong>Create Template</strong><small>Save and reuse templates</small></div></button>
+            <button type="button" onClick={() => onNavigate(ROUTE_PATHS.tools)}><span className="tone-lilac"><Sparkles size={21} /></span><div><strong>AI Tools</strong><small>Summarize, rewrite, more</small></div><ChevronRight size={16} /></button>
+          </section>
+
+          <section className="reference-stat-grid" aria-label="Workspace stats">
+            <article><span className="reference-stat-icon tone-red"><FileText size={23} /></span><div><small>Total Documents</small><strong>{userDocuments.length}</strong><em className="is-neutral">{totalPages} page{totalPages === 1 ? "" : "s"} managed</em></div></article>
+            <article><span className="reference-stat-icon tone-purple"><PenLine size={23} /></span><div><small>Awaiting Signatures</small><strong>{signatureCount}</strong><em className="is-neutral">Across your saved PDFs</em></div></article>
+            <article><span className="reference-stat-icon tone-blue"><HardDrive size={23} /></span><div><small>Storage Used</small><strong>{formatBytes(storageUsed)}</strong><em className="is-neutral">{storagePercentageLabel} of 15 GB</em></div></article>
+            <article><span className="reference-stat-icon tone-green"><ChartNoAxesColumnIncreasing size={23} /></span><div><small>Completed This Month</small><strong>{weeklyActivityCount}</strong><em className="is-neutral">Document{weeklyActivityCount === 1 ? "" : "s"} updated recently</em></div></article>
+          </section>
+
+          <section className="reference-recent-card">
+            <div className="reference-section-head">
+              <h2>Recent Documents</h2>
+              <div className="reference-recent-tabs">
+                <button type="button" className={suggestionView === "recent" ? "is-active" : ""} onClick={() => setSuggestionView("recent")}>Recent</button>
+                <button type="button" className={suggestionView === "starred" ? "is-active" : ""} onClick={() => setSuggestionView("starred")}>Starred</button>
+                <button type="button" className={suggestionView === "shared" ? "is-active" : ""} onClick={() => setSuggestionView("shared")}>Shared with me</button>
+              </div>
+              <button type="button" className="reference-view-all" onClick={() => setActiveSection("Documents")}>View all</button>
+            </div>
+            {renderRecentDashboardTable()}
+          </section>
+        </div>
+
+        <aside className="reference-dashboard-side">
+          <section className="dashboard-ai-card">
+            <img src={`${import.meta.env.BASE_URL}dashboard-assets/ai-assistant.png`} alt="RealPDF AI assistant" />
+            <div className="dashboard-ai-title"><h2>AI Assistant</h2><Sparkles size={15} /></div>
+            <p>Hi {dashboardFirstName}! I can help you with:</p>
+            <div className="dashboard-ai-actions">
+              {["Summarize this document", "Extract key points", "Improve writing", "Translate PDF", "Convert to other formats"].map((label) => (
+                <button key={label} type="button" onClick={() => onNavigate(ROUTE_PATHS.tools)}><Sparkles size={14} /> {label}</button>
+              ))}
+            </div>
+            <button type="button" className="dashboard-ai-prompt" onClick={() => onNavigate(ROUTE_PATHS.aiPdf)}>Ask anything about your PDF… <ChevronRight size={15} /></button>
+          </section>
+
+          <section className="reference-side-card reference-activity-card dashboard-recent-activity">
+            <div className="reference-side-head"><h2>Recent Activity</h2><button type="button" onClick={() => setActiveSection("Documents")}>View all</button></div>
+            {activityFeed.length ? (
+              <div className="reference-activity-list">
+                {activityFeed.map(({ id, initials, tone, text, date }) => (
+                  <article key={id}><span className={`reference-activity-avatar tone-${tone}`}>{initials}</span><div><strong>{text}</strong><small>{date}</small></div></article>
+                ))}
+              </div>
+            ) : (
+              <div className="reference-activity-empty"><Activity size={22} /><strong>No activity yet</strong><span>Your uploads and edits will appear here.</span></div>
+            )}
+          </section>
+
+          <section className="dashboard-template-promo">
+            <div><h2>Create reusable templates</h2><p>Save time by creating templates for contracts, agreements, and more.</p><button type="button" onClick={() => setActiveSection("Templates")}>Create template</button></div>
+            <img src={`${import.meta.env.BASE_URL}dashboard-assets/template-card.png`} alt="Purple reusable document template" />
+          </section>
+        </aside>
+      </div>
     );
   };
 
@@ -4527,33 +5078,46 @@ function UploadLanding({
     <main className="upload-shell lumin-home">
       <input ref={fileInputRef} className="hidden-input" type="file" accept="application/pdf" onChange={onUpload} />
       <aside className="lumin-home-rail">
-        <button type="button" className="rail-brand-tile" onClick={() => setActiveSection("Home")}><Building2 size={24} /></button>
-        <button type="button" className="rail-mini-action" onClick={() => setOpenPanel("invite")}><Users size={22} /></button>
+        <button type="button" className="dashboard-brand" aria-label="Back to RealPDF website" onClick={() => onNavigate(ROUTE_PATHS.home)}><span><FileText size={22} /></span><strong>RealPDF</strong></button>
         <nav className="upload-nav" aria-label="Primary">
-          {primaryNav.map(({ label, icon: Icon }) => (
-            <button key={label} type="button" className={label === activeSection ? "is-active" : ""} onClick={() => setActiveSection(label)}>
-              <Icon size={24} />
+          {primaryNav.map(({ label, section: navSection = label, icon: Icon, badge }) => (
+            <button key={label} type="button" className={navSection === activeSection ? "is-active" : ""} onClick={() => setActiveSection(navSection)}>
+              <Icon size={19} />
               <span>{label}</span>
+              {badge && <em className="dashboard-nav-badge">{badge}</em>}
             </button>
           ))}
         </nav>
+        <nav className="upload-nav dashboard-utility-nav" aria-label="Document utilities">
+          {utilityNav.map(({ label, icon: Icon }) => <button key={label} type="button" className={label === activeSection ? "is-active" : ""} onClick={() => setActiveSection(label)}><Icon size={19} /><span>{label}</span></button>)}
+        </nav>
+        <section className="dashboard-workspace-nav">
+          <div><strong>Workspace</strong><button type="button" aria-label="Create folder" onClick={() => setWorkspaceNotice("Folder creation is coming soon.")}>+</button></div>
+          {workspaceFolders.map((folder, index) => <button key={folder} type="button" className={index === 0 ? "is-active" : ""} onClick={() => setActiveSection("Documents")}><FolderPlus size={17} /><span>{folder}</span></button>)}
+        </section>
+        <section className="dashboard-storage-card" aria-label="Storage used">
+          <div><strong>Pro Plan <Crown size={13} /></strong><button type="button" onClick={() => setUpgradeModalOpen(true)}>Upgrade plan</button></div>
+          <p><b>{storagePercentageLabel}</b> of 15 GB used</p>
+          <span><i style={{ width: `${storagePercentage === 0 ? 0 : Math.max(2, storagePercentage)}%` }} /></span>
+          <p>{formatBytes(storageUsed)} / 15 GB</p>
+        </section>
+        <button type="button" className="dashboard-site-back" onClick={() => onNavigate(ROUTE_PATHS.home)}><ChevronLeft size={16} /><span>Back to website</span></button>
       </aside>
 
       <section className="upload-main">
         <header className="upload-topbar">
-          <div className="upload-logo blank-logo"><span aria-hidden="true" /></div>
           <label className="lumin-search">
-            <Search size={25} />
-            <input type="search" placeholder="Search" value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} />
+            <Search size={18} />
+            <input type="search" placeholder="Search documents, templates, or tools..." value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} />
+            <kbd>⌘ K</kbd>
           </label>
           <div className="upload-top-actions">
+            <button type="button" className="dashboard-create-button" onClick={onBlankPage}><Plus size={18} /> Create</button>
             <button type="button" className="invite-button" onClick={() => setOpenPanel(openPanel === "invite" ? null : "invite")}><Users size={18} /> Invite members</button>
-            <button type="button" className="upgrade-button" onClick={() => setUpgradeModalOpen(true)}>Upgrade</button>
-            <button type="button" className="top-icon" onClick={() => setOpenPanel(openPanel === "help" ? null : "help")}><CircleHelp size={17} /></button>
-            <button type="button" className="top-icon" onClick={() => setOpenPanel(openPanel === "notifications" ? null : "notifications")}><Bell size={17} /></button>
-            <button type="button" className="top-avatar" onClick={() => setOpenPanel(openPanel === "account" ? null : "account")}>{userInitials}</button>
+            <button type="button" className="top-icon dashboard-notification-button" aria-label="Notifications" onClick={() => setOpenPanel(openPanel === "notifications" ? null : "notifications")}><Bell size={19} /></button>
+            <button type="button" className="top-avatar" aria-haspopup="dialog" aria-expanded={openPanel === "account"} onClick={() => setOpenPanel(openPanel === "account" ? null : "account")}><span>{userInitials}</span><i /><strong>{dashboardAccountName}</strong><ChevronDown size={15} /></button>
             {openPanel && (
-              <div className="workspace-popover">
+              <div className={`workspace-popover ${openPanel === "account" ? "account-menu-popover" : ""}`} role={openPanel === "account" ? "dialog" : undefined} aria-label={openPanel === "account" ? "Account menu" : undefined}>
                 <button type="button" className="popover-close" onClick={closePanel}><X size={16} /></button>
                 {openPanel === "invite" && (
                   <>
@@ -4592,10 +5156,14 @@ function UploadLanding({
                 )}
                 {openPanel === "account" && (
                   <>
-                    <h3>{userName}</h3>
-                    <p>{currentUser?.email || "Signed in workspace"}</p>
-                    <button type="button" className="popover-primary" onClick={() => setActiveSection("Settings")}>Workspace settings</button>
-                    <button type="button" className="popover-secondary" onClick={onLogout}>Sign out</button>
+                    <div className="account-menu-identity">
+                      <span className="account-menu-avatar">{userInitials}</span>
+                      <div><h3>{userName}</h3><p><Mail size={15} /> {currentUser?.email || "Signed in workspace"}</p></div>
+                    </div>
+                    <div className="account-menu-actions">
+                      <button type="button" className="account-menu-settings" onClick={() => { setActiveSection("Settings"); closePanel(); }}><Settings size={18} /><span><strong>Workspace settings</strong><small>Profile, storage, and preferences</small></span><ChevronRight size={17} /></button>
+                      <button type="button" className="account-menu-signout" onClick={onLogout}><LogOut size={18} /><span>Sign out</span></button>
+                    </div>
                   </>
                 )}
               </div>
@@ -5065,38 +5633,6 @@ function SignatureModal({ defaultName, onClose, onSave }) {
 }
 
 function ShareModal({ fileName, onClose, onExport }) {
-  const [access, setAccess] = useState("restricted");
-  const [permission, setPermission] = useState("view");
-  const [email, setEmail] = useState("");
-  const [message, setMessage] = useState("Please review this PDF when you have a chance.");
-  const [invites, setInvites] = useState([]);
-  const [copyState, setCopyState] = useState("Copy link");
-  const linkInputRef = useRef(null);
-  const shareLink = useMemo(() => {
-    const origin = window.location.origin || "http://127.0.0.1:5173";
-    const slug = fileName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") || "document";
-    return `${origin}/share/${slug}?access=${access}&permission=${permission}`;
-  }, [access, fileName, permission]);
-
-  const copyShareLink = async () => {
-    try {
-      await navigator.clipboard.writeText(shareLink);
-      setCopyState("Copied");
-    } catch {
-      linkInputRef.current?.select();
-      window.document.execCommand?.("copy");
-      setCopyState("Copied");
-    }
-    window.setTimeout(() => setCopyState("Copy link"), 1600);
-  };
-
-  const addInvite = () => {
-    const cleanedEmail = email.trim();
-    if (!cleanedEmail) return;
-    setInvites((items) => [...items, { email: cleanedEmail, permission, message, id: makeId("invite") }]);
-    setEmail("");
-  };
-
   return (
     <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="Share document">
       <section className="share-modal">
@@ -5110,70 +5646,111 @@ function ShareModal({ fileName, onClose, onExport }) {
         <div className="share-panel">
           <section className="share-card">
             <div className="share-card-head">
-              <Share2 size={20} />
+              <Lock size={20} />
               <div>
-                <h3>Document link</h3>
-                <p>Generate a review link for this workspace. Export remains the production-safe handoff for this local build.</p>
+                <h3>Secure sharing is unavailable</h3>
+                <p>RealPDF will not generate a public document URL until a server-side token service can enforce ownership, permissions, expiration, and revocation.</p>
               </div>
             </div>
-            <div className="share-link-row">
-              <input ref={linkInputRef} readOnly value={shareLink} aria-label="Share link" />
-              <button type="button" onClick={copyShareLink}>{copyState}</button>
-            </div>
-          </section>
-
-          <section className="share-grid">
-            <label className="field">
-              <span>Access</span>
-              <select value={access} onChange={(event) => setAccess(event.target.value)}>
-                <option value="restricted">Only invited people</option>
-                <option value="workspace">Anyone in workspace</option>
-                <option value="public">Anyone with link</option>
-              </select>
-            </label>
-            <label className="field">
-              <span>Permission</span>
-              <select value={permission} onChange={(event) => setPermission(event.target.value)}>
-                <option value="view">Can view</option>
-                <option value="comment">Can comment</option>
-                <option value="edit">Can edit</option>
-                <option value="sign">Can sign</option>
-              </select>
-            </label>
-          </section>
-
-          <section className="share-card">
-            <div className="share-card-head">
-              <Users size={20} />
-              <div>
-                <h3>Invite people</h3>
-                <p>Draft reviewers or signers before exporting or connecting hosted auth.</p>
-              </div>
-            </div>
-            <label className="field">
-              <span>Email</span>
-              <input type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="teammate@company.com" />
-            </label>
-            <label className="field">
-              <span>Message</span>
-              <textarea value={message} onChange={(event) => setMessage(event.target.value)} />
-            </label>
-            <button type="button" className="invite-draft-button" onClick={addInvite}><Send size={16} /> Add invite draft</button>
-            {invites.length > 0 && (
-              <div className="invite-list">
-                {invites.map((invite) => (
-                  <div key={invite.id}>
-                    <strong>{invite.email}</strong>
-                    <span>{invite.permission} access</span>
-                  </div>
-                ))}
-              </div>
-            )}
           </section>
         </div>
         <footer>
           <button type="button" className="modal-secondary" onClick={onClose}>Done</button>
           <button type="button" className="modal-primary" onClick={onExport}><Download size={16} /> Export PDF</button>
+        </footer>
+      </section>
+    </div>
+  );
+}
+
+function SignatureRequestModal({ fileName, onClose, onPrepare }) {
+  const [recipient, setRecipient] = useState("");
+  const [message, setMessage] = useState(`Please review and sign ${fileName}.`);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  const prepare = async () => {
+    if (!recipient || !recipient.includes("@")) {
+      setError("Enter a valid recipient email address.");
+      return;
+    }
+    setBusy(true);
+    setError("");
+    try {
+      await onPrepare({ recipient, message });
+    } catch (requestError) {
+      if (requestError?.name !== "AbortError") setError("The signing copy could not be shared. Try again or export it normally.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="Request signatures">
+      <section className="share-modal workflow-modal">
+        <header>
+          <div><h2>Request a signature</h2><p>{fileName}</p></div>
+          <button type="button" className="modal-close" onClick={onClose}><X size={18} /></button>
+        </header>
+        <div className="workflow-modal-body">
+          <p>Place any signature or text fields on the page first. This creates the current PDF and hands it to your device’s share sheet; no copy is uploaded to RealPDF.</p>
+          <label><span>Recipient email</span><input type="email" value={recipient} onChange={(event) => setRecipient(event.target.value)} placeholder="name@example.com" /></label>
+          <label><span>Message</span><textarea value={message} onChange={(event) => setMessage(event.target.value)} rows="4" /></label>
+          <small>Local handoff does not provide reminders, completion tracking, identity checks, or an audit certificate.</small>
+          {error && <p className="workflow-error" role="alert">{error}</p>}
+        </div>
+        <footer>
+          <button type="button" className="modal-secondary" onClick={onClose}>Keep editing</button>
+          <button type="button" className="modal-primary" disabled={busy} onClick={prepare}><Send size={16} /> {busy ? "Preparing…" : "Prepare and share"}</button>
+        </footer>
+      </section>
+    </div>
+  );
+}
+
+function ProtectPdfModal({ fileName, onClose, onProtect }) {
+  const [password, setPassword] = useState("");
+  const [confirmation, setConfirmation] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  const protect = async () => {
+    if (password.length < 8) {
+      setError("Use at least 8 characters.");
+      return;
+    }
+    if (password !== confirmation) {
+      setError("The passwords do not match.");
+      return;
+    }
+    setBusy(true);
+    setError("");
+    try {
+      await onProtect(password);
+    } catch {
+      setError("Password protection failed. Your original PDF was not changed.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="Protect PDF">
+      <section className="share-modal workflow-modal">
+        <header>
+          <div><h2>Protect PDF with a password</h2><p>{fileName}</p></div>
+          <button type="button" className="modal-close" onClick={onClose}><X size={18} /></button>
+        </header>
+        <div className="workflow-modal-body">
+          <p>Real AES-256 PDF encryption runs locally in this browser. The downloaded copy will require this password to open.</p>
+          <label><span>Password</span><input type="password" autoComplete="new-password" value={password} onChange={(event) => setPassword(event.target.value)} /></label>
+          <label><span>Confirm password</span><input type="password" autoComplete="new-password" value={confirmation} onChange={(event) => setConfirmation(event.target.value)} /></label>
+          <small>There is no password recovery. Save the password separately before sharing the file.</small>
+          {error && <p className="workflow-error" role="alert">{error}</p>}
+        </div>
+        <footer>
+          <button type="button" className="modal-secondary" onClick={onClose}>Cancel</button>
+          <button type="button" className="modal-primary" disabled={busy} onClick={protect}><Lock size={16} /> {busy ? "Encrypting locally…" : "Protect and download"}</button>
         </footer>
       </section>
     </div>

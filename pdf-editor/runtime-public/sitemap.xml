@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>http://localhost:4173/</loc></url>
+  <url><loc>http://localhost:4173/add-date-fields</loc></url>
+  <url><loc>http://localhost:4173/add-initials</loc></url>
+  <url><loc>http://localhost:4173/annotate-pdf</loc></url>
+  <url><loc>http://localhost:4173/comment-on-pdf</loc></url>
+  <url><loc>http://localhost:4173/delete-pdf-pages</loc></url>
+  <url><loc>http://localhost:4173/edit-pdf</loc></url>
+  <url><loc>http://localhost:4173/extract-pdf-pages</loc></url>
+  <url><loc>http://localhost:4173/fill-pdf</loc></url>
+  <url><loc>http://localhost:4173/help</loc></url>
+  <url><loc>http://localhost:4173/jpg-to-pdf</loc></url>
+  <url><loc>http://localhost:4173/merge-pdf</loc></url>
+  <url><loc>http://localhost:4173/organize-pdf</loc></url>
+  <url><loc>http://localhost:4173/pdf-form-filler</loc></url>
+  <url><loc>http://localhost:4173/pdf-reader</loc></url>
+  <url><loc>http://localhost:4173/pdf-to-jpg</loc></url>
+  <url><loc>http://localhost:4173/pdf-to-png</loc></url>
+  <url><loc>http://localhost:4173/png-to-pdf</loc></url>
+  <url><loc>http://localhost:4173/privacy</loc></url>
+  <url><loc>http://localhost:4173/protect-pdf</loc></url>
+  <url><loc>http://localhost:4173/reorder-pdf-pages</loc></url>
+  <url><loc>http://localhost:4173/request-signatures</loc></url>
+  <url><loc>http://localhost:4173/review-pdf</loc></url>
+  <url><loc>http://localhost:4173/rotate-pdf</loc></url>
+  <url><loc>http://localhost:4173/security</loc></url>
+  <url><loc>http://localhost:4173/sign-pdf</loc></url>
+  <url><loc>http://localhost:4173/split-pdf</loc></url>
+  <url><loc>http://localhost:4173/terms</loc></url>
+  <url><loc>http://localhost:4173/tools</loc></url>
+</urlset>
