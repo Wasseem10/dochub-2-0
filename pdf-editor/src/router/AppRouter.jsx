@@ -1,4 +1,4 @@
-import { createBrowserRouter, RouterProvider, useParams } from "react-router-dom";
+import { createBrowserRouter, RouterProvider, useParams, useSearchParams } from "react-router-dom";
 import { AppLayout } from "../layouts/AppLayout.jsx";
 import { AuthLayout } from "../layouts/AuthLayout.jsx";
 import { PublicLayout } from "../layouts/PublicLayout.jsx";
@@ -8,6 +8,7 @@ import { ToolDirectoryPage } from "../pages/public/ToolDirectoryPage.jsx";
 import { ToolLandingPage } from "../pages/public/ToolLandingPage.jsx";
 import { WorkflowUnavailablePage } from "../pages/public/WorkflowUnavailablePage.jsx";
 import { TOOL_REGISTRY } from "../tools/toolRegistry.js";
+import { getEditorToolPreset } from "../tools/editorToolPresets.js";
 import { LazyAppContent, LazyAuthRouteProvider, LazyPublicAppRoute } from "./LazyAppRoute.jsx";
 import { ProtectedRoute } from "./ProtectedRoute.jsx";
 import { PublicOnlyRoute } from "./PublicOnlyRoute.jsx";
@@ -18,6 +19,13 @@ import { ROUTE_PATHS } from "./routePaths.js";
 export function EditorRoute() {
   const { documentId } = useParams();
   return <LazyAppContent view="editor" documentId={documentId} />;
+}
+
+export function PublicEditorRoute() {
+  const [searchParams] = useSearchParams();
+  const requestedTool = searchParams.get("tool") || "edit-pdf";
+  const publicTool = getEditorToolPreset(requestedTool) ? requestedTool : "edit-pdf";
+  return <LazyPublicAppRoute view="landing" publicTool={publicTool} />;
 }
 
 const publicPlaceholderRouteObjects = PUBLIC_PLACEHOLDER_ROUTES.map((route) => ({
@@ -42,7 +50,7 @@ export const appRouteObjects = [
         element: <PublicLayout />,
         children: [
           { path: ROUTE_PATHS.home, element: <LazyPublicAppRoute view="landing" /> },
-          { path: ROUTE_PATHS.editPdf, element: <LazyPublicAppRoute view="landing" publicTool="edit-pdf" /> },
+          { path: ROUTE_PATHS.editPdf, element: <PublicEditorRoute /> },
           { path: ROUTE_PATHS.tools, element: <ToolDirectoryPage /> },
           ...publicPlaceholderRouteObjects,
           ...toolRouteObjects,

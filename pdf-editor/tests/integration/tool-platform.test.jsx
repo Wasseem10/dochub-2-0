@@ -46,7 +46,7 @@ describe("public PDF tool platform", () => {
 
   it("shows real editor CTAs only for partial tools and no uploader for coming-soon tools", async () => {
     const partial = await render(<ToolLandingPage tool={TOOL_BY_ID.get("sign-pdf")} />);
-    expect(partial.root.findAllByType("a").some((link) => textOf(link).includes("Open the real editor") && link.props.href === "/edit-pdf")).toBe(true);
+    expect(partial.root.findAllByType("a").some((link) => textOf(link).includes("Open Sign PDF") && link.props.href === "/edit-pdf?tool=sign-pdf")).toBe(true);
     expect(textOf(partial.root).includes("Identity verification")).toBe(true);
     await unmount(partial);
 

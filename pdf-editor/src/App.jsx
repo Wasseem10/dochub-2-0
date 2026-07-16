@@ -79,6 +79,7 @@ import { LatticePdfLanding } from "./LatticePdfLanding.jsx";
 import { EditorRouteStatePage } from "./pages/app/EditorRouteStatePage.jsx";
 import { resolveEditorDocument } from "./router/editorRouteState.js";
 import { editorPath, ROUTE_PATHS } from "./router/routePaths.js";
+import { getEditorToolPreset, resolveEditorActiveTool } from "./tools/editorToolPresets.js";
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
   "pdfjs-dist/build/pdf.worker.mjs",
@@ -1227,7 +1228,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     const result = await authenticate({ mode: authMode, email, password, name, provider });
     if (result?.ok) {
       const requested = location.state?.from;
-      const returnTo = requested?.pathname?.startsWith("/app/")
+      const returnTo = requested?.pathname?.startsWith("/")
         ? `${requested.pathname}${requested.search || ""}${requested.hash || ""}`
         : ROUTE_PATHS.dashboard;
       navigate(returnTo, { replace: true });
@@ -1547,7 +1548,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   const requireAuthenticationForUpload = () => {
     if (currentUser) return true;
     openAuth("login", {
-      from: { pathname: publicTool === "edit-pdf" ? ROUTE_PATHS.editPdf : location.pathname },
+      from: { pathname: location.pathname, search: location.search },
       intent: "upload",
       notice: "Sign in before choosing a PDF so the document can be stored in your private workspace.",
     });
@@ -1561,7 +1562,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   const handleLandingDropFiles = (files) => {
     if (!currentUser) {
       openAuth("login", {
-        from: { pathname: publicTool === "edit-pdf" ? ROUTE_PATHS.editPdf : location.pathname },
+        from: { pathname: location.pathname, search: location.search },
         intent: "upload",
         notice: "For privacy, the PDF you dropped was not retained. Sign in, then choose it again from your device.",
       });
@@ -1664,13 +1665,13 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       setRedoStack([]);
       setSelectedId(null);
       setSelectedDetectedTextId(null);
-      setTool(detectedItems.length ? "editText" : "select");
+      setTool(resolveEditorActiveTool(publicTool, detectedItems.length));
       setSaved(true);
       setSaveState("saved");
       setLastSavedAt(stamp);
       setUploadStage({ status: "complete", percent: 100, fileName: file.name });
       showToast(detectedItems.length ? `Smart Edit detected ${detectedItems.length} text item${detectedItems.length === 1 ? "" : "s"}.` : "This looks scanned. OCR is not enabled in this browser build yet.");
-      navigate(editorPath(documentRecord.id));
+      navigate(editorPath(documentRecord.id), { state: { publicTool } });
       window.setTimeout(() => setUploadStage({ status: "idle", percent: 0, fileName: "" }), 900);
     } catch {
       setUploadError("We could not read that PDF. Try a smaller or unprotected PDF file.");
@@ -1818,7 +1819,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     setSaved(true);
     setSaveState("saved");
     setLastSavedAt(stamp);
-    navigate(editorPath(documentRecord.id));
+    navigate(editorPath(documentRecord.id), { state: { publicTool } });
   };
 
   const addBlankPage = () => {
@@ -2796,6 +2797,20 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     hydrateDocument(resolved.document).catch(() => setEditorRouteState("error"));
   }, [activeDocumentId, currentUser?.uid, documentCatalogReady, documentId, documents, hydrateDocument, pages.length, view]);
 
+  useEffect(() => {
+    const requestedTool = location.state?.publicTool;
+    if (view !== "editor" || editorRouteState !== "ready" || !requestedTool) return;
+    const preset = getEditorToolPreset(requestedTool);
+    if (!preset) return;
+
+    setTool(resolveEditorActiveTool(requestedTool, detectedTextCount));
+    if (preset.openPages) setIsPagesCollapsed(false);
+    if (preset.openAppend) setIsPageAppendMenuOpen(true);
+    if (requestedTool === "sign-pdf") setSignatureModalOpen(true);
+    showToast(`${preset.label} tools are ready.`);
+    navigate(location.pathname, { replace: true, state: null });
+  }, [detectedTextCount, editorRouteState, location.pathname, location.state, navigate, view]);
+
   if (view === "landing") {
     return (
       <LatticePdfLanding
@@ -2981,7 +2996,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       </header>
 
       <section className="tool-ribbon">
-        {toolConfig.filter(({ id }) => ["select", "editText", "text", "draw", "image", "field", "signature", "comment", "rectangle", "whiteout"].includes(id)).map(({ id, label, icon: Icon }) => (
+        {toolConfig.map(({ id, label, icon: Icon }) => (
           <button
             key={id}
             type="button"
@@ -3011,13 +3026,13 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
           {detectedTextCount ? `${detectedTextCount} original text boxes detected` : "Original text edit works after uploading a text PDF"}
         </div>
         <div className="ribbon-divider" />
-        <button className="ribbon-tool" type="button" onClick={() => showToast("Auto-fill reads form fields from uploaded PDFs.")} title="Auto-Fill" aria-label="Auto-Fill"><FilePlus2 size={24} /><span>Auto-Fill</span></button>
-        <button className="ribbon-tool" type="button" onClick={() => showToast("Ask AI is ready for document summary prompts.")} title="Ask AI" aria-label="Ask AI"><Zap size={24} /><span>Ask AI</span></button>
+        <button className="ribbon-tool is-unavailable" type="button" disabled title="Unavailable: automatic form-field detection is not implemented" aria-label="Auto-Fill unavailable"><FilePlus2 size={24} /><span>Auto-Fill <small>Soon</small></span></button>
+        <button className="ribbon-tool is-unavailable" type="button" disabled title="Unavailable: AI document analysis is not connected" aria-label="Ask AI unavailable"><Zap size={24} /><span>Ask AI <small>Soon</small></span></button>
         <button className="ribbon-tool" type="button" onClick={() => appendFileInputRef.current?.click()} title="Merge and append file" aria-label="Merge and append file"><Copy size={24} /><span>Merge</span></button>
         <button className="ribbon-tool" type="button" onClick={() => setIsPagesCollapsed(false)} title="Rearrange" aria-label="Rearrange"><Grid2X2 size={24} /><span>Rearrange</span></button>
-        <button className="ribbon-tool" type="button" onClick={addBlankPage} title="Page numbers" aria-label="Page numbers"><FileText size={24} /><span>Page numbers</span></button>
-        <button className="ribbon-tool" type="button" onClick={() => showToast("Conversion tools will use the exported PDF.")} title="Convert" aria-label="Convert"><Redo2 size={24} /><span>Convert</span></button>
-        <button className="ribbon-tool" type="button" onClick={() => showToast("Compression runs when exporting optimized PDFs.")} title="Compress" aria-label="Compress"><Box size={24} /><span>Compress</span></button>
+        <button className="ribbon-tool is-unavailable" type="button" disabled title="Unavailable: automatic page numbering is not implemented" aria-label="Page numbers unavailable"><FileText size={24} /><span>Page numbers <small>Soon</small></span></button>
+        <button className="ribbon-tool is-unavailable" type="button" disabled title="Unavailable: format conversion is not implemented" aria-label="Convert unavailable"><Redo2 size={24} /><span>Convert <small>Soon</small></span></button>
+        <button className="ribbon-tool is-unavailable" type="button" disabled title="Unavailable: PDF compression is not implemented" aria-label="Compress unavailable"><Box size={24} /><span>Compress <small>Soon</small></span></button>
       </section>
 
       <ToolSettingsPanel
