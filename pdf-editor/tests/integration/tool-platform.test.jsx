@@ -6,6 +6,7 @@ import { MarketingFooter } from "../../src/components/public/MarketingFooter.jsx
 import { MarketingHeader } from "../../src/components/public/MarketingHeader.jsx";
 import { ToolDirectoryPage } from "../../src/pages/public/ToolDirectoryPage.jsx";
 import { ImageConversionPage } from "../../src/pages/public/ImageConversionPage.jsx";
+import { PdfPageToolPage } from "../../src/pages/public/PdfPageToolPage.jsx";
 import { ToolLandingPage } from "../../src/pages/public/ToolLandingPage.jsx";
 import { TOOL_BY_ID } from "../../src/tools/toolRegistry.js";
 
@@ -69,6 +70,18 @@ describe("public PDF tool platform", () => {
     expect(fromPdf.root.findAllByType("input").some((input) => input.props.type === "file" && !input.props.multiple)).toBe(true);
     expect(textOf(fromPdf.root).includes("Choose output quality")).toBe(true);
     await unmount(fromPdf);
+  });
+
+  it("renders real merge and page organizer workspaces", async () => {
+    const merge = await render(<PdfPageToolPage tool={TOOL_BY_ID.get("merge-pdf")} />);
+    expect(merge.root.findAllByType("input").some((input) => input.props.type === "file" && input.props.multiple)).toBe(true);
+    expect(textOf(merge.root).includes("Combine complete PDFs")).toBe(true);
+    await unmount(merge);
+
+    const organize = await render(<PdfPageToolPage tool={TOOL_BY_ID.get("organize-pdf")} />);
+    expect(organize.root.findAllByType("input").some((input) => input.props.type === "file" && !input.props.multiple)).toBe(true);
+    expect(textOf(organize.root).includes("Arrange the final PDF")).toBe(true);
+    await unmount(organize);
   });
 
   it("opens desktop and mobile registry menus and renders grouped footer links", async () => {

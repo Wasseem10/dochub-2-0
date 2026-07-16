@@ -19,11 +19,12 @@ describe("RealPDF tool registry", () => {
 
   it("truthfully exposes only editor-backed partial workflows", () => {
     const counts = Object.groupBy(TOOL_REGISTRY, (tool) => tool.status);
-    expect(counts.partial).toHaveLength(15);
-    expect(counts.available).toHaveLength(4);
-    expect(counts["coming-soon"]).toHaveLength(49);
+    expect(counts.partial).toHaveLength(10);
+    expect(counts.available).toHaveLength(11);
+    expect(counts["coming-soon"]).toHaveLength(47);
     expect(counts.beta).toBeUndefined();
     expect(TOOL_REGISTRY.filter((tool) => tool.workflowType === "converter").every((tool) => tool.uploadEnabled && !tool.opensEditor && tool.status === "available")).toBe(true);
+    expect(TOOL_REGISTRY.filter((tool) => tool.workflowType === "page-tool").every((tool) => tool.uploadEnabled && !tool.opensEditor && tool.status === "available")).toBe(true);
     expect(TOOL_REGISTRY.filter((tool) => tool.workflowType === "editor").every((tool) => tool.opensEditor && tool.status === "partial")).toBe(true);
     expect(TOOL_REGISTRY.filter((tool) => tool.status === "coming-soon").every((tool) => !tool.uploadEnabled && !tool.opensEditor)).toBe(true);
   });
