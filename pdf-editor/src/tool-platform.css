@@ -1045,6 +1045,35 @@
   background: #f8faff;
 }
 
+.crop-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.crop-presets button {
+  padding: 8px 10px;
+  border: 1px solid #ccd8f1;
+  border-radius: 9px;
+  background: #f8faff;
+  color: #2851eb;
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.crop-margin-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.crop-margin-grid label small {
+  color: var(--public-muted);
+  font-size: 12px;
+}
+
 @media (max-width: 900px) {
   .editor-tool-upload-hero,
   .image-conversion-page > .tool-breadcrumbs,

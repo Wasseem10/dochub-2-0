@@ -16,6 +16,7 @@ import Upload from "lucide-react/dist/esm/icons/upload.mjs";
 import { PageMetadata } from "../../components/public/PageMetadata.jsx";
 import { ROUTE_PATHS } from "../../router/routePaths.js";
 import { createStoredZip } from "../../tools/imageConversion.js";
+import { cropPdfPages } from "../../tools/pdfCrop.js";
 import { addPageNumbersToPdf, buildPdfFromPagePlan, extractPdfPages, inspectPdfBytes, mergePdfDocuments, PAGE_TOOL_LIMITS, parsePageRanges, splitPdfByRanges } from "../../tools/pdfPageOperations.js";
 import { addWatermarkToPdf } from "../../tools/pdfWatermark.js";
 import { absoluteSiteUrl } from "../../config/site.js";
@@ -244,6 +245,61 @@ function WatermarkWorkspace({ tool }) {
   return <div className="conversion-workspace-grid"><section><PdfDropzone multiple={false} label="Drop a PDF to watermark" onFiles={loadPdf} disabled={status === "reading" || status === "working"} />{status === "reading" && <div className="conversion-progress"><LoaderCircle className="is-spinning" size={18} /> Reading PDF...</div>}{error && <div className="conversion-error" role="alert">{error}</div>}{file && <article className="page-number-file-card watermark-file-card"><ImageIcon size={21} /><div><strong>{file.name}</strong><small>{pageCount} page{pageCount === 1 ? "" : "s"} · {formatBytes(file.size)}</small></div></article>}{pageCount > 0 && <section className="watermark-page-selector"><header><strong>Apply to pages</strong><button type="button" onClick={() => setSelectedPages(allPagesSelected ? new Set() : new Set(Array.from({ length: pageCount }, (_, index) => index)))}>{allPagesSelected ? "Clear all" : "Select all"}</button></header><div>{Array.from({ length: pageCount }, (_, index) => <label key={index}><input type="checkbox" checked={selectedPages.has(index)} onChange={() => togglePage(index)} /> Page {index + 1}</label>)}</div></section>}</section><aside className="conversion-settings-card watermark-settings"><span>Watermark settings</span><h2>Make it unmistakable</h2><label>Watermark type<select value={kind} onChange={(event) => setKind(event.target.value)}><option value="text">Text</option><option value="image">PNG or JPG image</option></select></label>{kind === "text" ? <><label>Text<input value={watermarkText} maxLength="120" onChange={(event) => setWatermarkText(event.target.value)} placeholder="CONFIDENTIAL" /></label><div className="watermark-inline-fields"><label>Color<input type="color" value={color} onChange={(event) => setColor(event.target.value)} /></label><label>Text size<input type="number" min="8" max="144" value={fontSize} onChange={(event) => setFontSize(Number(event.target.value))} /></label></div></> : <label className="watermark-image-input"><span>Watermark image</span><input type="file" accept="image/png,image/jpeg,.png,.jpg,.jpeg" onChange={loadWatermarkImage} /><small>{watermarkImage ? watermarkImage.name : "PNG or JPG, up to 5 MB"}</small></label>}<label>Layout<select value={layout} onChange={(event) => setLayout(event.target.value)}><option value="single">One mark</option><option value="tile">Repeat across pages</option></select></label>{layout === "single" && <label>Position<select value={position} onChange={(event) => setPosition(event.target.value)}><option value="center">Center</option><option value="top-left">Top left</option><option value="top-center">Top center</option><option value="top-right">Top right</option><option value="bottom-left">Bottom left</option><option value="bottom-center">Bottom center</option><option value="bottom-right">Bottom right</option></select></label>}<label>Opacity<input type="range" min="5" max="100" value={opacity} onChange={(event) => setOpacity(Number(event.target.value))} /><small>{opacity}%</small></label><label>Rotation<input type="range" min="-180" max="180" value={rotation} onChange={(event) => setRotation(Number(event.target.value))} /><small>{rotation}°</small></label>{kind === "image" && <label>Image scale<input type="range" min="6" max="90" value={imageScale} onChange={(event) => setImageScale(Number(event.target.value))} /><small>{imageScale}% of page width</small></label>}<div className="conversion-summary"><Check size={18} /><span>{file ? `${selectedPages.size} of ${pageCount} page${pageCount === 1 ? "" : "s"} selected` : "Upload a PDF to continue"}</span></div><button className="conversion-primary-action" type="button" disabled={!canDownload || status === "working" || status === "reading"} onClick={exportWatermarkedPdf}>{status === "working" ? <><LoaderCircle className="is-spinning" size={18} /> Applying watermark...</> : <><Download size={18} /> Download watermarked PDF</>}</button>{status === "complete" && <ExportSuccessState toolId={tool.id} onDownloadAgain={exportWatermarkedPdf} onStartAnother={() => { setFile(null); setSourceBytes(null); setPageCount(0); setSelectedPages(new Set()); setStatus("idle"); }} relatedRoute="/organize-pdf" relatedName="Organize PDF" />}</aside></div>;
 }
 
+function CropWorkspace({ tool }) {
+  const [file, setFile] = useState(null);
+  const [sourceBytes, setSourceBytes] = useState(null);
+  const [pageCount, setPageCount] = useState(0);
+  const [selectedPages, setSelectedPages] = useState(new Set());
+  const [top, setTop] = useState(0);
+  const [right, setRight] = useState(0);
+  const [bottom, setBottom] = useState(0);
+  const [left, setLeft] = useState(0);
+  const [status, setStatus] = useState("idle");
+  const [error, setError] = useState("");
+
+  const loadPdf = async (fileList) => {
+    const nextFile = Array.from(fileList || [])[0];
+    if (!nextFile) return;
+    setError("");
+    if (nextFile.type !== "application/pdf" && !nextFile.name.toLowerCase().endsWith(".pdf")) return setError("Choose a PDF file.");
+    if (nextFile.size > PAGE_TOOL_LIMITS.maxFileBytes) return setError("PDFs must be under 50 MB.");
+    setStatus("reading");
+    try {
+      const bytes = new Uint8Array(await nextFile.arrayBuffer());
+      const details = await inspectPdfBytes(bytes);
+      if (details.pageCount > PAGE_TOOL_LIMITS.maxPages) throw new Error(`This PDF has ${details.pageCount} pages. The limit is ${PAGE_TOOL_LIMITS.maxPages}.`);
+      setFile(nextFile);
+      setSourceBytes(bytes);
+      setPageCount(details.pageCount);
+      setSelectedPages(new Set(Array.from({ length: details.pageCount }, (_, index) => index)));
+    } catch (loadError) {
+      setFile(null); setSourceBytes(null); setPageCount(0); setSelectedPages(new Set());
+      setError(friendlyPdfError(loadError));
+    } finally { setStatus("idle"); }
+  };
+
+  const updateMargin = (setter) => (event) => setter(Math.max(0, Math.min(45, Number(event.target.value))));
+  const togglePage = (pageIndex) => setSelectedPages((current) => {
+    const next = new Set(current);
+    if (next.has(pageIndex)) next.delete(pageIndex); else next.add(pageIndex);
+    return next;
+  });
+  const setPreset = (value) => { setTop(value); setRight(value); setBottom(value); setLeft(value); };
+  const exportCroppedPdf = async () => {
+    if (!sourceBytes || !file) return;
+    setStatus("working"); setError("");
+    try {
+      const output = await cropPdfPages(sourceBytes, { selectedPages: [...selectedPages], top, right, bottom, left });
+      downloadBytes(output, "application/pdf", `${file.name.replace(/\.pdf$/i, "") || "document"}-cropped.pdf`);
+      setStatus("complete");
+    } catch (cropError) { setError(friendlyPdfError(cropError)); setStatus("idle"); }
+  };
+
+  const allPagesSelected = pageCount > 0 && selectedPages.size === pageCount;
+  const margins = [{ label: "Top", value: top, set: setTop }, { label: "Right", value: right, set: setRight }, { label: "Bottom", value: bottom, set: setBottom }, { label: "Left", value: left, set: setLeft }];
+  return <div className="conversion-workspace-grid"><section><PdfDropzone multiple={false} label="Drop a PDF to crop" onFiles={loadPdf} disabled={status === "reading" || status === "working"} />{status === "reading" && <div className="conversion-progress"><LoaderCircle className="is-spinning" size={18} /> Reading PDF...</div>}{error && <div className="conversion-error" role="alert">{error}</div>}{file && <article className="page-number-file-card"><strong>{file.name}</strong><small>{pageCount} page{pageCount === 1 ? "" : "s"} · {formatBytes(file.size)}</small></article>}{pageCount > 0 && <section className="watermark-page-selector"><header><strong>Crop these pages</strong><button type="button" onClick={() => setSelectedPages(allPagesSelected ? new Set() : new Set(Array.from({ length: pageCount }, (_, index) => index)))}>{allPagesSelected ? "Clear all" : "Select all"}</button></header><div>{Array.from({ length: pageCount }, (_, index) => <label key={index}><input type="checkbox" checked={selectedPages.has(index)} onChange={() => togglePage(index)} /> Page {index + 1}</label>)}</div></section>}</section><aside className="conversion-settings-card crop-settings"><span>Crop settings</span><h2>Trim the edges</h2><p className="page-tool-help">Choose how much to remove from each edge. Values are a percentage of the current visible page. The original source stays unchanged.</p><div className="crop-presets"><button type="button" onClick={() => setPreset(0)}>No trim</button><button type="button" onClick={() => setPreset(5)}>Trim 5%</button><button type="button" onClick={() => setPreset(10)}>Trim 10%</button></div><div className="crop-margin-grid">{margins.map((margin) => <label key={margin.label}>{margin.label}<input type="number" min="0" max="45" value={margin.value} onChange={updateMargin(margin.set)} /><small>{margin.value}%</small></label>)}</div><div className="conversion-summary"><Check size={18} /><span>{file ? `${selectedPages.size} of ${pageCount} page${pageCount === 1 ? "" : "s"} selected` : "Upload a PDF to continue"}</span></div><button className="conversion-primary-action" type="button" disabled={!file || !selectedPages.size || status === "working" || status === "reading"} onClick={exportCroppedPdf}>{status === "working" ? <><LoaderCircle className="is-spinning" size={18} /> Cropping PDF...</> : <><Download size={18} /> Download cropped PDF</>}</button>{status === "complete" && <ExportSuccessState toolId={tool.id} onDownloadAgain={exportCroppedPdf} onStartAnother={() => { setFile(null); setSourceBytes(null); setPageCount(0); setSelectedPages(new Set()); setStatus("idle"); }} relatedRoute="/organize-pdf" relatedName="Organize PDF" />}</aside></div>;
+}
+
 function SinglePdfWorkspace({ tool }) {
   const isSplit = tool.id === "split-pdf";
   const isExtract = tool.id === "extract-pdf-pages";
@@ -330,6 +386,7 @@ export function PdfPageToolPage({ tool }) {
   const isMerge = tool.id === "merge-pdf";
   const isPageNumbers = tool.id === "add-page-numbers";
   const isWatermark = tool.id === "watermark-pdf";
+  const isCrop = tool.id === "crop-pdf";
   const schema = { "@context": "https://schema.org", "@type": "SoftwareApplication", name: tool.name, applicationCategory: "BusinessApplication", operatingSystem: "Web", url: absoluteSiteUrl(tool.canonicalUrl), offers: { "@type": "Offer", price: "0", priceCurrency: "USD" } };
-  return <main className="image-conversion-page pdf-page-tool-page"><PageMetadata title={tool.seoTitle} description={tool.metaDescription} canonicalUrl={tool.canonicalUrl} schemas={[schema]} /><nav className="tool-breadcrumbs" aria-label="Breadcrumb"><Link to={ROUTE_PATHS.tools}>PDF tools</Link><span>/</span><span aria-current="page">{tool.name}</span></nav><section className="conversion-hero"><div><small>Available now · runs in your browser</small><h1>{tool.name} online.</h1><p>{tool.shortDescription} Free to use and ready in seconds.</p></div></section>{isWatermark ? <WatermarkWorkspace tool={tool} /> : isPageNumbers ? <PageNumberWorkspace tool={tool} /> : isMerge ? <MergeWorkspace tool={tool} /> : <SinglePdfWorkspace tool={tool} />}<section className="conversion-privacy-note"><Check size={19} /><div><strong>High-fidelity browser processing</strong><p>FixThatPDF keeps original PDF pages intact and adds only the changes you request. Processing stays on this device.</p></div></section></main>;
+  return <main className="image-conversion-page pdf-page-tool-page"><PageMetadata title={tool.seoTitle} description={tool.metaDescription} canonicalUrl={tool.canonicalUrl} schemas={[schema]} /><nav className="tool-breadcrumbs" aria-label="Breadcrumb"><Link to={ROUTE_PATHS.tools}>PDF tools</Link><span>/</span><span aria-current="page">{tool.name}</span></nav><section className="conversion-hero"><div><small>Available now · runs in your browser</small><h1>{tool.name} online.</h1><p>{tool.shortDescription} Free to use and ready in seconds.</p></div></section>{isCrop ? <CropWorkspace tool={tool} /> : isWatermark ? <WatermarkWorkspace tool={tool} /> : isPageNumbers ? <PageNumberWorkspace tool={tool} /> : isMerge ? <MergeWorkspace tool={tool} /> : <SinglePdfWorkspace tool={tool} />}<section className="conversion-privacy-note"><Check size={19} /><div><strong>High-fidelity browser processing</strong><p>FixThatPDF keeps original PDF pages intact and adds only the changes you request. Processing stays on this device.</p></div></section></main>;
 }
