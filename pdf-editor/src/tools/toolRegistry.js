@@ -55,7 +55,7 @@ export const TOOL_CATEGORIES = Object.freeze([
 const PARTIAL_EDITOR_LIMIT = "This workflow opens the current browser editor. Supported edits are flattened during export, and source formatting or interactive PDF features may not be preserved.";
 const COMING_SOON_LIMIT = "This tool is not implemented yet. FixThatPDF does not upload or process files for this workflow today.";
 const DEDICATED_CONVERTER_IDS = new Set(["pdf-to-word", "pdf-to-jpg", "pdf-to-png", "word-to-pdf", "jpg-to-pdf", "png-to-pdf"]);
-const DEDICATED_PAGE_TOOL_IDS = new Set(["merge-pdf", "split-pdf", "rotate-pdf", "delete-pdf-pages", "extract-pdf-pages", "reorder-pdf-pages", "organize-pdf"]);
+const DEDICATED_PAGE_TOOL_IDS = new Set(["merge-pdf", "split-pdf", "rotate-pdf", "delete-pdf-pages", "extract-pdf-pages", "reorder-pdf-pages", "organize-pdf", "add-page-numbers"]);
 
 /** @type {ToolDefinition[]} */
 const definitions = [
@@ -66,7 +66,7 @@ const definitions = [
   ["pdf-form-filler", "PDF Form Filler", "Detect supported PDF form widgets, enter responses, and export a completed PDF.", "edit-view", "form", "available", ["application/pdf"], ["application/pdf"], "Text and checkbox AcroForm widgets are detected and completed as flattened output. Dynamic XFA forms are outside this browser workflow."],
   ["crop-pdf", "Crop PDF", "Trim page boundaries to keep only the area you need.", "edit-view", "crop", "coming-soon", ["application/pdf"], ["application/pdf"], "Page-box cropping is not implemented."],
   ["watermark-pdf", "Watermark PDF", "Apply repeated text or image marks across selected PDF pages.", "edit-view", "watermark", "coming-soon", ["application/pdf"], ["application/pdf"], "Batch watermark placement and opacity controls are not implemented."],
-  ["add-page-numbers", "Add Page Numbers", "Place consistent page numbers in headers or footers across a PDF.", "edit-view", "numbers", "coming-soon", ["application/pdf"], ["application/pdf"], "The current editor does not have a reliable page-numbering workflow."],
+  ["add-page-numbers", "Add Page Numbers", "Place consistent page numbers in headers or footers across a PDF.", "edit-view", "numbers", "available", ["application/pdf"], ["application/pdf"], "Browser page numbering supports valid, unencrypted PDFs up to 50 MB and 200 pages, with six header and footer positions."],
   ["redact-pdf", "Redact PDF", "Permanently remove sensitive content from a PDF before sharing it.", "edit-view", "redact", "coming-soon", ["application/pdf"], ["application/pdf"], "Secure permanent redaction is not available. The editor's current whiteout is visual only and must not be treated as redaction."],
   ["share-pdf", "Share PDF", "Create a controlled link for another person to view or download a PDF.", "edit-view", "share", "coming-soon", ["application/pdf"], [], "Secure links, permissions, passwords, and expiration controls require a backend token service and are not available."],
 

@@ -7,7 +7,6 @@ import LoaderCircle from "lucide-react/dist/esm/icons/loader-circle.mjs";
 import Upload from "lucide-react/dist/esm/icons/upload.mjs";
 import { PageMetadata } from "../../components/public/PageMetadata.jsx";
 import { ROUTE_PATHS } from "../../router/routePaths.js";
-import { ToolIcon } from "../../tools/ToolIcon.jsx";
 import {
   createDocxFromPdfPages,
   createPdfFromRenderedDocxPages,
@@ -295,8 +294,7 @@ export function OfficeConversionPage({ tool }) {
       <PageMetadata title={tool.seoTitle} description={tool.metaDescription} canonicalUrl={tool.canonicalUrl} schemas={[schema]} />
       <nav className="tool-breadcrumbs" aria-label="Breadcrumb"><Link to={ROUTE_PATHS.tools}>PDF tools</Link><span>/</span><span aria-current="page">{tool.name}</span></nav>
       <section className="conversion-hero">
-        <span style={{ background: tool.accentColor }}><ToolIcon name={tool.icon} size={29} /></span>
-        <div><small>Beta · runs in your browser</small><h1>{tool.name}</h1><p>{tool.shortDescription} Files remain on this device during conversion.</p></div>
+        <div><small>Beta · runs in your browser</small><h1>{tool.name} online.</h1><p>{tool.shortDescription} Free to use and ready in seconds.</p></div>
       </section>
       {pdfToWord ? <PdfToWordWorkspace /> : <WordToPdfWorkspace />}
       <section className="conversion-privacy-note"><Check size={19} /><div><strong>Private browser processing</strong><p>This beta conversion runs locally in your browser. FixThatPDF does not upload the file to an Office, OCR, or AI service.</p></div></section>

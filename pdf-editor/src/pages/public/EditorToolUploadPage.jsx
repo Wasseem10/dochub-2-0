@@ -1,6 +1,4 @@
 import { useRef, useState } from "react";
-import { Link } from "react-router-dom";
-import ArrowLeft from "lucide-react/dist/esm/icons/arrow-left.mjs";
 import CheckCircle2 from "lucide-react/dist/esm/icons/check-circle-2.mjs";
 import FileText from "lucide-react/dist/esm/icons/file-text.mjs";
 import Lock from "lucide-react/dist/esm/icons/lock.mjs";
@@ -47,11 +45,9 @@ export function EditorToolUploadPage({ toolId, fileInputRef, onUpload, onDropFil
       <PageMetadata title={tool.seoTitle} description={tool.metaDescription} canonicalUrl={tool.canonicalUrl} schemas={[]} />
       <input ref={fileInputRef} className="sr-only" type="file" accept="application/pdf,.pdf" onChange={onUpload} />
       <section className="editor-tool-upload-hero">
-        <Link className="editor-tool-home-link" to="/"><ArrowLeft size={17} /> Back to FixThatPDF</Link>
         <div className="editor-tool-heading">
-          <span><FileText size={17} /> FixThatPDF workspace</span>
           <h1>{headline}<em>.</em></h1>
-          <p>{subheadline}</p>
+          <p>{subheadline} Free to use and ready in seconds.</p>
         </div>
 
         <div className="editor-tool-upload-frame">
@@ -104,7 +100,7 @@ export function EditorToolUploadPage({ toolId, fileInputRef, onUpload, onDropFil
         <div className="editor-tool-trust-row" aria-label="Upload information">
           <span><Lock size={16} /> Private browser workspace</span>
           <span><CheckCircle2 size={16} /> No account required to edit</span>
-          <span><FileText size={16} /> Sign in only to save or download</span>
+          <span><FileText size={16} /> No login required to download</span>
         </div>
       </section>
     </main>
