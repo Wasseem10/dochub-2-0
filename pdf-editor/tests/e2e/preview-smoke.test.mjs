@@ -88,7 +88,7 @@ for (const path of directRoutes) {
     const response = await fetch(previewUrl(path), { headers: { accept: "text/html" } });
     const html = await response.text();
     assert.equal(response.status, 200);
-    assert.match(html, /<title>RealPDF/);
+    assert.match(html, /<title>FixThatPDF/);
     assert.match(html, /<div id="root"><\/div>/);
   });
 }

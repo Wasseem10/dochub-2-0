@@ -61,7 +61,7 @@ function getFriendlyPdfError(error) {
   const message = String(error?.message || "").toLowerCase();
   if (error?.name === "PasswordException" || message.includes("password")) return "This PDF is encrypted. Remove its password with an authorized tool, then try again.";
   if (message.includes("invalid pdf") || message.includes("missing pdf")) return "This PDF appears corrupted or incomplete. Try downloading a fresh copy.";
-  return "RealPDF could not read this PDF. Try a valid, unencrypted file under 50 MB.";
+  return "FixThatPDF could not read this PDF. Try a valid, unencrypted file under 50 MB.";
 }
 
 function ConversionDropzone({ accept, multiple, label, hint, onFiles, disabled }) {
@@ -295,7 +295,7 @@ function PdfToImagesWorkspace({ tool }) {
         outputFiles.push({ name: `page-${String(pageNumber).padStart(3, "0")}.${extension}`, data });
         setProgress(Math.round(((index + 1) / chosen.length) * 100));
       }
-      const baseName = pdfFile.name.replace(/\.pdf$/i, "") || "realpdf-pages";
+      const baseName = pdfFile.name.replace(/\.pdf$/i, "") || "fixthatpdf-pages";
       if (outputFiles.length === 1) downloadBytes(outputFiles[0].data, outputPng ? "image/png" : "image/jpeg", `${baseName}-${outputFiles[0].name}`);
       else downloadBytes(createStoredZip(outputFiles), "application/zip", `${baseName}-${outputPng ? "png" : "jpg"}.zip`);
       setStatus("complete");
@@ -344,7 +344,7 @@ export function ImageConversionPage({ tool }) {
         <div><small>Available now · runs in your browser</small><h1>{tool.name}</h1><p>{tool.shortDescription} Files remain on this device during conversion.</p></div>
       </section>
       {imagesToPdf ? <ImagesToPdfWorkspace tool={tool} /> : <PdfToImagesWorkspace tool={tool} />}
-      <section className="conversion-privacy-note"><Check size={19} /><div><strong>Private browser processing</strong><p>This conversion runs locally in your browser. RealPDF does not send these files to an Office, OCR, or AI service.</p></div></section>
+      <section className="conversion-privacy-note"><Check size={19} /><div><strong>Private browser processing</strong><p>This conversion runs locally in your browser. FixThatPDF does not send these files to an Office, OCR, or AI service.</p></div></section>
     </main>
   );
 }

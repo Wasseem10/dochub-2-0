@@ -76,7 +76,7 @@ export async function createPdfFromImages(images, options = {}) {
     });
   }
   pdf.setTitle(options.title || "Converted images");
-  pdf.setCreator("RealPDF");
+  pdf.setCreator("FixThatPDF");
   return pdf.save();
 }
 

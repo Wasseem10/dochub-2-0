@@ -38,7 +38,6 @@
   background: rgba(255,255,255,.96); backdrop-filter: blur(18px);
 }
 .lpdf-brand { display: inline-flex; align-items: center; gap: 9px; color: var(--ink); text-decoration: none; }
-.lpdf-brand > span { display: grid; width: 34px; height: 34px; place-items: center; border-radius: 10px; background: linear-gradient(145deg,#27c4bb,#58d190 48%,#f0c74d); color: white; box-shadow: 0 8px 18px rgba(4,102,69,.12); }
 .lpdf-brand strong { font-size: 22px; font-weight: 600; letter-spacing: -.035em; }
 
 .lpdf-desktop-nav { display: flex; align-items: center; justify-content: center; gap: 4px; }
@@ -266,7 +265,6 @@
   .lpdf-announcement a b { display: block; margin: 3px 0 0; }
   .lpdf-announcement button { margin-top: 16px; }
   .lpdf-header { min-height: 54px; padding-inline: 24px; }
-  .lpdf-brand > span { width: 28px; height: 28px; border-radius: 8px; }
   .lpdf-brand strong { font-size: 19px; }
   .lpdf-nav-cta { min-height: 37px; padding-inline: 15px; font-size: 12px; }
   .lpdf-menu-button { width: 45px; height: 40px; }

@@ -3,7 +3,7 @@ import { PUBLIC_PLACEHOLDER_ROUTES } from "../src/router/routes.js";
 import { ROUTE_PATHS } from "../src/router/routePaths.js";
 import { TOOL_REGISTRY, validateToolRegistry } from "../src/tools/toolRegistry.js";
 
-const siteUrl = (process.env.SITE_URL || "https://realpdf.com").replace(/\/$/, "");
+const siteUrl = (process.env.SITE_URL || "https://fixthatpdf.com").replace(/\/$/, "");
 const registryErrors = validateToolRegistry();
 
 if (registryErrors.length) {

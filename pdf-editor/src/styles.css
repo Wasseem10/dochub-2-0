@@ -1626,7 +1626,7 @@ main.editor-shell .canvas-column {
   }
 }
 
-/* RealPDF dashboard — shares the landing site's visual system. */
+/* FixThatPDF dashboard — shares the landing site's visual system. */
 .lumin-home {
   --dash-ink: #0f172a;
   --dash-muted: #5f6f85;

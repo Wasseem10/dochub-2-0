@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import ChevronDown from "lucide-react/dist/esm/icons/chevron-down.mjs";
-import FileText from "lucide-react/dist/esm/icons/file-text.mjs";
 import Menu from "lucide-react/dist/esm/icons/menu.mjs";
 import X from "lucide-react/dist/esm/icons/x.mjs";
 import { ROUTE_PATHS } from "../../router/routePaths.js";
@@ -44,7 +43,7 @@ export function MarketingHeader() {
   return (
     <header ref={headerRef} className="marketing-header">
       <div className="marketing-header-row">
-        <Link className="marketing-brand" to={ROUTE_PATHS.home} onClick={closeMenus} aria-label="RealPDF home"><span><FileText size={21} /></span><strong>RealPDF</strong></Link>
+        <Link className="marketing-brand" to={ROUTE_PATHS.home} onClick={closeMenus} aria-label="FixThatPDF home"><strong>FixThatPDF</strong></Link>
         <nav className="marketing-desktop-nav" aria-label="Public navigation">
           <button type="button" aria-expanded={toolsOpen} aria-controls="tools-mega-menu" onClick={() => setToolsOpen((value) => !value)}>Tools <ChevronDown size={15} /></button>
           <Link to={ROUTE_PATHS.features}>Features</Link>

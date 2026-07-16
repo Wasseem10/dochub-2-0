@@ -1,4 +1,4 @@
-/* Reference-led RealPDF dashboard. Loaded after the legacy dashboard rules. */
+/* Reference-led FixThatPDF dashboard. Loaded after the legacy dashboard rules. */
 .lumin-home.upload-shell {
   --dash-red: #67bde7;
   --dash-red-dark: #3598ca;
@@ -49,15 +49,6 @@
   cursor: pointer;
   font: inherit;
   text-align: left;
-}
-
-.lumin-home .dashboard-brand span {
-  display: grid;
-  width: 27px;
-  height: 32px;
-  place-items: center;
-  border: 2px solid currentColor;
-  border-radius: 4px;
 }
 
 .lumin-home .dashboard-brand strong {
@@ -380,7 +371,6 @@
   .lumin-home.upload-shell { grid-template-columns: 190px minmax(0, 1fr) !important; min-height: 640px !important; }
   .lumin-home .lumin-home-rail { width: 190px !important; min-width: 190px !important; padding: 13px 11px 9px !important; }
   .lumin-home .dashboard-brand { height: 46px; padding-inline: 9px; }
-  .lumin-home .dashboard-brand span { width: 25px; height: 30px; }
   .lumin-home .dashboard-brand strong { font-size: 22px; }
   .lumin-home .upload-nav { margin-top: 11px !important; gap: 3px !important; }
   .lumin-home .upload-nav button { min-height: 40px !important; padding-inline: 11px !important; font-size: 13px !important; font-weight: 600 !important; }
@@ -444,8 +434,8 @@
 @media (max-width: 1120px) {
   .lumin-home.upload-shell { grid-template-columns: 82px minmax(0, 1fr) !important; }
   .lumin-home .lumin-home-rail { width: 82px !important; min-width: 82px !important; padding-inline: 10px !important; }
-  .lumin-home .dashboard-brand { justify-content: center; padding: 0; }
-  .lumin-home .dashboard-brand strong, .lumin-home .upload-nav button span, .dashboard-storage-card, .lumin-home .dashboard-site-back span { display: none !important; }
+  .lumin-home .dashboard-brand { display: none; }
+  .lumin-home .upload-nav button span, .dashboard-storage-card, .lumin-home .dashboard-site-back span { display: none !important; }
   .lumin-home .upload-nav button { grid-template-columns: 1fr !important; justify-items: center !important; padding: 0 !important; }
   .lumin-home .dashboard-site-back { justify-content: center !important; }
   .lumin-home .upload-topbar { grid-template-columns: minmax(260px, 1fr) auto !important; padding-left: 18px !important; }
@@ -460,8 +450,8 @@
 @media (max-width: 820px) {
   .lumin-home.upload-shell { display: block !important; height: auto !important; min-height: 100vh !important; overflow: visible !important; }
   .lumin-home .lumin-home-rail { position: sticky !important; top: 0 !important; z-index: 50 !important; width: 100% !important; min-width: 0 !important; height: 62px !important; padding: 7px 10px !important; flex-direction: row !important; align-items: center !important; gap: 4px !important; overflow-x: auto !important; border-right: 0 !important; border-bottom: 1px solid var(--dash-line) !important; }
-  .lumin-home .dashboard-brand { flex: 0 0 46px; height: 46px; }
-  .lumin-home .dashboard-brand span { width: 25px; height: 29px; }
+  .lumin-home .dashboard-brand { display: inline-flex; flex: 0 0 auto; height: 46px; padding: 0 8px; }
+  .lumin-home .dashboard-brand strong { display: inline !important; font-size: 18px; }
   .lumin-home .upload-nav { display: flex !important; width: max-content !important; margin: 0 !important; padding: 0 !important; border: 0 !important; }
   .lumin-home .upload-nav button { width: 42px !important; min-height: 42px !important; }
   .lumin-home .dashboard-account-nav, .lumin-home .dashboard-site-back { display: none !important; }
@@ -513,7 +503,6 @@
 .lumin-home.upload-shell { grid-template-columns: 272px minmax(0, 1fr) !important; background: #fff !important; }
 .lumin-home .lumin-home-rail { width: 272px !important; min-width: 272px !important; padding: 19px 15px 16px !important; background: #fff !important; }
 .lumin-home .dashboard-brand { height: 60px; padding: 0 15px; }
-.lumin-home .dashboard-brand span { width: 36px; height: 42px; border-radius: 9px; background: linear-gradient(145deg, #ff7180, #ff4559); color: #fff; }
 .lumin-home .dashboard-brand strong { color: #1d2939; font-size: 28px; }
 .lumin-home .upload-nav { gap: 5px !important; margin-top: 18px !important; }
 .lumin-home .upload-nav button { grid-template-columns: 24px minmax(0, 1fr) auto !important; min-height: 47px !important; padding: 0 18px !important; border-radius: 12px !important; color: #344054 !important; font-size: 13px !important; }
@@ -611,6 +600,9 @@
 }
 
 @media (max-width: 820px) {
+  .lumin-home .lumin-home-rail { width: 100% !important; min-width: 0 !important; }
+  .lumin-home .dashboard-brand { display: inline-flex !important; flex: 0 0 auto; padding: 0 8px !important; }
+  .lumin-home .dashboard-brand strong { display: inline !important; font-size: 18px !important; }
   .dashboard-create-button { display: none; }
   .dashboard-quick-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .dashboard-quick-grid > button:last-child { grid-column: 1 / -1; }

@@ -6135,7 +6135,7 @@ main.editor-shell .page-nav .page-nav-divider {
   }
 }
 
-/* RealPDF auth screen — aligned with the landing page design system. */
+/* FixThatPDF auth screen — aligned with the landing page design system. */
 .auth-shell {
   --auth-ink: #001f1f;
   --auth-body: #243737;
@@ -6198,21 +6198,6 @@ main.editor-shell .page-nav .page-nav-divider {
   background: transparent !important;
   color: var(--auth-ink) !important;
   cursor: pointer !important;
-}
-
-.auth-shell .auth-realpdf-brand > span {
-  display: grid !important;
-  width: 38px !important;
-  height: 38px !important;
-  place-items: center !important;
-  border-radius: 11px !important;
-  background: var(--auth-mint) !important;
-  color: var(--auth-green) !important;
-  box-shadow: 0 9px 18px rgba(4, 102, 69, 0.1) !important;
-}
-
-.auth-shell .auth-realpdf-brand > span::after {
-  content: none !important;
 }
 
 .auth-shell .auth-realpdf-brand strong {

@@ -4,7 +4,7 @@ import { ROUTE_PATHS } from "../../router/routePaths.js";
 
 export function PublicPlaceholderPage({ title, description, status }) {
   useEffect(() => {
-    if (typeof document !== "undefined") document.title = `${title} | RealPDF`;
+    if (typeof document !== "undefined") document.title = `${title} | FixThatPDF`;
   }, [title]);
 
   return (
