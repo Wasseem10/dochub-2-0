@@ -7,6 +7,10 @@ export function editorActionNeedsAccount(action, currentUser) {
   return ACCOUNT_GATED_EDITOR_ACTIONS.includes(action) && !currentUser?.uid;
 }
 
+export function resolveEditorStorageOwnerId(isPublicEditor, currentUser) {
+  return isPublicEditor ? GUEST_OWNER_ID : currentUser?.uid || GUEST_OWNER_ID;
+}
+
 export async function claimGuestDocument(userId, documentId, {
   loadDocuments = loadLocalDocuments,
   saveDocuments = saveLocalDocuments,
