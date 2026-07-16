@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import ArrowRight from "lucide-react/dist/esm/icons/arrow-right.mjs";
 import Check from "lucide-react/dist/esm/icons/check.mjs";
+import ChevronDown from "lucide-react/dist/esm/icons/chevron-down.mjs";
 import Clock3 from "lucide-react/dist/esm/icons/clock-3.mjs";
 import FileText from "lucide-react/dist/esm/icons/file-text.mjs";
 import LockKeyhole from "lucide-react/dist/esm/icons/lock-keyhole.mjs";
@@ -12,7 +13,7 @@ import X from "lucide-react/dist/esm/icons/x.mjs";
 import { PageMetadata } from "./components/public/PageMetadata.jsx";
 import { ROUTE_PATHS } from "./router/routePaths.js";
 import { ToolIcon } from "./tools/ToolIcon.jsx";
-import { POPULAR_TOOLS } from "./tools/toolRegistry.js";
+import { POPULAR_TOOLS, TOOL_BY_ROUTE } from "./tools/toolRegistry.js";
 
 const asset = (fileName) => `${import.meta.env.BASE_URL}homepage/${fileName}`;
 
@@ -88,15 +89,33 @@ function Brand() {
 
 function SiteHeader({ onChoose }) {
   const [open, setOpen] = useState(false);
+  const [toolsOpen, setToolsOpen] = useState(false);
   const firstLinkRef = useRef(null);
+  const toolsButtonRef = useRef(null);
+  const toolsMenuRef = useRef(null);
 
   useEffect(() => {
     const onKeyDown = (event) => {
-      if (event.key === "Escape") setOpen(false);
+      if (event.key === "Escape") {
+        setOpen(false);
+        if (toolsOpen) {
+          setToolsOpen(false);
+          toolsButtonRef.current?.focus();
+        }
+      }
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, []);
+  }, [toolsOpen]);
+
+  useEffect(() => {
+    if (!toolsOpen) return undefined;
+    const onPointerDown = (event) => {
+      if (!toolsMenuRef.current?.contains(event.target) && !toolsButtonRef.current?.contains(event.target)) setToolsOpen(false);
+    };
+    document.addEventListener("pointerdown", onPointerDown);
+    return () => document.removeEventListener("pointerdown", onPointerDown);
+  }, [toolsOpen]);
 
   useEffect(() => {
     if (open) firstLinkRef.current?.focus();
@@ -113,14 +132,29 @@ function SiteHeader({ onChoose }) {
   return <header className="freepdf-header-shell">
     <div className="freepdf-header">
       <Brand />
-      <nav className="freepdf-desktop-nav" aria-label="Primary navigation">{links.map(([label, href]) => <Link key={label} to={href}>{label}</Link>)}</nav>
+      <nav className="freepdf-desktop-nav" aria-label="Primary navigation">
+        <button ref={toolsButtonRef} type="button" className={`freepdf-tools-trigger ${toolsOpen ? "is-open" : ""}`} aria-expanded={toolsOpen} aria-controls="freepdf-tools-menu" onClick={() => { setToolsOpen((value) => !value); setOpen(false); }}>All tools <ChevronDown size={15} /></button>
+        {links.slice(1).map(([label, href]) => <Link key={label} to={href} onClick={() => setToolsOpen(false)}>{label}</Link>)}
+      </nav>
       <div className="freepdf-header-actions">
         <Link to={ROUTE_PATHS.login}>Log in</Link>
         <button type="button" className="freepdf-header-cta" onClick={onChoose}>Choose a PDF</button>
-        <button className="freepdf-menu-button" type="button" aria-label={open ? "Close navigation" : "Open navigation"} aria-expanded={open} onClick={() => setOpen((value) => !value)}>{open ? <X size={21} /> : <Menu size={21} />}</button>
+        <button className="freepdf-menu-button" type="button" aria-label={open ? "Close navigation" : "Open navigation"} aria-expanded={open} onClick={() => { setOpen((value) => !value); setToolsOpen(false); }}>{open ? <X size={21} /> : <Menu size={21} />}</button>
       </div>
       {open && <nav className="freepdf-mobile-nav" aria-label="Mobile navigation">{links.map(([label, href], index) => <Link ref={index === 0 ? firstLinkRef : undefined} key={label} to={href} onClick={() => setOpen(false)}>{label}</Link>)}<Link to={ROUTE_PATHS.login} onClick={() => setOpen(false)}>Log in</Link><button type="button" onClick={() => { setOpen(false); onChoose(); }}>Choose a PDF</button></nav>}
     </div>
+    {toolsOpen && <div ref={toolsMenuRef} className="freepdf-tools-mega" id="freepdf-tools-menu">
+      <div className="freepdf-tools-mega-grid">
+        {footerToolGroups.map((group) => <section key={group.title}>
+          <h2>{group.title}</h2>
+          {group.links.map(([label, route], index) => {
+            const tool = TOOL_BY_ROUTE.get(route);
+            return <Link className={index < 2 ? "is-featured" : ""} key={label} to={route} onClick={() => setToolsOpen(false)}><strong>{label}</strong>{index < 2 && tool?.shortDescription ? <span>{tool.shortDescription}</span> : null}</Link>;
+          })}
+        </section>)}
+      </div>
+      <Link className="freepdf-tools-mega-all" to={ROUTE_PATHS.tools} onClick={() => setToolsOpen(false)}><span><strong>All PDF tools</strong><small>Browse every tool with clear availability and limits.</small></span><span>View all tools <ArrowRight size={16} /></span></Link>
+    </div>}
   </header>;
 }
 
