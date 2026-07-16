@@ -16,7 +16,7 @@ export function getToolMenuGroups(limit = 3) {
     const category = TOOL_CATEGORIES.find((item) => item.id === categoryId);
     const tools = TOOL_REGISTRY
       .filter((tool) => tool.category === categoryId)
-      .sort((a, b) => Number(b.opensEditor) - Number(a.opensEditor))
+      .sort((a, b) => Number(b.uploadEnabled) - Number(a.uploadEnabled))
       .slice(0, limit);
     return { ...category, tools };
   });
@@ -33,6 +33,6 @@ export const FOOTER_TOOL_GROUPS = Object.freeze([
   ...group,
   tools: TOOL_REGISTRY
     .filter((tool) => group.categoryIds.includes(tool.category))
-    .sort((a, b) => Number(b.opensEditor) - Number(a.opensEditor))
+    .sort((a, b) => Number(b.uploadEnabled) - Number(a.uploadEnabled))
     .slice(0, group.limit),
 })));

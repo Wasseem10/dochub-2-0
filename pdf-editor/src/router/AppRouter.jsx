@@ -5,6 +5,7 @@ import { PublicLayout } from "../layouts/PublicLayout.jsx";
 import { NotFoundPage } from "../pages/errors/NotFoundPage.jsx";
 import { PublicPlaceholderPage } from "../pages/public/PublicPlaceholderPage.jsx";
 import { ToolDirectoryPage } from "../pages/public/ToolDirectoryPage.jsx";
+import { ImageConversionPage } from "../pages/public/ImageConversionPage.jsx";
 import { ToolLandingPage } from "../pages/public/ToolLandingPage.jsx";
 import { WorkflowUnavailablePage } from "../pages/public/WorkflowUnavailablePage.jsx";
 import { TOOL_REGISTRY } from "../tools/toolRegistry.js";
@@ -35,7 +36,7 @@ const publicPlaceholderRouteObjects = PUBLIC_PLACEHOLDER_ROUTES.map((route) => (
 
 const toolRouteObjects = TOOL_REGISTRY
   .filter((tool) => tool.route !== ROUTE_PATHS.editPdf)
-  .map((tool) => ({ path: tool.route, element: <ToolLandingPage tool={tool} /> }));
+  .map((tool) => ({ path: tool.route, element: tool.workflowType === "converter" ? <ImageConversionPage tool={tool} /> : <ToolLandingPage tool={tool} /> }));
 
 const appScreenRouteObjects = Object.entries(APP_ROUTE_SECTIONS).map(([path, appSection]) => ({
   path,
