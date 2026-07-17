@@ -431,3 +431,161 @@ main.editor-shell .comment-editor { position: absolute; top: calc(100% + 10px); 
   main.editor-shell .page-nav input { width: 40px !important; min-width: 40px !important; height: 38px !important; border-radius: 10px !important; font-size: 15px !important; }
   main.editor-shell .page-nav .page-nav-total { min-width: 32px !important; height: 38px !important; font-size: 14px !important; }
 }
+
+/* Interaction-completion pass: compact contextual controls and a real page organizer. */
+main.editor-shell.editor-shell.has-tool-settings { grid-template-rows: 76px 116px 48px minmax(0, 1fr) !important; }
+
+main.editor-shell > .text-format-settings,
+main.editor-shell > .tool-settings {
+  height: 48px !important;
+  min-height: 48px !important;
+  gap: 8px !important;
+  padding: 0 14px !important;
+  background: #ffffff !important;
+}
+main.editor-shell .text-format-settings > * { height: 40px !important; border-right: 0 !important; }
+main.editor-shell .text-settings-title {
+  display: inline-flex !important;
+  min-width: 52px !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 0 12px !important;
+  border-radius: 9px !important;
+  background: #edf3ff !important;
+  color: #2851eb !important;
+  font-size: 13px !important;
+  font-weight: 800 !important;
+}
+main.editor-shell .font-menu-wrap { min-width: 190px !important; height: 40px !important; border: 0 !important; }
+main.editor-shell .font-menu-trigger {
+  height: 40px !important;
+  padding: 0 12px !important;
+  border: 1px solid #d8e0eb !important;
+  border-radius: 9px !important;
+  background: #fff !important;
+  font-size: 14px !important;
+  font-weight: 650 !important;
+}
+main.editor-shell .text-size-select,
+main.editor-shell .line-height-select {
+  width: 76px !important;
+  min-width: 76px !important;
+  height: 40px !important;
+  padding: 0 24px 0 10px !important;
+  border: 1px solid #d8e0eb !important;
+  border-radius: 9px !important;
+  background-color: #fff !important;
+  font-size: 14px !important;
+  font-weight: 700 !important;
+}
+main.editor-shell .line-height-select { width: 72px !important; min-width: 72px !important; }
+main.editor-shell .text-format-settings .color-control { width: 46px !important; min-width: 46px !important; border: 0 !important; }
+main.editor-shell .text-format-settings .color-trigger { width: 36px !important; height: 36px !important; border-radius: 9px !important; }
+main.editor-shell .text-format-settings .color-trigger span { width: 28px !important; height: 28px !important; border-radius: 7px !important; }
+main.editor-shell .text-format-settings .align-group,
+main.editor-shell .text-format-settings .format-toggle-group {
+  height: 40px !important;
+  gap: 2px !important;
+  padding: 2px !important;
+  border: 1px solid #d8e0eb !important;
+  border-radius: 10px !important;
+}
+main.editor-shell .text-format-settings .align-group button,
+main.editor-shell .text-format-settings .format-toggle-group button {
+  width: 34px !important;
+  height: 34px !important;
+  border-radius: 7px !important;
+  font-family: Arial, Helvetica, sans-serif !important;
+  font-size: 17px !important;
+}
+main.editor-shell .text-format-settings .align-group button.is-active,
+main.editor-shell .text-format-settings .format-toggle-group button.is-active { background: #eaf0ff !important; color: #2851eb !important; }
+
+main.editor-shell .text-box .text-content {
+  width: 100% !important;
+  min-width: 0 !important;
+  min-height: 100% !important;
+  overflow: visible !important;
+  white-space: pre-wrap !important;
+  overflow-wrap: normal !important;
+  word-break: normal !important;
+}
+main.editor-shell .text-box.is-selected .text-content { min-width: 0 !important; }
+main.editor-shell .annotation-controls { top: -72px !important; height: 38px !important; padding: 0 6px !important; border-radius: 10px !important; }
+main.editor-shell .annotation-controls button { width: 30px !important; height: 30px !important; border-radius: 7px !important; }
+main.editor-shell .resize-control { width: 12px !important; height: 12px !important; border-radius: 3px !important; }
+
+main.editor-shell .workspace.is-managing-pages { grid-template-columns: 268px minmax(0, 1fr) !important; }
+main.editor-shell .workspace.is-managing-pages .pages-panel { width: 268px !important; }
+main.editor-shell .page-organizer-controls { flex: 0 0 auto; border-bottom: 1px solid #e2e7ef; background: #fff; }
+main.editor-shell .page-organizer-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 14px 14px 8px;
+}
+main.editor-shell .page-organizer-heading > div { display: grid; gap: 2px; }
+main.editor-shell .page-organizer-heading strong { color: #172033; font-size: 14px; font-weight: 850; }
+main.editor-shell .page-organizer-heading span,
+main.editor-shell .page-organizer-heading small { color: #687386; font-size: 11px; font-weight: 650; }
+main.editor-shell .page-organizer-heading small { max-width: 84px; line-height: 1.25; text-align: right; }
+main.editor-shell .page-organizer-controls .reference-page-actions {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 6px !important;
+  padding: 6px 12px 12px !important;
+  border: 0 !important;
+}
+main.editor-shell .page-organizer-controls .reference-page-actions > button {
+  display: inline-flex !important;
+  height: 36px !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+  border-radius: 8px !important;
+  color: #273348 !important;
+  font-size: 12px !important;
+  font-weight: 750 !important;
+}
+main.editor-shell .page-append-menu { top: 120px !important; bottom: auto !important; left: 12px !important; width: 244px !important; }
+main.editor-shell .workspace.is-managing-pages .thumbnail-list { gap: 18px !important; padding: 22px 34px 24px !important; }
+main.editor-shell .page-thumbnail-item { display: grid; justify-items: center; gap: 6px; }
+main.editor-shell .thumbnail-inline-actions {
+  display: grid;
+  grid-template-columns: repeat(5, 30px);
+  gap: 3px;
+  padding: 4px;
+  border: 1px solid #dce3ed;
+  border-radius: 9px;
+  background: #fff;
+  box-shadow: 0 7px 18px rgba(27, 42, 66, .1);
+}
+main.editor-shell .thumbnail-inline-actions button {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: #465267;
+  cursor: pointer;
+}
+main.editor-shell .thumbnail-inline-actions button:hover { background: #eef3ff; color: #2851eb; }
+main.editor-shell .thumbnail-inline-actions button:disabled { color: #b6beca; cursor: not-allowed; }
+
+.signature-modal .signature-draw-pad p { margin: 10px 0 0; color: #687386; font-size: 12px; }
+.signature-modal button:disabled { opacity: .45; cursor: not-allowed; box-shadow: none; }
+.signature-modal .modal-close:focus-visible,
+.signature-modal button:focus-visible,
+.signature-modal input:focus-visible,
+.signature-modal select:focus-visible { outline: 3px solid rgba(40, 81, 235, .22); outline-offset: 2px; }
+
+@media (max-width: 760px) {
+  main.editor-shell.editor-shell.has-tool-settings { grid-template-rows: 64px 92px 48px minmax(0, 1fr) !important; }
+  main.editor-shell > .text-format-settings { justify-content: flex-start !important; overflow-x: auto !important; }
+  main.editor-shell .workspace.is-managing-pages { grid-template-columns: min(82vw, 268px) minmax(0, 1fr) !important; }
+  main.editor-shell .workspace.is-managing-pages .pages-panel { width: min(82vw, 268px) !important; }
+}

@@ -97,8 +97,11 @@ import { attachPdfCommentAnnotation } from "./tools/pdfCommentAnnotations.js";
 import { addPdfLinkAnnotation } from "./editor/pdfLinkAnnotation.mjs";
 import { protectPdfBytes } from "./tools/protectPdf.js";
 import { EDITOR_TOOL_MODES, getDefaultToolForMode, getToolsForMode, resolveModeForTool } from "./tools/editorToolModes.js";
-import { annotationPatchFromFrame, framesEqual, getAnnotationFrame, moveFrame, normalizeRotation, resizeFrame, rotationFromPointer } from "./tools/editorObjectTransforms.js";
-import { createTextAnnotation, shouldDiscardTextAnnotation } from "./tools/editorTextObjects.js";
+import { annotationPatchFromFrame, framesEqual, getAnnotationFrame, moveFrame, normalizeRotation, nudgeFrame, resizeFrame, rotationFromPointer } from "./tools/editorObjectTransforms.js";
+import { createTextAnnotation, estimateTextAnnotationSize, shouldDiscardTextAnnotation } from "./tools/editorTextObjects.js";
+import { canSaveEditorSignature } from "./tools/editorSignature.js";
+import { duplicateEditorPageState, rotateEditorPageRecord } from "./tools/editorPageOrganizer.js";
+import { appendEditorPages } from "./tools/pdfEditorPageExport.js";
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
   "pdfjs-dist/build/pdf.worker.mjs",
@@ -148,19 +151,6 @@ const TEXT_STANDARD_FONTS = [
   "Verdana",
   "Inter",
   "PP Agrandir",
-];
-
-const TEXT_GOOGLE_FONTS = [
-  "Amaranth",
-  "Archivo Narrow",
-  "Bitter",
-  "Cabin",
-  "Cormorant Garamond",
-  "Lora",
-  "Montserrat",
-  "Nunito",
-  "Oswald",
-  "Roboto Slab",
 ];
 
 const SIGNATURE_FONT_OPTIONS = [
@@ -696,6 +686,7 @@ function BlankDocument() {
 }
 
 const EditableTextContent = forwardRef(function EditableTextContent({
+  ariaLabel = "Text box content",
   className,
   editable,
   onBlur,
@@ -736,6 +727,10 @@ const EditableTextContent = forwardRef(function EditableTextContent({
       ref={setElementRef}
       className={className}
       contentEditable={editable ? "plaintext-only" : false}
+      role="textbox"
+      aria-label={ariaLabel}
+      aria-multiline="true"
+      aria-readonly={!editable}
       suppressContentEditableWarning
       spellCheck={spellCheck}
       onPointerDown={onPointerDown}
@@ -746,6 +741,12 @@ const EditableTextContent = forwardRef(function EditableTextContent({
         event.preventDefault();
         const text = event.clipboardData?.getData("text/plain") || "";
         document.execCommand("insertText", false, text);
+      }}
+      onKeyDown={(event) => {
+        if (editable && event.key === "Escape") {
+          event.preventDefault();
+          event.currentTarget.blur();
+        }
       }}
       onBlur={(event) => {
         emitChange(event);
@@ -1105,7 +1106,7 @@ function ProfessionalAnnotation({ annotation, selected, zoom, activeTool, onSele
       const deltaX = (moveEvent.clientX - origin.clientX) / pageRect.width;
       const deltaY = (moveEvent.clientY - origin.clientY) / pageRect.height;
       const nextFrame = kind === "resize"
-        ? resizeFrame(originFrame, handle, deltaX, deltaY)
+        ? resizeFrame(originFrame, handle, deltaX, deltaY, annotation.type === "text" ? { minWidth: 0.16, minHeight: 0.05 } : undefined)
         : kind === "rotate"
           ? { ...originFrame, rotation: rotationFromPointer(originFrame, pageRect, moveEvent.clientX, moveEvent.clientY, rotationOffset) }
           : moveFrame(originFrame, deltaX, deltaY);
@@ -1163,10 +1164,17 @@ function ProfessionalAnnotation({ annotation, selected, zoom, activeTool, onSele
     if (!pageRect?.width || !pageRect?.height) return;
     const hasContent = content.trim().length > 0;
     const fontPx = Math.max(8, (annotation.fontSize || 16) * textDisplayScale);
+    const estimated = estimateTextAnnotationSize({
+      content,
+      fontSize: fontPx,
+      lineHeight: annotation.lineHeight || 1.25,
+      pageWidth: pageRect.width,
+      pageHeight: pageRect.height,
+    });
     const nextFrame = {
       ...gestureFrameRef.current,
-      w: clamp((hasContent ? element.scrollWidth + 12 : fontPx * 3.25) / pageRect.width, 0.055, 0.72),
-      h: clamp((hasContent ? element.scrollHeight + 8 : fontPx * 1.6) / pageRect.height, 0.028, 0.42),
+      w: clamp(Math.max(estimated.w, (hasContent ? element.scrollWidth + 20 : fontPx * 5) / pageRect.width), 0.16, 0.78),
+      h: clamp(Math.max(estimated.h, (hasContent ? element.scrollHeight + 12 : fontPx * 1.8) / pageRect.height), 0.05, 0.42),
     };
     gestureFrameRef.current = nextFrame;
     setLiveFrame(nextFrame);
@@ -1256,7 +1264,7 @@ function ProfessionalAnnotation({ annotation, selected, zoom, activeTool, onSele
   }
 
   if (annotation.type === "signature" || annotation.type === "initials") {
-    return <div className={`annotation signature ${annotation.type === "initials" ? "initials" : ""} ${selected ? "is-selected" : ""}`} style={{ ...commonStyle, color: annotation.color, fontFamily: annotation.fontFamily || (annotation.type === "signature" ? DEFAULT_SIGNATURE_FONT : '"PP Agrandir", Inter, Arial, sans-serif'), fontSize: `${annotation.fontSize * displayScale}px` }} onPointerDown={dragStart}>{annotation.imageDataUrl ? <img src={annotation.imageDataUrl} alt="Signature" /> : annotation.content}{controls}</div>;
+    return <div className={`annotation signature ${annotation.type === "initials" ? "initials" : ""} ${selected ? "is-selected" : ""}`} style={{ ...commonStyle, color: annotation.color, fontFamily: annotation.fontFamily || (annotation.type === "signature" ? DEFAULT_SIGNATURE_FONT : "Arial, Helvetica, sans-serif"), fontSize: `${annotation.fontSize * displayScale}px` }} onPointerDown={dragStart}>{annotation.imageDataUrl ? <img src={annotation.imageDataUrl} alt="Signature" /> : annotation.content}{controls}</div>;
   }
 
   if (annotation.type === "image") return <div className={`annotation image-annotation ${selected ? "is-selected" : ""}`} style={commonStyle} onPointerDown={dragStart}><img src={annotation.imageDataUrl} alt={annotation.content || "Inserted image"} />{controls}</div>;
@@ -1271,9 +1279,9 @@ function ProfessionalAnnotation({ annotation, selected, zoom, activeTool, onSele
   }
 
   return (
-    <div className={`annotation text-box ${selected ? "is-selected" : ""}`} style={{ ...commonStyle, color: annotation.color, fontFamily: annotation.fontFamily || '"PP Agrandir", Inter, Arial, sans-serif', fontSize: `${annotation.fontSize * textDisplayScale}px`, fontWeight: annotation.bold ? 850 : 500, fontStyle: annotation.italic ? "italic" : "normal", textDecoration: annotation.underline ? "underline" : "none", textAlign: annotation.textAlign || "left", lineHeight: annotation.lineHeight || 1.25 }} onPointerDown={dragStart}>
+    <div className={`annotation text-box ${selected ? "is-selected" : ""}`} style={{ ...commonStyle, color: annotation.color, fontFamily: annotation.fontFamily || "Arial, Helvetica, sans-serif", fontSize: `${annotation.fontSize * textDisplayScale}px`, fontWeight: annotation.bold ? 700 : 500, fontStyle: annotation.italic ? "italic" : "normal", textDecoration: annotation.underline ? "underline" : "none", textAlign: annotation.textAlign || "left", lineHeight: annotation.lineHeight || 1.25 }} onPointerDown={dragStart}>
       {controls}
-      <EditableTextContent ref={textContentRef} className="text-content" editable={selected} spellCheck="false" value={annotation.content} onPointerDown={(event) => { event.stopPropagation(); onSelect(annotation.id); }} onChange={updateTextContent} onBlur={commitTextContent} />
+      <EditableTextContent ref={textContentRef} ariaLabel="Edit text box" className="text-content" editable={selected} spellCheck="false" value={annotation.content} onPointerDown={(event) => { event.stopPropagation(); onSelect(annotation.id); }} onChange={updateTextContent} onBlur={commitTextContent} />
     </div>
   );
 }
@@ -1357,7 +1365,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   const [toolSettings, setToolSettings] = useState({
     textColor: colors.black,
     textSize: 16,
-    fontFamily: "PP Agrandir",
+    fontFamily: "Arial",
     textAlign: "left",
     lineHeight: 1.25,
     textBold: false,
@@ -1879,7 +1887,10 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   };
 
   const addAnnotation = (annotation) => {
-    commitAnnotations([...annotations, annotation]);
+    const retainedAnnotations = annotations.filter((item) => (
+      item.type !== "text" || !shouldDiscardTextAnnotation(item.content)
+    ));
+    commitAnnotations([...retainedAnnotations, annotation]);
     setSelectedId(annotation.id);
     setTool("select");
   };
@@ -2361,12 +2372,34 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     showToast("Blank page added.");
   };
 
-  const deleteCurrentPage = () => {
+  const duplicatePageAt = (targetIndex) => {
+    const next = duplicateEditorPageState({
+      pages,
+      annotations,
+      detectedTextItems,
+      pageIndex: targetIndex,
+      makeId,
+    });
+    if (next.pages === pages) return;
+    pushHistorySnapshot();
+    setPages(next.pages);
+    setAnnotations(next.annotations);
+    setDetectedTextItems(next.detectedTextItems);
+    setPageIndex(next.pageIndex);
+    setSelectedId(null);
+    setSelectedDetectedTextId(null);
+    markUnsaved();
+    showToast(`Page ${targetIndex + 1} duplicated.`);
+  };
+
+  const duplicateCurrentPage = () => duplicatePageAt(pageIndex);
+
+  const deletePageAt = (targetIndex) => {
     if (pages.length <= 1) {
       showToast("A document needs at least one page.");
       return;
     }
-    const removedIndex = pageIndex;
+    const removedIndex = clamp(targetIndex, 0, pages.length - 1);
     pushHistorySnapshot();
     setPages((items) => items.filter((_, index) => index !== removedIndex).map((page, index) => ({ ...page, number: index + 1 })));
     setAnnotations((items) => items
@@ -2376,16 +2409,31 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       .filter((item) => item.pageNumber !== removedIndex)
       .map((item) => (item.pageNumber > removedIndex ? { ...item, pageNumber: item.pageNumber - 1 } : item)));
     setSelectedId(null);
-    setPageIndex((value) => clamp(value, 0, pages.length - 2));
+    setPageIndex((value) => clamp(value > removedIndex ? value - 1 : value, 0, pages.length - 2));
     markUnsaved();
     showToast("Page deleted.");
   };
 
-  const rotateCurrentPage = () => {
-    const targetIndex = pageIndex;
+  const deleteCurrentPage = () => deletePageAt(pageIndex);
+
+  const rotatePageAt = (targetIndex) => {
     const page = pages[targetIndex];
-    if (!page?.image) {
-      showToast("This blank page has no content to rotate.");
+    if (!page) return;
+
+    const commitRotation = (nextImage = page.image || "") => {
+      pushHistorySnapshot();
+      setPages((items) => items.map((item, index) => (
+        index === targetIndex ? rotateEditorPageRecord(item, nextImage) : item
+      )));
+      setPageIndex(targetIndex);
+      setSelectedId(null);
+      setSelectedDetectedTextId(null);
+      markUnsaved();
+      showToast(`Page ${targetIndex + 1} rotated clockwise.`);
+    };
+
+    if (!page.image) {
+      commitRotation();
       return;
     }
 
@@ -2398,18 +2446,13 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       context.translate(canvas.width, 0);
       context.rotate(Math.PI / 2);
       context.drawImage(image, 0, 0);
-      pushHistorySnapshot();
-      setPages((items) => items.map((item, index) => (
-        index === targetIndex
-          ? { ...item, image: canvas.toDataURL("image/png"), width: item.height, height: item.width }
-          : item
-      )));
-      markUnsaved();
-      showToast("Page rotated clockwise.");
+      commitRotation(canvas.toDataURL("image/png"));
     };
     image.onerror = () => showToast("This page could not be rotated.");
     image.src = page.image;
   };
+
+  const rotateCurrentPage = () => rotatePageAt(pageIndex);
 
   const reorderPage = (fromIndex, toIndex) => {
     if (fromIndex < 0 || fromIndex >= pages.length || toIndex < 0 || toIndex >= pages.length || fromIndex === toIndex) return;
@@ -2460,7 +2503,13 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     setSelectedDetectedTextId(session?.selectedDetectedTextId || null);
     setTool(session?.tool || "select");
     setZoom(session?.zoom || 100);
-    if (session?.toolSettings) setToolSettings((settings) => ({ ...settings, ...session.toolSettings }));
+    if (session?.toolSettings) {
+      setToolSettings((settings) => ({
+        ...settings,
+        ...session.toolSettings,
+        fontFamily: session.toolSettings.fontFamily === "PP Agrandir" ? "Arial" : session.toolSettings.fontFamily || settings.fontFamily,
+      }));
+    }
     if (session?.activeSignature) setActiveSignature(session.activeSignature);
     setPendingImage(session?.pendingImage || null);
     setSaved(session?.saved ?? true);
@@ -2576,6 +2625,10 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     event.currentTarget.focus();
     lastPagePointRef.current = pointerToNormalized(event, event.currentTarget);
     if (!["text", "highlight", "textHighlight", "draw", "signature", "initials", "checkbox", "field", "date", "whiteout", "rectangle", "circle", "line", "arrow", "comment", "stamp", "link", "image"].includes(tool)) {
+      const selectedAnnotation = annotations.find((item) => item.id === selectedId);
+      if (selectedAnnotation?.type === "text" && shouldDiscardTextAnnotation(selectedAnnotation.content)) {
+        commitAnnotations(annotations.filter((item) => item.id !== selectedAnnotation.id));
+      }
       setSelectedId(null);
       setSelectedDetectedTextId(null);
       return;
@@ -3139,6 +3192,23 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
         else undo();
         return;
       }
+      if (["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(event.key) && (selected || selectedDetectedText)) {
+        event.preventDefault();
+        const amount = event.shiftKey ? 0.012 : 0.002;
+        if (selected) {
+          const originFrame = getAnnotationFrame(selected);
+          const nextFrame = nudgeFrame(originFrame, event.key, amount);
+          updateAnnotation(selected.id, annotationPatchFromFrame(selected, nextFrame, originFrame));
+        } else if (selectedDetectedText) {
+          const nextFrame = nudgeFrame(getAnnotationFrame({ ...selectedDetectedText, type: "text" }), event.key, amount);
+          commitDetectedTextItems(detectedTextItems.map((item) => (
+            item.id === selectedDetectedText.id
+              ? { ...item, x: nextFrame.x, y: nextFrame.y, isEdited: true, updatedAt: nowIso() }
+              : item
+          )));
+        }
+        return;
+      }
       if (!event.metaKey && !event.ctrlKey && !event.altKey && selected?.type === "text" && key.length === 1) return;
 
       if (key === "escape") {
@@ -3173,26 +3243,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     const pdfDoc = await PDFDocument.create();
     const sourcePdf = pdfBytes ? await PDFDocument.load(pdfBytes) : null;
 
-    for (const pageRecord of pages) {
-      if (sourcePdf && pageRecord.source === "pdf" && Number.isInteger(pageRecord.originalIndex)) {
-        const [copiedPage] = await pdfDoc.copyPages(sourcePdf, [pageRecord.originalIndex]);
-        pdfDoc.addPage(copiedPage);
-      } else {
-        const fallbackPage = pdfDoc.addPage([612, Math.round(612 * ((pageRecord.height || BASE_PAGE_HEIGHT) / (pageRecord.width || BASE_PAGE_WIDTH)))]);
-        if (pageRecord.image) {
-          const pageImage = await embedDataUrlImage(pdfDoc, pageRecord.image);
-          if (pageImage) {
-            const { width, height } = fallbackPage.getSize();
-            fallbackPage.drawImage(pageImage, {
-              x: 0,
-              y: 0,
-              width,
-              height,
-            });
-          }
-        }
-      }
-    }
+    await appendEditorPages({ pdfDoc, sourcePdf, pages, embedDataUrlImage });
 
     const helvetica = await pdfDoc.embedFont(StandardFonts.Helvetica);
     const helveticaBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
@@ -3930,7 +3981,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
         updateAnnotation={updateAnnotation}
       />
 
-      <section className={`workspace ${isPagesCollapsed ? "pages-collapsed" : ""}`}>
+      <section className={`workspace ${isPagesCollapsed ? "pages-collapsed" : ""} ${isManagePagesOpen ? "is-managing-pages" : ""}`}>
         <aside className="lumin-editor-rail">
           {EDITOR_TOOL_MODES.map((mode) => {
             const Icon = mode.id === "view" ? MousePointer2 : mode.id === "annotate" ? Highlighter : mode.id === "shapes" ? RectangleHorizontal : mode.id === "insert" ? Plus : mode.id === "edit" ? Type : PenLine;
@@ -3955,25 +4006,31 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
               <button type="button" title="Close thumbnails" onClick={() => setIsPagesCollapsed(true)}><X size={18} /></button>
             </div>
           </div>
-          {isManagePagesOpen && <div className="page-actions reference-page-actions">
-            <button type="button" onClick={() => setIsPageAppendMenuOpen((value) => !value)} aria-haspopup="menu" aria-expanded={isPageAppendMenuOpen}><FilePlus2 size={15} /> Append</button>
+          {isManagePagesOpen && <div className="page-organizer-controls">
+            <div className="page-organizer-heading">
+              <div><strong>Manage pages</strong><span>Page {pageIndex + 1} of {pages.length}</span></div>
+              <small>Drag thumbnails to reorder</small>
+            </div>
+            <div className="page-actions reference-page-actions">
+            <button type="button" onClick={() => setIsPageAppendMenuOpen((value) => !value)} aria-haspopup="menu" aria-expanded={isPageAppendMenuOpen}><FilePlus2 size={16} /> Insert</button>
             {isPageAppendMenuOpen && (
               <div className="page-append-menu" role="menu" aria-label="Append pages">
-                <button type="button" role="menuitem" onClick={addBlankPage}>Append Blank Page</button>
+                <button type="button" role="menuitem" onClick={addBlankPage}>Insert blank page after current</button>
                 <button type="button" role="menuitem" onClick={() => {
                   setIsPageAppendMenuOpen(false);
                   appendFileInputRef.current?.click();
-                }}>Merge and Append File... (+)</button>
+                }}>Insert pages from another PDF</button>
               </div>
             )}
-            <button type="button" onClick={() => moveCurrentPage(-1)} disabled={pageIndex === 0}><GripVertical size={15} /> Up</button>
-            <button type="button" onClick={() => moveCurrentPage(1)} disabled={pageIndex === pages.length - 1}><GripVertical size={15} /> Down</button>
-            <button type="button" onClick={deleteCurrentPage} disabled={pages.length <= 1}><Trash2 size={15} /> Delete</button>
+            <button type="button" onClick={duplicateCurrentPage}><Copy size={16} /> Duplicate</button>
+            <button type="button" onClick={rotateCurrentPage}><RotateCw size={16} /> Rotate</button>
+            <button type="button" onClick={deleteCurrentPage} disabled={pages.length <= 1}><Trash2 size={16} /> Delete</button>
+            </div>
           </div>}
           <div className={`thumbnail-list ${viewMode}`}>
             {pages.map((page, index) => (
+              <div key={page.id} className="page-thumbnail-item">
               <button
-                key={page.id}
                 type="button"
                 className={`thumbnail ${pageIndex === index ? "is-selected" : ""} ${draggedPageIndex === index ? "is-dragging" : ""} ${pageDropIndex === index && draggedPageIndex !== index ? "is-drop-target" : ""}`}
                 aria-current={pageIndex === index ? "page" : undefined}
@@ -4017,6 +4074,16 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
                 </div>
                 <span className="thumbnail-label">{index + 1}</span>
               </button>
+              {isManagePagesOpen && pageIndex === index && (
+                <div className="thumbnail-inline-actions" aria-label={`Actions for page ${index + 1}`}>
+                  <button type="button" title={`Move page ${index + 1} up`} aria-label={`Move page ${index + 1} up`} onClick={() => moveCurrentPage(-1)} disabled={index === 0}><ChevronUp size={14} /></button>
+                  <button type="button" title={`Move page ${index + 1} down`} aria-label={`Move page ${index + 1} down`} onClick={() => moveCurrentPage(1)} disabled={index === pages.length - 1}><ChevronDown size={14} /></button>
+                  <button type="button" title={`Duplicate page ${index + 1}`} aria-label={`Duplicate page ${index + 1}`} onClick={() => duplicatePageAt(index)}><Copy size={14} /></button>
+                  <button type="button" title={`Rotate page ${index + 1}`} aria-label={`Rotate page ${index + 1}`} onClick={() => rotatePageAt(index)}><RotateCw size={14} /></button>
+                  <button type="button" title={`Delete page ${index + 1}`} aria-label={`Delete page ${index + 1}`} onClick={() => deletePageAt(index)} disabled={pages.length <= 1}><Trash2 size={14} /></button>
+                </div>
+              )}
+              </div>
             ))}
           </div>
           {isManagePagesOpen && <div className="thumbnail-footer" aria-label="Page actions">
@@ -4755,13 +4822,8 @@ function ToolSettingsPanel({ tool, settings, setSettings, selectedTextAnnotation
     updateAnnotation(selectedTextAnnotation.id, annotationPatch);
   };
   const visibleStandardFonts = TEXT_STANDARD_FONTS.filter((font) => font.toLowerCase().includes(fontSearch.trim().toLowerCase()));
-  const visibleGoogleFonts = TEXT_GOOGLE_FONTS.filter((font) => font.toLowerCase().includes(fontSearch.trim().toLowerCase()));
   const selectFont = (font) => {
     update({ fontFamily: font });
-    setIsFontMenuOpen(false);
-    setFontSearch("");
-  };
-  const showLockedFontToast = () => {
     setIsFontMenuOpen(false);
     setFontSearch("");
   };
@@ -4773,14 +4835,13 @@ function ToolSettingsPanel({ tool, settings, setSettings, selectedTextAnnotation
   if (effectiveTool === "text" || effectiveTool === "field") {
     return (
       <div className={`tool-settings ${effectiveTool === "text" ? "text-format-settings" : "field-format-settings"}`}>
-        {effectiveTool === "text" && (
-          <button type="button" className="text-format-add" onClick={() => update({ textSize: activeSettings.textSize })}><span>A</span></button>
-        )}
+        {effectiveTool === "text" && <span className="settings-title text-settings-title">Text</span>}
         {effectiveTool === "text" && (
           <div className="font-menu-wrap">
             <button
               type="button"
               className="font-menu-trigger"
+              aria-label="Font family"
               aria-haspopup="menu"
               aria-expanded={isFontMenuOpen}
               onClick={() => setIsFontMenuOpen((value) => !value)}
@@ -4802,13 +4863,6 @@ function ToolSettingsPanel({ tool, settings, setSettings, selectedTextAnnotation
                     {font}
                   </button>
                 ))}
-                <strong>POPULAR GOOGLE FONTS</strong>
-                {visibleGoogleFonts.map((font) => (
-                  <button key={font} type="button" role="menuitem" className="is-locked" onClick={() => showLockedFontToast(font)} style={{ fontFamily: font }}>
-                    {font}
-                    <Lock size={15} />
-                  </button>
-                ))}
               </div>
             )}
           </div>
@@ -4820,17 +4874,17 @@ function ToolSettingsPanel({ tool, settings, setSettings, selectedTextAnnotation
         {effectiveTool === "text" && (
           <>
             <select className="line-height-select" aria-label="Line height" value={activeSettings.lineHeight} onChange={(event) => update({ lineHeight: Number(event.target.value) })}>
-              {[1, 1.15, 1.25, 1.5, 2].map((size) => <option key={size} value={size}>T↕ {size}</option>)}
+              {[1, 1.15, 1.25, 1.5, 2].map((size) => <option key={size} value={size}>{size}×</option>)}
             </select>
             <div className="align-group" aria-label="Text alignment">
-              <button type="button" title="Align left" className={activeSettings.textAlign === "left" ? "is-active" : ""} onClick={() => update({ textAlign: "left" })}><AlignLeft size={20} /></button>
-              <button type="button" title="Align center" className={activeSettings.textAlign === "center" ? "is-active" : ""} onClick={() => update({ textAlign: "center" })}><AlignCenter size={20} /></button>
-              <button type="button" title="Align right" className={activeSettings.textAlign === "right" ? "is-active" : ""} onClick={() => update({ textAlign: "right" })}><AlignRight size={20} /></button>
+              <button type="button" title="Align left" aria-label="Align left" aria-pressed={activeSettings.textAlign === "left"} className={activeSettings.textAlign === "left" ? "is-active" : ""} onClick={() => update({ textAlign: "left" })}><AlignLeft size={20} /></button>
+              <button type="button" title="Align center" aria-label="Align center" aria-pressed={activeSettings.textAlign === "center"} className={activeSettings.textAlign === "center" ? "is-active" : ""} onClick={() => update({ textAlign: "center" })}><AlignCenter size={20} /></button>
+              <button type="button" title="Align right" aria-label="Align right" aria-pressed={activeSettings.textAlign === "right"} className={activeSettings.textAlign === "right" ? "is-active" : ""} onClick={() => update({ textAlign: "right" })}><AlignRight size={20} /></button>
             </div>
             <div className="format-toggle-group" aria-label="Text format">
-              <button type="button" className={activeSettings.textBold ? "is-active" : ""} onClick={() => update({ textBold: !activeSettings.textBold })}>B</button>
-              <button type="button" className={activeSettings.textItalic ? "is-active" : ""} onClick={() => update({ textItalic: !activeSettings.textItalic })}>I</button>
-              <button type="button" className={activeSettings.textUnderline ? "is-active" : ""} onClick={() => update({ textUnderline: !activeSettings.textUnderline })}>U</button>
+              <button type="button" aria-label="Bold" aria-pressed={activeSettings.textBold} className={activeSettings.textBold ? "is-active" : ""} onClick={() => update({ textBold: !activeSettings.textBold })}>B</button>
+              <button type="button" aria-label="Italic" aria-pressed={activeSettings.textItalic} className={activeSettings.textItalic ? "is-active" : ""} onClick={() => update({ textItalic: !activeSettings.textItalic })}>I</button>
+              <button type="button" aria-label="Underline" aria-pressed={activeSettings.textUnderline} className={activeSettings.textUnderline ? "is-active" : ""} onClick={() => update({ textUnderline: !activeSettings.textUnderline })}>U</button>
             </div>
           </>
         )}
@@ -6131,6 +6185,7 @@ function SignatureModal({ defaultName, mode = "signature", onClose, onSave }) {
   const [hasInk, setHasInk] = useState(false);
   const [error, setError] = useState("");
   const drawingRef = useRef(false);
+  const canSave = canSaveEditorSignature({ mode, tab, typedName, hasInk, uploadedImage });
 
   const getCanvasPoint = (event) => {
     const rect = canvasRef.current.getBoundingClientRect();
@@ -6152,6 +6207,9 @@ function SignatureModal({ defaultName, mode = "signature", onClose, onSave }) {
     context.strokeStyle = "#0f172a";
     context.beginPath();
     context.moveTo(point.x, point.y);
+    context.lineTo(point.x + 0.01, point.y + 0.01);
+    context.stroke();
+    setHasInk(true);
   };
 
   const drawMove = (event) => {
@@ -6220,19 +6278,19 @@ function SignatureModal({ defaultName, mode = "signature", onClose, onSave }) {
   };
 
   return (
-    <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label={mode === "initials" ? "Create initials" : "Create signature"}>
+    <div className="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="signature-modal-title" aria-describedby="signature-modal-description">
       <section className="signature-modal">
         <header>
           <div>
-            <h2>{mode === "initials" ? "Create initials" : "Create signature"}</h2>
-            <p>{mode === "initials" ? "Enter your name, then click the PDF page to place the initials." : "Create a signature for this document, then click the PDF page to place it."}</p>
+            <h2 id="signature-modal-title">{mode === "initials" ? "Create initials" : "Create signature"}</h2>
+            <p id="signature-modal-description">{mode === "initials" ? "Enter your name, then click the PDF page to place the initials." : "Create a signature, save it, then click the PDF page to place it."}</p>
           </div>
-          <button type="button" className="modal-close" onClick={onClose}><X size={18} /></button>
+          <button type="button" className="modal-close" aria-label={`Close ${mode === "initials" ? "initials" : "signature"} dialog`} onClick={onClose}><X size={18} /></button>
         </header>
 
-        {mode !== "initials" && <div className="signature-tabs">
+        {mode !== "initials" && <div className="signature-tabs" role="tablist" aria-label="Signature method">
           {["draw", "type", "upload"].map((item) => (
-            <button key={item} type="button" className={tab === item ? "is-active" : ""} onClick={() => setTab(item)}>
+            <button key={item} type="button" role="tab" aria-selected={tab === item} className={tab === item ? "is-active" : ""} onClick={() => { setTab(item); setError(""); }}>
               {item[0].toUpperCase() + item.slice(1)}
             </button>
           ))}
@@ -6244,19 +6302,21 @@ function SignatureModal({ defaultName, mode = "signature", onClose, onSave }) {
               ref={canvasRef}
               width="640"
               height="220"
+              aria-label="Signature drawing area"
               onPointerDown={drawStart}
               onPointerMove={drawMove}
               onPointerUp={drawEnd}
               onPointerLeave={drawEnd}
             />
-            <button type="button" onClick={clearCanvas}>Clear</button>
+            <p>Draw with your pointer. Prefer typing your signature if you use a keyboard.</p>
+            <button type="button" onClick={clearCanvas} disabled={!hasInk}>Clear drawing</button>
           </div>
         )}
 
         {(mode === "initials" || tab === "type") && (
           <label className="field signature-type">
-            <span>Typed signature</span>
-            <input value={typedName} onChange={(event) => setTypedName(event.target.value)} />
+            <span>{mode === "initials" ? "Full name" : "Name for typed signature"}</span>
+            <input autoFocus value={typedName} onChange={(event) => { setTypedName(event.target.value); setError(""); }} />
             <div className="signature-font-picker">
               <span>Cursive font</span>
               <select value={signatureFont} onChange={(event) => setSignatureFont(event.target.value)}>
@@ -6278,7 +6338,7 @@ function SignatureModal({ defaultName, mode = "signature", onClose, onSave }) {
         {error && <p className="signature-modal-error" role="alert">{error}</p>}
         <footer>
           <button type="button" className="modal-secondary" onClick={onClose}>Cancel</button>
-          <button type="button" className="modal-primary" onClick={saveSignature}>Save {mode === "initials" ? "initials" : "signature"}</button>
+          <button type="button" className="modal-primary" disabled={!canSave} onClick={saveSignature}>Save {mode === "initials" ? "initials" : "signature"}</button>
         </footer>
       </section>
     </div>
