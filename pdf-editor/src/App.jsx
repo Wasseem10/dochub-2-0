@@ -3687,11 +3687,16 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       {isOffline && <div className="editor-offline-banner" role="status">You are offline. Editing and local saves still work in this browser.</div>}
       <header className="file-header reference-file-header">
         <div className="reference-brand-lockup">
-          <span className="reference-brand-mark" aria-hidden="true"><FileText size={23} /></span>
-          <button type="button" className="reference-brand-name" onClick={renameActiveDocument} title={`Rename ${fileName}`}>
-            <strong>FixThatPDF</strong>
-            <small>{fileName} · {saveStatusLabel}</small>
+          <strong className="reference-brand-name">FixThatPDF</strong>
+          <span className="reference-brand-divider" aria-hidden="true" />
+          <button type="button" className="reference-document-name" onClick={renameActiveDocument} title={`Rename ${fileName}`}>
+            <FileText size={19} aria-hidden="true" />
+            <span>{fileName}</span>
           </button>
+          <span className={`reference-save-state ${saveState === "unsaved" ? "is-unsaved" : ""}`}>
+            <CheckCircle2 size={17} aria-hidden="true" />
+            <span>{saveStatusLabel}</span>
+          </span>
         </div>
         <div className="reference-header-actions" aria-label="Document actions">
           <button type="button" onClick={() => window.print()}><Printer size={23} /><span>Print</span></button>
