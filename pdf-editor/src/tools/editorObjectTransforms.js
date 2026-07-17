@@ -1,6 +1,6 @@
 const FRAME_TYPES = new Set([
   "text", "highlight", "whiteout", "checkbox", "rectangle", "circle", "line", "arrow",
-  "comment", "signature", "initials", "image", "field",
+  "comment", "signature", "initials", "image", "field", "stamp", "link",
 ]);
 
 export function clampNumber(value, min, max) {
