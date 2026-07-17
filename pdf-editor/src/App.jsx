@@ -2300,7 +2300,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     await loadPdfFile(event.dataTransfer.files?.[0]);
   };
 
-  const startBlankDocument = () => {
+  const startBlankDocument = async () => {
     const stamp = nowIso();
     const blankPages = [{ id: makeId("blank-page"), number: 1, originalIndex: null, width: BASE_PAGE_WIDTH, height: BASE_PAGE_HEIGHT, source: "blank" }];
     const documentRecord = {
@@ -2320,7 +2320,8 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       detectedTextItems: [],
     };
 
-    upsertDocument(documentRecord);
+    const wasPersisted = await upsertDocument(documentRecord);
+    if (!wasPersisted) return;
     setActiveDocumentId(documentRecord.id);
     setPages(blankPages);
     setPdfBytes(null);
@@ -3822,54 +3823,53 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       </header>
 
       <section className="tool-ribbon reference-tool-ribbon" aria-label="PDF editing toolbar">
-        <button
-          type="button"
-          className={`reference-toolbar-button reference-thumbnail-toggle ${!isPagesCollapsed ? "is-active" : ""}`}
-          onClick={() => setIsPagesCollapsed((value) => !value)}
-          aria-controls="page-thumbnails"
-          aria-expanded={!isPagesCollapsed}
-        >
-          <PanelsTopLeft size={23} />
-          <span>Thumbnails</span>
-          <ChevronDown size={14} />
-        </button>
-
         <div className="reference-history-tools" aria-label="History">
           <button type="button" className="reference-toolbar-button" onClick={undo} disabled={!undoStack.length}><Undo2 size={23} /><span>Undo</span></button>
           <button type="button" className="reference-toolbar-button" onClick={redo} disabled={!redoStack.length}><Redo2 size={23} /><span>Redo</span></button>
         </div>
 
         <div className="reference-primary-tools" role="toolbar" aria-label="Editing tools">
-          {referencePrimaryTools.slice(0, 3).map(({ id, label, icon: Icon }) => (
-            <button key={id} type="button" className={`reference-toolbar-button ${tool === id ? "is-active" : ""}`} aria-pressed={tool === id} onClick={() => activateReferenceTool(id)}>
-              <Icon size={23} /><span>{label}</span>
-            </button>
-          ))}
-
-          <div className="reference-shape-tool">
-            <button type="button" className={`reference-toolbar-button ${["arrow", "line", "rectangle", "circle"].includes(tool) ? "is-active" : ""}`} aria-pressed={["arrow", "line", "rectangle", "circle"].includes(tool)} onClick={() => activateReferenceTool("arrow")}>
-              <Send size={23} /><span>Arrow</span>
-            </button>
-            <button type="button" className="reference-shape-menu-trigger" aria-label="More shape tools" aria-haspopup="menu" aria-expanded={isShapeMenuOpen} onClick={() => setIsShapeMenuOpen((value) => !value)}><ChevronDown size={14} /></button>
-            {isShapeMenuOpen && (
-              <div className="reference-shape-menu" role="menu" aria-label="Shape tools">
-                {[
-                  { id: "arrow", label: "Arrow", icon: Send },
-                  { id: "line", label: "Line", icon: Minus },
-                  { id: "rectangle", label: "Rectangle", icon: RectangleHorizontal },
-                  { id: "circle", label: "Ellipse", icon: Circle },
-                ].map(({ id, label, icon: Icon }) => (
-                  <button key={id} type="button" role="menuitem" onClick={() => activateReferenceTool(id)}><Icon size={18} /> {label}</button>
-                ))}
-              </div>
-            )}
+          <div className="reference-content-tools">
+            {referencePrimaryTools.slice(0, 3).map(({ id, label, icon: Icon }) => (
+              <button key={id} type="button" className={`reference-toolbar-button ${tool === id ? "is-active" : ""}`} aria-pressed={tool === id} onClick={() => activateReferenceTool(id)}>
+                <Icon size={23} /><span>{label}</span>
+              </button>
+            ))}
           </div>
 
-          {referencePrimaryTools.slice(3).map(({ id, label, icon: Icon }) => (
-            <button key={id} type="button" className={`reference-toolbar-button ${tool === id || (id === "note" && tool === "comment") ? "is-active" : ""}`} aria-pressed={tool === id || (id === "note" && tool === "comment")} onClick={() => activateReferenceTool(id)}>
-              <Icon size={23} /><span>{label}</span>
-            </button>
-          ))}
+          <div className="reference-markup-tools">
+            <div className="reference-shape-tool">
+              <button type="button" className={`reference-toolbar-button ${["arrow", "line", "rectangle", "circle"].includes(tool) ? "is-active" : ""}`} aria-pressed={["arrow", "line", "rectangle", "circle"].includes(tool)} onClick={() => activateReferenceTool("arrow")}>
+                <Send size={23} /><span>Arrow</span>
+              </button>
+              <button type="button" className="reference-shape-menu-trigger" aria-label="More shape tools" aria-haspopup="menu" aria-expanded={isShapeMenuOpen} onClick={() => setIsShapeMenuOpen((value) => !value)}><ChevronDown size={14} /></button>
+              {isShapeMenuOpen && (
+                <div className="reference-shape-menu" role="menu" aria-label="Shape tools">
+                  {[
+                    { id: "arrow", label: "Arrow", icon: Send },
+                    { id: "line", label: "Line", icon: Minus },
+                    { id: "rectangle", label: "Rectangle", icon: RectangleHorizontal },
+                    { id: "circle", label: "Ellipse", icon: Circle },
+                  ].map(({ id, label, icon: Icon }) => (
+                    <button key={id} type="button" role="menuitem" onClick={() => activateReferenceTool(id)}><Icon size={18} /> {label}</button>
+                  ))}
+                </div>
+              )}
+            </div>
+            {referencePrimaryTools.slice(3, 5).map(({ id, label, icon: Icon }) => (
+              <button key={id} type="button" className={`reference-toolbar-button ${tool === id ? "is-active" : ""}`} aria-pressed={tool === id} onClick={() => activateReferenceTool(id)}>
+                <Icon size={23} /><span>{label}</span>
+              </button>
+            ))}
+          </div>
+
+          <div className="reference-annotation-tools">
+            {referencePrimaryTools.slice(5).map(({ id, label, icon: Icon }) => (
+              <button key={id} type="button" className={`reference-toolbar-button ${tool === id || (id === "note" && tool === "comment") ? "is-active" : ""}`} aria-pressed={tool === id || (id === "note" && tool === "comment")} onClick={() => activateReferenceTool(id)}>
+                <Icon size={23} /><span>{label}</span>
+              </button>
+            ))}
+          </div>
         </div>
 
         <div className="reference-secondary-tools">
