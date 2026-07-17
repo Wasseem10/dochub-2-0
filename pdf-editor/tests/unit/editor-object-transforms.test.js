@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { annotationPatchFromFrame, getAnnotationFrame, moveFrame, normalizeRotation, resizeFrame, rotationFromPointer } from "../../src/tools/editorObjectTransforms.js";
+import { annotationPatchFromFrame, getAnnotationFrame, moveFrame, normalizeRotation, nudgeFrame, resizeFrame, rotationFromPointer } from "../../src/tools/editorObjectTransforms.js";
 
 describe("shared editor object transforms", () => {
   const frame = { x: 0.2, y: 0.25, w: 0.3, h: 0.2, rotation: 0 };
@@ -40,5 +40,11 @@ describe("shared editor object transforms", () => {
     expect(patch.points[0].y).toBeCloseTo(0.3, 5);
     expect(patch.points[1].x).toBeCloseTo(0.5, 5);
     expect(patch.points[1].y).toBeCloseTo(0.5, 5);
+  });
+
+  it("nudges selected objects with arrow keys while respecting page bounds", () => {
+    expect(nudgeFrame(frame, "ArrowRight", 0.01).x).toBeCloseTo(0.21, 8);
+    expect(nudgeFrame(frame, "ArrowUp", 0.01).y).toBeCloseTo(0.24, 8);
+    expect(nudgeFrame({ ...frame, x: 0 }, "ArrowLeft", 0.02).x).toBe(0);
   });
 });
