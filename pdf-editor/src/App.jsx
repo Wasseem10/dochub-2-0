@@ -2300,7 +2300,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     await loadPdfFile(event.dataTransfer.files?.[0]);
   };
 
-  const startBlankDocument = async () => {
+  const startBlankDocument = () => {
     const stamp = nowIso();
     const blankPages = [{ id: makeId("blank-page"), number: 1, originalIndex: null, width: BASE_PAGE_WIDTH, height: BASE_PAGE_HEIGHT, source: "blank" }];
     const documentRecord = {
@@ -2320,8 +2320,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       detectedTextItems: [],
     };
 
-    const wasPersisted = await upsertDocument(documentRecord);
-    if (!wasPersisted) return;
+    upsertDocument(documentRecord);
     setActiveDocumentId(documentRecord.id);
     setPages(blankPages);
     setPdfBytes(null);
@@ -6448,3 +6447,63 @@ function UpgradeModal({ onClose, onSelectPlan }) {
               <span>{plan.name}</span>
               <strong>{plan.price}<small>{plan.name === "Free" ? "" : "/mo"}</small></strong>
               <p>{plan.detail}</p>
+              <ul>
+                {plan.features.map((feature) => <li key={feature}><CheckCircle2 size={15} /> {feature}</li>)}
+              </ul>
+              <button type="button" onClick={() => onSelectPlan(plan.name)}>{plan.action}</button>
+            </article>
+          ))}
+        </div>
+
+        <footer>
+          <button type="button" className="modal-secondary" onClick={onClose}>Not now</button>
+          <button type="button" className="modal-primary" onClick={() => onSelectPlan("Pro")}>Continue with Pro</button>
+        </footer>
+      </section>
+    </div>
+  );
+}
+
+async function createSamplePdf() {
+  const pdfDoc = await PDFDocument.create();
+  const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+  const bold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+
+  Array.from({ length: 3 }).forEach((_, pageIndex) => {
+    const page = pdfDoc.addPage([612, 792]);
+    page.drawText(pageIndex === 0 ? "SERVICE AGREEMENT" : pageIndex === 1 ? "STATEMENT OF WORK" : "EXHIBIT B", {
+      x: 202,
+      y: 710,
+      size: 18,
+      font: bold,
+      color: rgb(0.07, 0.09, 0.14),
+    });
+    const lines = [
+      "This Service Agreement is made and entered into as of May 15, 2024.",
+      "Client: Acme Corporation, 123 Business Way, Suite 100, Austin, TX.",
+      "Provider: Northfield Solutions, LLC, 500 Innovation Drive, Austin, TX.",
+      "",
+      "1. SCOPE OF SERVICES",
+      "Provider agrees to perform the services described in Exhibit A.",
+      "2. TERM",
+      "This Agreement shall continue for twelve months unless terminated earlier.",
+      "3. PAYMENT TERMS",
+      "Client shall pay Provider the fees set forth in Exhibit B.",
+      "4. CONFIDENTIALITY",
+      "Each Party agrees to keep non-public information confidential.",
+    ];
+    lines.forEach((line, index) => {
+      page.drawText(line, { x: 72, y: 662 - index * 24, size: line.match(/^\d/) ? 12 : 10.5, font: line.match(/^\d/) ? bold : font, color: rgb(0.08, 0.1, 0.16) });
+    });
+  });
+
+  return pdfDoc;
+}
+
+async function createBlankPdf(pageCount) {
+  const pdfDoc = await PDFDocument.create();
+  Array.from({ length: Math.max(1, pageCount) }).forEach(() => {
+    pdfDoc.addPage([612, 792]);
+  });
+  return pdfDoc;
+}
