@@ -1,14 +1,4 @@
 import { useEffect, useRef, useState } from "react";
-import { Link } from "react-router-dom";
-import ArrowRight from "lucide-react/dist/esm/icons/arrow-right.mjs";
-import Check from "lucide-react/dist/esm/icons/check.mjs";
-import ChevronDown from "lucide-react/dist/esm/icons/chevron-down.mjs";
-import Clock3 from "lucide-react/dist/esm/icons/clock-3.mjs";
-import FileText from "lucide-react/dist/esm/icons/file-text.mjs";
-import LockKeyhole from "lucide-react/dist/esm/icons/lock-keyhole.mjs";
-import Menu from "lucide-react/dist/esm/icons/menu.mjs";
-import ShieldCheck from "lucide-react/dist/esm/icons/shield-check.mjs";
-import Upload from "lucide-react/dist/esm/icons/upload.mjs";
 import X from "lucide-react/dist/esm/icons/x.mjs";
 import { PageMetadata } from "./components/public/PageMetadata.jsx";
 import { ROUTE_PATHS } from "./router/routePaths.js";
