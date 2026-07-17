@@ -1,52 +1,42 @@
-# Blue tool landing page design QA
+# PDF Help-style editor phase 1 design QA
 
-- Source visual truth: `/tmp/fixthatpdf-blue-theme-reference.png`
-- Initial implementation: `/tmp/fixthatpdf-tool-before-blue-fix.png`
-- Revised implementation: `/tmp/fixthatpdf-tool-after-blue-fix.png`
-- Functional page-tool implementation: `/tmp/fixthatpdf-page-number-after-blue-fix.png`
-- Full-view comparison: `/tmp/fixthatpdf-blue-reference-vs-tool.png`
-- Viewport: desktop browser viewport, normalized side by side at 720 × 500 per panel
-- State: logged-out upload state before file selection
+- Reference: `https://pdfhelp.com/editor?from=%2Fedit-pdf`
+- Reference screenshot: `/var/folders/y5/5nxfxhk97_9fmsmdf8tqj81r0000gn/T/TemporaryItems/NSIRD_screencaptureui_Ul8Kk5/Screenshot 2026-07-16 at 8.13.44 PM.png`
+- Implementation screenshot: `design-evidence/pdf-help-editor-phase1.png`
+- Combined reference/implementation comparison was reviewed locally and is intentionally not committed, so the public repository does not redistribute the competitor's branding or screenshot.
+- Test document: generated 20-page acceptance PDF used in Chrome
+- Scope: the post-upload PDF editor only; the current blue FixThatPDF landing page was intentionally not changed
 
-**Findings**
+## Visual comparison
 
-- No actionable P0, P1, or P2 mismatch remains.
-- The released tool pages now use the landing page's exact blue action token, white/powder-blue surfaces, compact DM Sans display type, and restrained blue elevation.
-- The upload card is centered at a 920px maximum width and remains the dominant action without occupying the entire desktop width.
-- The truthful 8 MB editor limit intentionally differs from the home hero's broader marketing example.
+- Header hierarchy: passed. FixThatPDF branding remains on the left, with Print, Download, and Done grouped on the right.
+- Tool organization: passed. The editor uses the same horizontal workflow order as the reference while retaining FixThatPDF icons, colors, and copy.
+- Thumbnail rail: passed. Pages are readable, numbered, selectable, and visually separated from the centered document canvas.
+- Canvas hierarchy: passed. The active page is the dominant surface, the workspace is quiet, and zoom/page navigation is anchored below the page.
+- Selection treatment: passed. Selected objects retain eight resize handles, a rotation handle, move/delete controls, and direct manipulation.
+- Branding and assets: passed. No PDF Help source, branding, icons, or protected assets were copied.
 
-**Required fidelity surfaces**
+## Functional checks
 
-- Fonts and typography: passed. Tool headlines now use DM Sans at weight 500, the same family and optical treatment as the home hero, reduced to a 38–56px tool-page scale. Supporting copy is 15–17px.
-- Spacing and layout rhythm: passed. The heading, description, centered upload frame, dashed target, and trust row form a compact vertical sequence. The upload frame is 920px wide with a 320px drop target.
-- Colors and visual tokens: passed. Green, mint, and cream were removed from the visible tool-page system. Primary actions use `#2851eb`; supporting surfaces use `#e8f1ff`, `#f5f8ff`, white, and the landing page's neutral ink colors.
-- Image quality and asset fidelity: passed. No raster image is required for this state. Existing Lucide upload and status icons remain sharp and match the product icon language.
-- Copy and content: passed. Tool-specific names, explanations, actions, privacy language, and truthful processing limits remain intact.
+- A 20-page PDF uploaded and opened successfully.
+- Add Text created and edited a real text object.
+- Stamp created a rotatable APPROVED stamp.
+- Note created a persistent note marker and editable note content.
+- Erase removed a selected object; Undo restored it.
+- Undo and Redo restored the latest object state.
+- Manage Pages exposed delete, rotate, add, reorder, and export actions.
+- Export flattening and real URI link annotations are covered by automated tests.
+- Typecheck, production build, and all 80 existing tests passed.
+- Chrome console showed no errors or warnings during the editor workflow.
 
-**Interaction and responsive checks**
+## Responsive review
 
-- Upload buttons and file inputs remain connected across editor, page, image, and Office workflows.
-- Add Page Numbers retains its working controls below the centered upload card.
-- Keyboard focus, drag state, progress, selected-page, and success accents now use the blue theme.
-- Desktop editor and Add Page Numbers routes rendered with no console errors.
-- The browser viewport override was not honored by the available browser surface, so the small-screen result was checked through the existing responsive rules rather than a separate mobile screenshot.
+- The final editor stylesheet includes desktop, compact-desktop/tablet, and mobile breakpoints.
+- At narrow widths the toolbar becomes horizontally scrollable, thumbnails collapse, and document actions remain reachable.
+- A separate physical-phone pass remains part of phase 3 polish; it is not a phase 1 visual blocker.
 
-**Comparison history**
+## Remaining parity work
 
-- Initial P1: the tool page used a green, mint, and cream palette that contradicted the current blue landing page. Fixed by remapping the public tool tokens and all upload/settings states to the landing blue system.
-- Initial P1: the 56–94px tool headline and nearly full-width upload frame were materially larger than requested. Fixed by using a 38–56px DM Sans headline and a centered 920px upload frame.
-- Post-fix evidence: `/tmp/fixthatpdf-blue-reference-vs-tool.png` shows the same type family, blue CTA treatment, centered card anatomy, neutral background, and compact hierarchy.
-
-**Follow-up polish**
-
-- No P3 visual change is necessary for the requested correction.
-
-**Implementation checklist**
-
-- Blue landing-page tokens applied to all released tool routes.
-- DM Sans hero typography reused at a smaller tool-page scale.
-- Centered 920px upload frame across editor and conversion workflows.
-- Functional controls and anonymous upload behavior preserved.
-- Automated tests, typecheck, lint, and production build passed.
-
-final result: passed
+- Replace the native URL prompt with an in-product link popover.
+- Add a stamp chooser instead of only the default APPROVED stamp.
+- Improve exact font matching and paragraph reflow for complex existin

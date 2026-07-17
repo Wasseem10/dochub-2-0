@@ -52,6 +52,9 @@ import Send from "lucide-react/dist/esm/icons/send.mjs";
 import Settings from "lucide-react/dist/esm/icons/settings.mjs";
 import Share2 from "lucide-react/dist/esm/icons/share-2.mjs";
 import Link from "lucide-react/dist/esm/icons/link.mjs";
+import PanelsTopLeft from "lucide-react/dist/esm/icons/panels-top-left.mjs";
+import Stamp from "lucide-react/dist/esm/icons/stamp.mjs";
+import StickyNote from "lucide-react/dist/esm/icons/sticky-note.mjs";
 import LayoutDashboard from "lucide-react/dist/esm/icons/layout-dashboard.mjs";
 import Lock from "lucide-react/dist/esm/icons/lock.mjs";
 import Circle from "lucide-react/dist/esm/icons/circle.mjs";
@@ -90,6 +93,7 @@ import { extractPdfFormAnnotations } from "./tools/pdfFormFields.js";
 import { getPdfLoadErrorMessage, validatePdfUpload } from "./tools/pdfUploadValidation.js";
 import { drawFlattenedInputAnnotation } from "./tools/pdfEditorAnnotationExport.js";
 import { attachPdfCommentAnnotation } from "./tools/pdfCommentAnnotations.js";
+import { addPdfLinkAnnotation } from "./editor/pdfLinkAnnotation.mjs";
 import { protectPdfBytes } from "./tools/protectPdf.js";
 import { EDITOR_TOOL_MODES, getDefaultToolForMode, getToolsForMode, resolveModeForTool } from "./tools/editorToolModes.js";
 import { annotationPatchFromFrame, framesEqual, getAnnotationFrame, moveFrame, normalizeRotation, resizeFrame, rotationFromPointer } from "./tools/editorObjectTransforms.js";
@@ -186,6 +190,23 @@ const toolConfig = [
   { id: "arrow", label: "Arrow", icon: Send },
   { id: "whiteout", label: "Whiteout", icon: Eraser },
   { id: "signature", label: "Signature", icon: PenLine },
+  { id: "textHighlight", label: "Text Highlight", icon: Type },
+  { id: "stamp", label: "Stamp", icon: Stamp },
+  { id: "link", label: "Link", icon: Link },
+];
+
+const referencePrimaryTools = [
+  { id: "text", label: "Add Text", icon: Type },
+  { id: "editText", label: "Edit Text", icon: ScanText },
+  { id: "signature", label: "Sign", icon: PenLine },
+  { id: "draw", label: "Draw", icon: Paintbrush },
+  { id: "erase", label: "Erase", icon: Eraser },
+  { id: "highlight", label: "Highlight", icon: Highlighter },
+  { id: "textHighlight", label: "Text Highlight", icon: Type },
+  { id: "image", label: "Image", icon: ImageIcon },
+  { id: "stamp", label: "Stamp", icon: Stamp },
+  { id: "link", label: "Link", icon: Link },
+  { id: "note", label: "Note", icon: StickyNote },
 ];
 
 function makeId(prefix) {
@@ -362,8 +383,11 @@ function downloadBlob(blob, name) {
   const anchor = window.document.createElement("a");
   anchor.href = url;
   anchor.download = name;
+  anchor.style.display = "none";
+  window.document.body.appendChild(anchor);
   anchor.click();
-  URL.revokeObjectURL(url);
+  anchor.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 function hexToRgb(hex) {
@@ -1019,7 +1043,7 @@ function EditorSelectionControls({ onDelete, onMoveStart, onResizeStart, onRotat
   );
 }
 
-function ProfessionalAnnotation({ annotation, selected, zoom, onSelect, onCommit, onUpdate, onDelete }) {
+function ProfessionalAnnotation({ annotation, selected, zoom, activeTool, onSelect, onCommit, onUpdate, onDelete }) {
   const textContentRef = useRef(null);
   const textWasFocusedRef = useRef(false);
   const textDraftRef = useRef(annotation.content || "");
@@ -1099,7 +1123,15 @@ function ProfessionalAnnotation({ annotation, selected, zoom, onSelect, onCommit
     window.addEventListener("pointercancel", up);
   };
 
-  const dragStart = (event) => beginFrameGesture(event, "move");
+  const dragStart = (event) => {
+    if (activeTool === "erase") {
+      event.stopPropagation();
+      event.preventDefault();
+      onDelete(annotation.id);
+      return;
+    }
+    beginFrameGesture(event, "move");
+  };
   const resizeStart = (event, handle) => beginFrameGesture(event, "resize", handle);
   const rotateStart = (event) => beginFrameGesture(event, "rotate");
   const rotateStep = () => onCommit(annotation.id, { rotation: normalizeRotation((annotation.rotation || 0) + 15) });
@@ -1187,7 +1219,40 @@ function ProfessionalAnnotation({ annotation, selected, zoom, onSelect, onCommit
     );
   }
 
-  if (annotation.type === "comment") return <div className={`annotation comment-marker ${selected ? "is-selected" : ""}`} style={commonStyle} onPointerDown={dragStart}><MessageSquare size={Math.max(16, 20 * (zoom / 100))} />{controls}</div>;
+  if (annotation.type === "stamp") {
+    return <div className={`annotation stamp-annotation ${selected ? "is-selected" : ""}`} style={{ ...commonStyle, color: annotation.color }} onPointerDown={dragStart}><span>{annotation.content || "APPROVED"}</span>{controls}</div>;
+  }
+
+  if (annotation.type === "link") {
+    return (
+      <div
+        className={`annotation link-annotation ${selected ? "is-selected" : ""}`}
+        style={{ ...commonStyle, color: annotation.color }}
+        onPointerDown={dragStart}
+        onDoubleClick={(event) => {
+          event.stopPropagation();
+          const nextUrl = window.prompt("Link address", annotation.url || "https://");
+          if (!nextUrl?.trim()) return;
+          const normalizedUrl = /^https?:\/\//i.test(nextUrl.trim()) ? nextUrl.trim() : `https://${nextUrl.trim()}`;
+          onUpdate(annotation.id, { url: normalizedUrl, content: normalizedUrl.replace(/^https?:\/\//i, "") });
+        }}
+      >
+        <Link size={Math.max(13, 15 * (zoom / 100))} />
+        <span>{annotation.content || annotation.url || "Link"}</span>
+        {controls}
+      </div>
+    );
+  }
+
+  if (annotation.type === "comment") {
+    return (
+      <div className={`annotation comment-marker ${selected ? "is-selected" : ""}`} style={commonStyle} onPointerDown={dragStart}>
+        <StickyNote size={Math.max(16, 20 * (zoom / 100))} />
+        {selected && <textarea className="comment-editor" aria-label="Note text" value={annotation.content || ""} onPointerDown={(event) => event.stopPropagation()} onChange={(event) => onUpdate(annotation.id, { content: event.target.value, updatedAt: nowIso() })} placeholder="Write a note…" autoFocus />}
+        {controls}
+      </div>
+    );
+  }
 
   if (annotation.type === "signature" || annotation.type === "initials") {
     return <div className={`annotation signature ${annotation.type === "initials" ? "initials" : ""} ${selected ? "is-selected" : ""}`} style={{ ...commonStyle, color: annotation.color, fontFamily: annotation.fontFamily || (annotation.type === "signature" ? DEFAULT_SIGNATURE_FONT : '"PP Agrandir", Inter, Arial, sans-serif'), fontSize: `${annotation.fontSize * displayScale}px` }} onPointerDown={dragStart}>{annotation.imageDataUrl ? <img src={annotation.imageDataUrl} alt="Signature" /> : annotation.content}{controls}</div>;
@@ -1235,6 +1300,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   const canvasColumnRef = useRef(null);
   const publicDocumentRecoveryRef = useRef(new Set());
   const lastPagePointRef = useRef({ x: 0.52, y: 0.28 });
+  const editorClipboardRef = useRef(null);
   const [documents, setDocuments] = useState([]);
   const [documentCatalogReady, setDocumentCatalogReady] = useState(!isCloudPersistenceConfigured);
   const [editorRouteState, setEditorRouteState] = useState("idle");
@@ -1279,6 +1345,8 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   const [authRequiredAction, setAuthRequiredAction] = useState("");
   const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
   const [isZoomMenuOpen, setIsZoomMenuOpen] = useState(false);
+  const [isShapeMenuOpen, setIsShapeMenuOpen] = useState(false);
+  const [isManagePagesOpen, setIsManagePagesOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isCommentsOpen, setIsCommentsOpen] = useState(false);
   const [documentSearchQuery, setDocumentSearchQuery] = useState("");
@@ -1307,6 +1375,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   const selectedDetectedText = useMemo(() => detectedTextItems.find((item) => item.id === selectedDetectedTextId), [detectedTextItems, selectedDetectedTextId]);
   const activeDocument = useMemo(() => documents.find((document) => document.id === activeDocumentId), [documents, activeDocumentId]);
   const currentPage = pages[pageIndex] || pages[0];
+  const hasVisibleToolSettings = selected?.type === "text" || ["text", "field", "draw", "highlight", "textHighlight", "whiteout", "rectangle", "circle", "line", "arrow"].includes(tool);
   const pageAnnotations = annotations.filter((annotation) => annotation.page === pageIndex);
   const pageDetectedTextItems = detectedTextItems.filter((item) => item.pageNumber === pageIndex && !item.isDeleted);
   const pageDeletedTextItems = detectedTextItems.filter((item) => item.pageNumber === pageIndex && item.isDeleted);
@@ -2505,7 +2574,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   const onPagePointerDown = (event) => {
     event.currentTarget.focus();
     lastPagePointRef.current = pointerToNormalized(event, event.currentTarget);
-    if (!["text", "highlight", "draw", "signature", "initials", "checkbox", "field", "date", "whiteout", "rectangle", "circle", "line", "arrow", "comment", "image"].includes(tool)) {
+    if (!["text", "highlight", "textHighlight", "draw", "signature", "initials", "checkbox", "field", "date", "whiteout", "rectangle", "circle", "line", "arrow", "comment", "stamp", "link", "image"].includes(tool)) {
       setSelectedId(null);
       setSelectedDetectedTextId(null);
       return;
@@ -2545,6 +2614,22 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
 
     if (tool === "text") {
       addTextAnnotation("", point);
+      return;
+    }
+
+    if (tool === "textHighlight") {
+      addAnnotation({
+        id: makeId("text-highlight"),
+        type: "highlight",
+        page: pageIndex,
+        x: clamp(point.x, 0, 0.82),
+        y: clamp(point.y, 0, 0.96),
+        w: 0.16,
+        h: 0.024,
+        color: toolSettings.highlightColor,
+        opacity: toolSettings.highlightOpacity,
+        rotation: 0,
+      });
       return;
     }
 
@@ -2638,6 +2723,45 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
         history: [{ type: "created", author: "You", at: createdAt }],
         color: "#f59e0b",
         opacity: 1,
+      });
+      return;
+    }
+
+    if (tool === "stamp") {
+      addAnnotation({
+        id: makeId("stamp"),
+        type: "stamp",
+        page: pageIndex,
+        x: clamp(point.x, 0, 0.76),
+        y: clamp(point.y, 0, 0.91),
+        w: 0.22,
+        h: 0.075,
+        content: "APPROVED",
+        color: colors.blue,
+        opacity: 1,
+        rotation: -8,
+      });
+      return;
+    }
+
+    if (tool === "link") {
+      const url = window.prompt("Link address", "https://");
+      if (!url?.trim()) return;
+      const normalizedUrl = /^https?:\/\//i.test(url.trim()) ? url.trim() : `https://${url.trim()}`;
+      addAnnotation({
+        id: makeId("link"),
+        type: "link",
+        page: pageIndex,
+        x: clamp(point.x, 0, 0.7),
+        y: clamp(point.y, 0, 0.93),
+        w: 0.28,
+        h: 0.045,
+        content: normalizedUrl.replace(/^https?:\/\//i, ""),
+        url: normalizedUrl,
+        color: colors.blue,
+        fontSize: 12,
+        opacity: 1,
+        rotation: 0,
       });
       return;
     }
@@ -2752,6 +2876,55 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     addAnnotation({ ...selected, id: makeId(selected.type), x: clamp(selected.x + 0.025, 0, 0.86), y: clamp(selected.y + 0.025, 0, 0.94) });
   };
 
+  const copySelected = () => {
+    if (selectedDetectedText) {
+      editorClipboardRef.current = { kind: "detected-text", value: { ...selectedDetectedText } };
+      showToast("Text copied.");
+      return true;
+    }
+    if (!selected) return false;
+    editorClipboardRef.current = {
+      kind: "annotation",
+      value: {
+        ...selected,
+        points: selected.points?.map((point) => ({ ...point })),
+      },
+    };
+    showToast("Object copied.");
+    return true;
+  };
+
+  const pasteCopied = () => {
+    const copied = editorClipboardRef.current;
+    if (!copied) {
+      showToast("Copy an editor object first.");
+      return;
+    }
+    if (copied.kind === "detected-text") {
+      duplicateDetectedTextItem(copied.value);
+      showToast("Text pasted.");
+      return;
+    }
+    const value = copied.value;
+    const pasted = value.type === "draw"
+      ? {
+        ...value,
+        id: makeId("draw"),
+        page: pageIndex,
+        points: (value.points || []).map((point) => ({ x: clamp(point.x + 0.025, 0, 1), y: clamp(point.y + 0.025, 0, 1) })),
+      }
+      : {
+        ...value,
+        id: makeId(value.type),
+        page: pageIndex,
+        x: clamp((value.x || 0) + 0.025, 0, Math.max(0, 1 - (value.w || 0.1))),
+        y: clamp((value.y || 0) + 0.025, 0, Math.max(0, 1 - (value.h || 0.05))),
+      };
+    addAnnotation(pasted);
+    editorClipboardRef.current = { kind: "annotation", value: pasted };
+    showToast("Object pasted.");
+  };
+
   const deleteSelected = () => {
     if (selectedDetectedTextId) {
       deleteDetectedTextItem(selectedDetectedTextId);
@@ -2820,6 +2993,30 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   };
 
   const startDetectedTextDrag = (event, item) => {
+    if (tool === "erase") {
+      event.preventDefault();
+      event.stopPropagation();
+      deleteDetectedTextItem(item.id);
+      return;
+    }
+    if (tool === "textHighlight") {
+      event.preventDefault();
+      event.stopPropagation();
+      addAnnotation({
+        id: makeId("text-highlight"),
+        type: "highlight",
+        page: item.pageNumber,
+        x: clamp(item.x - 0.003, 0, 0.99),
+        y: clamp(item.y + item.h * 0.08, 0, 0.99),
+        w: clamp(item.w + 0.006, 0.02, 1 - item.x),
+        h: clamp(item.h * 0.78, 0.012, 0.12),
+        color: toolSettings.highlightColor,
+        opacity: toolSettings.highlightOpacity,
+        rotation: item.rotation || 0,
+      });
+      showToast("Text highlighted.");
+      return;
+    }
     if (isEditableTarget(event.target) || event.target.closest?.(".detected-text-toolbar, .resize-handle")) return;
     event.stopPropagation();
     event.currentTarget.setPointerCapture?.(event.pointerId);
@@ -2916,6 +3113,25 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       }
 
       if (isEditableTarget(event.target)) return;
+      if ((event.metaKey || event.ctrlKey) && key === "c") {
+        if (selectedId || selectedDetectedTextId) {
+          event.preventDefault();
+          copySelected();
+        }
+        return;
+      }
+      if ((event.metaKey || event.ctrlKey) && key === "x") {
+        if (selectedId || selectedDetectedTextId) {
+          event.preventDefault();
+          if (copySelected()) deleteSelected();
+        }
+        return;
+      }
+      if ((event.metaKey || event.ctrlKey) && key === "v") {
+        event.preventDefault();
+        pasteCopied();
+        return;
+      }
       if ((event.metaKey || event.ctrlKey) && key === "z") {
         event.preventDefault();
         if (event.shiftKey) redo();
@@ -2945,7 +3161,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [pages, pageIndex, selectedId, selectedDetectedTextId, selected?.type, annotations, detectedTextItems, undoStack, redoStack, saveState]);
+  }, [pages, pageIndex, selectedId, selectedDetectedTextId, selected, selectedDetectedText, annotations, detectedTextItems, undoStack, redoStack, saveState]);
 
   const exportPdf = async (options = {}) => {
     const shouldDownload = options?.download !== false;
@@ -3105,6 +3321,66 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
           page.drawLine({ start: end, end: { x: end.x - head, y: end.y }, thickness: annotation.strokeWidth || 3, color, opacity: annotation.opacity });
           page.drawLine({ start: end, end: { x: end.x, y: end.y + head }, thickness: annotation.strokeWidth || 3, color, opacity: annotation.opacity });
         }
+      }
+
+      if (annotation.type === "stamp") {
+        const stampX = annotation.x * width;
+        const stampY = height - annotation.y * height - annotation.h * height;
+        const stampWidth = annotation.w * width;
+        const stampHeight = annotation.h * height;
+        const annotationRotation = degrees(Number(annotation.rotation || 0));
+        page.drawRectangle({
+          x: stampX,
+          y: stampY,
+          width: stampWidth,
+          height: stampHeight,
+          borderColor: color,
+          borderWidth: Math.max(1.5, stampHeight * 0.055),
+          opacity: annotation.opacity,
+          rotate: annotationRotation,
+        });
+        const stampText = String(annotation.content || "APPROVED").slice(0, 24);
+        const stampSize = Math.max(8, Math.min(20, stampHeight * 0.42));
+        page.drawText(stampText, {
+          x: stampX + Math.max(4, stampWidth * 0.06),
+          y: stampY + Math.max(3, (stampHeight - stampSize) / 2),
+          size: stampSize,
+          font: helveticaBold,
+          color,
+          opacity: annotation.opacity,
+          rotate: annotationRotation,
+        });
+      }
+
+      if (annotation.type === "link") {
+        const linkX = annotation.x * width;
+        const linkY = height - annotation.y * height - annotation.h * height;
+        const linkWidth = annotation.w * width;
+        const linkHeight = annotation.h * height;
+        const linkSize = Math.max(7, Math.min(14, annotation.fontSize || linkHeight * 0.5));
+        const linkText = String(annotation.content || annotation.url || "Link").slice(0, 80);
+        page.drawText(linkText, {
+          x: linkX + 2,
+          y: linkY + Math.max(2, (linkHeight - linkSize) / 2),
+          size: linkSize,
+          font: helvetica,
+          color,
+          opacity: annotation.opacity,
+        });
+        page.drawLine({
+          start: { x: linkX + 2, y: linkY + 1 },
+          end: { x: linkX + linkWidth, y: linkY + 1 },
+          thickness: 0.8,
+          color,
+          opacity: annotation.opacity,
+        });
+        addPdfLinkAnnotation(page, pdfDoc, {
+          x: linkX,
+          y: linkY,
+          width: linkWidth,
+          height: linkHeight,
+          url: annotation.url,
+        });
       }
 
       if (annotation.type === "comment") {
@@ -3277,6 +3553,50 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     if (preset || postAuthAction) navigate(currentLocationPath(location), { replace: true, state: null });
   }, [detectedTextCount, editorRouteState, location, navigate, view]);
 
+  const activateReferenceTool = (nextTool) => {
+    setIsShapeMenuOpen(false);
+    setSelectedDetectedTextId(null);
+    if (nextTool === "image") {
+      setTool("image");
+      imageInputRef.current?.click();
+      return;
+    }
+    if (nextTool === "signature") {
+      setTool("signature");
+      if (!activeSignature.content && !activeSignature.imageDataUrl) {
+        setSignatureModalMode("signature");
+        setSignatureModalOpen(true);
+      } else {
+        showToast("Click the page to place your signature.");
+      }
+      return;
+    }
+    if (nextTool === "editText") {
+      setTool("editText");
+      showToast(detectedTextCount ? "Click existing PDF text to edit it." : "This page has no editable text layer. Use Add Text instead.");
+      return;
+    }
+    if (nextTool === "textHighlight") {
+      setTool("textHighlight");
+      showToast(detectedTextCount ? "Click existing PDF text to highlight it." : "Click the page to place a text highlight.");
+      return;
+    }
+    if (nextTool === "note") {
+      setTool("comment");
+      showToast("Click the page to place a note.");
+      return;
+    }
+    if (nextTool === "erase") showToast("Click an annotation or existing text item to erase it.");
+    if (nextTool === "stamp") showToast("Click the page to place an Approved stamp.");
+    if (nextTool === "link") showToast("Click the page, then enter the link address.");
+    setTool(nextTool);
+  };
+
+  const finishEditing = async () => {
+    await saveActiveDocument(true);
+    navigate(currentUser?.uid ? ROUTE_PATHS.documents : ROUTE_PATHS.home);
+  };
+
   if (view === "landing") {
     return (
       <LatticePdfLanding
@@ -3361,11 +3681,25 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   }
 
   return (
-    <main className={`editor-shell ${tool === "editText" ? "is-smart-text-mode" : ""}`}>
+    <main className={`editor-shell ${hasVisibleToolSettings ? "has-tool-settings" : ""} ${tool === "editText" ? "is-smart-text-mode" : ""} ${tool === "textHighlight" ? "is-text-highlight-mode" : ""}`}>
       <input ref={fileInputRef} className="hidden-input" type="file" accept="application/pdf" onChange={onUpload} />
       <input ref={appendFileInputRef} className="hidden-input" type="file" accept="application/pdf" onChange={onAppendUpload} />
       <input ref={imageInputRef} className="hidden-input" type="file" accept="image/png,image/jpeg" onChange={onImageUpload} />
       {isOffline && <div className="editor-offline-banner" role="status">You are offline. Editing and local saves still work in this browser.</div>}
+      <header className="file-header reference-file-header">
+        <div className="reference-brand-lockup">
+          <span className="reference-brand-mark" aria-hidden="true"><FileText size={23} /></span>
+          <button type="button" className="reference-brand-name" onClick={renameActiveDocument} title={`Rename ${fileName}`}>
+            <strong>FixThatPDF</strong>
+            <small>{fileName} · {saveStatusLabel}</small>
+          </button>
+        </div>
+        <div className="reference-header-actions" aria-label="Document actions">
+          <button type="button" onClick={() => window.print()}><Printer size={23} /><span>Print</span></button>
+          <button type="button" onClick={exportPdf} disabled={isExporting}><Download size={23} /><span>{isExporting ? "Preparing…" : "Download"}</span></button>
+          <button type="button" className="reference-done-button" onClick={finishEditing}><span>Done</span></button>
+        </div>
+      </header>
       <header className="file-header">
         <button type="button" className="editor-home-button" onClick={() => navigate(ROUTE_PATHS.home)} title="Back to FixThatPDF home" aria-label="Back to FixThatPDF home"><Home size={21} /></button>
         <button
@@ -3483,6 +3817,69 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
         </div>
       </header>
 
+      <section className="tool-ribbon reference-tool-ribbon" aria-label="PDF editing toolbar">
+        <button
+          type="button"
+          className={`reference-toolbar-button reference-thumbnail-toggle ${!isPagesCollapsed ? "is-active" : ""}`}
+          onClick={() => setIsPagesCollapsed((value) => !value)}
+          aria-controls="page-thumbnails"
+          aria-expanded={!isPagesCollapsed}
+        >
+          <PanelsTopLeft size={23} />
+          <span>Thumbnails</span>
+          <ChevronDown size={14} />
+        </button>
+
+        <div className="reference-history-tools" aria-label="History">
+          <button type="button" className="reference-toolbar-button" onClick={undo} disabled={!undoStack.length}><Undo2 size={23} /><span>Undo</span></button>
+          <button type="button" className="reference-toolbar-button" onClick={redo} disabled={!redoStack.length}><Redo2 size={23} /><span>Redo</span></button>
+        </div>
+
+        <div className="reference-primary-tools" role="toolbar" aria-label="Editing tools">
+          {referencePrimaryTools.slice(0, 3).map(({ id, label, icon: Icon }) => (
+            <button key={id} type="button" className={`reference-toolbar-button ${tool === id ? "is-active" : ""}`} aria-pressed={tool === id} onClick={() => activateReferenceTool(id)}>
+              <Icon size={23} /><span>{label}</span>
+            </button>
+          ))}
+
+          <div className="reference-shape-tool">
+            <button type="button" className={`reference-toolbar-button ${["arrow", "line", "rectangle", "circle"].includes(tool) ? "is-active" : ""}`} aria-pressed={["arrow", "line", "rectangle", "circle"].includes(tool)} onClick={() => activateReferenceTool("arrow")}>
+              <Send size={23} /><span>Arrow</span>
+            </button>
+            <button type="button" className="reference-shape-menu-trigger" aria-label="More shape tools" aria-haspopup="menu" aria-expanded={isShapeMenuOpen} onClick={() => setIsShapeMenuOpen((value) => !value)}><ChevronDown size={14} /></button>
+            {isShapeMenuOpen && (
+              <div className="reference-shape-menu" role="menu" aria-label="Shape tools">
+                {[
+                  { id: "arrow", label: "Arrow", icon: Send },
+                  { id: "line", label: "Line", icon: Minus },
+                  { id: "rectangle", label: "Rectangle", icon: RectangleHorizontal },
+                  { id: "circle", label: "Ellipse", icon: Circle },
+                ].map(({ id, label, icon: Icon }) => (
+                  <button key={id} type="button" role="menuitem" onClick={() => activateReferenceTool(id)}><Icon size={18} /> {label}</button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {referencePrimaryTools.slice(3).map(({ id, label, icon: Icon }) => (
+            <button key={id} type="button" className={`reference-toolbar-button ${tool === id || (id === "note" && tool === "comment") ? "is-active" : ""}`} aria-pressed={tool === id || (id === "note" && tool === "comment")} onClick={() => activateReferenceTool(id)}>
+              <Icon size={23} /><span>{label}</span>
+            </button>
+          ))}
+        </div>
+
+        <div className="reference-secondary-tools">
+          <button type="button" className={`reference-toolbar-button ${isSearchOpen ? "is-active" : ""}`} onClick={() => {
+            setIsSearchOpen((value) => !value);
+            setIsCommentsOpen(false);
+          }}><Search size={23} /><span>Search</span></button>
+          <button type="button" className={`reference-toolbar-button ${isManagePagesOpen ? "is-active" : ""}`} onClick={() => {
+            setIsManagePagesOpen((value) => !value);
+            setIsPagesCollapsed(false);
+          }}><PanelsTopLeft size={23} /><span>Manage pages</span></button>
+        </div>
+      </section>
+
       <section className="tool-ribbon" aria-label={`${EDITOR_TOOL_MODES.find((mode) => mode.id === activeToolMode)?.label || "View"} tools`}>
         <div className="contextual-mode-label">{EDITOR_TOOL_MODES.find((mode) => mode.id === activeToolMode)?.label || "View"}</div>
         {contextualToolConfig.map(({ id, label, icon: Icon }) => (
@@ -3553,7 +3950,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
               <button type="button" title="Close thumbnails" onClick={() => setIsPagesCollapsed(true)}><X size={18} /></button>
             </div>
           </div>
-          <div className="page-actions">
+          {isManagePagesOpen && <div className="page-actions reference-page-actions">
             <button type="button" onClick={() => setIsPageAppendMenuOpen((value) => !value)} aria-haspopup="menu" aria-expanded={isPageAppendMenuOpen}><FilePlus2 size={15} /> Append</button>
             {isPageAppendMenuOpen && (
               <div className="page-append-menu" role="menu" aria-label="Append pages">
@@ -3567,7 +3964,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
             <button type="button" onClick={() => moveCurrentPage(-1)} disabled={pageIndex === 0}><GripVertical size={15} /> Up</button>
             <button type="button" onClick={() => moveCurrentPage(1)} disabled={pageIndex === pages.length - 1}><GripVertical size={15} /> Down</button>
             <button type="button" onClick={deleteCurrentPage} disabled={pages.length <= 1}><Trash2 size={15} /> Delete</button>
-          </div>
+          </div>}
           <div className={`thumbnail-list ${viewMode}`}>
             {pages.map((page, index) => (
               <button
@@ -3579,7 +3976,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
                 aria-keyshortcuts="Alt+ArrowUp Alt+ArrowDown"
                 title={`Page ${index + 1}`}
                 onClick={() => setPageIndex(index)}
-                draggable
+                draggable={isManagePagesOpen}
                 onDragStart={(event) => {
                   event.dataTransfer.effectAllowed = "move";
                   event.dataTransfer.setData("text/plain", String(index));
@@ -3617,7 +4014,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
               </button>
             ))}
           </div>
-          <div className="thumbnail-footer" aria-label="Page actions">
+          {isManagePagesOpen && <div className="thumbnail-footer" aria-label="Page actions">
             <button type="button" title="Delete page" aria-label="Delete page" onClick={deleteCurrentPage} disabled={pages.length <= 1}>
               <Trash2 size={18} strokeWidth={2.6} />
             </button>
@@ -3630,7 +4027,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
             <button type="button" title="Download PDF" aria-label="Download PDF" onClick={exportPdf} disabled={isExporting}>
               <Download size={19} strokeWidth={2.5} />
             </button>
-          </div>
+          </div>}
           <div className="saved-foot"><CheckCircle2 size={22} /> {saveStatusLabel}</div>
         </aside>
 
@@ -3708,6 +4105,10 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
                         spellCheck="false"
                         value={item.currentText}
                         onPointerDown={(event) => {
+                          if (tool === "textHighlight" || tool === "erase") {
+                            startDetectedTextDrag(event, item);
+                            return;
+                          }
                           event.stopPropagation();
                           setSelectedDetectedTextId(item.id);
                           setSelectedId(null);
@@ -3730,6 +4131,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
                     annotation={annotation}
                     selected={annotation.id === selectedId}
                     zoom={zoom}
+                    activeTool={tool}
                     onSelect={setSelectedId}
                     onCommit={updateAnnotation}
                     onUpdate={updateAnnotation}
@@ -4359,7 +4761,7 @@ function ToolSettingsPanel({ tool, settings, setSettings, selectedTextAnnotation
     setFontSearch("");
   };
 
-  if (!["text", "field", "draw", "highlight", "whiteout", "rectangle", "circle", "line", "arrow"].includes(effectiveTool)) {
+  if (!["text", "field", "draw", "highlight", "textHighlight", "whiteout", "rectangle", "circle", "line", "arrow"].includes(effectiveTool)) {
     return null;
   }
 
@@ -4460,7 +4862,7 @@ function ToolSettingsPanel({ tool, settings, setSettings, selectedTextAnnotation
     );
   }
 
-  if (tool === "highlight") {
+  if (tool === "highlight" || tool === "textHighlight") {
     return (
       <div className="tool-settings">
         <ColorControl value={settings.highlightColor} onChange={(color) => update({ highlightColor: color })} />
@@ -6046,63 +6448,3 @@ function UpgradeModal({ onClose, onSelectPlan }) {
               <span>{plan.name}</span>
               <strong>{plan.price}<small>{plan.name === "Free" ? "" : "/mo"}</small></strong>
               <p>{plan.detail}</p>
-              <ul>
-                {plan.features.map((feature) => <li key={feature}><CheckCircle2 size={15} /> {feature}</li>)}
-              </ul>
-              <button type="button" onClick={() => onSelectPlan(plan.name)}>{plan.action}</button>
-            </article>
-          ))}
-        </div>
-
-        <footer>
-          <button type="button" className="modal-secondary" onClick={onClose}>Not now</button>
-          <button type="button" className="modal-primary" onClick={() => onSelectPlan("Pro")}>Continue with Pro</button>
-        </footer>
-      </section>
-    </div>
-  );
-}
-
-async function createSamplePdf() {
-  const pdfDoc = await PDFDocument.create();
-  const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
-  const bold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-
-  Array.from({ length: 3 }).forEach((_, pageIndex) => {
-    const page = pdfDoc.addPage([612, 792]);
-    page.drawText(pageIndex === 0 ? "SERVICE AGREEMENT" : pageIndex === 1 ? "STATEMENT OF WORK" : "EXHIBIT B", {
-      x: 202,
-      y: 710,
-      size: 18,
-      font: bold,
-      color: rgb(0.07, 0.09, 0.14),
-    });
-    const lines = [
-      "This Service Agreement is made and entered into as of May 15, 2024.",
-      "Client: Acme Corporation, 123 Business Way, Suite 100, Austin, TX.",
-      "Provider: Northfield Solutions, LLC, 500 Innovation Drive, Austin, TX.",
-      "",
-      "1. SCOPE OF SERVICES",
-      "Provider agrees to perform the services described in Exhibit A.",
-      "2. TERM",
-      "This Agreement shall continue for twelve months unless terminated earlier.",
-      "3. PAYMENT TERMS",
-      "Client shall pay Provider the fees set forth in Exhibit B.",
-      "4. CONFIDENTIALITY",
-      "Each Party agrees to keep non-public information confidential.",
-    ];
-    lines.forEach((line, index) => {
-      page.drawText(line, { x: 72, y: 662 - index * 24, size: line.match(/^\d/) ? 12 : 10.5, font: line.match(/^\d/) ? bold : font, color: rgb(0.08, 0.1, 0.16) });
-    });
-  });
-
-  return pdfDoc;
-}
-
-async function createBlankPdf(pageCount) {
-  const pdfDoc = await PDFDocument.create();
-  Array.from({ length: Math.max(1, pageCount) }).forEach(() => {
-    pdfDoc.addPage([612, 792]);
-  });
-  return pdfDoc;
-}
