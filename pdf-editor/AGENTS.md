@@ -14,6 +14,8 @@ The desktop editor’s post-upload screen must follow the July 16, 2026 PDF Help
 
 The primary desktop editor toolbar is a floating white rounded card on the light workspace, with compact icon-over-label buttons, subtle group dividers, soft shadow, and a pale FixThatPDF-blue active state. Keep the control density and grouping aligned with the July 17, 2026 toolbar reference while retaining only working FixThatPDF actions.
 
+The floating bottom zoom and page navigator follows the selected July 17, 2026 compact rail concept: one low-profile white capsule, borderless Lucide controls, a bordered zoom select, a pale-blue current-page field, one subtle divider, and restrained shadow. Keep zoom out/in, zoom preset, first/previous/next/last page, current page, and total page count functional and aligned.
+
 Every released PDF tool must have its own simple landing page using the current landing page as its visual source of truth: DM Sans hero typography, blue `#2851eb` actions, white and powder-blue surfaces, and compact type. Keep one centered upload card as the dominant action. Do not use green, mint, or cream on tool landing pages. Secondary settings and explanatory content must not compete with the upload action before a file is chosen.
 
 The dashboa

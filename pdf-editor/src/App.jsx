@@ -21,6 +21,7 @@ import CalendarDays from "lucide-react/dist/esm/icons/calendar-days.mjs";
 import CheckCircle2 from "lucide-react/dist/esm/icons/check-circle-2.mjs";
 import CheckSquare from "lucide-react/dist/esm/icons/check-square.mjs";
 import ChevronDown from "lucide-react/dist/esm/icons/chevron-down.mjs";
+import ChevronUp from "lucide-react/dist/esm/icons/chevron-up.mjs";
 import CircleHelp from "lucide-react/dist/esm/icons/circle-help.mjs";
 import Copy from "lucide-react/dist/esm/icons/copy.mjs";
 import Download from "lucide-react/dist/esm/icons/download.mjs";
@@ -4256,19 +4257,19 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
 
       <footer className="status-bar">
         <div />
-        <div className="page-nav">
-          <button className="page-nav-zoom" type="button" onClick={() => setZoom((value) => clamp(value - 10, 60, 160))} title="Zoom out" aria-label="Zoom out">-</button>
+        <div className="page-nav" aria-label="Zoom and page navigation">
+          <button className="page-nav-zoom" type="button" onClick={() => setZoom((value) => clamp(value - 10, 60, 160))} title="Zoom out" aria-label="Zoom out"><Minus size={21} strokeWidth={2.6} /></button>
           <select className="page-nav-zoom-select" value={zoom} onChange={(event) => setZoom(Number(event.target.value))} aria-label="Zoom level">
             {zoomOptions.map((value) => <option key={value} value={value}>{value}%</option>)}
           </select>
-          <button className="page-nav-zoom" type="button" onClick={() => setZoom((value) => clamp(value + 10, 60, 160))} title="Zoom in" aria-label="Zoom in">+</button>
+          <button className="page-nav-zoom" type="button" onClick={() => setZoom((value) => clamp(value + 10, 60, 160))} title="Zoom in" aria-label="Zoom in"><Plus size={22} strokeWidth={2.6} /></button>
           <span className="page-nav-divider" aria-hidden="true" />
-          <button type="button" onClick={() => setPageIndex(0)}>‹</button>
-          <input value={pageIndex + 1} onChange={(event) => setPageIndex(clamp(Number(event.target.value) - 1 || 0, 0, pages.length - 1))} />
-          <span>/ {pages.length}</span>
-          <button type="button" onClick={() => setPageIndex((value) => clamp(value - 1, 0, pages.length - 1))}>⌃</button>
-          <button type="button" onClick={() => setPageIndex((value) => clamp(value + 1, 0, pages.length - 1))}>⌄</button>
-          <button type="button" onClick={() => setPageIndex(pages.length - 1)}>›</button>
+          <button type="button" onClick={() => setPageIndex(0)} title="First page" aria-label="First page"><ChevronLeft size={25} strokeWidth={2.4} /></button>
+          <input aria-label="Current page" inputMode="numeric" min="1" max={pages.length} value={pageIndex + 1} onChange={(event) => setPageIndex(clamp(Number(event.target.value) - 1 || 0, 0, pages.length - 1))} />
+          <span className="page-nav-total">/ {pages.length}</span>
+          <button type="button" onClick={() => setPageIndex((value) => clamp(value - 1, 0, pages.length - 1))} title="Previous page" aria-label="Previous page"><ChevronUp size={25} strokeWidth={2.4} /></button>
+          <button type="button" onClick={() => setPageIndex((value) => clamp(value + 1, 0, pages.length - 1))} title="Next page" aria-label="Next page"><ChevronDown size={25} strokeWidth={2.4} /></button>
+          <button type="button" onClick={() => setPageIndex(pages.length - 1)} title="Last page" aria-label="Last page"><ChevronRight size={25} strokeWidth={2.4} /></button>
         </div>
         <div className="status-tools">
           <button type="button" onClick={() => setZoom((value) => clamp(value - 10, 60, 160))}>-</button>
