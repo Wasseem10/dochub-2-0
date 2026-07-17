@@ -5174,7 +5174,7 @@ export function UploadLanding({
   const [inviteDrafts, setInviteDrafts] = useState([]);
   const [workspaceNotice, setWorkspaceNotice] = useState("");
   const [openDocumentMenuId, setOpenDocumentMenuId] = useState(null);
-  const userName = currentUser?.name || currentUser?.email || "Workspace owner";
+  const userName = currentUser?.name || currentUser?.email || "Local workspace";
   const userInitials = userName
     .split(/\s|@/)
     .filter(Boolean)
@@ -5186,7 +5186,7 @@ export function UploadLanding({
     || "there";
   const dashboardAccountName = currentUser?.name?.trim()
     || currentUser?.email?.split("@")[0]
-    || "Account";
+    || "Local";
   const dashboardHour = new Date().getHours();
   const dashboardGreeting = dashboardHour < 12
     ? "Good morning"
@@ -5696,11 +5696,15 @@ export function UploadLanding({
                   <>
                     <div className="account-menu-identity">
                       <span className="account-menu-avatar">{userInitials}</span>
-                      <div><h3>{userName}</h3><p><Mail size={15} /> {currentUser?.email || "Signed in workspace"}</p></div>
+                      <div><h3>{userName}</h3><p><Mail size={15} /> {currentUser?.email || "Files stay in this browser"}</p></div>
                     </div>
                     <div className="account-menu-actions">
                       <button type="button" className="account-menu-settings" onClick={() => { setActiveSection("Settings"); closePanel(); }}><Settings size={18} /><span><strong>Workspace settings</strong><small>Profile, storage, and preferences</small></span><ChevronRight size={17} /></button>
-                      <button type="button" className="account-menu-signout" onClick={onLogout}><LogOut size={18} /><span>Sign out</span></button>
+                      {currentUser?.uid ? (
+                        <button type="button" className="account-menu-signout" onClick={onLogout}><LogOut size={18} /><span>Sign out</span></button>
+                      ) : (
+                        <button type="button" className="account-menu-signout" onClick={() => onNavigate(ROUTE_PATHS.login)}><LogOut size={18} /><span>Sign in</span></button>
+                      )}
                     </div>
                   </>
                 )}
