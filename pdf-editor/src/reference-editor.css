@@ -37,6 +37,15 @@ main.editor-shell .reference-brand-name {
   letter-spacing: -.04em;
   line-height: 1;
 }
+main.editor-shell .reference-brand-button {
+  padding: 4px 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  font-family: inherit;
+}
+main.editor-shell .reference-brand-button:hover { color: #2851eb; }
+main.editor-shell .reference-brand-button:focus-visible { outline: 3px solid rgba(40, 81, 235, .22); outline-offset: 4px; border-radius: 5px; }
 main.editor-shell .reference-brand-divider { width: 1px; height: 34px; flex: 0 0 1px; margin: 0 22px; background: #d9dee8; }
 main.editor-shell .reference-document-name {
   display: flex;
