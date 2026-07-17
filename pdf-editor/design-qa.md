@@ -1,48 +1,26 @@
-# FixThatPDF compact bottom-controls design QA
+# Design QA — workspace loading transition
 
-- Source visual truth: `/Users/wasseemdabbas/.codex/generated_images/019f6c45-783c-7773-ab30-ff76930599f1/exec-644fa881-be0b-43d7-9aca-4039c86dd31b.png`
-- Implementation screenshot: `bottom-controls-full.png`
-- Combined comparison: `bottom-controls-comparison.png`
-- The local QA screenshots are intentionally not committed; they verify the component without adding generated image artifacts to the public repository.
-- Viewport: 1280 × 720 desktop
-- State: anonymous blank PDF open at page 1 and 100% zoom
+- Source visual: `/var/folders/y5/5nxfxhk97_9fmsmdf8tqj81r0000gn/T/TemporaryItems/NSIRD_screencaptureui_VKpVW7/Screenshot 2026-07-17 at 6.38.36 PM.png`
+- Implementation capture: `qa-loading-screen/implementation.png`
+- Combined comparison: `qa-loading-screen/comparison.png`
+- Route checked: `http://127.0.0.1:4173/app/dashboard`
+- Browser viewport: 1280 × 720
 
-## Full-view comparison evidence
+## Visual checks
 
-The implementation preserves the selected concept's single low-profile white capsule, restrained cool-gray outline and shadow, dark navy line icons, blue current-page field, compact bordered zoom select, and one quiet group divider. The rail is centered over the document canvas and stays visually separate from the page surface.
+- Brand: passed — the tiny all-caps pill is replaced by the existing blue document mark and readable FixThatPDF wordmark.
+- Typography: passed — Funnel Display provides the heading and brand hierarchy; DM Sans is used for body and status text.
+- Hierarchy: passed — brand, loading title, supporting copy, progress, and session status read in the intended order.
+- Layout: passed — the compact card is centered, evenly padded, and remains within the supplied narrow-screen proportions.
+- Color and contrast: passed — white and powder-blue surfaces preserve FixThatPDF's cobalt brand and maintain readable contrast.
+- Motion: passed — progress communicates activity without blocking interaction, with a static reduced-motion alternative.
+- Content accuracy: passed — copy describes session restoration without unsupported security or completion claims.
+- Accessibility: passed — the transition exposes a polite live `status` region and the decorative icon/progress are hidden from assistive technology.
 
-## Focused-region comparison evidence
+## Verification
 
-The source and implementation use the same approximately 10:1 control-rail ratio. Controls retain even vertical alignment and deliberate breathing room without the oversized gray button blocks, doubled borders, or distorted glyphs visible in the original broken bar.
-
-## Required fidelity surfaces
-
-- Fonts and typography: passed. Zoom and page values use compact, high-contrast product typography with clear hierarchy.
-- Spacing and layout rhythm: passed. A 58px rail, 44px icon targets, 42px inputs, and restrained four-pixel internal gaps create a clean professional cadence.
-- Colors and visual tokens: passed. The rail uses FixThatPDF blue `#2851eb`, white, cool gray, and navy; no competitor branding or assets are present.
-- Image quality and asset fidelity: passed. Existing Lucide icons replace unstable text glyphs, so the controls remain crisp at every device density.
-- Copy and content: passed. Zoom out, zoom level, zoom in, first, current, total, previous, next, and last page controls are all present and accessible.
-
-## Findings
-
-- No actionable P0, P1, or P2 mismatch remains.
-- P3: native select chevron rendering varies slightly by operating system, while preserving the selected concept's familiar dropdown affordance.
-
-## Interaction and implementation checks
-
-- Anonymous blank-document flow opened the editor successfully.
-- Zoom out changed 100% to 90%; zoom in restored 100%.
-- Current page exposed valid minimum, maximum, and value attributes.
-- First, previous, next, and last page buttons each resolved to one accessible control.
-- Browser console errors checked: none.
-- Automated tests: 80 passed across 26 test files.
-- Typecheck and production build: passed.
-- Lint: 0 errors; existing repository warnings remain.
-
-## Comparison history
-
-- Initial reference: the old footer used large gray blocks, text-character arrows, multiple competing borders, and uneven spacing.
-- Fixes made: rebuilt the footer as one compact white capsule, replaced text glyphs with the existing icon system, simplified the surface treatment, and retained every underlying action.
-- Post-fix evidence: `bottom-controls-full.png` shows the finished rail centered over the live PDF workspace.
+- Route guard integration: 12 tests passed.
+- ESLint: 0 errors (existing repository warnings remain).
+- Production build: passed.
 
 final result: passed
