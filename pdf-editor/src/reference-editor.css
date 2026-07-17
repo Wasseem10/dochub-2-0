@@ -3,14 +3,14 @@ main.editor-shell.editor-shell {
   --reference-blue: #2d55ee;
   --reference-blue-dark: #1d43d7;
   display: grid !important;
-  grid-template-rows: 92px 94px minmax(0, 1fr) !important;
+  grid-template-rows: 76px 94px minmax(0, 1fr) !important;
   min-width: 0 !important;
   height: 100dvh !important;
   overflow: hidden !important;
   background: #eef1f7 !important;
 }
 
-main.editor-shell.editor-shell.has-tool-settings { grid-template-rows: 92px 94px 46px minmax(0, 1fr) !important; }
+main.editor-shell.editor-shell.has-tool-settings { grid-template-rows: 76px 94px 46px minmax(0, 1fr) !important; }
 main.editor-shell > .file-header:not(.reference-file-header),
 main.editor-shell > .tool-ribbon:not(.reference-tool-ribbon) { display: none !important; }
 
@@ -19,66 +19,95 @@ main.editor-shell .reference-file-header {
   align-items: center !important;
   justify-content: space-between !important;
   width: 100% !important;
-  min-height: 92px !important;
-  height: 92px !important;
-  padding: 0 20px !important;
+  min-height: 76px !important;
+  height: 76px !important;
+  padding: 0 26px !important;
   border: 0 !important;
   border-bottom: 1px solid #d9dee8 !important;
   background: #fff !important;
-  box-shadow: none !important;
+  box-shadow: 0 1px 0 rgba(25, 38, 61, .02) !important;
 }
 
-main.editor-shell .reference-brand-lockup { display: flex; min-width: 0; align-items: center; gap: 12px; }
-main.editor-shell .reference-brand-mark {
-  display: grid;
-  width: 48px;
-  height: 48px;
-  flex: 0 0 48px;
-  place-items: center;
-  border-radius: 11px;
-  background: var(--reference-blue);
-  color: #fff;
-  box-shadow: 0 5px 14px rgba(45, 85, 238, .22);
+main.editor-shell .reference-brand-lockup { display: flex; min-width: 0; flex: 1 1 auto; align-items: center; }
+main.editor-shell .reference-brand-name {
+  flex: 0 0 auto;
+  color: #111722;
+  font-size: 25px;
+  font-weight: 820;
+  letter-spacing: -.04em;
+  line-height: 1;
 }
-main.editor-shell .reference-brand-name { display: grid; min-width: 0; padding: 0; border: 0; background: transparent; color: #111722; text-align: left; cursor: pointer; }
-main.editor-shell .reference-brand-name strong { font-size: 25px; font-weight: 820; letter-spacing: -.035em; line-height: 1.05; }
-main.editor-shell .reference-brand-name small { max-width: min(420px, 40vw); margin-top: 5px; overflow: hidden; color: #788292; font-size: 11px; font-weight: 650; text-overflow: ellipsis; white-space: nowrap; }
-
-main.editor-shell .reference-header-actions { display: flex; align-items: center; gap: 6px; }
-main.editor-shell .reference-header-actions > button {
-  display: grid;
-  min-width: 78px;
-  height: 64px;
-  padding: 7px 12px;
-  place-items: center;
-  gap: 3px;
+main.editor-shell .reference-brand-divider { width: 1px; height: 34px; flex: 0 0 1px; margin: 0 22px; background: #d9dee8; }
+main.editor-shell .reference-document-name {
+  display: flex;
+  min-width: 0;
+  max-width: min(440px, 34vw);
+  height: 42px;
+  align-items: center;
+  gap: 10px;
+  padding: 0;
   border: 0;
-  border-radius: 9px;
   background: transparent;
+  color: #3f4959;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 590;
+  cursor: text;
+}
+main.editor-shell .reference-document-name:hover { color: #172033; }
+main.editor-shell .reference-document-name:focus-visible { border-radius: 8px; outline: 3px solid rgba(45, 85, 238, .2); outline-offset: 5px; }
+main.editor-shell .reference-document-name svg { flex: 0 0 auto; color: #5b6677; }
+main.editor-shell .reference-document-name span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+main.editor-shell .reference-save-state {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 7px;
+  margin-left: 22px;
+  color: #27913c;
+  font-size: 14px;
+  font-weight: 650;
+  white-space: nowrap;
+}
+main.editor-shell .reference-save-state.is-unsaved { color: #b26b18; }
+
+main.editor-shell .reference-header-actions { display: flex; flex: 0 0 auto; align-items: center; gap: 10px; }
+main.editor-shell .reference-header-actions > button {
+  display: inline-flex;
+  min-width: 108px;
+  height: 46px;
+  padding: 0 16px;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  border: 1px solid #ced5e1;
+  border-radius: 10px;
+  background: #fff;
   color: #252d3a;
   font: inherit;
-  font-size: 13px;
-  font-weight: 650;
+  font-size: 14px;
+  font-weight: 670;
   cursor: pointer;
+  transition: border-color .16s ease, background .16s ease, box-shadow .16s ease, transform .16s ease;
 }
-main.editor-shell .reference-header-actions > button:hover { background: #f1f4f8; }
+main.editor-shell .reference-header-actions > button:hover { border-color: #aeb9ca; background: #f8faff; box-shadow: 0 3px 10px rgba(29, 45, 74, .08); transform: translateY(-1px); }
+main.editor-shell .reference-header-actions > button:focus-visible { outline: 3px solid rgba(45, 85, 238, .22); outline-offset: 2px; }
 main.editor-shell .reference-header-actions > button:disabled { cursor: wait; opacity: .62; }
 main.editor-shell .reference-header-actions .reference-done-button {
-  display: flex;
-  width: 174px;
-  min-width: 174px;
-  height: 64px;
-  margin-left: 6px;
+  width: 112px;
+  min-width: 112px;
+  height: 46px;
+  margin-left: 2px;
   justify-content: center;
   border: 1px solid var(--reference-blue-dark);
-  border-radius: 11px;
+  border-radius: 10px;
   background: var(--reference-blue);
   color: #fff;
-  font-size: 22px;
-  font-weight: 790;
-  box-shadow: 0 6px 16px rgba(45, 85, 238, .2);
+  font-size: 16px;
+  font-weight: 760;
+  box-shadow: 0 5px 13px rgba(45, 85, 238, .22);
 }
-main.editor-shell .reference-header-actions .reference-done-button:hover { background: var(--reference-blue-dark); }
+main.editor-shell .reference-header-actions .reference-done-button:hover { border-color: var(--reference-blue-dark); background: var(--reference-blue-dark); box-shadow: 0 7px 16px rgba(45, 85, 238, .28); }
 
 main.editor-shell .reference-tool-ribbon {
   position: relative !important;
@@ -240,8 +269,11 @@ main.editor-shell .link-annotation > span { min-width: 0; overflow: hidden; text
 main.editor-shell .comment-editor { position: absolute; top: calc(100% + 10px); left: 0; z-index: 40; width: 240px; min-height: 108px; padding: 11px 12px; resize: both; border: 1px solid #c8d3e2; border-radius: 9px; background: #fffdf5; color: #263246; font: 500 13px/1.45 Inter, sans-serif; outline: none; box-shadow: 0 12px 32px rgba(37, 49, 68, .2); }
 
 @media (max-width: 1100px) {
-  main.editor-shell .reference-brand-name small { display: none; }
-  main.editor-shell .reference-header-actions .reference-done-button { width: 112px !important; min-width: 112px !important; }
+  main.editor-shell .reference-file-header { padding-inline: 18px !important; }
+  main.editor-shell .reference-brand-divider { margin-inline: 16px; }
+  main.editor-shell .reference-document-name { max-width: 26vw; }
+  main.editor-shell .reference-save-state span { display: none; }
+  main.editor-shell .reference-save-state { margin-left: 12px; }
   main.editor-shell .workspace,
   main.editor-shell .workspace.pages-collapsed { grid-template-columns: 164px minmax(0, 1fr) !important; }
   main.editor-shell .workspace.pages-collapsed { grid-template-columns: 0 minmax(0, 1fr) !important; }
@@ -252,13 +284,19 @@ main.editor-shell .comment-editor { position: absolute; top: calc(100% + 10px); 
 }
 
 @media (max-width: 760px) {
-  main.editor-shell.editor-shell { grid-template-rows: 68px 78px minmax(0, 1fr) !important; }
-  main.editor-shell.editor-shell.has-tool-settings { grid-template-rows: 68px 78px 46px minmax(0, 1fr) !important; }
-  main.editor-shell .reference-file-header { min-height: 68px !important; height: 68px !important; padding: 0 10px !important; }
-  main.editor-shell .reference-brand-mark { width: 40px; height: 40px; flex-basis: 40px; }
-  main.editor-shell .reference-brand-name strong { font-size: 20px; }
-  main.editor-shell .reference-header-actions > button { min-width: 48px; height: 52px; padding: 4px 6px; font-size: 10px; }
-  main.editor-shell .reference-header-actions .reference-done-button { width: 72px !important; min-width: 72px !important; height: 46px; font-size: 16px; }
+  main.editor-shell.editor-shell { grid-template-rows: 64px 78px minmax(0, 1fr) !important; }
+  main.editor-shell.editor-shell.has-tool-settings { grid-template-rows: 64px 78px 46px minmax(0, 1fr) !important; }
+  main.editor-shell .reference-file-header { min-height: 64px !important; height: 64px !important; padding: 0 10px !important; }
+  main.editor-shell .reference-brand-name { font-size: 18px; }
+  main.editor-shell .reference-brand-divider { height: 28px; margin-inline: 10px; }
+  main.editor-shell .reference-document-name { max-width: min(34vw, 190px); height: 38px; gap: 6px; font-size: 12px; }
+  main.editor-shell .reference-document-name svg { width: 16px; }
+  main.editor-shell .reference-save-state { display: none; }
+  main.editor-shell .reference-header-actions { gap: 5px; }
+  main.editor-shell .reference-header-actions > button { min-width: 40px; width: 40px; height: 40px; padding: 0; font-size: 10px; }
+  main.editor-shell .reference-header-actions > button > span { display: none; }
+  main.editor-shell .reference-header-actions .reference-done-button { width: 64px !important; min-width: 64px !important; height: 40px; font-size: 14px; }
+  main.editor-shell .reference-header-actions .reference-done-button > span { display: inline; }
   main.editor-shell .reference-tool-ribbon { min-height: 78px !important; height: 78px !important; padding: 5px 8px !important; }
   main.editor-shell .reference-toolbar-button { min-width: 58px !important; height: 66px !important; font-size: 10px !important; }
   main.editor-shell .reference-thumbnail-toggle { min-width: 120px !important; }
@@ -267,4 +305,5 @@ main.editor-shell .comment-editor { position: absolute; top: calc(100% + 10px); 
   main.editor-shell .pages-panel { position: absolute !important; z-index: 55; width: min(76vw, 250px) !important; height: calc(100% - 146px); }
   main.editor-shell .pages-panel.is-collapsed { display: none !important; }
   main.editor-shell .document-stage { padding: 24px 18px 92px !important; }
-  main.editor-shell .
+  main.editor-shell .status-bar { left: 50% !important; max-width: calc(100vw - 24px); }
+}
