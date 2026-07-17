@@ -35,6 +35,7 @@ import List from "lucide-react/dist/esm/icons/list.mjs";
 import MessageSquare from "lucide-react/dist/esm/icons/message-square.mjs";
 import MousePointer2 from "lucide-react/dist/esm/icons/mouse-pointer-2.mjs";
 import Paintbrush from "lucide-react/dist/esm/icons/paintbrush.mjs";
+import Palette from "lucide-react/dist/esm/icons/palette.mjs";
 import PenLine from "lucide-react/dist/esm/icons/pen-line.mjs";
 import Printer from "lucide-react/dist/esm/icons/printer.mjs";
 import Plus from "lucide-react/dist/esm/icons/plus.mjs";
@@ -4797,7 +4798,7 @@ function AuthPage({ mode, setMode, onBack, backLabel = "Back to home", onComplet
   );
 }
 
-function ToolSettingsPanel({ tool, settings, setSettings, selectedTextAnnotation, updateAnnotation }) {
+export function ToolSettingsPanel({ tool, settings, setSettings, selectedTextAnnotation, updateAnnotation }) {
   const [isFontMenuOpen, setIsFontMenuOpen] = useState(false);
   const [fontSearch, setFontSearch] = useState("");
   const isEditingSelectedText = selectedTextAnnotation?.type === "text";
@@ -4901,30 +4902,59 @@ function ToolSettingsPanel({ tool, settings, setSettings, selectedTextAnnotation
   }
 
   if (tool === "draw") {
+    const drawPalette = [
+      { label: "Black", value: "#111827" },
+      { label: "Blue", value: "#2563EB" },
+      { label: "Red", value: "#E5484D" },
+      { label: "Orange", value: "#F97316" },
+      { label: "Green", value: "#16A34A" },
+      { label: "Purple", value: "#7C3AED" },
+    ];
     return (
-      <div className="tool-settings draw-tool-settings">
-        <span className="settings-title">Pen</span>
-        <div className="draw-color-field">
-          <span>Color</span>
-          <ColorControl value={settings.drawColor} onChange={(color) => update({ drawColor: color })} />
+      <div className="tool-settings draw-tool-settings" role="toolbar" aria-label="Draw settings">
+        <span className="settings-title"><Paintbrush size={18} /> Draw</span>
+        <div className="draw-setting-group draw-color-field">
+          <span className="draw-setting-label">Color</span>
+          <div className="draw-color-presets" aria-label="Pen color presets">
+            {drawPalette.map(({ label, value }) => (
+              <button
+                key={value}
+                type="button"
+                className={normalizePickerHexColor(settings.drawColor) === value ? "is-selected" : ""}
+                style={{ backgroundColor: value }}
+                aria-label={`Use ${label.toLowerCase()} pen`}
+                aria-pressed={normalizePickerHexColor(settings.drawColor) === value}
+                onClick={() => update({ drawColor: value })}
+              />
+            ))}
+          </div>
+          <div className="draw-custom-color">
+            <ColorControl value={settings.drawColor} onChange={(color) => update({ drawColor: color })} variant="palette" label="Choose custom pen color" />
+          </div>
         </div>
-        <div className="stroke-size-group" aria-label="Pen size">
-          {[2, 4, 8, 12, 16].map((size) => (
-            <button
-              key={size}
-              type="button"
-              className={settings.drawStroke === size ? "is-active" : ""}
-              onClick={() => update({ drawStroke: size })}
-            >
-              <span style={{ width: size + 6, height: size + 6 }} />
-              {size}
-            </button>
-          ))}
+        <div className="draw-setting-group draw-size-field">
+          <span className="draw-setting-label">Size</span>
+          <div className="stroke-size-group" aria-label="Pen size presets">
+            {[2, 4, 8, 12, 16].map((size) => (
+              <button
+                key={size}
+                type="button"
+                className={settings.drawStroke === size ? "is-active" : ""}
+                aria-label={`Use ${size} pixel pen`}
+                aria-pressed={settings.drawStroke === size}
+                onClick={() => update({ drawStroke: size })}
+              >
+                <span style={{ width: Math.min(16, size + 4), height: Math.min(16, size + 4) }} />
+                {size}
+              </button>
+            ))}
+          </div>
+          <label className="draw-fine-size">
+            <span className="sr-only">Fine tune pen size</span>
+            <input aria-label="Fine tune pen size" type="range" min="1" max="20" value={settings.drawStroke} onChange={(event) => update({ drawStroke: Number(event.target.value) })} />
+          </label>
+          <output className="draw-size-output" aria-live="polite">{settings.drawStroke}px</output>
         </div>
-        <label className="stroke-slider">Size
-          <input type="range" min="1" max="20" value={settings.drawStroke} onChange={(event) => update({ drawStroke: Number(event.target.value) })} />
-        </label>
-        <output>{settings.drawStroke}px</output>
       </div>
     );
   }
@@ -5025,7 +5055,7 @@ function hsvToHex(h, s, v) {
   return pickerRgbToHex((r + m) * 255, (g + m) * 255, (b + m) * 255);
 }
 
-function ColorControl({ value, onChange }) {
+function ColorControl({ value, onChange, variant = "swatch", label = "Choose color" }) {
   const palette = ["#D8D8D8", "#9B9B9B", "#666666", "#333333", "#000000", "#FF6428", "#F59E32", "#FFF14A", "#5ADE3F", "#0E7C16", "#3A8EF6", "#14148B", "#E94472"];
   const [isOpen, setIsOpen] = useState(false);
   const [draftColor, setDraftColor] = useState(normalizePickerHexColor(value));
@@ -5074,15 +5104,15 @@ function ColorControl({ value, onChange }) {
     <div className="color-control" onPointerDown={(event) => event.stopPropagation()}>
       <button
         type="button"
-        className="color-trigger"
-        aria-label="Choose color"
+        className={`color-trigger ${variant === "palette" ? "is-palette" : ""}`}
+        aria-label={label}
         aria-expanded={isOpen}
         onClick={() => {
           setDraftColor(normalizePickerHexColor(value));
           setIsOpen((open) => !open);
         }}
       >
-        <span style={{ backgroundColor: value }} />
+        {variant === "palette" ? <Palette size={17} style={{ color: value }} /> : <span style={{ backgroundColor: value }} />}
       </button>
       {isOpen && (
         <div className="color-popover" role="dialog" aria-label="Choose color">
