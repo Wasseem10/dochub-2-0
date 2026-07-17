@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createTextAnnotation, normalizeEditorText, shouldDiscardTextAnnotation } from "../../src/tools/editorTextObjects.js";
+import { createTextAnnotation, estimateTextAnnotationSize, normalizeEditorText, shouldDiscardTextAnnotation } from "../../src/tools/editorTextObjects.js";
 
 const settings = {
   textColor: "#111827",
@@ -15,7 +15,7 @@ const settings = {
 describe("editor text objects", () => {
   it("creates a selected-ready blank text box with stable normalized coordinates", () => {
     const text = createTextAnnotation({ id: "text-1", page: 0, point: { x: 0.97, y: 0.99 }, settings, createdAt: "2026-07-16T00:00:00.000Z" });
-    expect(text).toMatchObject({ id: "text-1", type: "text", content: "", w: 0.11, h: 0.038, fontFamily: "Inter" });
+    expect(text).toMatchObject({ id: "text-1", type: "text", content: "", w: 0.16, h: 0.05, fontFamily: "Inter" });
     expect(text.x + text.w).toBeLessThanOrEqual(0.96);
     expect(text.y + text.h).toBeLessThanOrEqual(0.97);
   });
@@ -30,5 +30,12 @@ describe("editor text objects", () => {
   it("discards abandoned empty text boxes but keeps meaningful whitespace inside text", () => {
     expect(shouldDiscardTextAnnotation(" \n ")).toBe(true);
     expect(shouldDiscardTextAnnotation(" A ")).toBe(false);
+  });
+
+  it("auto-sizes new text so short labels are not clipped and multiline text grows vertically", () => {
+    const short = estimateTextAnnotationSize({ content: "Audit text", fontSize: 16 });
+    const multiline = estimateTextAnnotationSize({ content: "First line\nSecond line\nThird line", fontSize: 16 });
+    expect(short.w).toBeGreaterThanOrEqual(0.16);
+    expect(multiline.h).toBeGreaterThan(short.h);
   });
 });

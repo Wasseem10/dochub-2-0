@@ -51,6 +51,18 @@ export function moveFrame(frame, deltaX, deltaY) {
   };
 }
 
+export function nudgeFrame(frame, direction, amount = 0.002) {
+  const step = Math.max(0, Number(amount) || 0);
+  const deltas = {
+    ArrowLeft: [-step, 0],
+    ArrowRight: [step, 0],
+    ArrowUp: [0, -step],
+    ArrowDown: [0, step],
+  };
+  const [deltaX, deltaY] = deltas[direction] || [0, 0];
+  return moveFrame(frame, deltaX, deltaY);
+}
+
 export function resizeFrame(frame, handle, deltaX, deltaY, options = {}) {
   const minWidth = options.minWidth ?? 0.025;
   const minHeight = options.minHeight ?? 0.018;
