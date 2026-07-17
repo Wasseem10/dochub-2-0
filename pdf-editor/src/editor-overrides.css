@@ -6392,6 +6392,205 @@ main.editor-shell .page-nav .page-nav-divider {
   }
 }
 
+/* Compact Draw toolbar: direct color choice, custom picker, and pen sizing. */
+main.editor-shell .tool-settings.draw-tool-settings {
+  position: fixed !important;
+  top: 194px !important;
+  left: 50% !important;
+  z-index: 48 !important;
+  display: flex !important;
+  width: auto !important;
+  max-width: calc(100vw - 48px) !important;
+  min-height: 58px !important;
+  height: auto !important;
+  overflow: visible !important;
+  align-items: center !important;
+  gap: 12px !important;
+  padding: 8px 10px !important;
+  border: 1px solid #dce3ee !important;
+  border-radius: 14px !important;
+  background: #ffffff !important;
+  box-shadow: 0 14px 36px rgba(27, 43, 80, 0.14) !important;
+  transform: translateX(-50%) !important;
+}
+
+main.editor-shell .draw-tool-settings > *,
+main.editor-shell .draw-tool-settings label {
+  min-height: 0 !important;
+  border: 0 !important;
+}
+
+main.editor-shell .draw-tool-settings .settings-title {
+  display: inline-flex !important;
+  min-width: auto !important;
+  align-items: center !important;
+  gap: 7px !important;
+  padding: 0 6px 0 2px !important;
+  color: #172033 !important;
+  font-size: 14px !important;
+  font-weight: 800 !important;
+  white-space: nowrap !important;
+}
+
+main.editor-shell .draw-tool-settings .settings-title::after {
+  content: none !important;
+}
+
+main.editor-shell .draw-setting-group {
+  display: inline-flex !important;
+  min-height: 42px !important;
+  align-items: center !important;
+  gap: 9px !important;
+  padding: 0 10px !important;
+  border: 1px solid #e2e7ef !important;
+  border-radius: 10px !important;
+  background: #f8fafc !important;
+}
+
+main.editor-shell .draw-setting-label {
+  color: #48556a !important;
+  font-size: 12px !important;
+  font-weight: 750 !important;
+  white-space: nowrap !important;
+}
+
+main.editor-shell .draw-color-field {
+  min-width: 0 !important;
+  height: 42px !important;
+  padding: 0 9px !important;
+  box-shadow: none !important;
+}
+
+main.editor-shell .draw-color-presets {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 7px !important;
+}
+
+main.editor-shell .draw-color-presets button {
+  width: 24px !important;
+  min-width: 24px !important;
+  height: 24px !important;
+  min-height: 24px !important;
+  padding: 0 !important;
+  border: 2px solid #ffffff !important;
+  border-radius: 999px !important;
+  box-shadow: 0 0 0 1px #c6cfdd !important;
+  cursor: pointer !important;
+}
+
+main.editor-shell .draw-color-presets button:hover {
+  transform: scale(1.08) !important;
+}
+
+main.editor-shell .draw-color-presets button.is-selected {
+  box-shadow: 0 0 0 2px #ffffff, 0 0 0 4px #2851eb !important;
+}
+
+main.editor-shell .draw-custom-color {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 5px !important;
+  padding-left: 2px !important;
+}
+
+main.editor-shell .draw-custom-color > span {
+  color: #667085 !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+}
+
+main.editor-shell .draw-custom-color .color-control {
+  width: auto !important;
+  min-height: 0 !important;
+  border: 0 !important;
+}
+
+main.editor-shell .draw-custom-color .color-trigger {
+  width: 28px !important;
+  min-width: 28px !important;
+  height: 28px !important;
+  min-height: 28px !important;
+  border-radius: 8px !important;
+}
+
+main.editor-shell .draw-custom-color .color-trigger span {
+  width: 18px !important;
+  height: 18px !important;
+}
+
+main.editor-shell .draw-tool-settings .color-popover {
+  left: 100% !important;
+  top: calc(100% + 14px) !important;
+  transform: translateX(-100%) !important;
+}
+
+main.editor-shell .draw-size-field {
+  height: 42px !important;
+}
+
+main.editor-shell .draw-tool-settings .stroke-size-group {
+  gap: 3px !important;
+  padding: 3px !important;
+  border: 0 !important;
+  background: transparent !important;
+}
+
+main.editor-shell .draw-tool-settings .stroke-size-group button {
+  min-width: 40px !important;
+  height: 32px !important;
+  padding: 0 7px !important;
+  border-radius: 7px !important;
+  color: #344054 !important;
+  font-size: 12px !important;
+  font-weight: 750 !important;
+  cursor: pointer !important;
+}
+
+main.editor-shell .draw-tool-settings .stroke-size-group button.is-active {
+  background: #e7efff !important;
+  color: #2851eb !important;
+}
+
+main.editor-shell .draw-tool-settings .stroke-size-group button span {
+  flex: 0 0 auto !important;
+  max-width: 16px !important;
+  max-height: 16px !important;
+}
+
+main.editor-shell .draw-fine-size {
+  display: inline-flex !important;
+  min-height: 0 !important;
+  padding: 0 !important;
+}
+
+main.editor-shell .draw-fine-size input[type="range"] {
+  width: 92px !important;
+  accent-color: #2851eb !important;
+}
+
+main.editor-shell .draw-size-output {
+  min-width: 34px !important;
+  color: #2851eb !important;
+  font-size: 12px !important;
+  font-weight: 800 !important;
+  text-align: right !important;
+}
+
+@media (max-width: 980px) {
+  main.editor-shell .tool-settings.draw-tool-settings {
+    top: 184px !important;
+    max-width: calc(100vw - 24px) !important;
+    flex-wrap: wrap !important;
+    justify-content: center !important;
+  }
+
+  main.editor-shell .draw-fine-size,
+  main.editor-shell .draw-custom-color > span {
+    display: none !important;
+  }
+}
+
 /* FixThatPDF auth screen — aligned with the landing page design system. */
 .auth-shell {
   --auth-ink: #001f1f;
@@ -8614,4 +8813,18 @@ main.editor-shell .thumbnail-footer button:last-child,
 
   main.editor-shell .lumin-editor-rail button svg,
   .editor-shell .lumin-editor-rail button svg { width: 22px !important; height: 22px !important; }
+}
+
+/* Keep these last so legacy draw-strip rules cannot reintroduce clipped labels. */
+main.editor-shell .draw-tool-settings .settings-title::after {
+  content: none !important;
+}
+
+main.editor-shell .draw-custom-color .color-trigger.is-palette {
+  color: #344054 !important;
+}
+
+main.editor-shell .draw-custom-color .color-trigger.is-palette svg {
+  width: 17px !important;
+  height: 17px !important;
 }
