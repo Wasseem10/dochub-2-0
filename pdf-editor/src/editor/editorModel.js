@@ -30,6 +30,32 @@ export function resizeEditorObject(object, size) {
   };
 }
 
+export function resizeEditorObjectFromHandle(object, handle, delta, { minWidth = 0.03, minHeight = 0.018 } = {}) {
+  const normalized = (value) => Math.round(value * 1_000_000) / 1_000_000;
+  const rotation = ((object.rotation || 0) * Math.PI) / 180;
+  const cos = Math.cos(rotation);
+  const sin = Math.sin(rotation);
+  const localDx = (delta.x || 0) * cos + (delta.y || 0) * sin;
+  const localDy = -(delta.x || 0) * sin + (delta.y || 0) * cos;
+  let left = object.x;
+  let top = object.y;
+  let right = object.x + object.w;
+  let bottom = object.y + object.h;
+
+  if (handle.includes("w")) left = Math.max(0, Math.min(right - minWidth, left + localDx));
+  if (handle.includes("e")) right = Math.min(1, Math.max(left + minWidth, right + localDx));
+  if (handle.includes("n")) top = Math.max(0, Math.min(bottom - minHeight, top + localDy));
+  if (handle.includes("s")) bottom = Math.min(1, Math.max(top + minHeight, bottom + localDy));
+
+  return {
+    ...object,
+    x: normalized(left),
+    y: normalized(top),
+    w: normalized(right - left),
+    h: normalized(bottom - top),
+  };
+}
+
 export function rotateEditorObject(object, deltaDegrees) {
   const rotation = ((object.rotation || 0) + deltaDegrees) % 360;
   return { ...object, rotation: rotation < 0 ? rotation + 360 : rotation };
@@ -103,4 +129,13 @@ export function visibleThumbnailRange({ scrollTop, viewportHeight, itemHeight = 
   const start = Math.max(0, Math.floor(scrollTop / itemHeight) - overscan);
   const end = Math.min(pageCount, Math.ceil((scrollTop + viewportHeight) / itemHeight) + overscan);
   return { start, end, count: Math.max(0, end - start) };
+}
+
+export function thumbnailScrollTarget({ selectedIndex, scrollTop, viewportHeight, itemHeight = 130, pageCount }) {
+  if (!pageCount || selectedIndex < 0 || selectedIndex >= pageCount) return null;
+  const itemTop = selectedIndex * itemHeight;
+  const itemBottom = itemTop + itemHeight;
+  if (itemTop < scrollTop) return itemTop;
+  if (itemBottom > scrollTop + viewportHeight) return Math.max(0, itemBottom - viewportHeight);
+  return null;
 }

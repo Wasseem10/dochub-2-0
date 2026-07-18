@@ -55,6 +55,9 @@ import Send from "lucide-react/dist/esm/icons/send.mjs";
 import Settings from "lucide-react/dist/esm/icons/settings.mjs";
 import Share2 from "lucide-react/dist/esm/icons/share-2.mjs";
 import Link from "lucide-react/dist/esm/icons/link.mjs";
+import Stamp from "lucide-react/dist/esm/icons/stamp.mjs";
+import StickyNote from "lucide-react/dist/esm/icons/sticky-note.mjs";
+import PanelsTopLeft from "lucide-react/dist/esm/icons/panels-top-left.mjs";
 import Lock from "lucide-react/dist/esm/icons/lock.mjs";
 import Circle from "lucide-react/dist/esm/icons/circle.mjs";
 import Minus from "lucide-react/dist/esm/icons/minus.mjs";
@@ -79,7 +82,12 @@ import { useAuth } from "./auth/AuthContext.jsx";
 import { fileSizeBucket, pageCountBucket, trackProductEvent } from "./analytics/productAnalytics.js";
 import { EDITOR_LIMITS, validateEditorPageCount, validateEditorPdfFile } from "./config/editorLimits.js";
 import { consolidatePdfSources, finalizePdfExport } from "./editor/exportPdf.js";
-import { EDITOR_MODE_TOOLS, rotateEditorObjectWithPage, unrotateEditorObjectFromPage } from "./editor/editorModel.js";
+import { createEditorClipboardPayload, createPastedEditorObject, EDITOR_CLIPBOARD_MIME, editorClipboardPlainText, parseEditorClipboardPayload } from "./editor/editorClipboard.mjs";
+import { closestPageToViewportCenter, continuousPageScrollTarget, createContinuousPageLayout, visibleContinuousPageRange } from "./editor/continuousViewport.mjs";
+import { EDITOR_MODE_TOOLS, moveEditorObject, resizeEditorObjectFromHandle, rotateEditorObjectWithPage, thumbnailScrollTarget, unrotateEditorObjectFromPage, visibleThumbnailRange } from "./editor/editorModel.js";
+import { createPdfDocumentController } from "./editor/pdfDocumentController.mjs";
+import { addPdfLinkAnnotation } from "./editor/pdfLinkAnnotation.mjs";
+import { runProgressivePageQueue } from "./editor/pdfProgressiveLoader.mjs";
 import { protectPdfBytes } from "./editor/protectPdf.js";
 import { LatticePdfLanding } from "./LatticePdfLanding.jsx";
 import { EditorRouteStatePage } from "./pages/app/EditorRouteStatePage.jsx";
@@ -87,17 +95,6 @@ import { resolveEditorDocument } from "./router/editorRouteState.js";
 import { consumePendingPdfFile } from "./router/pendingUpload.js";
 import { editorPath, ROUTE_PATHS } from "./router/routePaths.js";
 import { getEditorToolPreset, resolveEditorActiveTool } from "./tools/editorToolPresets.js";
-
-let pdfRendererPromise;
-async function loadPdfRenderer() {
-  if (!pdfRendererPromise) {
-    pdfRendererPromise = import("pdfjs-dist").then((pdfjsLib) => {
-      pdfjsLib.GlobalWorkerOptions.workerSrc = new URL("pdfjs-dist/build/pdf.worker.mjs", import.meta.url).toString();
-      return pdfjsLib;
-    });
-  }
-  return pdfRendererPromise;
-}
 
 const BASE_PAGE_WIDTH = 760;
 const BASE_PAGE_HEIGHT = 984;
@@ -107,6 +104,12 @@ const STORAGE_KEY = "paperflow.documents.v1";
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 const GUEST_OWNER_ID = "guest";
 const ZOOM_PRESETS = [60, 80, 90, 100, 120, 140, 160];
+const THUMBNAIL_ITEM_STRIDE = 210;
+const THUMBNAIL_OVERSCAN = 3;
+const MAX_RETAINED_PAGE_PREVIEWS = 18;
+const DOCUMENT_PAGE_GAP = 28;
+const DOCUMENT_PAGE_PADDING = 34;
+const DOCUMENT_PAGE_OVERSCAN = 1;
 
 const colors = {
   black: "#111827",
@@ -186,6 +189,10 @@ const toolConfig = [
   { id: "arrow", label: "Arrow", icon: Send },
   { id: "whiteout", label: "Whiteout", icon: Eraser },
   { id: "signature", label: "Signature", icon: PenLine },
+  { id: "textHighlight", label: "Text Highlight", icon: Type },
+  { id: "stamp", label: "Stamp", icon: Stamp },
+  { id: "link", label: "Link", icon: Link },
+  { id: "note", label: "Note", icon: StickyNote },
 ];
 
 const editorModes = [
@@ -199,6 +206,20 @@ const editorModes = [
 
 const eraseTool = { id: "erase", label: "Erase", icon: Eraser };
 const toolById = new Map([...toolConfig, eraseTool].map((item) => [item.id, item]));
+
+const referencePrimaryTools = [
+  { id: "text", label: "Add Text", icon: Type },
+  { id: "editText", label: "Edit Text", icon: ScanText },
+  { id: "signature", label: "Sign", icon: PenLine },
+  { id: "draw", label: "Draw", icon: Paintbrush },
+  { id: "erase", label: "Erase", icon: Eraser },
+  { id: "highlight", label: "Highlight", icon: Highlighter },
+  { id: "textHighlight", label: "Text Highlight", icon: Type },
+  { id: "image", label: "Image", icon: ImageIcon },
+  { id: "stamp", label: "Stamp", icon: Stamp },
+  { id: "link", label: "Link", icon: Link },
+  { id: "note", label: "Note", icon: StickyNote },
+];
 
 function modeForTool(activeTool) {
   return editorModes.find((mode) => mode.tools.includes(activeTool)) || editorModes[0];
@@ -737,6 +758,8 @@ const EditableTextContent = forwardRef(function EditableTextContent({
   );
 });
 
+const SELECTION_HANDLE_DIRECTIONS = ["nw", "n", "ne", "e", "se", "s", "sw", "w"];
+
 function Annotation({ annotation, selected, zoom, activeTool, onSelect, onDrag, onResize, onUpdate, onDelete, onInteractionStart }) {
   const textContentRef = useRef(null);
   const textWasFocusedRef = useRef(false);
@@ -809,16 +832,16 @@ function Annotation({ annotation, selected, zoom, activeTool, onSelect, onDrag, 
     return () => window.cancelAnimationFrame(frame);
   }, [annotation.id, annotation.type, selected]);
 
-  const resizeStart = (event) => {
+  const resizeStart = (event, handle = "se") => {
     event.stopPropagation();
     const pageRect = event.currentTarget.closest(".page-surface").getBoundingClientRect();
-    const origin = { clientX: event.clientX, clientY: event.clientY, w: annotation.w, h: annotation.h };
+    const origin = { clientX: event.clientX, clientY: event.clientY, annotation };
     onInteractionStart?.();
     const move = (moveEvent) => {
-      onResize(annotation.id, {
-        w: origin.w + (moveEvent.clientX - origin.clientX) / pageRect.width,
-        h: origin.h + (moveEvent.clientY - origin.clientY) / pageRect.height,
-      });
+      onResize(annotation.id, resizeEditorObjectFromHandle(origin.annotation, handle, {
+        x: (moveEvent.clientX - origin.clientX) / pageRect.width,
+        y: (moveEvent.clientY - origin.clientY) / pageRect.height,
+      }));
     };
     const up = () => {
       window.removeEventListener("pointermove", move);
@@ -851,7 +874,14 @@ function Annotation({ annotation, selected, zoom, activeTool, onSelect, onDrag, 
   const selectionHandles = selected && (
     <>
       <span className="rotate-handle" title="Rotate" onPointerDown={rotateStart}><RotateCw size={12} /></span>
-      <span className="resize-handle" onPointerDown={resizeStart} />
+      {SELECTION_HANDLE_DIRECTIONS.map((handle) => (
+        <span
+          key={handle}
+          className={`selection-handle handle-${handle}`}
+          title={`Resize ${handle.toUpperCase()}`}
+          onPointerDown={(event) => resizeStart(event, handle)}
+        />
+      ))}
     </>
   );
 
@@ -905,17 +935,24 @@ function Annotation({ annotation, selected, zoom, activeTool, onSelect, onDrag, 
       window.addEventListener("pointermove", move);
       window.addEventListener("pointerup", up);
     };
-    const drawResizeStart = (event) => {
+    const drawResizeStart = (event, handle = "se") => {
       event.stopPropagation();
       const pageRect = event.currentTarget.closest(".page-surface").getBoundingClientRect();
       const origin = { clientX: event.clientX, clientY: event.clientY, points: annotation.points };
       onInteractionStart?.();
       const move = (moveEvent) => {
-        const nextWidth = clamp(width + (moveEvent.clientX - origin.clientX) / pageRect.width, 0.012, 1 - minX);
-        const nextHeight = clamp(height + (moveEvent.clientY - origin.clientY) / pageRect.height, 0.012, 1 - minY);
+        const bounds = resizeEditorObjectFromHandle(
+          { x: minX, y: minY, w: width, h: height, rotation: annotation.rotation || 0 },
+          handle,
+          {
+            x: (moveEvent.clientX - origin.clientX) / pageRect.width,
+            y: (moveEvent.clientY - origin.clientY) / pageRect.height,
+          },
+          { minWidth: 0.012, minHeight: 0.012 },
+        );
         onUpdate(annotation.id, { points: origin.points.map((point) => ({
-          x: minX + ((point.x - minX) / width) * nextWidth,
-          y: minY + ((point.y - minY) / height) * nextHeight,
+          x: bounds.x + ((point.x - minX) / width) * bounds.w,
+          y: bounds.y + ((point.y - minY) / height) * bounds.h,
         })) });
       };
       const up = () => {
@@ -928,7 +965,14 @@ function Annotation({ annotation, selected, zoom, activeTool, onSelect, onDrag, 
     return (
       <div className={`annotation draw-annotation ${selected ? "is-selected" : ""}`} style={{ left: `${minX * 100}%`, top: `${minY * 100}%`, width: `${width * 100}%`, height: `${height * 100}%`, transform: `rotate(${annotation.rotation || 0}deg)` }} onPointerDown={drawDragStart}>
         <svg viewBox="0 0 100 100" preserveAspectRatio="none"><polyline points={points} fill="none" stroke={annotation.color} strokeWidth={normalizedStrokeWidth} strokeLinecap="round" strokeLinejoin="round" opacity={annotation.opacity} /></svg>
-        {selected && <><span className="rotate-handle" title="Rotate" onPointerDown={rotateStart}><RotateCw size={12} /></span><span className="resize-handle" onPointerDown={drawResizeStart} /></>}
+        {selected && (
+          <>
+            <span className="rotate-handle" title="Rotate" onPointerDown={rotateStart}><RotateCw size={12} /></span>
+            {SELECTION_HANDLE_DIRECTIONS.map((handle) => (
+              <span key={handle} className={`selection-handle handle-${handle}`} onPointerDown={(event) => drawResizeStart(event, handle)} />
+            ))}
+          </>
+        )}
       </div>
     );
   }
@@ -985,6 +1029,37 @@ function Annotation({ annotation, selected, zoom, activeTool, onSelect, onDrag, 
             <polyline points="78,100 100,100 100,78" fill="none" stroke={annotation.color} strokeWidth={Math.max(1, annotation.strokeWidth || 3)} strokeLinecap="round" strokeLinejoin="round" opacity={annotation.opacity} />
           )}
         </svg>
+        {selectionHandles}
+      </div>
+    );
+  }
+
+  if (annotation.type === "stamp") {
+    return (
+      <div className={`annotation stamp-annotation ${selected ? "is-selected" : ""}`} style={{ ...commonStyle, color: annotation.color }} onPointerDown={dragStart}>
+        <span>{annotation.content || "APPROVED"}</span>
+        {selectionHandles}
+      </div>
+    );
+  }
+
+  if (annotation.type === "link") {
+    return (
+      <div
+        className={`annotation link-annotation ${selected ? "is-selected" : ""}`}
+        style={{ ...commonStyle, color: annotation.color }}
+        onPointerDown={dragStart}
+        onDoubleClick={(event) => {
+          event.stopPropagation();
+          const nextUrl = window.prompt("Link address", annotation.url || "https://");
+          if (!nextUrl?.trim()) return;
+          const normalizedUrl = /^https?:\/\//i.test(nextUrl.trim()) ? nextUrl.trim() : `https://${nextUrl.trim()}`;
+          onInteractionStart?.();
+          onUpdate(annotation.id, { url: normalizedUrl, content: normalizedUrl.replace(/^https?:\/\//i, "") });
+        }}
+      >
+        <Link size={Math.max(13, 15 * (zoom / 100))} />
+        <span>{annotation.content || annotation.url || "Link"}</span>
         {selectionHandles}
       </div>
     );
@@ -1129,8 +1204,15 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   const moreMenuRef = useRef(null);
   const zoomMenuRef = useRef(null);
   const canvasColumnRef = useRef(null);
+  const canvasScrollFrameRef = useRef(null);
+  const thumbnailListRef = useRef(null);
+  const thumbnailScrollFrameRef = useRef(null);
+  const editorClipboardRef = useRef(null);
   const lastPagePointRef = useRef({ x: 0.52, y: 0.28 });
   const renderingPagesRef = useRef(new Set());
+  const pdfControllerRef = useRef(null);
+  const pdfControllerInitRef = useRef(null);
+  const pdfLoadGenerationRef = useRef(0);
   const [documents, setDocuments] = useState([]);
   const [documentCatalogReady, setDocumentCatalogReady] = useState(!isCloudPersistenceConfigured);
   const [editorRouteState, setEditorRouteState] = useState("idle");
@@ -1160,10 +1242,15 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   const [exportSuccess, setExportSuccess] = useState(false);
   const [uploadError, setUploadError] = useState("");
   const [uploadStage, setUploadStage] = useState({ status: "idle", percent: 0, fileName: "" });
+  const [documentLoadProgress, setDocumentLoadProgress] = useState({ status: "idle", processed: 0, total: 0 });
+  const [thumbnailViewport, setThumbnailViewport] = useState({ scrollTop: 0, viewportHeight: 640 });
+  const [documentViewport, setDocumentViewport] = useState({ scrollTop: 0, viewportHeight: 640 });
   const pendingUploadHandledRef = useRef(false);
+  const editorFixtureHandledRef = useRef(false);
   const [isDraggingFile, setIsDraggingFile] = useState(false);
   const [toast, setToast] = useState("");
   const [isPagesCollapsed, setIsPagesCollapsed] = useState(false);
+  const [isManagePagesOpen, setIsManagePagesOpen] = useState(false);
   const [isPageAppendMenuOpen, setIsPageAppendMenuOpen] = useState(false);
   const [isInspectorCollapsed, setIsInspectorCollapsed] = useState(false);
   const [signatureModalOpen, setSignatureModalOpen] = useState(false);
@@ -1173,6 +1260,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   const [upgradeModalOpen, setUpgradeModalOpen] = useState(false);
   const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
   const [isZoomMenuOpen, setIsZoomMenuOpen] = useState(false);
+  const [isShapeMenuOpen, setIsShapeMenuOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isCommentsOpen, setIsCommentsOpen] = useState(false);
   const [documentSearchQuery, setDocumentSearchQuery] = useState("");
@@ -1202,10 +1290,42 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   const selectedDetectedText = useMemo(() => detectedTextItems.find((item) => item.id === selectedDetectedTextId), [detectedTextItems, selectedDetectedTextId]);
   const activeDocument = useMemo(() => documents.find((document) => document.id === activeDocumentId), [documents, activeDocumentId]);
   const currentPage = pages[pageIndex] || pages[0];
+  const hasVisibleToolSettings = selected?.type === "text" || ["text", "field", "draw", "highlight", "textHighlight", "whiteout", "rectangle", "circle", "line", "arrow"].includes(tool);
   const pageAnnotations = annotations.filter((annotation) => annotation.page === pageIndex);
   const pageDetectedTextItems = detectedTextItems.filter((item) => item.pageNumber === pageIndex && !item.isDeleted);
   const pageDeletedTextItems = detectedTextItems.filter((item) => item.pageNumber === pageIndex && item.isDeleted);
   const detectedTextCount = useMemo(() => detectedTextItems.filter((item) => !item.isDeleted).length, [detectedTextItems]);
+  const thumbnailRange = useMemo(() => visibleThumbnailRange({
+    scrollTop: thumbnailViewport.scrollTop,
+    viewportHeight: thumbnailViewport.viewportHeight,
+    itemHeight: THUMBNAIL_ITEM_STRIDE,
+    pageCount: pages.length,
+    overscan: THUMBNAIL_OVERSCAN,
+  }), [pages.length, thumbnailViewport]);
+  const visibleThumbnailPages = useMemo(() => (
+    pages.slice(thumbnailRange.start, thumbnailRange.end).map((page, offset) => ({
+      page,
+      index: thumbnailRange.start + offset,
+    }))
+  ), [pages, thumbnailRange.end, thumbnailRange.start]);
+  const thumbnailVirtualHeight = pages.length * THUMBNAIL_ITEM_STRIDE;
+  const continuousLayout = useMemo(() => createContinuousPageLayout(pages, {
+    zoom,
+    pageScale: EDITOR_PAGE_SCALE,
+    gap: DOCUMENT_PAGE_GAP,
+    padding: DOCUMENT_PAGE_PADDING,
+  }), [pages, zoom]);
+  const continuousRange = useMemo(() => visibleContinuousPageRange(continuousLayout, {
+    scrollTop: documentViewport.scrollTop,
+    viewportHeight: documentViewport.viewportHeight,
+    overscanPages: DOCUMENT_PAGE_OVERSCAN,
+  }), [continuousLayout, documentViewport]);
+  const visibleContinuousPages = useMemo(() => (
+    continuousLayout.entries.slice(continuousRange.start, continuousRange.end).map((entry) => ({
+      ...entry,
+      page: pages[entry.index],
+    }))
+  ), [continuousLayout.entries, continuousRange.end, continuousRange.start, pages]);
   const zoomOptions = useMemo(() => (
     Array.from(new Set([...ZOOM_PRESETS, zoom])).sort((a, b) => a - b)
   ), [zoom]);
@@ -1273,13 +1393,137 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       .sort((a, b) => a.page - b.page)
   ), [annotations]);
   const saveStatusLabel = useMemo(() => {
+    if (documentLoadProgress.status === "processing") {
+      return `Preparing pages ${documentLoadProgress.processed}/${documentLoadProgress.total}`;
+    }
     if (saveState === "unsaved") return "Unsaved changes";
     if (saveState === "saving") return "Saving...";
     if (cloudSyncStatus === "syncing") return "Syncing to cloud...";
     if (cloudSyncStatus === "error") return "Saved locally";
     if (currentUser?.uid && cloudSyncStatus === "synced") return "Saved to cloud";
     return lastSavedAt ? `Saved ${formatDateTime(lastSavedAt)}` : "Saved";
-  }, [cloudSyncStatus, currentUser?.uid, lastSavedAt, saveState]);
+  }, [cloudSyncStatus, currentUser?.uid, documentLoadProgress, lastSavedAt, saveState]);
+
+  const closePdfController = useCallback(async () => {
+    pdfLoadGenerationRef.current += 1;
+    pdfControllerInitRef.current = null;
+    const controller = pdfControllerRef.current;
+    pdfControllerRef.current = null;
+    if (controller) await controller.destroy().catch(() => undefined);
+  }, []);
+
+  const getActivePdfController = useCallback(async () => {
+    if (pdfControllerRef.current) return pdfControllerRef.current;
+    if (!pdfBytes) return null;
+    if (!pdfControllerInitRef.current) {
+      const initGeneration = pdfLoadGenerationRef.current;
+      const initPromise = createPdfDocumentController(pdfBytes)
+        .then(async (controller) => {
+          if (initGeneration !== pdfLoadGenerationRef.current) {
+            await controller.destroy().catch(() => undefined);
+            return null;
+          }
+          pdfControllerRef.current = controller;
+          return controller;
+        })
+        .finally(() => {
+          if (pdfControllerInitRef.current === initPromise) pdfControllerInitRef.current = null;
+        });
+      pdfControllerInitRef.current = initPromise;
+    }
+    return pdfControllerInitRef.current;
+  }, [pdfBytes]);
+
+  const syncThumbnailViewport = useCallback(() => {
+    const element = thumbnailListRef.current;
+    if (!element) return;
+    setThumbnailViewport((current) => {
+      const next = { scrollTop: element.scrollTop, viewportHeight: element.clientHeight };
+      return current.scrollTop === next.scrollTop && current.viewportHeight === next.viewportHeight ? current : next;
+    });
+  }, []);
+
+  const onThumbnailScroll = useCallback(() => {
+    if (thumbnailScrollFrameRef.current != null) return;
+    thumbnailScrollFrameRef.current = window.requestAnimationFrame(() => {
+      thumbnailScrollFrameRef.current = null;
+      syncThumbnailViewport();
+    });
+  }, [syncThumbnailViewport]);
+
+  const syncDocumentViewport = useCallback(() => {
+    const element = canvasColumnRef.current;
+    if (!element) return;
+    const next = { scrollTop: element.scrollTop, viewportHeight: element.clientHeight };
+    setDocumentViewport((current) => (
+      current.scrollTop === next.scrollTop && current.viewportHeight === next.viewportHeight ? current : next
+    ));
+    const centeredPage = closestPageToViewportCenter(continuousLayout, next.scrollTop, next.viewportHeight);
+    setPageIndex((current) => (current === centeredPage ? current : centeredPage));
+  }, [continuousLayout]);
+
+  const onDocumentScroll = useCallback(() => {
+    if (canvasScrollFrameRef.current != null) return;
+    canvasScrollFrameRef.current = window.requestAnimationFrame(() => {
+      canvasScrollFrameRef.current = null;
+      syncDocumentViewport();
+    });
+  }, [syncDocumentViewport]);
+
+  useLayoutEffect(() => {
+    if (isPagesCollapsed) return undefined;
+    syncThumbnailViewport();
+    const element = thumbnailListRef.current;
+    if (!element || typeof ResizeObserver === "undefined") return undefined;
+    const observer = new ResizeObserver(syncThumbnailViewport);
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [isPagesCollapsed, pages.length, syncThumbnailViewport, viewMode]);
+
+  useLayoutEffect(() => {
+    if (isPagesCollapsed) return;
+    const element = thumbnailListRef.current;
+    if (!element) return;
+    const target = thumbnailScrollTarget({
+      selectedIndex: pageIndex,
+      scrollTop: element.scrollTop,
+      viewportHeight: element.clientHeight,
+      itemHeight: THUMBNAIL_ITEM_STRIDE,
+      pageCount: pages.length,
+    });
+    if (target == null) return;
+    element.scrollTop = target;
+    setThumbnailViewport({ scrollTop: target, viewportHeight: element.clientHeight });
+  }, [isPagesCollapsed, pageIndex, pages.length]);
+
+  useLayoutEffect(() => {
+    syncDocumentViewport();
+    const element = canvasColumnRef.current;
+    if (!element || typeof ResizeObserver === "undefined") return undefined;
+    const observer = new ResizeObserver(syncDocumentViewport);
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [hasVisibleToolSettings, pages.length, syncDocumentViewport]);
+
+  useLayoutEffect(() => {
+    const element = canvasColumnRef.current;
+    if (!element) return;
+    const target = continuousPageScrollTarget(continuousLayout, pageIndex, {
+      scrollTop: element.scrollTop,
+      viewportHeight: element.clientHeight,
+    });
+    if (target == null) return;
+    element.scrollTop = target;
+    setDocumentViewport({ scrollTop: target, viewportHeight: element.clientHeight });
+  }, [continuousLayout, hasVisibleToolSettings, pageIndex]);
+
+  useEffect(() => () => {
+    if (canvasScrollFrameRef.current != null) window.cancelAnimationFrame(canvasScrollFrameRef.current);
+    if (thumbnailScrollFrameRef.current != null) window.cancelAnimationFrame(thumbnailScrollFrameRef.current);
+    const controller = pdfControllerRef.current;
+    pdfControllerRef.current = null;
+    controller?.destroy().catch(() => undefined);
+  }, []);
 
   useEffect(() => {
     if (!currentUser?.uid) {
@@ -1511,7 +1755,10 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     setAnnotations(snapshot.annotations || []);
     setDetectedTextItems(snapshot.detectedTextItems || []);
     setPageIndex(clamp(snapshot.pageIndex || 0, 0, Math.max(0, (snapshot.pages || []).length - 1)));
-    if (Object.prototype.hasOwnProperty.call(snapshot, "pdfBytes")) setPdfBytes(snapshot.pdfBytes || null);
+    if (Object.prototype.hasOwnProperty.call(snapshot, "pdfBytes") && snapshot.pdfBytes !== pdfBytes) {
+      void closePdfController();
+      setPdfBytes(snapshot.pdfBytes || null);
+    }
     if (snapshot.toolSettings) setToolSettings(snapshot.toolSettings);
   };
 
@@ -1558,20 +1805,14 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
 
   const duplicateDetectedTextItem = (item) => {
     if (!item) return;
-    const duplicate = {
-      ...item,
-      id: makeId("detected-text"),
-      x: clamp(item.x + 0.02, 0, 0.92),
-      y: clamp(item.y + 0.02, 0, 0.94),
-      originalText: item.currentText,
-      isEdited: true,
-      source: item.source,
-      createdAt: nowIso(),
-      updatedAt: nowIso(),
-    };
-    commitDetectedTextItems([...detectedTextItems, duplicate]);
-    setSelectedDetectedTextId(duplicate.id);
-    setSelectedId(null);
+    const duplicate = createPastedEditorObject(createEditorClipboardPayload({ detectedText: item }), {
+      id: makeId("text"),
+      pageIndex: item.pageNumber,
+      pasteCount: 1,
+    });
+    if (!duplicate) return;
+    addAnnotation(duplicate);
+    setSelectedDetectedTextId(null);
   };
 
   const addAnnotation = (annotation) => {
@@ -1628,24 +1869,6 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       opacity: 1,
     });
   };
-
-  useEffect(() => {
-    if (!pages.length) return undefined;
-
-    const onPaste = (event) => {
-      const target = event.target;
-      if (isEditableTarget(target)) return;
-
-      const pastedText = event.clipboardData?.getData("text/plain");
-      if (!pastedText?.trim()) return;
-
-      event.preventDefault();
-      addTextAnnotation(pastedText, lastPagePointRef.current);
-    };
-
-    window.addEventListener("paste", onPaste);
-    return () => window.removeEventListener("paste", onPaste);
-  }, [annotations, pageIndex, pages.length, toolSettings]);
 
   useEffect(() => {
     if (!activeDocumentId || !pages.length || saveState !== "unsaved") return undefined;
@@ -1709,89 +1932,97 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     onUpload({ target: { files, value: "" } });
   };
 
+  const createPdfPageRecord = (controller, pageData, pageIndexValue, image = null, id = makeId("page")) => {
+    const displayWidth = BASE_PAGE_WIDTH;
+    const displayHeight = Math.round(BASE_PAGE_WIDTH * (pageData.height / pageData.width));
+    const pageRecord = {
+      id,
+      number: pageIndexValue + 1,
+      originalIndex: pageIndexValue,
+      width: displayWidth,
+      height: displayHeight,
+      image,
+      text: pageData.text,
+      source: "pdf",
+      annotationBaseRotation: pageData.rotation,
+      hasDetectedText: pageData.text.length > 0,
+      metadataStatus: "ready",
+    };
+    return {
+      pageRecord,
+      detectedItems: extractDetectedTextItems(
+        controller.pdfjsLib,
+        pageData.textContent,
+        pageData.textViewport,
+        pageRecord,
+        pageIndexValue,
+      ),
+    };
+  };
+
   const parsePdfFile = async (file, { startPercent = 18, endPercent = 80, stagePrefix = "Rendering page" } = {}) => {
     const buffer = await file.arrayBuffer();
-    const pdfjsLib = await loadPdfRenderer();
-    const loadingTask = pdfjsLib.getDocument({ data: buffer.slice(0) });
-    const document = await loadingTask.promise;
-    if (validateEditorPageCount(document.numPages)) {
-      await document.destroy();
-      throw new Error(`page-limit:${document.numPages}`);
-    }
+    const controller = await createPdfDocumentController(buffer);
     const loadedPages = [];
     const detectedItems = [];
-
-    for (let index = 1; index <= document.numPages; index += 1) {
-      setUploadStage({
-        status: `${stagePrefix} ${index} of ${document.numPages}`,
-        percent: Math.round(startPercent + (index / document.numPages) * (endPercent - startPercent)),
-        fileName: file.name,
-      });
-      const page = await document.getPage(index);
-      const textContent = await page.getTextContent();
-      const pageText = textContent.items.map((item) => item.str).join(" ").replace(/\s+/g, " ").trim();
-      const textViewport = page.getViewport({ scale: 1 });
-      const viewport = page.getViewport({ scale: 1.35 });
-      const shouldRenderPreview = index <= 6;
-      let image = null;
-      if (shouldRenderPreview) {
-        const canvas = window.document.createElement("canvas");
-        const context = canvas.getContext("2d");
-        canvas.width = viewport.width;
-        canvas.height = viewport.height;
-        await page.render({ canvasContext: context, viewport }).promise;
-        image = canvas.toDataURL("image/png");
-        canvas.width = 0;
-        canvas.height = 0;
+    try {
+      if (validateEditorPageCount(controller.numPages)) throw new Error(`page-limit:${controller.numPages}`);
+      for (let pageNumber = 1; pageNumber <= controller.numPages; pageNumber += 1) {
+        setUploadStage({
+          status: `${stagePrefix} ${pageNumber} of ${controller.numPages}`,
+          percent: Math.round(startPercent + (pageNumber / controller.numPages) * (endPercent - startPercent)),
+          fileName: file.name,
+        });
+        const pageData = await controller.getTextData(pageNumber);
+        const image = pageNumber <= 6 ? await controller.renderPreview(pageNumber) : null;
+        const result = createPdfPageRecord(controller, pageData, pageNumber - 1, image);
+        loadedPages.push(result.pageRecord);
+        detectedItems.push(...result.detectedItems);
       }
-      const displayWidth = BASE_PAGE_WIDTH;
-      const displayHeight = Math.round(BASE_PAGE_WIDTH * (viewport.height / viewport.width));
-      const pageRecord = {
-        id: makeId("page"),
-        number: index,
-        originalIndex: index - 1,
-        width: displayWidth,
-        height: displayHeight,
-        image,
-        text: pageText,
-        source: "pdf",
-        annotationBaseRotation: page.rotate || 0,
-      };
-      detectedItems.push(...extractDetectedTextItems(pdfjsLib, textContent, textViewport, pageRecord, index - 1));
-      loadedPages.push({
-        ...pageRecord,
-        hasDetectedText: pageText.length > 0,
-      });
-      page.cleanup();
+      return { buffer, loadedPages, detectedItems };
+    } finally {
+      await controller.destroy();
     }
-    await document.destroy();
-    return { buffer, loadedPages, detectedItems };
   };
 
   const ensurePagePreview = useCallback(async (targetIndex, pageRecord) => {
     if (!pdfBytes || !pageRecord || pageRecord.source !== "pdf" || pageRecord.image || renderingPagesRef.current.has(pageRecord.id)) return;
     renderingPagesRef.current.add(pageRecord.id);
     (async () => {
-      const pdfjsLib = await loadPdfRenderer();
-      const document = await pdfjsLib.getDocument({ data: pdfBytes.slice(0) }).promise;
-      const page = await document.getPage((pageRecord.originalIndex ?? targetIndex) + 1);
-      const viewport = page.getViewport({ scale: 1.35 });
-      const canvas = window.document.createElement("canvas");
-      canvas.width = viewport.width;
-      canvas.height = viewport.height;
-      await page.render({ canvasContext: canvas.getContext("2d"), viewport }).promise;
-      const image = canvas.toDataURL("image/png");
+      const controller = await getActivePdfController();
+      if (!controller) return;
+      const image = await controller.renderPreview((pageRecord.originalIndex ?? targetIndex) + 1);
       setPages((items) => items.map((item) => (item.id === pageRecord.id ? { ...item, image } : item)));
-      page.cleanup();
-      canvas.width = 0;
-      canvas.height = 0;
-      await document.destroy();
     })().catch(() => showToast("This page preview could not be rendered.")).finally(() => renderingPagesRef.current.delete(pageRecord.id));
-  }, [pdfBytes]);
+  }, [getActivePdfController, pdfBytes]);
 
   useEffect(() => {
-    ensurePagePreview(pageIndex, pages[pageIndex]);
+    [pageIndex, pageIndex - 1, pageIndex + 1].forEach((targetIndex) => {
+      if (targetIndex >= 0 && targetIndex < pages.length) ensurePagePreview(targetIndex, pages[targetIndex]);
+    });
   }, [ensurePagePreview, pageIndex, pages]);
+
+  useEffect(() => {
+    visibleContinuousPages.forEach(({ index, page }) => ensurePagePreview(index, page));
+  }, [ensurePagePreview, visibleContinuousPages]);
+
+  useEffect(() => {
+    const renderedPreviewCount = pages.reduce((count, page) => count + (page.source === "pdf" && page.image ? 1 : 0), 0);
+    if (renderedPreviewCount <= MAX_RETAINED_PAGE_PREVIEWS) return;
+    const keepStart = Math.max(0, thumbnailRange.start - 1);
+    const keepEnd = Math.min(pages.length, thumbnailRange.end + 1);
+    let changed = false;
+    const nextPages = pages.map((page, index) => {
+      const keepPreview = index === pageIndex
+        || (index >= keepStart && index < keepEnd)
+        || (index >= continuousRange.start && index < continuousRange.end)
+        || Boolean(page.rotation);
+      if (page.source !== "pdf" || !page.image || keepPreview) return page;
+      changed = true;
+      return { ...page, image: null };
+    });
+    if (changed) setPages(nextPages);
+  }, [continuousRange.end, continuousRange.start, pageIndex, pages, thumbnailRange.end, thumbnailRange.start]);
 
   const loadPdfFile = async (file) => {
     if (!file) return;
@@ -1804,16 +2035,44 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       return;
     }
 
+    let controller = null;
     try {
       setUploadError("");
       setUploadStage({ status: "reading", percent: 18, fileName: file.name });
-      const { buffer, loadedPages, detectedItems } = await parsePdfFile(file, {
-        startPercent: 24,
-        endPercent: 80,
-        stagePrefix: "Rendering page",
-      });
+      await closePdfController();
+      const loadGeneration = pdfLoadGenerationRef.current;
+      const buffer = await file.arrayBuffer();
+      controller = await createPdfDocumentController(buffer);
+      if (loadGeneration !== pdfLoadGenerationRef.current) {
+        await controller.destroy();
+        return;
+      }
+      if (validateEditorPageCount(controller.numPages)) throw new Error(`page-limit:${controller.numPages}`);
+      pdfControllerRef.current = controller;
 
-      setUploadStage({ status: "Saving workspace copy", percent: 88, fileName: file.name });
+      setUploadStage({ status: "Rendering first page", percent: 52, fileName: file.name });
+      const firstPageData = await controller.getTextData(1);
+      const firstPageImage = await controller.renderPreview(1);
+      const firstPageResult = createPdfPageRecord(controller, firstPageData, 0, firstPageImage);
+      const loadedPages = Array.from({ length: controller.numPages }, (_, index) => {
+        if (index === 0) return firstPageResult.pageRecord;
+        return {
+          id: makeId("page"),
+          number: index + 1,
+          originalIndex: index,
+          width: firstPageResult.pageRecord.width,
+          height: firstPageResult.pageRecord.height,
+          image: null,
+          text: "",
+          source: "pdf",
+          annotationBaseRotation: 0,
+          hasDetectedText: false,
+          metadataStatus: "pending",
+        };
+      });
+      const detectedItems = firstPageResult.detectedItems;
+
+      setUploadStage({ status: "Opening editor", percent: 88, fileName: file.name });
       const stamp = nowIso();
       const documentRecord = {
         id: makeId("doc"),
@@ -1821,12 +2080,12 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
         name: file.name,
         size: file.size,
         source: "pdf",
-        pageCount: loadedPages.length,
-        status: "Ready",
+        pageCount: controller.numPages,
+        status: controller.numPages > 1 ? "Processing" : "Ready",
         location: "My documents",
         uploadedAt: stamp,
         updatedAt: stamp,
-        pdfDataUrl: await arrayBufferToDataUrl(buffer.slice(0)),
+        pdfDataUrl: "",
         pages: loadedPages,
         annotations: [],
         detectedTextItems: detectedItems,
@@ -1850,10 +2109,53 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       setLastSavedAt(stamp);
       setUploadStage({ status: "complete", percent: 100, fileName: file.name });
       trackProductEvent("document_opened", { toolId: publicTool || "edit-pdf", fileSizeBucket: fileSizeBucket(file.size), pageCountBucket: pageCountBucket(loadedPages.length) });
-      showToast(detectedItems.length ? `Smart Edit detected ${detectedItems.length} text item${detectedItems.length === 1 ? "" : "s"}.` : "This looks scanned. OCR is not enabled in this browser build yet.");
+      setDocumentLoadProgress({ status: controller.numPages > 1 ? "processing" : "ready", processed: 1, total: controller.numPages });
+      showToast(controller.numPages > 1 ? "First page ready. Preparing the remaining pages in the background." : detectedItems.length ? `Smart Edit detected ${detectedItems.length} text item${detectedItems.length === 1 ? "" : "s"}.` : "This looks scanned. OCR is not enabled in this browser build yet.");
       navigate(editorPath(documentRecord.id), { state: { publicTool } });
       window.setTimeout(() => setUploadStage({ status: "idle", percent: 0, fileName: "" }), 900);
+
+      const remainingPageNumbers = Array.from({ length: Math.max(0, controller.numPages - 1) }, (_, index) => index + 2);
+      void runProgressivePageQueue({
+        pageNumbers: remainingPageNumbers,
+        batchSize: 3,
+        shouldContinue: () => loadGeneration === pdfLoadGenerationRef.current && pdfControllerRef.current === controller,
+        loadPage: async (pageNumber) => {
+          const pageData = await controller.getTextData(pageNumber);
+          return createPdfPageRecord(controller, pageData, pageNumber - 1, null, loadedPages[pageNumber - 1].id);
+        },
+        onBatch: async (results) => {
+          if (loadGeneration !== pdfLoadGenerationRef.current) return;
+          results.forEach(({ pageRecord }) => {
+            loadedPages[pageRecord.originalIndex] = pageRecord;
+          });
+          const batchDetectedItems = results.flatMap((result) => result.detectedItems);
+          detectedItems.push(...batchDetectedItems);
+          setPages((items) => items.map((item) => {
+            const replacement = results.find((result) => result.pageRecord.id === item.id)?.pageRecord;
+            return replacement ? { ...replacement, image: item.image || replacement.image } : item;
+          }));
+          if (batchDetectedItems.length) setDetectedTextItems((items) => [...items, ...batchDetectedItems]);
+        },
+        onProgress: ({ processed }) => {
+          if (loadGeneration === pdfLoadGenerationRef.current) {
+            setDocumentLoadProgress({ status: "processing", processed: processed + 1, total: controller.numPages });
+          }
+        },
+      }).then((result) => {
+        if (result.status !== "complete" || loadGeneration !== pdfLoadGenerationRef.current) return;
+        setDocumentLoadProgress({ status: "ready", processed: controller.numPages, total: controller.numPages });
+        setSaveState("unsaved");
+        showToast(detectedItems.length ? `Smart Edit detected ${detectedItems.length} text item${detectedItems.length === 1 ? "" : "s"}.` : "Pages are ready. This PDF may be scanned; OCR is not enabled yet.");
+      }).catch(() => {
+        if (loadGeneration !== pdfLoadGenerationRef.current) return;
+        setDocumentLoadProgress({ status: "error", processed: 1, total: controller.numPages });
+        showToast("The first page is ready, but some background page data could not be prepared.");
+      });
     } catch (error) {
+      if (controller && pdfControllerRef.current === controller) {
+        pdfControllerRef.current = null;
+        await controller.destroy().catch(() => undefined);
+      }
       const message = String(error?.message || "").toLowerCase();
       const friendlyError = message.startsWith("page-limit:")
         ? validateEditorPageCount(Number(message.split(":")[1]))?.message
@@ -1864,9 +2166,28 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
             : "We could not read that PDF. Try a valid, unencrypted PDF under 8 MB.";
       setUploadError(friendlyError);
       setUploadStage({ status: "error", percent: 0, fileName: file.name });
+      setDocumentLoadProgress({ status: "error", processed: 0, total: 0 });
       trackProductEvent("upload_validation_failed", { toolId: publicTool || "edit-pdf", fileSizeBucket: fileSizeBucket(file.size), errorCategory: message.startsWith("page-limit:") ? "page_count" : message.includes("password") ? "encrypted" : "corrupted_or_unreadable" });
     }
   };
+
+  useEffect(() => {
+    if (!import.meta.env.DEV || editorFixtureHandledRef.current || view !== "landing") return;
+    const fixtureUrl = new URLSearchParams(location.search).get("editorFixture");
+    if (!fixtureUrl?.startsWith("/@fs/")) return;
+    editorFixtureHandledRef.current = true;
+    fetch(fixtureUrl)
+      .then(async (response) => {
+        if (!response.ok) throw new Error(`Fixture request failed: ${response.status}`);
+        const blob = await response.blob();
+        const fixtureName = decodeURIComponent(fixtureUrl.split("/").at(-1) || "editor-fixture.pdf");
+        await loadPdfFile(new File([blob], fixtureName, { type: "application/pdf" }));
+      })
+      .catch(() => {
+        editorFixtureHandledRef.current = false;
+        setUploadError("The local editor fixture could not be loaded.");
+      });
+  }, [location.search, view]);
 
   const onUpload = async (event) => {
     const selectedFile = event.target.files?.[0];
@@ -1931,6 +2252,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       const consolidatedDataUrl = await arrayBufferToDataUrl(consolidatedBytes);
 
       pushHistorySnapshot();
+      await closePdfController();
       setPdfBytes(consolidatedBytes);
       setPages(nextPages);
       setDetectedTextItems(nextDetectedTextItems);
@@ -2177,6 +2499,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   };
 
   const hydrateDocument = useCallback(async (documentRecord) => {
+    await closePdfController();
     setActiveDocumentId(documentRecord.id);
     setPages((documentRecord.pages || []).map((page, index) => ({
       ...page,
@@ -2196,8 +2519,9 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     setSaved(true);
     setSaveState("saved");
     setLastSavedAt(documentRecord.updatedAt);
+    setDocumentLoadProgress({ status: "ready", processed: documentRecord.pageCount || documentRecord.pages?.length || 0, total: documentRecord.pageCount || documentRecord.pages?.length || 0 });
     setEditorRouteState("ready");
-  }, []);
+  }, [closePdfController]);
 
   const openDocument = async (documentRecord) => {
     if (documentRecord.ownerId && documentRecord.ownerId !== currentUser?.uid) {
@@ -2299,7 +2623,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   const onPagePointerDown = (event) => {
     event.currentTarget.focus();
     lastPagePointRef.current = pointerToNormalized(event, event.currentTarget);
-    if (!["text", "highlight", "draw", "signature", "initials", "checkbox", "field", "date", "whiteout", "rectangle", "circle", "line", "arrow", "comment", "image"].includes(tool)) {
+    if (!["text", "highlight", "textHighlight", "draw", "signature", "initials", "checkbox", "field", "date", "whiteout", "rectangle", "circle", "line", "arrow", "comment", "note", "stamp", "link", "image"].includes(tool)) {
       setSelectedId(null);
       setSelectedDetectedTextId(null);
       return;
@@ -2339,6 +2663,23 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
 
     if (tool === "text") {
       addTextAnnotation("", point);
+      return;
+    }
+
+    if (tool === "textHighlight") {
+      addAnnotation({
+        id: makeId("text-highlight"),
+        type: "highlight",
+        page: pageIndex,
+        x: clamp(point.x, 0, 0.82),
+        y: clamp(point.y, 0, 0.96),
+        w: 0.16,
+        h: 0.024,
+        color: toolSettings.highlightColor,
+        opacity: toolSettings.highlightOpacity,
+        rotation: 0,
+      });
+      showToast("Text highlight placed. Click a detected word for a fitted highlight.");
       return;
     }
 
@@ -2404,7 +2745,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       return;
     }
 
-    if (tool === "comment") {
+    if (tool === "comment" || tool === "note") {
       addAnnotation({
         id: makeId("comment"),
         type: "comment",
@@ -2418,6 +2759,45 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
         updatedAt: nowIso(),
         color: "#f59e0b",
         opacity: 1,
+      });
+      return;
+    }
+
+    if (tool === "stamp") {
+      addAnnotation({
+        id: makeId("stamp"),
+        type: "stamp",
+        page: pageIndex,
+        x: clamp(point.x, 0, 0.76),
+        y: clamp(point.y, 0, 0.91),
+        w: 0.22,
+        h: 0.075,
+        content: "APPROVED",
+        color: "#1769e8",
+        opacity: 1,
+        rotation: -8,
+      });
+      return;
+    }
+
+    if (tool === "link") {
+      const url = window.prompt("Link address", "https://");
+      if (!url?.trim()) return;
+      const normalizedUrl = /^https?:\/\//i.test(url.trim()) ? url.trim() : `https://${url.trim()}`;
+      addAnnotation({
+        id: makeId("link"),
+        type: "link",
+        page: pageIndex,
+        x: clamp(point.x, 0, 0.7),
+        y: clamp(point.y, 0, 0.93),
+        w: 0.28,
+        h: 0.045,
+        content: normalizedUrl.replace(/^https?:\/\//i, ""),
+        url: normalizedUrl,
+        color: "#1769e8",
+        fontSize: 12,
+        opacity: 1,
+        rotation: 0,
       });
       return;
     }
@@ -2546,6 +2926,68 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     setSelectedId(null);
   };
 
+  const writeSelectionToClipboard = (event) => {
+    const payload = createEditorClipboardPayload({ annotation: selected, detectedText: selectedDetectedText });
+    if (!payload || !event.clipboardData) return null;
+    const serialized = JSON.stringify(payload);
+    event.clipboardData.setData(EDITOR_CLIPBOARD_MIME, serialized);
+    event.clipboardData.setData("text/plain", editorClipboardPlainText(payload));
+    editorClipboardRef.current = { serialized, pasteCount: 0 };
+    event.preventDefault();
+    return payload;
+  };
+
+  useEffect(() => {
+    if (!pages.length) return undefined;
+
+    const onCopy = (event) => {
+      if (isEditableTarget(event.target)) return;
+      if (writeSelectionToClipboard(event)) showToast("Copied selection.");
+    };
+    const onCut = (event) => {
+      if (isEditableTarget(event.target)) return;
+      if (!writeSelectionToClipboard(event)) return;
+      deleteSelected();
+      showToast("Cut selection.");
+    };
+    const onPaste = (event) => {
+      if (isEditableTarget(event.target)) return;
+      const serialized = event.clipboardData?.getData(EDITOR_CLIPBOARD_MIME) || "";
+      const payload = parseEditorClipboardPayload(serialized);
+      if (payload) {
+        event.preventDefault();
+        const pasteCount = editorClipboardRef.current?.serialized === serialized
+          ? editorClipboardRef.current.pasteCount + 1
+          : 1;
+        editorClipboardRef.current = { serialized, pasteCount };
+        const pastedObject = createPastedEditorObject(payload, {
+          id: makeId(payload.object.type || "annotation"),
+          pageIndex,
+          pasteCount,
+        });
+        if (pastedObject) {
+          addAnnotation(pastedObject);
+          showToast("Pasted selection.");
+        }
+        return;
+      }
+
+      const pastedText = event.clipboardData?.getData("text/plain");
+      if (!pastedText?.trim()) return;
+      event.preventDefault();
+      addTextAnnotation(pastedText, lastPagePointRef.current);
+    };
+
+    window.addEventListener("copy", onCopy);
+    window.addEventListener("cut", onCut);
+    window.addEventListener("paste", onPaste);
+    return () => {
+      window.removeEventListener("copy", onCopy);
+      window.removeEventListener("cut", onCut);
+      window.removeEventListener("paste", onPaste);
+    };
+  }, [annotations, pageIndex, pages.length, selected, selectedDetectedText, selectedDetectedTextId, toolSettings]);
+
   const bringSelectedToFront = () => {
     if (!selected) return;
     commitAnnotations([...annotations.filter((annotation) => annotation.id !== selected.id), selected]);
@@ -2565,6 +3007,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       showToast("Freehand drawings cannot be aligned yet.");
       return;
     }
+    pushHistorySnapshot();
     updateAnnotation(selected.id, { x: clamp((1 - (selected.w || 0.1)) / 2, 0, 0.95), y: clamp(selected.y, 0, 0.96) });
     showToast("Aligned to page center.");
   };
@@ -2604,6 +3047,25 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   };
 
   const startDetectedTextDrag = (event, item) => {
+    if (tool === "textHighlight") {
+      event.preventDefault();
+      event.stopPropagation();
+      addAnnotation({
+        id: makeId("text-highlight"),
+        type: "highlight",
+        page: item.pageNumber,
+        x: clamp(item.x - 0.003, 0, 0.99),
+        y: clamp(item.y + item.h * 0.08, 0, 0.99),
+        w: clamp(item.w + 0.006, 0.02, 1 - item.x),
+        h: clamp(item.h * 0.78, 0.012, 0.12),
+        color: toolSettings.highlightColor,
+        opacity: toolSettings.highlightOpacity,
+        rotation: item.rotation || 0,
+      });
+      setSelectedDetectedTextId(null);
+      showToast("Text highlighted.");
+      return;
+    }
     if (isEditableTarget(event.target) || event.target.closest?.(".detected-text-toolbar, .resize-handle")) return;
     event.stopPropagation();
     event.currentTarget.setPointerCapture?.(event.pointerId);
@@ -2707,7 +3169,53 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
         else undo();
         return;
       }
+      if ((event.metaKey || event.ctrlKey) && key === "y") {
+        event.preventDefault();
+        redo();
+        return;
+      }
+      if ((event.metaKey || event.ctrlKey) && key === "d" && (selectedId || selectedDetectedTextId)) {
+        event.preventDefault();
+        duplicateSelected();
+        return;
+      }
+      if (event.metaKey || event.ctrlKey) return;
       if (!event.metaKey && !event.ctrlKey && !event.altKey && selected?.type === "text" && key.length === 1) return;
+
+      if (["arrowup", "arrowdown", "arrowleft", "arrowright"].includes(key) && (selected || selectedDetectedText)) {
+        event.preventDefault();
+        const step = event.shiftKey ? 0.01 : 0.0025;
+        const delta = {
+          x: key === "arrowleft" ? -step : key === "arrowright" ? step : 0,
+          y: key === "arrowup" ? -step : key === "arrowdown" ? step : 0,
+        };
+        pushHistorySnapshot();
+
+        if (selectedDetectedText) {
+          const moved = moveEditorObject(selectedDetectedText, delta);
+          updateDetectedTextItem(selectedDetectedText.id, { x: moved.x, y: moved.y });
+          return;
+        }
+
+        if (selected?.type === "draw") {
+          const xs = selected.points.map((point) => point.x);
+          const ys = selected.points.map((point) => point.y);
+          const boundedDelta = {
+            x: clamp(delta.x, -Math.min(...xs), 1 - Math.max(...xs)),
+            y: clamp(delta.y, -Math.min(...ys), 1 - Math.max(...ys)),
+          };
+          updateAnnotation(selected.id, {
+            points: selected.points.map((point) => ({ x: point.x + boundedDelta.x, y: point.y + boundedDelta.y })),
+          });
+          return;
+        }
+
+        if (selected) {
+          const moved = moveEditorObject(selected, delta);
+          updateAnnotation(selected.id, { x: moved.x, y: moved.y });
+        }
+        return;
+      }
 
       if (key === "escape") {
         setSelectedId(null);
@@ -2730,7 +3238,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [pages, pageIndex, selectedId, selectedDetectedTextId, selected?.type, annotations, detectedTextItems, undoStack, redoStack, saveState]);
+  }, [pages, pageIndex, selectedId, selectedDetectedTextId, selected, selectedDetectedText, annotations, detectedTextItems, undoStack, redoStack, saveState]);
 
   const exportPdf = async ({ download = true, showResult = true } = {}) => {
     setIsExporting(true);
@@ -2923,6 +3431,67 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
           const head = Math.max(10, (annotation.strokeWidth || 3) * 4);
           page.drawLine({ start: end, end: { x: end.x - head, y: end.y }, thickness: annotation.strokeWidth || 3, color, opacity: annotation.opacity });
           page.drawLine({ start: end, end: { x: end.x, y: end.y + head }, thickness: annotation.strokeWidth || 3, color, opacity: annotation.opacity });
+        }
+      }
+
+      if (annotation.type === "stamp") {
+        const stampX = annotation.x * width;
+        const stampY = height - annotation.y * height - annotation.h * height;
+        const stampWidth = annotation.w * width;
+        const stampHeight = annotation.h * height;
+        page.drawRectangle({
+          x: stampX,
+          y: stampY,
+          width: stampWidth,
+          height: stampHeight,
+          borderColor: color,
+          borderWidth: Math.max(1.5, stampHeight * 0.055),
+          opacity: annotation.opacity,
+          rotate: annotationRotation,
+        });
+        const stampText = String(annotation.content || "APPROVED").slice(0, 24);
+        const stampSize = Math.max(8, Math.min(20, stampHeight * 0.42));
+        page.drawText(stampText, {
+          x: stampX + Math.max(4, stampWidth * 0.06),
+          y: stampY + Math.max(3, (stampHeight - stampSize) / 2),
+          size: stampSize,
+          font: helveticaBold,
+          color,
+          opacity: annotation.opacity,
+          rotate: annotationRotation,
+        });
+      }
+
+      if (annotation.type === "link") {
+        const linkX = annotation.x * width;
+        const linkY = height - annotation.y * height - annotation.h * height;
+        const linkWidth = annotation.w * width;
+        const linkHeight = annotation.h * height;
+        const linkSize = Math.max(7, Math.min(14, annotation.fontSize || linkHeight * 0.5));
+        const linkText = String(annotation.content || annotation.url || "Link").slice(0, 80);
+        page.drawText(linkText, {
+          x: linkX + 2,
+          y: linkY + Math.max(2, (linkHeight - linkSize) / 2),
+          size: linkSize,
+          font: helvetica,
+          color,
+          opacity: annotation.opacity,
+        });
+        page.drawLine({
+          start: { x: linkX + 2, y: linkY + 1 },
+          end: { x: linkX + linkWidth, y: linkY + 1 },
+          thickness: 0.8,
+          color,
+          opacity: annotation.opacity,
+        });
+        if (annotation.url) {
+          addPdfLinkAnnotation(page, pdfDoc, {
+            x: linkX,
+            y: linkY,
+            width: linkWidth,
+            height: linkHeight,
+            url: annotation.url,
+          });
         }
       }
 
@@ -3162,6 +3731,43 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     navigate(location.pathname, { replace: true, state: null });
   }, [detectedTextCount, editorRouteState, location.pathname, location.state, navigate, view]);
 
+  const activateReferenceTool = (nextTool) => {
+    setIsShapeMenuOpen(false);
+    setSelectedDetectedTextId(null);
+    if (nextTool === "image") {
+      setTool("image");
+      imageInputRef.current?.click();
+      return;
+    }
+    if (nextTool === "signature") {
+      setTool("signature");
+      if (!activeSignature.content && !activeSignature.imageDataUrl) setSignatureModalOpen(true);
+      else showToast("Click the page to place your signature.");
+      return;
+    }
+    if (nextTool === "editText") {
+      setTool("editText");
+      showToast(detectedTextCount ? "Click existing PDF text to edit it." : "This page has no editable text layer. Use Add Text instead.");
+      return;
+    }
+    if (nextTool === "textHighlight") {
+      setTool("textHighlight");
+      showToast(detectedTextCount ? "Click detected PDF text to highlight it." : "Click the page to place a highlight.");
+      return;
+    }
+    if (nextTool === "erase") showToast("Click an annotation or object to erase it.");
+    if (nextTool === "stamp") showToast("Click the page to place an Approved stamp.");
+    if (nextTool === "link") showToast("Click the page, then enter the link address.");
+    if (nextTool === "note") showToast("Click the page to place a note.");
+    setTool(nextTool);
+  };
+
+  const finishEditing = () => {
+    saveActiveDocument(true);
+    showToast("Document saved.");
+    navigate(currentUser?.uid ? ROUTE_PATHS.dashboard : ROUTE_PATHS.home);
+  };
+
   if (view === "landing") {
     return (
       <LatticePdfLanding
@@ -3228,155 +3834,85 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   }
 
   return (
-    <main className={`editor-shell ${tool === "editText" ? "is-smart-text-mode" : ""}`}>
+    <main className={`editor-shell ${hasVisibleToolSettings ? "has-tool-settings" : ""} ${tool === "editText" ? "is-smart-text-mode" : ""} ${tool === "textHighlight" ? "is-text-highlight-mode" : ""}`}>
       <input ref={fileInputRef} className="hidden-input" type="file" accept="application/pdf" onChange={onUpload} />
       <input ref={appendFileInputRef} className="hidden-input" type="file" accept="application/pdf" onChange={onAppendUpload} />
       <input ref={imageInputRef} className="hidden-input" type="file" accept="image/png,image/jpeg" onChange={onImageUpload} />
-      <header className="file-header">
+      <header className="file-header reference-file-header">
+        <div className="reference-brand-lockup">
+          <span className="reference-brand-mark" aria-hidden="true"><FileText size={22} /></span>
+          <button type="button" className="reference-brand-name" onClick={renameActiveDocument} title={`Rename ${fileName}`}>
+            <strong>RealPDF</strong>
+            <small>{fileName}</small>
+          </button>
+        </div>
+        <div className="reference-header-actions" aria-label="Document actions">
+          <button type="button" onClick={() => window.print()}><Printer size={22} /><span>Print</span></button>
+          <button type="button" onClick={exportPdf} disabled={isExporting}><Download size={22} /><span>{isExporting ? "Preparing…" : "Download"}</span></button>
+          <button type="button" className="reference-done-button" onClick={finishEditing}><span>Done</span></button>
+        </div>
+      </header>
+
+      <section className="tool-ribbon reference-tool-ribbon">
         <button
           type="button"
-          className="pdfnet-brand"
+          className={`reference-toolbar-button reference-thumbnail-toggle ${!isPagesCollapsed ? "is-active" : ""}`}
           onClick={() => setIsPagesCollapsed((value) => !value)}
-          title={isPagesCollapsed ? "Open thumbnails" : "Close thumbnails"}
-          aria-label={isPagesCollapsed ? "Open thumbnails" : "Close thumbnails"}
           aria-controls="page-thumbnails"
           aria-expanded={!isPagesCollapsed}
         >
-          <List size={27} aria-hidden="true" />
+          <PanelsTopLeft size={22} />
+          <span>Thumbnails</span>
+          <ChevronDown size={14} />
         </button>
-        <div className="file-meta">
-          <button type="button" className="file-name" onClick={renameActiveDocument} title="Rename document">{fileName}</button>
-          <span className={`save-state ${saveState === "unsaved" ? "unsaved" : ""}`}><Info size={16} /> {saveStatusLabel}</span>
+
+        <div className="reference-history-tools" aria-label="History">
+          <button type="button" className="reference-toolbar-button" onClick={undo} disabled={!undoStack.length}><Undo2 size={22} /><span>Undo</span></button>
+          <button type="button" className="reference-toolbar-button" onClick={redo} disabled={!redoStack.length}><Redo2 size={22} /><span>Redo</span></button>
         </div>
-        <div className="pdfnet-header-tools">
-          <button type="button" className="icon-button" onClick={() => setIsSearchOpen((value) => !value)} title="Search"><Search size={22} /></button>
-          <button type="button" className="icon-button" onClick={undo} disabled={!undoStack.length} title="Undo"><Undo2 size={21} /></button>
-          <button type="button" className="icon-button" onClick={redo} disabled={!redoStack.length} title="Redo"><Redo2 size={21} /></button>
-          <button className="toolbar-icon" type="button" onClick={() => setZoom((value) => clamp(value - 10, 60, 160))} title="Zoom out">-</button>
-          <div className="zoom-menu-wrap" ref={zoomMenuRef}>
-            <button
-              className={`toolbar-chip ${isZoomMenuOpen ? "is-active" : ""}`}
-              type="button"
-              title="Zoom presets"
-              aria-haspopup="menu"
-              aria-expanded={isZoomMenuOpen}
-              onClick={() => setIsZoomMenuOpen((value) => !value)}
-            >
-              {zoom}% <ChevronDown size={15} />
+
+        <div className="reference-primary-tools" role="toolbar" aria-label="PDF editing tools">
+          {referencePrimaryTools.slice(0, 3).map(({ id, label, icon: Icon }) => (
+            <button key={id} type="button" className={`reference-toolbar-button ${tool === id ? "is-active" : ""}`} aria-pressed={tool === id} onClick={() => activateReferenceTool(id)}>
+              <Icon size={22} /><span>{label}</span>
             </button>
-            {isZoomMenuOpen && (
-              <div className="zoom-preset-menu" role="menu" aria-label="Zoom presets">
-                {zoomOptions.map((value) => (
-                  <button
-                    key={value}
-                    type="button"
-                    role="menuitemradio"
-                    aria-checked={zoom === value}
-                    className={zoom === value ? "is-selected" : ""}
-                    onClick={() => {
-                      setZoom(value);
-                      setIsZoomMenuOpen(false);
-                    }}
-                  >
-                    <span>{value}%</span>
-                    {value === 100 ? <small>Actual size</small> : value === 80 ? <small>Comfort view</small> : !ZOOM_PRESETS.includes(value) ? <small>Fit width</small> : null}
-                  </button>
+          ))}
+
+          <div className="reference-shape-tool">
+            <button type="button" className={`reference-toolbar-button ${["arrow", "line", "rectangle", "circle"].includes(tool) ? "is-active" : ""}`} aria-pressed={["arrow", "line", "rectangle", "circle"].includes(tool)} onClick={() => activateReferenceTool("arrow")}>
+              <Send size={22} /><span>Arrow</span>
+            </button>
+            <button type="button" className="reference-shape-menu-trigger" aria-label="More shape tools" aria-haspopup="menu" aria-expanded={isShapeMenuOpen} onClick={() => setIsShapeMenuOpen((value) => !value)}><ChevronDown size={14} /></button>
+            {isShapeMenuOpen && (
+              <div className="reference-shape-menu" role="menu" aria-label="Shape tools">
+                {[
+                  { id: "arrow", label: "Arrow", icon: Send },
+                  { id: "line", label: "Line", icon: Minus },
+                  { id: "rectangle", label: "Rectangle", icon: RectangleHorizontal },
+                  { id: "circle", label: "Ellipse", icon: Circle },
+                ].map(({ id, label, icon: Icon }) => (
+                  <button key={id} type="button" role="menuitem" onClick={() => activateReferenceTool(id)}><Icon size={18} /> {label}</button>
                 ))}
               </div>
             )}
           </div>
-          <button className="toolbar-icon" type="button" onClick={() => setZoom((value) => clamp(value + 10, 60, 160))} title="Zoom in">+</button>
-        </div>
-        <div className="header-actions">
-          <div className="more-menu-wrap" ref={moreMenuRef}>
-            <button
-              type="button"
-              className={`icon-button ${isMoreMenuOpen ? "is-active" : ""}`}
-              title="More"
-              aria-haspopup="menu"
-              aria-expanded={isMoreMenuOpen}
-              onClick={() => setIsMoreMenuOpen((value) => !value)}
-            >
-              <Grid2X2 size={20} />
-            </button>
-            {isMoreMenuOpen && (
-              <div className="document-more-menu" role="menu" aria-label="Document actions">
-                <button type="button" role="menuitem" onClick={() => {
-                  saveActiveDocument(true);
-                  setIsMoreMenuOpen(false);
-                  navigate(ROUTE_PATHS.dashboard);
-                }}><Home size={16} /> Dashboard</button>
-                <button type="button" role="menuitem" onClick={() => {
-                  renameActiveDocument();
-                  setIsMoreMenuOpen(false);
-                }}><PenLine size={16} /> Rename document</button>
-                <button type="button" role="menuitem" onClick={() => {
-                  duplicateActiveDocument();
-                  setIsMoreMenuOpen(false);
-                }}><FilePlus2 size={16} /> Duplicate document</button>
-                <button type="button" role="menuitem" onClick={() => {
-                  saveActiveDocument(true);
-                  showToast("Saved locally.");
-                  setIsMoreMenuOpen(false);
-                }}><Save size={16} /> Save locally</button>
-                <span />
-                <button type="button" role="menuitem" onClick={() => {
-                  addBlankPage();
-                  setIsMoreMenuOpen(false);
-                }}><Plus size={16} /> Add blank page</button>
-                <button type="button" role="menuitem" onClick={() => {
-                  setShareModalOpen(true);
-                  setIsMoreMenuOpen(false);
-                }}><Share2 size={16} /> Share settings</button>
-                <button type="button" role="menuitem" onClick={() => {
-                  window.print();
-                  setIsMoreMenuOpen(false);
-                }}><Printer size={16} /> Print document</button>
-                <button type="button" role="menuitem" onClick={() => {
-                  exportPdf();
-                  setIsMoreMenuOpen(false);
-                }}><Download size={16} /> Export PDF</button>
-              </div>
-            )}
-          </div>
-          <button type="button" className="share-button" onClick={() => setShareModalOpen(true)} title="Share"><Share2 size={18} /> Share</button>
-          <button type="button" className="sign-secure-button" onClick={exportPdf} disabled={isExporting}><Download size={18} /> {isExporting ? "Exporting…" : "Download"}</button>
-        </div>
-      </header>
 
-      <section className="tool-ribbon">
-        <nav className="mode-tabs" aria-label="Editor modes">
-          {editorModes.map(({ id, label, icon: Icon, defaultTool }) => (
-            <button key={id} type="button" className={activeMode.id === id ? "is-active" : ""} aria-pressed={activeMode.id === id} onClick={() => setTool(defaultTool)}>
-              <Icon size={16} /><span>{label}</span>
+          {referencePrimaryTools.slice(3).map(({ id, label, icon: Icon }) => (
+            <button key={id} type="button" className={`reference-toolbar-button ${tool === id || (id === "note" && tool === "comment") ? "is-active" : ""}`} aria-pressed={tool === id} onClick={() => activateReferenceTool(id)}>
+              <Icon size={22} /><span>{label}</span>
             </button>
           ))}
-        </nav>
-        <div className="context-tools" role="toolbar" aria-label={`${activeMode.label} tools`}>
-          {activeMode.tools.map((id) => {
-            const config = toolById.get(id);
-            if (!config) return null;
-            const Icon = config.icon;
-            return (
-              <button key={id} type="button" title={config.label} aria-label={config.label} className={`ribbon-tool ${tool === id ? "is-active" : ""}`} onClick={() => {
-                if (id === "signature" && !activeSignature.content && !activeSignature.imageDataUrl) setSignatureModalOpen(true);
-                if (id === "image") imageInputRef.current?.click();
-                if (id === "editText") showToast(detectedTextCount ? `${detectedTextCount} original text boxes ready to edit.` : "This PDF has no editable text layer. Add a text box instead.");
-                if (id === "erase") showToast("Click an annotation or object to erase it.");
-                setTool(id);
-              }}>
-                {id === "text" ? <span className="text-tool-glyph" aria-hidden="true">A</span> : <Icon size={19} />}
-                <span>{config.label === "Edit PDF Text" ? "Edit text" : config.label === "Text field" ? "Field" : config.label}</span>
-              </button>
-            );
-          })}
-          {activeMode.id === "view" && <>
-            <button className="ribbon-tool" type="button" onClick={rotateCurrentPage}><RotateCw size={19} /><span>Rotate page</span></button>
-            <button className="ribbon-tool" type="button" onClick={duplicateCurrentPage}><Copy size={19} /><span>Duplicate page</span></button>
-            <button className="ribbon-tool" type="button" onClick={addBlankPage}><FilePlus2 size={19} /><span>Insert page</span></button>
-            <button className="ribbon-tool" type="button" onClick={deleteCurrentPage} disabled={pages.length <= 1}><Trash2 size={19} /><span>Delete page</span></button>
-          </>}
-          {activeMode.id === "insert" && <button className="ribbon-tool" type="button" onClick={() => appendFileInputRef.current?.click()}><Copy size={19} /><span>Insert PDF</span></button>}
+        </div>
+
+        <div className="reference-secondary-tools">
+          <button type="button" className={`reference-toolbar-button ${isSearchOpen ? "is-active" : ""}`} onClick={() => {
+            setIsSearchOpen((value) => !value);
+            setIsCommentsOpen(false);
+          }}><Search size={22} /><span>Search</span></button>
+          <button type="button" className={`reference-toolbar-button ${isManagePagesOpen ? "is-active" : ""}`} onClick={() => {
+            setIsManagePagesOpen((value) => !value);
+            setIsPagesCollapsed(false);
+          }}><PanelsTopLeft size={22} /><span>Manage pages</span></button>
         </div>
       </section>
 
@@ -3390,37 +3926,8 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       />
 
       <section className={`workspace ${isPagesCollapsed ? "pages-collapsed" : ""}`}>
-        <aside className="lumin-editor-rail">
-          {[
-            { label: "Popular", icon: FileText, active: true },
-            { label: "Fill & Sign", icon: PenLine },
-            { label: "Mark up", icon: MessageSquare },
-            { label: "Edit text", icon: Type },
-            { label: "Security", icon: CheckCircle2 },
-            { label: "Organize", icon: FilePlus2 },
-            { label: "Explore", icon: Grid2X2 },
-          ].map(({ label, icon: Icon, active }) => (
-            <button key={label} type="button" className={active ? "is-active" : ""} onClick={() => {
-              if (label === "Fill & Sign") setTool("signature");
-              if (label === "Mark up") setTool("comment");
-              if (label === "Edit text") setTool("text");
-              if (label === "Organize") setIsPagesCollapsed(false);
-            }}>
-              <Icon size={28} />
-              <span>{label}</span>
-            </button>
-          ))}
-        </aside>
         <aside id="page-thumbnails" className={`pages-panel ${isPagesCollapsed ? "is-collapsed" : ""}`}>
-          <div className="panel-title pdfnet-page-title">
-            <strong>Thumbnails</strong>
-            <div>
-              <button type="button" title="Grid view" onClick={() => setViewMode("grid")}><Grid2X2 size={18} /></button>
-              <button type="button" title="List view" onClick={() => setViewMode("list")}><List size={18} /></button>
-              <button type="button" title="Close thumbnails" onClick={() => setIsPagesCollapsed(true)}><X size={18} /></button>
-            </div>
-          </div>
-          <div className="page-actions">
+          {isManagePagesOpen && <div className="page-actions reference-page-actions">
             <button type="button" onClick={() => setIsPageAppendMenuOpen((value) => !value)} aria-haspopup="menu" aria-expanded={isPageAppendMenuOpen}><FilePlus2 size={15} /> Append</button>
             {isPageAppendMenuOpen && (
               <div className="page-append-menu" role="menu" aria-label="Append pages">
@@ -3434,55 +3941,60 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
             <button type="button" onClick={() => moveCurrentPage(-1)} disabled={pageIndex === 0}><GripVertical size={15} /> Up</button>
             <button type="button" onClick={() => moveCurrentPage(1)} disabled={pageIndex === pages.length - 1}><GripVertical size={15} /> Down</button>
             <button type="button" onClick={deleteCurrentPage} disabled={pages.length <= 1}><Trash2 size={15} /> Delete</button>
+          </div>}
+          <div ref={thumbnailListRef} className={`thumbnail-list ${viewMode}`} onScroll={onThumbnailScroll}>
+            <div className="thumbnail-virtual-content" style={{ height: thumbnailVirtualHeight }}>
+              {visibleThumbnailPages.map(({ page, index }) => (
+                <button
+                  key={page.id}
+                  type="button"
+                  className={`thumbnail ${pageIndex === index ? "is-selected" : ""} ${draggedPageIndex === index ? "is-dragging" : ""} ${pageDropIndex === index && draggedPageIndex !== index ? "is-drop-target" : ""}`}
+                  style={{ top: index * THUMBNAIL_ITEM_STRIDE }}
+                  aria-current={pageIndex === index ? "page" : undefined}
+                  aria-label={`Page ${index + 1} of ${pages.length}. Use Alt+Arrow Up or Alt+Arrow Down to reorder.`}
+                  aria-keyshortcuts="Alt+ArrowUp Alt+ArrowDown"
+                  aria-posinset={index + 1}
+                  aria-setsize={pages.length}
+                  title={`Page ${index + 1}`}
+                  onClick={() => setPageIndex(index)}
+                  draggable={isManagePagesOpen}
+                  onDragStart={(event) => {
+                    event.dataTransfer.effectAllowed = "move";
+                    event.dataTransfer.setData("text/plain", String(index));
+                    setDraggedPageIndex(index);
+                    setPageDropIndex(index);
+                  }}
+                  onDragEnter={() => setPageDropIndex(index)}
+                  onDragOver={(event) => {
+                    event.preventDefault();
+                    event.dataTransfer.dropEffect = "move";
+                  }}
+                  onDrop={(event) => {
+                    event.preventDefault();
+                    const fromIndex = Number.parseInt(event.dataTransfer.getData("text/plain"), 10);
+                    if (Number.isInteger(fromIndex)) reorderPage(fromIndex, index);
+                    setDraggedPageIndex(null);
+                    setPageDropIndex(null);
+                  }}
+                  onDragEnd={() => {
+                    setDraggedPageIndex(null);
+                    setPageDropIndex(null);
+                  }}
+                  onKeyDown={(event) => {
+                    if (!event.altKey || (event.key !== "ArrowUp" && event.key !== "ArrowDown")) return;
+                    event.preventDefault();
+                    reorderPage(index, clamp(index + (event.key === "ArrowUp" ? -1 : 1), 0, pages.length - 1));
+                  }}
+                >
+                  <div className="thumbnail-preview" style={{ "--thumbnail-aspect": `${page.width || BASE_PAGE_WIDTH} / ${page.height || BASE_PAGE_HEIGHT}` }}>
+                    <LazyThumbnailPage page={page} index={index} onVisible={ensurePagePreview} />
+                  </div>
+                  <span className="thumbnail-label">{index + 1}</span>
+                </button>
+              ))}
+            </div>
           </div>
-          <div className={`thumbnail-list ${viewMode}`}>
-            {pages.map((page, index) => (
-              <button
-                key={page.id}
-                type="button"
-                className={`thumbnail ${pageIndex === index ? "is-selected" : ""} ${draggedPageIndex === index ? "is-dragging" : ""} ${pageDropIndex === index && draggedPageIndex !== index ? "is-drop-target" : ""}`}
-                aria-current={pageIndex === index ? "page" : undefined}
-                aria-label={`Page ${index + 1}. Use Alt+Arrow Up or Alt+Arrow Down to reorder.`}
-                aria-keyshortcuts="Alt+ArrowUp Alt+ArrowDown"
-                title={`Page ${index + 1}`}
-                onClick={() => setPageIndex(index)}
-                draggable
-                onDragStart={(event) => {
-                  event.dataTransfer.effectAllowed = "move";
-                  event.dataTransfer.setData("text/plain", String(index));
-                  setDraggedPageIndex(index);
-                  setPageDropIndex(index);
-                }}
-                onDragEnter={() => setPageDropIndex(index)}
-                onDragOver={(event) => {
-                  event.preventDefault();
-                  event.dataTransfer.dropEffect = "move";
-                }}
-                onDrop={(event) => {
-                  event.preventDefault();
-                  const fromIndex = Number.parseInt(event.dataTransfer.getData("text/plain"), 10);
-                  if (Number.isInteger(fromIndex)) reorderPage(fromIndex, index);
-                  setDraggedPageIndex(null);
-                  setPageDropIndex(null);
-                }}
-                onDragEnd={() => {
-                  setDraggedPageIndex(null);
-                  setPageDropIndex(null);
-                }}
-                onKeyDown={(event) => {
-                  if (!event.altKey || (event.key !== "ArrowUp" && event.key !== "ArrowDown")) return;
-                  event.preventDefault();
-                  reorderPage(index, clamp(index + (event.key === "ArrowUp" ? -1 : 1), 0, pages.length - 1));
-                }}
-              >
-                <div className="thumbnail-preview" style={{ "--thumbnail-aspect": `${page.width || BASE_PAGE_WIDTH} / ${page.height || BASE_PAGE_HEIGHT}` }}>
-                  <LazyThumbnailPage page={page} index={index} onVisible={ensurePagePreview} />
-                </div>
-                <span className="thumbnail-label">{index + 1}</span>
-              </button>
-            ))}
-          </div>
-          <div className="thumbnail-footer" aria-label="Page actions">
+          {isManagePagesOpen && <div className="thumbnail-footer" aria-label="Page actions">
             <button type="button" title="Delete page" aria-label="Delete page" onClick={deleteCurrentPage} disabled={pages.length <= 1}>
               <Trash2 size={18} strokeWidth={2.6} />
             </button>
@@ -3495,20 +4007,34 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
             <button type="button" title="Download PDF" aria-label="Download PDF" onClick={exportPdf} disabled={isExporting}>
               <Download size={19} strokeWidth={2.5} />
             </button>
-          </div>
-          <div className="saved-foot"><CheckCircle2 size={22} /> {saveStatusLabel}</div>
+          </div>}
         </aside>
 
-        <div className="canvas-column" ref={canvasColumnRef}>
-          <div className="document-stage">
-            <div
-              className="page-surface"
-              tabIndex={0}
-              style={{ width: currentPage.width * (zoom / 100) * EDITOR_PAGE_SCALE, height: currentPage.height * (zoom / 100) * EDITOR_PAGE_SCALE }}
-              onPointerDown={onPagePointerDown}
-              onPointerMove={onPagePointerMove}
-              onPointerUp={onPagePointerUp}
-            >
+        <div className="canvas-column" ref={canvasColumnRef} onScroll={onDocumentScroll}>
+          <div
+            className="document-stage continuous-document-stage"
+            style={{
+              "--document-height": `${continuousLayout.totalHeight}px`,
+              "--document-width": `${continuousLayout.maxWidth + (DOCUMENT_PAGE_PADDING * 2)}px`,
+            }}
+          >
+            {visibleContinuousPages.map(({ page, index, top, width, height }) => (
+              <div
+                key={page.id}
+                className={`continuous-page-slot ${index === pageIndex ? "is-active" : ""}`}
+                data-page-index={index}
+                style={{ top, width, height }}
+              >
+                {index === pageIndex ? (
+                  <div
+                    className="page-surface"
+                    tabIndex={0}
+                    aria-label={`Editing page ${index + 1} of ${pages.length}`}
+                    style={{ width, height }}
+                    onPointerDown={onPagePointerDown}
+                    onPointerMove={onPagePointerMove}
+                    onPointerUp={onPagePointerUp}
+                  >
               {currentPage.image ? <img className="pdf-image" src={currentPage.image} alt={`PDF page ${pageIndex + 1}`} /> : currentPage.source === "blank" ? <BlankDocument /> : <SampleDocument pageIndex={pageIndex} />}
               {currentPage.source === "pdf" && !pageDetectedTextItems.length && !currentPage.text?.trim() && (
                 <div className="ocr-state">
@@ -3575,6 +4101,10 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
                         spellCheck="false"
                         value={item.currentText}
                         onPointerDown={(event) => {
+                          if (tool === "textHighlight") {
+                            startDetectedTextDrag(event, item);
+                            return;
+                          }
                           event.stopPropagation();
                           setSelectedDetectedTextId(item.id);
                           setSelectedId(null);
@@ -3602,7 +4132,12 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
                     onSelect={setSelectedId}
                     onInteractionStart={pushHistorySnapshot}
                     onDrag={(id, patch) => updateAnnotation(id, { x: clamp(patch.x, 0, 0.95), y: clamp(patch.y, 0, 0.96) })}
-                    onResize={(id, patch) => updateAnnotation(id, { w: clamp(patch.w, 0.03, 0.7), h: clamp(patch.h, 0.018, 0.45) })}
+                    onResize={(id, patch) => updateAnnotation(id, {
+                      x: clamp(patch.x, 0, 0.97),
+                      y: clamp(patch.y, 0, 0.982),
+                      w: clamp(patch.w, 0.03, 1 - patch.x),
+                      h: clamp(patch.h, 0.018, 1 - patch.y),
+                    })}
                     onUpdate={updateAnnotation}
                     onDelete={(id) => {
                       commitAnnotations(annotations.filter((item) => item.id !== id));
@@ -3640,7 +4175,35 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
                   </div>
                 )}
               </div>
-            </div>
+                  </div>
+                ) : (
+                  <div
+                    className="page-surface continuous-page-shell"
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`Select page ${index + 1} of ${pages.length}`}
+                    style={{ width, height }}
+                    onClick={() => setPageIndex(index)}
+                    onKeyDown={(event) => {
+                      if (event.key !== "Enter" && event.key !== " ") return;
+                      event.preventDefault();
+                      setPageIndex(index);
+                    }}
+                  >
+                    {page.image ? (
+                      <img className="pdf-image" src={page.image} alt={`PDF page ${index + 1}`} />
+                    ) : page.source === "blank" ? (
+                      <BlankDocument />
+                    ) : page.source === "pdf" ? (
+                      <div className="continuous-page-skeleton" aria-label={`Loading page ${index + 1}`} />
+                    ) : (
+                      <SampleDocument pageIndex={index} />
+                    )}
+                  </div>
+                )}
+                <span className="continuous-page-number" aria-hidden="true">{index + 1}</span>
+              </div>
+            ))}
           </div>
         </div>
 
@@ -3654,6 +4217,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
               signatureText={signatureText}
               setSignatureText={setSignatureText}
               updateAnnotation={updateAnnotation}
+              onBeforeChange={pushHistorySnapshot}
               clearSelection={() => setSelectedId(null)}
               bringSelectedToFront={bringSelectedToFront}
               sendSelectedToBack={sendSelectedToBack}
@@ -4203,7 +4767,7 @@ function ToolSettingsPanel({ tool, settings, setSettings, selectedTextAnnotation
     setFontSearch("");
   };
 
-  if (!["text", "field", "draw", "highlight", "whiteout", "rectangle", "circle", "line", "arrow"].includes(effectiveTool)) {
+  if (!["text", "field", "draw", "highlight", "textHighlight", "whiteout", "rectangle", "circle", "line", "arrow"].includes(effectiveTool)) {
     return null;
   }
 
@@ -4304,7 +4868,7 @@ function ToolSettingsPanel({ tool, settings, setSettings, selectedTextAnnotation
     );
   }
 
-  if (tool === "highlight") {
+  if (tool === "highlight" || tool === "textHighlight") {
     return (
       <div className="tool-settings" onPointerDownCapture={onBeforeChange} onKeyDownCapture={onBeforeChange}>
         <ColorControl value={settings.highlightColor} onChange={(color) => update({ highlightColor: color })} />
@@ -5196,6 +5760,7 @@ function Inspector({
   toolSettings,
   setToolSettings,
   updateAnnotation,
+  onBeforeChange,
   clearSelection,
   bringSelectedToFront,
   sendSelectedToBack,
@@ -5226,7 +5791,15 @@ function Inspector({
   }, [selected?.id]);
 
   return (
-    <aside className="inspector">
+    <aside
+      className="inspector"
+      onFocusCapture={(event) => {
+        if (event.target.matches?.("input, textarea, select")) onBeforeChange?.();
+      }}
+      onPointerDownCapture={(event) => {
+        if (event.target.closest?.(".format-row button, .swatches button, .custom-color-row button")) onBeforeChange?.();
+      }}
+    >
       <div className="inspector-title">
         <span>{title}</span>
         <button type="button" onClick={clearSelection} disabled={!selected} title="Close properties">×</button>
@@ -5355,7 +5928,7 @@ function Inspector({
           </div>
 
           <div className="action-row">
-            <button type="button" onClick={duplicateSelected} disabled={selected.type === "draw"}><FilePlus2 size={18} /> Duplicate</button>
+            <button type="button" onClick={duplicateSelected}><FilePlus2 size={18} /> Duplicate</button>
             <button type="button" onClick={deleteSelected}><Trash2 size={18} /> Delete</button>
           </div>
         </>
