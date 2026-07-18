@@ -93,6 +93,7 @@ import { addPdfLinkAnnotation } from "./editor/pdfLinkAnnotation.mjs";
 import { protectPdfBytes } from "./tools/protectPdf.js";
 import { EDITOR_TOOL_MODES, getDefaultToolForMode, getToolsForMode, resolveModeForTool } from "./tools/editorToolModes.js";
 import { annotationPatchFromFrame, framesEqual, getAnnotationFrame, moveFrame, normalizeRotation, nudgeFrame, resizeFrame, rotationFromPointer } from "./tools/editorObjectTransforms.js";
+import { normalizedPointerInRect } from "./tools/editorPointerCoordinates.js";
 import { createTextAnnotation, estimateTextAnnotationSize, shouldDiscardTextAnnotation } from "./tools/editorTextObjects.js";
 import { canSaveEditorSignature } from "./tools/editorSignature.js";
 import { duplicateEditorPageState, rotateEditorPageRecord } from "./tools/editorPageOrganizer.js";
@@ -389,11 +390,8 @@ function normalizeHexColor(value) {
 }
 
 function pointerToNormalized(event, pageElement) {
-  const rect = pageElement.getBoundingClientRect();
-  return {
-    x: clamp((event.clientX - rect.left) / rect.width, 0, 1),
-    y: clamp((event.clientY - rect.top) / rect.height, 0, 1),
-  };
+  const drawingSurface = pageElement.querySelector(".annotation-layer") || pageElement;
+  return normalizedPointerInRect(event, drawingSurface.getBoundingClientRect());
 }
 
 function rotatePdfPoint(point, center, rotation = 0) {
@@ -2631,7 +2629,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   };
 
   const onPagePointerDown = (event) => {
-    event.currentTarget.focus();
+    event.currentTarget.focus({ preventScroll: true });
     lastPagePointRef.current = pointerToNormalized(event, event.currentTarget);
     if (!["text", "highlight", "textHighlight", "draw", "signature", "initials", "checkbox", "field", "date", "whiteout", "rectangle", "circle", "line", "arrow", "comment", "stamp", "link", "image"].includes(tool)) {
       const selectedAnnotation = annotations.find((item) => item.id === selectedId);
