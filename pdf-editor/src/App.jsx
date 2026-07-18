@@ -853,7 +853,7 @@ function Annotation({ annotation, selected, zoom, onSelect, onDrag, onResize, on
     const points = annotation.points.map((point) => `${point.x * 100},${point.y * 100}`).join(" ");
     const normalizedStrokeWidth = Math.max(0.15, (annotation.strokeWidth / BASE_PAGE_WIDTH) * 100);
     return (
-      <svg className={`ink-layer ${selected ? "is-selected" : ""}`} viewBox="0 0 100 100" preserveAspectRatio="none" onPointerDown={(event) => { event.stopPropagation(); onSelect(annotation.id); }}>
+      <svg className={`ink-layer ${selected ? "is-selected" : ""}`} width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none" onPointerDown={(event) => { event.stopPropagation(); onSelect(annotation.id); }}>
         <polyline points={points} fill="none" stroke={annotation.color} strokeWidth={normalizedStrokeWidth} strokeLinecap="round" strokeLinejoin="round" opacity={annotation.opacity} />
       </svg>
     );
@@ -4221,7 +4221,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
                   />
                 ))}
                 {draft && draft.page === pageIndex && draft.type === "draw" && (
-                  <svg className="ink-layer drafting" viewBox="0 0 100 100" preserveAspectRatio="none">
+                  <svg className="ink-layer drafting" width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none">
                     <polyline points={draft.points.map((point) => `${point.x * 100},${point.y * 100}`).join(" ")} fill="none" stroke={draft.color} strokeWidth={Math.max(0.15, (draft.strokeWidth / BASE_PAGE_WIDTH) * 100)} strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
                 )}
