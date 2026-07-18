@@ -598,3 +598,72 @@ main.editor-shell .thumbnail-inline-actions button:disabled { color: #b6beca; cu
   main.editor-shell .workspace.is-managing-pages { grid-template-columns: min(82vw, 268px) minmax(0, 1fr) !important; }
   main.editor-shell .workspace.is-managing-pages .pages-panel { width: min(82vw, 268px) !important; }
 }
+
+/* Contextual settings float over the workspace, so they must not consume a grid row. */
+main.editor-shell.editor-shell.has-tool-settings {
+  grid-template-rows: 76px 116px minmax(0, 1fr) !important;
+}
+
+/* Keep zoom and page navigation useful without covering the document. */
+main.editor-shell .status-bar {
+  bottom: 12px !important;
+  height: 38px !important;
+  min-height: 38px !important;
+  max-height: 38px !important;
+  padding: 0 5px !important;
+  border-radius: 12px !important;
+  box-shadow: 0 7px 20px rgba(29, 39, 57, .16) !important;
+}
+
+main.editor-shell .page-nav {
+  gap: 3px !important;
+  height: 36px !important;
+  padding: 0 !important;
+}
+
+main.editor-shell .page-nav button,
+main.editor-shell .page-nav .page-nav-zoom {
+  width: 27px !important;
+  min-width: 27px !important;
+  height: 28px !important;
+  border-radius: 7px !important;
+}
+
+main.editor-shell .page-nav button svg {
+  width: 16px !important;
+  height: 16px !important;
+}
+
+main.editor-shell .page-nav .page-nav-zoom-select {
+  width: 68px !important;
+  min-width: 68px !important;
+  height: 28px !important;
+  padding: 0 18px 0 8px !important;
+  border-radius: 7px !important;
+  font-size: 13px !important;
+}
+
+main.editor-shell .page-nav .page-nav-divider {
+  height: 20px !important;
+  margin: 0 2px !important;
+}
+
+main.editor-shell .page-nav input {
+  width: 38px !important;
+  min-width: 38px !important;
+  height: 28px !important;
+  border-radius: 7px !important;
+  font-size: 13px !important;
+}
+
+main.editor-shell .page-nav .page-nav-total {
+  min-width: 28px !important;
+  height: 28px !important;
+  font-size: 13px !important;
+}
+
+@media (max-width: 760px) {
+  main.editor-shell.editor-shell.has-tool-settings {
+    grid-template-rows: 64px 92px minmax(0, 1fr) !important;
+  }
+}
