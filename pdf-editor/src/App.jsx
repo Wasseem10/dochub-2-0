@@ -94,7 +94,7 @@ import { protectPdfBytes } from "./tools/protectPdf.js";
 import { EDITOR_TOOL_MODES, getDefaultToolForMode, getToolsForMode, resolveModeForTool } from "./tools/editorToolModes.js";
 import { annotationPatchFromFrame, framesEqual, getAnnotationFrame, moveFrame, normalizeRotation, nudgeFrame, resizeFrame, rotationFromPointer } from "./tools/editorObjectTransforms.js";
 import { normalizedPointerInRect } from "./tools/editorPointerCoordinates.js";
-import { createTextAnnotation, estimateTextAnnotationSize, shouldDiscardTextAnnotation } from "./tools/editorTextObjects.js";
+import { createTextAnnotation, estimateTextAnnotationSize, normalizeEditorText, shouldDiscardTextAnnotation } from "./tools/editorTextObjects.js";
 import { canSaveEditorSignature } from "./tools/editorSignature.js";
 import { duplicateEditorPageState, rotateEditorPageRecord } from "./tools/editorPageOrganizer.js";
 import { appendEditorPages } from "./tools/pdfEditorPageExport.js";
@@ -834,16 +834,20 @@ function Annotation({ annotation, selected, zoom, onSelect, onDrag, onResize, on
 
   const updateTextContent = (textElement) => {
     const pageRect = textElement.closest(".page-surface")?.getBoundingClientRect();
-    const content = textElement.innerText;
+    const content = normalizeEditorText(textElement.innerText);
     const patch = { content: content || " " };
 
     if (pageRect?.width && pageRect?.height) {
-      const hasContent = content.trim().length > 0;
       const fontPx = Math.max(8, (annotation.fontSize || 16) * textDisplayScale);
-      const measuredWidth = hasContent ? textElement.scrollWidth + 10 : fontPx * 3.25;
-      const measuredHeight = hasContent ? textElement.scrollHeight + 6 : fontPx * 1.6;
-      patch.w = clamp(measuredWidth / pageRect.width, 0.055, 0.5);
-      patch.h = clamp(measuredHeight / pageRect.height, 0.028, 0.28);
+      const estimated = estimateTextAnnotationSize({
+        content,
+        fontSize: fontPx,
+        lineHeight: annotation.lineHeight || 1.25,
+        pageWidth: pageRect.width,
+        pageHeight: pageRect.height,
+      });
+      patch.w = estimated.w;
+      patch.h = estimated.h;
     }
 
     onUpdate(annotation.id, patch);
@@ -1040,6 +1044,7 @@ function EditorSelectionControls({ onDelete, onMoveStart, onResizeStart, onRotat
 
 function ProfessionalAnnotation({ annotation, selected, zoom, activeTool, onSelect, onCommit, onUpdate, onDelete }) {
   const textContentRef = useRef(null);
+  const textMeasureCanvasRef = useRef(null);
   const textWasFocusedRef = useRef(false);
   const textDraftRef = useRef(annotation.content || "");
   const gestureFrameRef = useRef(getAnnotationFrame(annotation));
@@ -1152,22 +1157,32 @@ function ProfessionalAnnotation({ annotation, selected, zoom, activeTool, onSele
 
   const updateTextContent = (element) => {
     const pageRect = element.closest(".page-surface")?.getBoundingClientRect();
-    const content = element.innerText.replace(/\r/g, "");
+    const content = normalizeEditorText(element.innerText);
     textDraftRef.current = content;
     if (!pageRect?.width || !pageRect?.height) return;
-    const hasContent = content.trim().length > 0;
     const fontPx = Math.max(8, (annotation.fontSize || 16) * textDisplayScale);
+    const currentFrame = gestureFrameRef.current;
+    const canvas = textMeasureCanvasRef.current || document.createElement("canvas");
+    textMeasureCanvasRef.current = canvas;
+    const context = canvas.getContext("2d");
+    const computedStyle = window.getComputedStyle(element);
+    if (context) {
+      context.font = `${computedStyle.fontStyle} ${computedStyle.fontWeight} ${computedStyle.fontSize} ${computedStyle.fontFamily}`;
+    }
     const estimated = estimateTextAnnotationSize({
       content,
       fontSize: fontPx,
       lineHeight: annotation.lineHeight || 1.25,
       pageWidth: pageRect.width,
       pageHeight: pageRect.height,
+      maxWidth: clamp(0.98 - currentFrame.x, 0.16, 0.78),
+      maxHeight: clamp(0.98 - currentFrame.y, 0.05, 0.42),
+      measureLine: context ? (line) => context.measureText(line || " ").width : undefined,
     });
     const nextFrame = {
-      ...gestureFrameRef.current,
-      w: clamp(Math.max(estimated.w, (hasContent ? element.scrollWidth + 20 : fontPx * 5) / pageRect.width), 0.16, 0.78),
-      h: clamp(Math.max(estimated.h, (hasContent ? element.scrollHeight + 12 : fontPx * 1.8) / pageRect.height), 0.05, 0.42),
+      ...currentFrame,
+      w: estimated.w,
+      h: estimated.h,
     };
     gestureFrameRef.current = nextFrame;
     setLiveFrame(nextFrame);
