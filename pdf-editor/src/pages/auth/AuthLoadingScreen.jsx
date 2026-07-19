@@ -1,12 +1,11 @@
-import FileText from "lucide-react/dist/esm/icons/file-text.mjs";
+import { BrandWordmark } from "../../components/public/BrandWordmark.jsx";
 
 export function AuthLoadingScreen({ label = "Opening FixThatPDF" }) {
   return (
     <main className="auth-loading-shell">
       <section className="auth-loading-card" role="status" aria-live="polite" aria-label={label}>
         <div className="auth-loading-brand" aria-hidden="true">
-          <span className="auth-loading-mark"><FileText size={20} strokeWidth={2.25} /></span>
-          <strong>FixThatPDF</strong>
+          <BrandWordmark />
         </div>
 
         <div className="auth-loading-copy">
