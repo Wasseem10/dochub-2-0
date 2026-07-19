@@ -10,6 +10,7 @@ import Menu from "lucide-react/dist/esm/icons/menu.mjs";
 import ShieldCheck from "lucide-react/dist/esm/icons/shield-check.mjs";
 import Upload from "lucide-react/dist/esm/icons/upload.mjs";
 import X from "lucide-react/dist/esm/icons/x.mjs";
+import { BrandWordmark } from "./components/public/BrandWordmark.jsx";
 import { PageMetadata } from "./components/public/PageMetadata.jsx";
 import { ROUTE_PATHS } from "./router/routePaths.js";
 import { ToolIcon } from "./tools/ToolIcon.jsx";
@@ -84,7 +85,7 @@ const footerToolGroups = [
 ];
 
 function Brand() {
-  return <Link className="freepdf-brand" to={ROUTE_PATHS.home} aria-label="FixThatPDF home"><span><FileText size={20} /></span><strong>FixThatPDF</strong></Link>;
+  return <Link className="freepdf-brand" to={ROUTE_PATHS.home} aria-label="FixThatPDF home"><BrandWordmark /></Link>;
 }
 
 function SiteHeader({ onChoose }) {

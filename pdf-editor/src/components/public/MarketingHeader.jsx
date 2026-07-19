@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import FileText from "lucide-react/dist/esm/icons/file-text.mjs";
 import Menu from "lucide-react/dist/esm/icons/menu.mjs";
 import X from "lucide-react/dist/esm/icons/x.mjs";
 import { ROUTE_PATHS } from "../../router/routePaths.js";
+import { BrandWordmark } from "./BrandWordmark.jsx";
 
 export function MarketingHeader() {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -33,7 +33,7 @@ export function MarketingHeader() {
   return (
     <header ref={headerRef} className="marketing-header">
       <div className="marketing-header-row">
-        <Link className="marketing-brand" to={ROUTE_PATHS.home} onClick={closeMenus} aria-label="FixThatPDF home"><span><FileText size={21} /></span><strong>FixThatPDF</strong></Link>
+        <Link className="marketing-brand" to={ROUTE_PATHS.home} onClick={closeMenus} aria-label="FixThatPDF home"><BrandWordmark /></Link>
         <nav className="marketing-desktop-nav" aria-label="Public navigation">
           <Link to={ROUTE_PATHS.tools}>All tools</Link>
           <Link to={ROUTE_PATHS.editPdf}>Edit PDF</Link>

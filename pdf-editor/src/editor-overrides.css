@@ -1114,26 +1114,7 @@ main.editor-shell .page-surface:focus {
 .auth-loading-brand {
   display: flex;
   align-items: center;
-  gap: 10px;
-}
-
-.auth-loading-mark {
-  display: grid;
-  width: 38px;
-  height: 38px;
-  flex: 0 0 auto;
-  place-items: center;
-  border-radius: 11px;
-  background: #2851eb;
-  color: #ffffff;
-  box-shadow: 0 7px 18px rgba(40, 81, 235, 0.2);
-}
-
-.auth-loading-brand strong {
-  font-family: "Funnel Display", "DM Sans", sans-serif;
-  font-size: 20px;
-  font-weight: 800;
-  letter-spacing: -0.04em;
+  font-size: 22px;
 }
 
 .auth-loading-copy {
@@ -6895,27 +6876,16 @@ main.editor-shell .draw-color-field {
   display: inline-flex !important;
   width: max-content !important;
   align-items: center !important;
-  gap: 10px !important;
   padding: 0 !important;
   border: 0 !important;
   background: transparent !important;
   color: #ffffff !important;
-  font-family: "Funnel Display", "DM Sans", sans-serif !important;
-  font-size: 20px !important;
-  font-weight: 800 !important;
-  letter-spacing: -0.035em !important;
+  font-size: 23px !important;
   cursor: pointer !important;
 }
 
-.auth-shell .auth-showcase-brand > span {
-  display: grid !important;
-  width: 38px !important;
-  height: 38px !important;
-  place-items: center !important;
-  border-radius: 10px !important;
-  background: #ffffff !important;
-  color: var(--auth-blue) !important;
-}
+.auth-shell .auth-showcase-brand .brand-wordmark-name { color: #ffffff !important; }
+.auth-shell .auth-showcase-brand .brand-wordmark-pdf { color: #ffb27e !important; }
 
 .auth-shell .auth-showcase-copy {
   position: relative !important;
@@ -6997,21 +6967,10 @@ main.editor-shell .draw-color-field {
 }
 
 .auth-shell .auth-realpdf-brand::before {
-  content: "" !important;
-  display: inline-block !important;
-  width: 32px !important;
-  height: 32px !important;
-  border-radius: 9px !important;
-  background: var(--auth-blue) !important;
-  box-shadow: inset 0 0 0 9px #ffffff, 0 0 0 1px var(--auth-blue) !important;
+  content: none !important;
 }
 
-.auth-shell .auth-realpdf-brand strong {
-  color: var(--auth-ink) !important;
-  font-family: "Funnel Display", "DM Sans", sans-serif !important;
-  font-size: 22px !important;
-  font-weight: 800 !important;
-}
+.auth-shell .auth-realpdf-brand { font-size: 23px !important; }
 
 .auth-shell .auth-card h2 {
   margin-top: 3px !important;

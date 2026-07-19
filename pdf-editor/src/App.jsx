@@ -76,6 +76,7 @@ import { deleteObject, getDownloadURL, ref as storageReference, uploadString } f
 import { db, isCloudPersistenceConfigured, storage } from "./firebase";
 import { useAuth } from "./auth/AuthContext.jsx";
 import { AuthRequiredModal } from "./components/editor/AuthRequiredModal.jsx";
+import { BrandWordmark } from "./components/public/BrandWordmark.jsx";
 import { LatticePdfLanding } from "./LatticePdfLanding.jsx";
 import { EditorRouteStatePage } from "./pages/app/EditorRouteStatePage.jsx";
 import { EditorToolUploadPage } from "./pages/public/EditorToolUploadPage.jsx";
@@ -1303,7 +1304,7 @@ export function EditorBrandButton({ onDashboard }) {
       title="Back to dashboard"
       aria-label="Back to FixThatPDF dashboard"
     >
-      FixThatPDF
+      <BrandWordmark />
     </button>
   );
 }
@@ -4747,7 +4748,7 @@ function AuthPage({ mode, setMode, onBack, backLabel = "Back to home", onComplet
   return (
     <main className="auth-shell">
       <section className="auth-showcase" aria-label="FixThatPDF product preview">
-        <button type="button" className="auth-showcase-brand" onClick={onBack} aria-label="FixThatPDF home"><span><FileText size={21} /></span><strong>FixThatPDF</strong></button>
+        <button type="button" className="auth-showcase-brand" onClick={onBack} aria-label="FixThatPDF home"><BrandWordmark /></button>
         <div className="auth-showcase-copy">
           <span>Every PDF task</span>
           <h1>Pick up right where you left off.</h1>
@@ -4757,7 +4758,7 @@ function AuthPage({ mode, setMode, onBack, backLabel = "Back to home", onComplet
       </section>
       <section className="auth-card" aria-label={isSignup ? "Create account" : isPasswordReset ? "Reset password" : "Log in"}>
         <button type="button" className="auth-back" onClick={onBack}>{backLabel}</button>
-        <button type="button" className="auth-mark auth-realpdf-brand" onClick={onBack} aria-label="FixThatPDF home"><strong>FixThatPDF</strong></button>
+        <button type="button" className="auth-mark auth-realpdf-brand" onClick={onBack} aria-label="FixThatPDF home"><BrandWordmark /></button>
         <h2>{isSignup ? "Create your workspace" : isPasswordReset ? "Reset your password" : "Welcome back"}</h2>
         <p className="auth-intro">{isSignup ? "Start editing, signing, and organizing PDFs in one focused place." : isPasswordReset ? "Enter your account email and we will send the existing Firebase reset flow." : "Sign in to continue working with your PDFs."}</p>
         {routeNotice && <div className="auth-notice">{routeNotice}</div>}
@@ -5677,7 +5678,7 @@ export function UploadLanding({
     <main className="upload-shell lumin-home">
       <input ref={fileInputRef} className="hidden-input" type="file" accept="application/pdf" onChange={onUpload} />
       <aside className="lumin-home-rail">
-        <button type="button" className="dashboard-brand" aria-label="FixThatPDF dashboard" onClick={() => setActiveSection("Home")}><strong>FixThatPDF</strong></button>
+        <button type="button" className="dashboard-brand" aria-label="FixThatPDF dashboard" onClick={() => setActiveSection("Home")}><BrandWordmark /></button>
         <nav className="upload-nav" aria-label="Primary">
           {primaryNav.map(({ label, section: navSection = label, icon: Icon, badge }) => (
             <button key={label} type="button" className={navSection === activeSection ? "is-active" : ""} onClick={() => setActiveSection(navSection)}>

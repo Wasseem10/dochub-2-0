@@ -42,27 +42,13 @@
 .marketing-brand {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
   color: var(--public-ink);
-  font-size: 20px;
+  font-size: 22px;
   text-decoration: none;
 }
 
-.marketing-brand > span {
-  display: grid;
-  width: 34px;
-  height: 34px;
-  place-items: center;
-  border-radius: 9px;
-  background: var(--public-green);
-  color: #fff;
-}
-
-.marketing-brand strong {
-  font-family: "Funnel Display", "DM Sans", sans-serif;
-  font-weight: 800;
-  letter-spacing: -.035em;
-}
+.marketing-brand .brand-wordmark { transition: opacity .18s ease, transform .18s ease; }
+.marketing-brand:hover .brand-wordmark { opacity: .82; transform: translateY(-1px); }
 
 .marketing-desktop-nav,
 .marketing-header-actions {

@@ -6,6 +6,7 @@ import "./editor-overrides.css";
 import "./dashboard-redesign.css";
 import "./landing-redesign.css";
 import "./lattice-pdf.css";
+import "./brand-wordmark.css";
 import "./route-shells.css";
 import "./tool-platform.css";
 import "./reference-editor.css";
