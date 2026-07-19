@@ -667,3 +667,108 @@ main.editor-shell .page-nav .page-nav-total {
     grid-template-rows: 64px 92px minmax(0, 1fr) !important;
   }
 }
+
+/* Keep highlight controls compact, readable, and inside their own grid row. */
+main.editor-shell.editor-shell.has-tool-settings.is-highlight-settings-mode {
+  grid-template-rows: 76px 116px 48px minmax(0, 1fr) !important;
+}
+
+main.editor-shell > .highlight-tool-settings {
+  width: max-content !important;
+  max-width: calc(100vw - 32px) !important;
+  margin: 0 !important;
+  min-height: 42px !important;
+  height: 42px !important;
+  align-self: center !important;
+  justify-self: center !important;
+  justify-content: flex-start !important;
+  gap: 6px !important;
+  padding: 0 7px !important;
+  overflow: visible !important;
+  border: 1px solid #d7deea !important;
+  border-radius: 11px !important;
+  background: #ffffff !important;
+  box-shadow: 0 7px 20px rgba(24, 39, 66, .11) !important;
+}
+
+main.editor-shell .highlight-tool-settings > *,
+main.editor-shell .highlight-tool-settings label,
+main.editor-shell .highlight-tool-settings .color-control {
+  min-height: 34px !important;
+  height: 34px !important;
+  border-right: 0 !important;
+}
+
+main.editor-shell .highlight-settings-title {
+  display: inline-flex !important;
+  min-width: 92px !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 0 11px !important;
+  border-radius: 8px !important;
+  background: #edf3ff !important;
+  color: #2851eb !important;
+  font-size: 13px !important;
+  font-weight: 800 !important;
+  white-space: nowrap !important;
+}
+
+main.editor-shell .highlight-setting-group {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  padding: 0 8px !important;
+  color: #344054 !important;
+  font-size: 12px !important;
+  font-weight: 750 !important;
+  white-space: nowrap !important;
+}
+
+main.editor-shell .highlight-tool-settings label {
+  color: #344054 !important;
+  font-size: 12px !important;
+}
+
+main.editor-shell .highlight-color-field .color-control {
+  width: 34px !important;
+  min-width: 34px !important;
+}
+
+main.editor-shell .highlight-color-field .color-trigger {
+  width: 28px !important;
+  height: 28px !important;
+}
+
+main.editor-shell .highlight-opacity-field input[type="range"] {
+  width: 132px !important;
+  margin: 0 !important;
+}
+
+main.editor-shell .highlight-opacity-output {
+  display: inline-flex !important;
+  min-width: 46px !important;
+  align-items: center !important;
+  justify-content: center !important;
+  color: #344054 !important;
+  font-size: 13px !important;
+  font-weight: 800 !important;
+  line-height: 1 !important;
+}
+
+@media (max-width: 760px) {
+  main.editor-shell.editor-shell.has-tool-settings.is-highlight-settings-mode {
+    grid-template-rows: 64px 92px 48px minmax(0, 1fr) !important;
+  }
+
+  main.editor-shell > .highlight-tool-settings {
+    width: calc(100vw - 20px) !important;
+    max-width: calc(100vw - 20px) !important;
+    justify-content: center !important;
+    overflow-x: auto !important;
+  }
+
+  main.editor-shell .highlight-settings-title,
+  main.editor-shell .highlight-setting-group > span {
+    display: none !important;
+  }
+}

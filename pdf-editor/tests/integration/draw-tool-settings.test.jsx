@@ -16,6 +16,14 @@ function DrawSettingsHarness() {
   return <ToolSettingsPanel tool="draw" settings={settings} setSettings={setSettings} />;
 }
 
+function HighlightSettingsHarness({ tool = "textHighlight" }) {
+  const [settings, setSettings] = useState({
+    highlightColor: "#FFDA66",
+    highlightOpacity: 0.62,
+  });
+  return <ToolSettingsPanel tool={tool} settings={settings} setSettings={setSettings} />;
+}
+
 describe("draw tool settings", () => {
   it("exposes working preset colors, custom color choice, and pen sizes", async () => {
     let renderer;
@@ -35,6 +43,23 @@ describe("draw tool settings", () => {
     const customColor = renderer.root.findByProps({ "aria-label": "Choose custom pen color" });
     await act(async () => customColor.props.onClick());
     expect(renderer.root.findByProps({ role: "dialog", "aria-label": "Choose color" })).toBeTruthy();
+    await act(async () => renderer.unmount());
+  });
+});
+
+describe("highlight tool settings", () => {
+  it("shows a readable opacity percentage and updates it from the slider", async () => {
+    let renderer;
+    await act(async () => {
+      renderer = TestRenderer.create(<HighlightSettingsHarness />);
+    });
+
+    expect(renderer.root.findByProps({ role: "toolbar" }).props["aria-label"]).toBe("Text highlight settings");
+    expect(renderer.root.findByProps({ className: "highlight-opacity-output" }).children.join("")).toBe("62%");
+
+    const slider = renderer.root.findByProps({ "aria-label": "Highlight opacity" });
+    await act(async () => slider.props.onChange({ target: { value: "75" } }));
+    expect(renderer.root.findByProps({ className: "highlight-opacity-output" }).children.join("")).toBe("75%");
     await act(async () => renderer.unmount());
   });
 });

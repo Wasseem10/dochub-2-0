@@ -3755,7 +3755,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   }
 
   return (
-    <main className={`editor-shell ${hasVisibleToolSettings ? "has-tool-settings" : ""} ${tool === "editText" ? "is-smart-text-mode" : ""} ${tool === "textHighlight" ? "is-text-highlight-mode" : ""}`}>
+    <main className={`editor-shell ${hasVisibleToolSettings ? "has-tool-settings" : ""} ${tool === "editText" ? "is-smart-text-mode" : ""} ${tool === "textHighlight" ? "is-text-highlight-mode" : ""} ${tool === "highlight" || tool === "textHighlight" ? "is-highlight-settings-mode" : ""}`}>
       <input ref={fileInputRef} className="hidden-input" type="file" accept="application/pdf" onChange={onUpload} />
       <input ref={appendFileInputRef} className="hidden-input" type="file" accept="application/pdf" onChange={onAppendUpload} />
       <input ref={imageInputRef} className="hidden-input" type="file" accept="image/png,image/jpeg" onChange={onImageUpload} />
@@ -4973,13 +4973,19 @@ export function ToolSettingsPanel({ tool, settings, setSettings, selectedTextAnn
   }
 
   if (tool === "highlight" || tool === "textHighlight") {
+    const opacityPercent = Math.round(settings.highlightOpacity * 100);
     return (
-      <div className="tool-settings">
-        <ColorControl value={settings.highlightColor} onChange={(color) => update({ highlightColor: color })} />
-        <label>Opacity
-          <input type="range" min="25" max="95" value={Math.round(settings.highlightOpacity * 100)} onChange={(event) => update({ highlightOpacity: Number(event.target.value) / 100 })} />
+      <div className="tool-settings highlight-tool-settings" role="toolbar" aria-label={tool === "textHighlight" ? "Text highlight settings" : "Highlight settings"}>
+        <span className="settings-title highlight-settings-title">{tool === "textHighlight" ? "Text highlight" : "Highlight"}</span>
+        <div className="highlight-setting-group highlight-color-field">
+          <span>Color</span>
+          <ColorControl value={settings.highlightColor} onChange={(color) => update({ highlightColor: color })} />
+        </div>
+        <label className="highlight-setting-group highlight-opacity-field">
+          <span>Opacity</span>
+          <input aria-label="Highlight opacity" type="range" min="25" max="95" value={opacityPercent} onChange={(event) => update({ highlightOpacity: Number(event.target.value) / 100 })} />
         </label>
-        <output>{Math.round(settings.highlightOpacity * 100)}%</output>
+        <output className="highlight-opacity-output" aria-live="polite">{opacityPercent}%</output>
       </div>
     );
   }
