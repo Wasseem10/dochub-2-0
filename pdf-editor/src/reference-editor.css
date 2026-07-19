@@ -514,9 +514,9 @@ main.editor-shell .text-box .text-content {
   width: 100% !important;
   min-width: 0 !important;
   min-height: 100% !important;
-  overflow: visible !important;
+  overflow: hidden !important;
   white-space: pre-wrap !important;
-  overflow-wrap: normal !important;
+  overflow-wrap: anywhere !important;
   word-break: normal !important;
 }
 main.editor-shell .text-box.is-selected .text-content { min-width: 0 !important; }

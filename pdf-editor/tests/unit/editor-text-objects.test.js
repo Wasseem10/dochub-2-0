@@ -22,6 +22,7 @@ describe("editor text objects", () => {
 
   it("preserves intentional line breaks and saves text content without placeholder spaces", () => {
     expect(normalizeEditorText("First\r\nSecond")).toBe("First\nSecond");
+    expect(normalizeEditorText("First\rSecond")).toBe("First\nSecond");
     const text = createTextAnnotation({ id: "text-2", page: 1, point: { x: 0.2, y: 0.3 }, content: "First\r\nSecond  ", settings, createdAt: "now" });
     expect(text.content).toBe("First\nSecond");
     expect(text.h).toBeGreaterThan(0.038);
@@ -37,5 +38,41 @@ describe("editor text objects", () => {
     const multiline = estimateTextAnnotationSize({ content: "First line\nSecond line\nThird line", fontSize: 16 });
     expect(short.w).toBeGreaterThanOrEqual(0.16);
     expect(multiline.h).toBeGreaterThan(short.h);
+  });
+
+  it("bases sizing only on text content instead of the box's previous dimensions", () => {
+    const options = {
+      content: "hi howa",
+      fontSize: 16,
+      pageWidth: 560,
+      pageHeight: 726,
+      measureLine: (line) => line.length * 8,
+    };
+
+    expect(estimateTextAnnotationSize(options)).toEqual(estimateTextAnnotationSize(options));
+    expect(estimateTextAnnotationSize(options)).toEqual({ w: 0.16, h: 0.05 });
+  });
+
+  it("caps long text at the available width and adds wrapped lines vertically", () => {
+    const short = estimateTextAnnotationSize({ content: "Short", fontSize: 16, pageWidth: 560, pageHeight: 726 });
+    const wrapped = estimateTextAnnotationSize({
+      content: "A very long sentence that needs to wrap cleanly inside a text box near the page edge.",
+      fontSize: 16,
+      pageWidth: 560,
+      pageHeight: 726,
+      maxWidth: 0.3,
+    });
+
+    expect(wrapped.w).toBe(0.3);
+    expect(wrapped.h).toBeGreaterThan(short.h);
+  });
+
+  it("shrinks back to the minimum frame after content is deleted", () => {
+    const long = estimateTextAnnotationSize({ content: "This is a longer text value", fontSize: 16, pageWidth: 560, pageHeight: 726 });
+    const deleted = estimateTextAnnotationSize({ content: "A", fontSize: 16, pageWidth: 560, pageHeight: 726 });
+
+    expect(deleted.w).toBe(0.16);
+    expect(deleted.h).toBe(0.05);
+    expect(deleted.w).toBeLessThan(long.w);
   });
 });
