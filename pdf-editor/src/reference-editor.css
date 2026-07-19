@@ -668,6 +668,155 @@ main.editor-shell .page-nav .page-nav-total {
   }
 }
 
+/* Compact text controls: keep the formatter inside the ribbon instead of over the PDF. */
+main.editor-shell > .text-format-settings {
+  position: fixed !important;
+  top: 172px !important;
+  left: 50% !important;
+  z-index: 120 !important;
+  transform: translateX(-50%) !important;
+  width: max-content !important;
+  max-width: calc(100vw - 32px) !important;
+  height: 44px !important;
+  min-height: 44px !important;
+  gap: 4px !important;
+  padding: 4px !important;
+  overflow: visible !important;
+  border: 1px solid #d8e0eb !important;
+  border-radius: 12px !important;
+  background: #ffffff !important;
+  box-shadow: 0 8px 22px rgba(24, 39, 75, .14) !important;
+}
+
+main.editor-shell .text-format-settings > * {
+  height: 36px !important;
+  min-height: 36px !important;
+  border-right: 0 !important;
+}
+
+main.editor-shell .text-settings-title {
+  min-width: 50px !important;
+  height: 36px !important;
+  padding: 0 11px !important;
+  border-radius: 8px !important;
+  font-size: 13px !important;
+}
+
+main.editor-shell .font-menu-wrap {
+  width: 180px !important;
+  min-width: 180px !important;
+  height: 36px !important;
+}
+
+main.editor-shell .font-menu-trigger {
+  height: 36px !important;
+  padding: 0 10px !important;
+  border-radius: 8px !important;
+  font-size: 14px !important;
+}
+
+main.editor-shell .font-menu-trigger span {
+  max-width: 140px !important;
+}
+
+main.editor-shell .editor-font-menu {
+  top: 41px !important;
+  width: 270px !important;
+  max-height: 340px !important;
+  padding: 7px 0 !important;
+  border-radius: 10px !important;
+}
+
+main.editor-shell .editor-font-menu input {
+  height: 36px !important;
+  margin: 0 9px 7px !important;
+  padding: 0 10px !important;
+  border-radius: 7px !important;
+  font-size: 14px !important;
+}
+
+main.editor-shell .editor-font-menu strong {
+  padding: 8px 10px !important;
+  font-size: 11px !important;
+  letter-spacing: .06em !important;
+}
+
+main.editor-shell .editor-font-menu button {
+  height: 40px !important;
+  padding: 0 14px !important;
+  font-size: 15px !important;
+}
+
+main.editor-shell .text-format-settings .text-size-select,
+main.editor-shell .text-format-settings .line-height-select {
+  width: 66px !important;
+  min-width: 66px !important;
+  height: 36px !important;
+  padding: 0 22px 0 10px !important;
+  border-radius: 8px !important;
+  font-size: 14px !important;
+}
+
+main.editor-shell .text-format-settings .line-height-select {
+  width: 76px !important;
+  min-width: 76px !important;
+}
+
+main.editor-shell .text-format-settings .color-control {
+  width: 42px !important;
+  min-width: 42px !important;
+  height: 36px !important;
+}
+
+main.editor-shell .text-format-settings .color-trigger {
+  width: 34px !important;
+  height: 34px !important;
+  border-radius: 8px !important;
+}
+
+main.editor-shell .text-format-settings .color-trigger span {
+  width: 26px !important;
+  height: 26px !important;
+  border-radius: 6px !important;
+}
+
+main.editor-shell .text-format-settings .align-group,
+main.editor-shell .text-format-settings .format-toggle-group {
+  height: 36px !important;
+  gap: 2px !important;
+  padding: 2px !important;
+  border-radius: 9px !important;
+}
+
+main.editor-shell .text-format-settings .align-group button,
+main.editor-shell .text-format-settings .format-toggle-group button {
+  width: 30px !important;
+  height: 30px !important;
+  border-radius: 6px !important;
+  font-family: "DM Sans", Arial, Helvetica, sans-serif !important;
+  font-size: 16px !important;
+  line-height: 1 !important;
+}
+
+main.editor-shell .text-format-settings .align-group button svg {
+  width: 17px !important;
+  height: 17px !important;
+}
+
+@media (max-width: 1180px) {
+  main.editor-shell > .text-format-settings {
+    top: 172px !important;
+    max-width: calc(100vw - 24px) !important;
+  }
+}
+
+@media (max-width: 760px) {
+  main.editor-shell > .text-format-settings {
+    top: 132px !important;
+    max-width: calc(100vw - 16px) !important;
+  }
+}
+
 /* Keep highlight controls compact, readable, and inside their own grid row. */
 main.editor-shell.editor-shell.has-tool-settings.is-highlight-settings-mode {
   grid-template-rows: 76px 116px 48px minmax(0, 1fr) !important;
