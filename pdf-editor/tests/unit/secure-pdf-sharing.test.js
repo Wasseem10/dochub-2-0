@@ -22,7 +22,7 @@ describe("secure PDF sharing", () => {
 
   it("rejects revoked and expired records", () => {
     const now = new Date("2026-07-20T12:00:00.000Z");
-    const active = { status: "active", storagePath: "shares/user/token/document.pdf", expiresAt: { toDate: () => new Date("2026-07-21T12:00:00.000Z") } };
+    const active = { status: "active", chunkCount: 2, expiresAt: { toDate: () => new Date("2026-07-21T12:00:00.000Z") } };
     expect(isShareRecordAccessible(active, now)).toBe(true);
     expect(isShareRecordAccessible({ ...active, status: "revoked" }, now)).toBe(false);
     expect(isShareRecordAccessible({ ...active, expiresAt: { toDate: () => new Date("2026-07-19T12:00:00.000Z") } }, now)).toBe(false);

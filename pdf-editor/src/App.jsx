@@ -2166,12 +2166,11 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   };
 
   const createDocumentShare = async ({ expirationDays }) => {
-    if (!currentUser?.uid || !db || !storage) throw new Error("Secure sharing is not configured for this account.");
+    if (!currentUser?.uid || !db) throw new Error("Secure sharing is not configured for this account.");
     const exported = await exportPdf({ download: false, showResult: false });
     if (!exported) throw new Error("The current PDF could not be prepared for sharing.");
     const result = await createSecurePdfShare({
       db,
-      storage,
       userId: currentUser.uid,
       pdfBlob: exported.blob,
       fileName: exported.name,
@@ -2182,7 +2181,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   };
 
   const revokeDocumentShare = async (token) => {
-    await revokeSecurePdfShare({ db, storage, userId: currentUser?.uid, token });
+    await revokeSecurePdfShare({ db, userId: currentUser?.uid, token });
     showToast("Sharing link revoked.");
   };
 
