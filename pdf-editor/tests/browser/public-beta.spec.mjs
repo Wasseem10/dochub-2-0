@@ -2,6 +2,8 @@ import { expect, test } from "@playwright/test";
 import { degrees, PDFDocument, StandardFonts } from "pdf-lib";
 import * as pdfjsLib from "pdfjs-dist/legacy/build/pdf.mjs";
 
+const appPath = (path) => process.env.GITHUB_ACTIONS === "true" ? `/dochub-2-0${path}` : path;
+
 async function regressionPdf() {
   const pdf = await PDFDocument.create();
   const font = await pdf.embedFont(StandardFonts.Helvetica);
@@ -24,7 +26,7 @@ async function regressionPdf() {
 
 test("public-beta routes render without horizontal overflow", async ({ page }) => {
   for (const route of ["/", "/tools", "/redact-pdf", "/privacy", "/terms", "/data-retention", "/support"]) {
-    await page.goto(route);
+    await page.goto(appPath(route));
     await expect(page.locator("body")).toBeVisible();
     await expect(page.locator("h1").first()).toBeVisible();
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
@@ -34,7 +36,7 @@ test("public-beta routes render without horizontal overflow", async ({ page }) =
 
 test("real PDF matrix loads mixed page sizes, rotation, text, and forms", async ({ page }) => {
   const bytes = await regressionPdf();
-  await page.goto("/redact-pdf");
+  await page.goto(appPath("/redact-pdf"));
   await page.locator('input[type="file"]').first().setInputFiles({ name: "regression-matrix.pdf", mimeType: "application/pdf", buffer: Buffer.from(bytes) });
   await expect(page.getByText("3 pages")).toBeVisible();
   await expect(page.locator(".redact-sidebar li")).toHaveCount(3);
@@ -48,7 +50,7 @@ test("real PDF matrix loads mixed page sizes, rotation, text, and forms", async 
 test("permanent redaction output contains no recoverable source text or form fields", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name.includes("android") || testInfo.project.name.includes("iphone"), "Full export security verification runs on desktop browser engines.");
   const bytes = await regressionPdf();
-  await page.goto("/redact-pdf");
+  await page.goto(appPath("/redact-pdf"));
   await page.locator('input[type="file"]').first().setInputFiles({ name: "confidential.pdf", mimeType: "application/pdf", buffer: Buffer.from(bytes) });
   const canvas = page.locator(".redact-canvas-wrap");
   await expect(canvas).toBeVisible();
