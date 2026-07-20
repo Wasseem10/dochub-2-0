@@ -24,6 +24,7 @@
   <url><loc>http://localhost:4173/png-to-pdf</loc></url>
   <url><loc>http://localhost:4173/privacy</loc></url>
   <url><loc>http://localhost:4173/protect-pdf</loc></url>
+  <url><loc>http://localhost:4173/redact-pdf</loc></url>
   <url><loc>http://localhost:4173/reorder-pdf-pages</loc></url>
   <url><loc>http://localhost:4173/request-signatures</loc></url>
   <url><loc>http://localhost:4173/review-pdf</loc></url>

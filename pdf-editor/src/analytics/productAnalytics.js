@@ -14,9 +14,12 @@ const ALLOWED_EVENTS = new Set([
   "account_logged_in",
   "pdf_downloaded",
   "task_feedback_submitted",
+  "client_error",
+  "unhandled_rejection",
+  "slow_operation",
 ]);
 
-const ALLOWED_PROPERTIES = new Set(["toolId", "fileSizeBucket", "pageCountBucket", "errorCategory", "result", "authMethod"]);
+const ALLOWED_PROPERTIES = new Set(["toolId", "fileSizeBucket", "pageCountBucket", "errorCategory", "result", "authMethod", "route", "operation", "durationBucket"]);
 const ANALYTICS_COLLECTION = "productAnalyticsEvents";
 const VISITOR_KEY = "realpdf_analytics_visitor_id";
 

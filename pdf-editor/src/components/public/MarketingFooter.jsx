@@ -8,7 +8,7 @@ export function MarketingFooter() {
     <footer className="marketing-footer">
       <div className="marketing-footer-intro"><Link className="marketing-brand" to={ROUTE_PATHS.home} aria-label="FixThatPDF home"><BrandWordmark /></Link><p>Edit PDFs online. Completely free, with no watermark or forced signup for supported tools.</p><Link className="marketing-primary" to={ROUTE_PATHS.editPdf}>Choose a PDF</Link></div>
       <div className="marketing-footer-tools">{FOOTER_TOOL_GROUPS.map((group) => <section key={group.label}><small>{group.label}</small>{group.tools.map((tool) => <Link key={tool.id} to={tool.route}>{tool.name}</Link>)}</section>)}</div>
-      <div className="marketing-footer-bottom"><span>© 2026 FixThatPDF</span><nav aria-label="Legal"><Link to={ROUTE_PATHS.privacy}>Privacy</Link><Link to={ROUTE_PATHS.terms}>Terms</Link><Link to={ROUTE_PATHS.help}>Help</Link></nav></div>
+      <div className="marketing-footer-bottom"><span>© 2026 FixThatPDF</span><nav aria-label="Legal"><Link to={ROUTE_PATHS.privacy}>Privacy</Link><Link to={ROUTE_PATHS.terms}>Terms</Link><Link to={ROUTE_PATHS.dataRetention}>Data retention</Link><Link to={ROUTE_PATHS.support}>Support</Link></nav></div>
     </footer>
   );
 }

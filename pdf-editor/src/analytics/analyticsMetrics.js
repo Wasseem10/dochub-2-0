@@ -29,6 +29,9 @@ export function summarizeAnalyticsEvents(events) {
   const uploads = count("document_opened");
   const downloads = count("pdf_downloaded");
   const activeUsers = new Set(events.map((event) => event.actorId || event.visitorId).filter(Boolean)).size;
+  const clientErrors = events.filter((event) => ["client_error", "unhandled_rejection"].includes(event.name)).length;
+  const failedExports = count("export_failed");
+  const slowOperations = count("slow_operation");
 
   return {
     signups,
@@ -37,6 +40,9 @@ export function summarizeAnalyticsEvents(events) {
     uploads,
     downloads,
     activeUsers,
+    clientErrors,
+    failedExports,
+    slowOperations,
     conversionRate: uploads ? Math.round((downloads / uploads) * 100) : 0,
   };
 }

@@ -11,6 +11,7 @@ export const PUBLIC_PLACEHOLDER_ROUTES = [
   [ROUTE_PATHS.integrations, "Integrations", "External storage and workflow integrations are currently in development."],
   [ROUTE_PATHS.contactSales, "Contact sales", "Sales-assisted plans are not available yet. Product updates will appear here."],
   [ROUTE_PATHS.help, "Help center", "Upload, edit, organize, sign locally, and export PDFs using the existing workspace."],
+  [ROUTE_PATHS.dataRetention, "Data retention", "See exactly what FixThatPDF stores, where it is stored, and how to remove it."],
   [ROUTE_PATHS.privacy, "Privacy", "FixThatPDF privacy documentation is being prepared for the production service."],
   [ROUTE_PATHS.terms, "Terms", "FixThatPDF service terms are being prepared before public production launch."],
 ].map(([path, title, description]) => ({ path, title, description, status: "Available as an information page" }));
@@ -23,7 +24,6 @@ export const FEATURE_PLACEHOLDER_ROUTES = [
   [ROUTE_PATHS.pdfToWord, "PDF to Word", "Layout-preserving PDF to Word conversion is currently in development."],
   [ROUTE_PATHS.jpgToPdf, "JPG to PDF", "A dedicated image-to-PDF workflow is currently in development."],
   [ROUTE_PATHS.ocrPdf, "OCR PDF", "OCR for scanned PDFs is currently in development."],
-  [ROUTE_PATHS.redactPdf, "Redact PDF", "Permanent, verified redaction is currently in development."],
   [ROUTE_PATHS.aiPdf, "AI PDF", "Document AI features are currently in development and do not return fake results."],
 ].map(([path, title, description]) => ({ path, title, description, status: "Coming soon" }));
 

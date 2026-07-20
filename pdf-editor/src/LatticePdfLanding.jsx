@@ -246,6 +246,6 @@ export function LatticePdfLanding({ fileInputRef, onUpload, onSelectFiles, onDro
 
     <FooterToolDirectory />
 
-    <footer className="freepdf-footer"><div><Brand /><p>Every PDF task, finally in one place.</p></div><nav aria-label="Footer"><Link to={ROUTE_PATHS.tools}>All tools</Link><Link to={ROUTE_PATHS.help}>Help</Link><Link to={ROUTE_PATHS.privacy}>Privacy</Link><Link to={ROUTE_PATHS.terms}>Terms</Link></nav><span>© 2026 FixThatPDF</span></footer>
+    <footer className="freepdf-footer"><div><Brand /><p>Every PDF task, finally in one place.</p></div><nav aria-label="Footer"><Link to={ROUTE_PATHS.tools}>All tools</Link><Link to={ROUTE_PATHS.support}>Support</Link><Link to={ROUTE_PATHS.privacy}>Privacy</Link><Link to={ROUTE_PATHS.terms}>Terms</Link></nav><span>© 2026 FixThatPDF</span></footer>
   </main>;
 }

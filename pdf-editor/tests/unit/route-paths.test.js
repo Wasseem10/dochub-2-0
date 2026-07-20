@@ -9,6 +9,7 @@ describe("route path configuration", () => {
       ROUTE_PATHS.home,
       ROUTE_PATHS.tools,
       ROUTE_PATHS.editPdf,
+      ROUTE_PATHS.support,
       ROUTE_PATHS.login,
       ROUTE_PATHS.signup,
       ROUTE_PATHS.forgotPassword,

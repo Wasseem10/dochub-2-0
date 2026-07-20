@@ -1,15 +1,19 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   createUserWithEmailAndPassword,
+  deleteUser,
+  EmailAuthProvider,
   getAdditionalUserInfo,
   onAuthStateChanged,
+  reauthenticateWithCredential,
+  reauthenticateWithPopup,
   sendPasswordResetEmail,
   signInWithEmailAndPassword,
   signInWithPopup,
   signOut,
   updateProfile,
 } from "firebase/auth";
-import { auth, googleProvider, isFirebaseConfigured } from "../firebase.js";
+import { auth, db, googleProvider, isFirebaseConfigured, storage } from "../firebase.js";
 import { trackProductEvent } from "../analytics/productAnalytics.js";
 import { AuthContext } from "./AuthContext.jsx";
 
@@ -21,7 +25,37 @@ export function mapFirebaseUser(user) {
     email: user.email || "",
     name: user.displayName || fallbackName,
     photoURL: user.photoURL || "",
+    providers: user.providerData?.map((provider) => provider.providerId).filter(Boolean) || [],
   };
+}
+
+async function purgeUserData(userId) {
+  const [{ collection, deleteDoc, doc, getDocs, query, where }, { deleteObject, ref }] = await Promise.all([
+    import("firebase/firestore"),
+    import("firebase/storage"),
+  ]);
+  const documentSnapshot = db ? await getDocs(collection(db, "users", userId, "documents")) : null;
+  for (const documentRecord of documentSnapshot?.docs || []) {
+    const payloadPath = documentRecord.data()?.payloadPath;
+    if (payloadPath && storage) {
+      try {
+        await deleteObject(ref(storage, payloadPath));
+      } catch (error) {
+        if (error?.code !== "storage/object-not-found") throw error;
+      }
+    }
+    await deleteDoc(doc(db, "users", userId, "documents", documentRecord.id));
+  }
+  for (const collectionName of ["productAnalyticsEvents", "supportRequests"]) {
+    if (!db) continue;
+    const snapshot = await getDocs(query(collection(db, collectionName), where("actorId", "==", userId)));
+    for (const record of snapshot.docs) await deleteDoc(record.ref);
+  }
+  try {
+    Object.keys(window.localStorage).filter((key) => key.includes(userId)).forEach((key) => window.localStorage.removeItem(key));
+  } catch {
+    // Account data is already removed from Firebase even if browser storage is unavailable.
+  }
 }
 
 export function formatAuthError(error) {
@@ -32,6 +66,7 @@ export function formatAuthError(error) {
   if (code.includes("auth/weak-password")) return "Use a password with at least 6 characters.";
   if (code.includes("auth/popup-closed-by-user")) return "Google sign-in was closed before it finished.";
   if (code.includes("auth/unauthorized-domain")) return "This domain is not authorized in Firebase Authentication settings.";
+  if (code.includes("auth/requires-recent-login")) return "For security, sign out and sign in again before deleting your account.";
   return error?.message || "Authentication failed. Try again.";
 }
 
@@ -83,6 +118,27 @@ export default function FirebaseAuthProvider({ children }) {
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) return { ok: false, error: "Enter a valid email address first." };
       try {
         await sendPasswordResetEmail(auth, email.trim());
+        return { ok: true };
+      } catch (error) {
+        return { ok: false, error: formatAuthError(error) };
+      }
+    },
+    async deleteAccount({ password = "" } = {}) {
+      const firebaseUser = auth?.currentUser;
+      if (!firebaseUser) return { ok: false, error: "Sign in before deleting your account." };
+      try {
+        const usesPassword = firebaseUser.providerData.some((provider) => provider.providerId === "password");
+        const usesGoogle = firebaseUser.providerData.some((provider) => provider.providerId === "google.com");
+        if (usesPassword) {
+          if (!password) return { ok: false, error: "Enter your current password to confirm permanent deletion." };
+          await reauthenticateWithCredential(firebaseUser, EmailAuthProvider.credential(firebaseUser.email, password));
+        } else if (usesGoogle) {
+          await reauthenticateWithPopup(firebaseUser, googleProvider);
+        }
+        const userId = firebaseUser.uid;
+        await purgeUserData(userId);
+        await deleteUser(firebaseUser);
+        setCurrentUser(null);
         return { ok: true };
       } catch (error) {
         return { ok: false, error: formatAuthError(error) };

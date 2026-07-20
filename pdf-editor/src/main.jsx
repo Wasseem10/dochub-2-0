@@ -11,6 +11,9 @@ import "./route-shells.css";
 import "./tool-platform.css";
 import "./reference-editor.css";
 import "./release-fixes.css";
+import { installProductionMonitoring } from "./monitoring/productionMonitoring.js";
+
+installProductionMonitoring();
 
 createRoot(document.getElementById("root")).render(
   <React.StrictMode>

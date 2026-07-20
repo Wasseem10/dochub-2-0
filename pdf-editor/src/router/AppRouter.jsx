@@ -8,6 +8,8 @@ import { ToolDirectoryPage } from "../pages/public/ToolDirectoryPage.jsx";
 import { ImageConversionPage } from "../pages/public/ImageConversionPage.jsx";
 import { OfficeConversionPage } from "../pages/public/OfficeConversionPage.jsx";
 import { PdfPageToolPage } from "../pages/public/PdfPageToolPage.jsx";
+import { RedactPdfPage } from "../pages/public/RedactPdfPage.jsx";
+import { SupportPage } from "../pages/public/SupportPage.jsx";
 import { ToolLandingPage } from "../pages/public/ToolLandingPage.jsx";
 import { WorkflowUnavailablePage } from "../pages/public/WorkflowUnavailablePage.jsx";
 import { TOOL_REGISTRY } from "../tools/toolRegistry.js";
@@ -42,7 +44,9 @@ const toolRouteObjects = TOOL_REGISTRY
   .filter((tool) => tool.route !== ROUTE_PATHS.editPdf)
   .map((tool) => ({
     path: tool.route,
-    element: tool.workflowType === "converter"
+    element: tool.id === "redact-pdf"
+      ? <RedactPdfPage tool={tool} />
+      : tool.workflowType === "converter"
       ? ["pdf-to-word", "word-to-pdf"].includes(tool.id)
         ? <OfficeConversionPage tool={tool} />
         : <ImageConversionPage tool={tool} />
@@ -70,6 +74,7 @@ export const appRouteObjects = [
           { path: ROUTE_PATHS.home, element: <LazyPublicAppRoute view="landing" /> },
           { path: ROUTE_PATHS.editPdf, element: <PublicEditorRoute /> },
           { path: ROUTE_PATHS.tools, element: <ToolDirectoryPage /> },
+          { path: ROUTE_PATHS.support, element: <SupportPage /> },
           ...publicPlaceholderRouteObjects,
           ...toolRouteObjects,
         ],
