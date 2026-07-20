@@ -1,0 +1,58 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAnalyticsOwner() {
+      return isSignedIn()
+        && request.auth.token.email == "wasseem700@gmail.com";
+    }
+
+    match /users/{userId}/documents/{documentId} {
+      allow read, create, update, delete: if isSignedIn() && request.auth.uid == userId;
+    }
+
+    match /productAnalyticsEvents/{eventId} {
+      allow create: if request.resource.data.keys().hasOnly([
+          "name",
+          "properties",
+          "actorId",
+          "visitorId",
+          "occurredAt",
+          "clientOccurredAt"
+        ])
+        && request.resource.data.name in [
+          "homepage_viewed",
+          "tool_opened",
+          "upload_started",
+          "upload_validation_failed",
+          "document_opened",
+          "edit_made",
+          "export_started",
+          "export_succeeded",
+          "export_failed",
+          "related_tool_clicked",
+          "optional_account_created",
+          "account_signed_up",
+          "account_logged_in",
+          "pdf_downloaded",
+          "task_feedback_submitted"
+        ]
+        && request.resource.data.visitorId is string
+        && request.resource.data.visitorId.size() <= 80
+        && request.resource.data.clientOccurredAt is string
+        && request.resource.data.clientOccurredAt.size() <= 40
+        && request.resource.data.properties is map
+        && (request.resource.data.actorId == null || request.resource.data.actorId is string);
+      allow read, delete: if isAnalyticsOwner();
+      allow update: if false;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

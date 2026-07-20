@@ -81,6 +81,7 @@ import { db, isCloudPersistenceConfigured, storage } from "./firebase";
 import { useAuth } from "./auth/AuthContext.jsx";
 import { fileSizeBucket, pageCountBucket, trackProductEvent } from "./analytics/productAnalytics.js";
 import { EDITOR_LIMITS, validateEditorPageCount, validateEditorPdfFile } from "./config/editorLimits.js";
+import { isAnalyticsOwner } from "./config/adminAccess.js";
 import { consolidatePdfSources, finalizePdfExport } from "./editor/exportPdf.js";
 import { createEditorClipboardPayload, createPastedEditorObject, EDITOR_CLIPBOARD_MIME, editorClipboardPlainText, parseEditorClipboardPayload } from "./editor/editorClipboard.mjs";
 import { centeredAnnotationBounds, pointerToNormalizedPoint } from "./editor/annotationPlacement.mjs";
@@ -89,6 +90,7 @@ import { EDITOR_MODE_TOOLS, moveEditorObject, resizeEditorObjectFromHandle, rota
 import { createPdfDocumentController } from "./editor/pdfDocumentController.mjs";
 import { addPdfLinkAnnotation } from "./editor/pdfLinkAnnotation.mjs";
 import { runProgressivePageQueue } from "./editor/pdfProgressiveLoader.mjs";
+import { OwnerAnalyticsPanel } from "./pages/app/OwnerAnalyticsPanel.jsx";
 import { protectPdfBytes } from "./editor/protectPdf.js";
 import { LatticePdfLanding } from "./LatticePdfLanding.jsx";
 import { EditorRouteStatePage } from "./pages/app/EditorRouteStatePage.jsx";
@@ -405,6 +407,7 @@ function downloadBlob(blob, name) {
   anchor.href = url;
   anchor.download = name;
   anchor.click();
+  trackProductEvent("pdf_downloaded", { toolId: "edit-pdf" });
   URL.revokeObjectURL(url);
 }
 
@@ -5092,6 +5095,7 @@ function UploadLanding({
     "AI Tools": ROUTE_PATHS.tools,
     Shared: ROUTE_PATHS.documents,
     Settings: ROUTE_PATHS.settings,
+    Analytics: ROUTE_PATHS.analytics,
     Trash: ROUTE_PATHS.trash,
     Billing: ROUTE_PATHS.settings,
     Team: ROUTE_PATHS.settings,
@@ -5133,6 +5137,7 @@ function UploadLanding({
     { label: "Templates", icon: Grid2X2 },
     { label: "AI Tools", icon: Sparkles, badge: "New" },
     { label: "Shared with me", section: "Shared", icon: Users },
+    ...(isAnalyticsOwner(currentUser) ? [{ label: "Analytics", icon: ChartNoAxesColumnIncreasing }] : []),
   ];
 
   const utilityNav = [
@@ -5517,6 +5522,10 @@ function UploadLanding({
           </div>
         </section>
       );
+    }
+
+    if (activeSection === "Analytics" && isAnalyticsOwner(currentUser)) {
+      return <OwnerAnalyticsPanel />;
     }
 
     if (["Trash", "Billing", "Team", "Integrations"].includes(activeSection)) {

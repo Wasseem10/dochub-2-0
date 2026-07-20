@@ -33,5 +33,6 @@ export const APP_ROUTE_SECTIONS = Object.freeze({
   [ROUTE_PATHS.appTemplates]: "Templates",
   [ROUTE_PATHS.signatures]: "Signatures",
   [ROUTE_PATHS.settings]: "Settings",
+  [ROUTE_PATHS.analytics]: "Analytics",
   [ROUTE_PATHS.trash]: "Trash",
 });

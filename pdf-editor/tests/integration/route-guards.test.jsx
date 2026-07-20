@@ -9,6 +9,7 @@ import { NotFoundPage } from "../../src/pages/errors/NotFoundPage.jsx";
 import { PublicPlaceholderPage } from "../../src/pages/public/PublicPlaceholderPage.jsx";
 import { WorkflowUnavailablePage } from "../../src/pages/public/WorkflowUnavailablePage.jsx";
 import { ProtectedRoute } from "../../src/router/ProtectedRoute.jsx";
+import { OwnerRoute } from "../../src/router/OwnerRoute.jsx";
 import { PublicOnlyRoute } from "../../src/router/PublicOnlyRoute.jsx";
 import { editorPath } from "../../src/router/routePaths.js";
 
@@ -64,6 +65,19 @@ describe("route guards", () => {
     const { renderer } = await renderRoutes(protectedRoutes, ["/app/dashboard"], authValue({ currentUser: { uid: "user-1" } }));
     expect(renderedText(renderer)).toContain("Private dashboard");
     expect(renderer.root.findByProps({ className: "app-route-layout" })).toBeTruthy();
+  });
+
+  it("allows only the configured owner into analytics", async () => {
+    const routes = [
+      { element: <OwnerRoute />, children: [{ path: "/app/analytics", element: <div>Private analytics</div> }] },
+      { path: "/app/dashboard", element: <div>Private dashboard</div> },
+    ];
+    const owner = await renderRoutes(routes, ["/app/analytics"], authValue({ currentUser: { uid: "owner", email: "wasseem700@gmail.com" } }));
+    expect(renderedText(owner.renderer)).toContain("Private analytics");
+
+    const otherUser = await renderRoutes(routes, ["/app/analytics"], authValue({ currentUser: { uid: "other", email: "other@example.com" } }));
+    expect(otherUser.router.state.location.pathname).toBe("/app/dashboard");
+    expect(renderedText(otherUser.renderer)).toContain("Private dashboard");
   });
 
   it("returns authenticated users from public-only auth routes to the requested app route", async () => {

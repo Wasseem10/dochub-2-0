@@ -10,10 +10,47 @@ const ALLOWED_EVENTS = new Set([
   "export_failed",
   "related_tool_clicked",
   "optional_account_created",
+  "account_signed_up",
+  "account_logged_in",
+  "pdf_downloaded",
   "task_feedback_submitted",
 ]);
 
-const ALLOWED_PROPERTIES = new Set(["toolId", "fileSizeBucket", "pageCountBucket", "errorCategory", "result"]);
+const ALLOWED_PROPERTIES = new Set(["toolId", "fileSizeBucket", "pageCountBucket", "errorCategory", "result", "authMethod"]);
+const ANALYTICS_COLLECTION = "productAnalyticsEvents";
+const VISITOR_KEY = "realpdf_analytics_visitor_id";
+
+function visitorId() {
+  try {
+    const existing = window.localStorage.getItem(VISITOR_KEY);
+    if (existing) return existing;
+    const created = globalThis.crypto?.randomUUID?.() || `visitor-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    window.localStorage.setItem(VISITOR_KEY, created);
+    return created;
+  } catch {
+    return `session-${Math.random().toString(36).slice(2)}`;
+  }
+}
+
+async function persistProductEvent(event) {
+  try {
+    const [{ auth, db }, { addDoc, collection, serverTimestamp }] = await Promise.all([
+      import("../firebase.js"),
+      import("firebase/firestore"),
+    ]);
+    if (!db) return;
+    await addDoc(collection(db, ANALYTICS_COLLECTION), {
+      name: event.name,
+      properties: event.properties,
+      actorId: auth?.currentUser?.uid || null,
+      visitorId: visitorId(),
+      occurredAt: serverTimestamp(),
+      clientOccurredAt: new Date().toISOString(),
+    });
+  } catch (error) {
+    if (import.meta.env.DEV) console.warn("[RealPDF analytics] Event storage failed", error?.code || error?.message);
+  }
+}
 
 export function fileSizeBucket(bytes = 0) {
   if (bytes < 1024 * 1024) return "under_1mb";
@@ -37,7 +74,10 @@ export function sanitizeAnalyticsProperties(properties = {}) {
 export function trackProductEvent(name, properties = {}) {
   if (!ALLOWED_EVENTS.has(name)) return false;
   const event = { name, properties: sanitizeAnalyticsProperties(properties) };
-  if (typeof window !== "undefined") window.dispatchEvent(new CustomEvent("realpdf:analytics", { detail: event }));
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent("realpdf:analytics", { detail: event }));
+    void persistProductEvent(event);
+  }
   if (import.meta.env.DEV) console.info("[RealPDF analytics]", event);
   return true;
 }

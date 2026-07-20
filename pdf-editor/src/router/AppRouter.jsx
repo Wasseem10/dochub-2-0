@@ -9,6 +9,7 @@ import { WorkflowUnavailablePage } from "../pages/public/WorkflowUnavailablePage
 import { TOOL_REGISTRY } from "../tools/toolRegistry.js";
 import { getEditorToolPreset } from "../tools/editorToolPresets.js";
 import { LazyAppContent, LazyAuthRouteProvider, LazyPublicAppRoute } from "./LazyAppRoute.jsx";
+import { OwnerRoute } from "./OwnerRoute.jsx";
 import { ProtectedRoute } from "./ProtectedRoute.jsx";
 import { PublicOnlyRoute } from "./PublicOnlyRoute.jsx";
 import { RouteErrorBoundary } from "./RouteErrorBoundary.jsx";
@@ -56,7 +57,7 @@ const toolRouteObjects = TOOL_REGISTRY
 const appScreenRouteObjects = Object.entries(APP_ROUTE_SECTIONS).map(([path, appSection]) => ({
   path,
   element: <LazyAppContent view="dashboard" appSection={appSection} />,
-}));
+})).filter(({ path }) => path !== ROUTE_PATHS.analytics);
 
 export const appRouteObjects = [
   {
@@ -100,6 +101,12 @@ export const appRouteObjects = [
                 element: <AppLayout />,
                 children: [
                   ...appScreenRouteObjects,
+                  {
+                    element: <OwnerRoute />,
+                    children: [
+                      { path: ROUTE_PATHS.analytics, element: <LazyAppContent view="dashboard" appSection="Analytics" /> },
+                    ],
+                  },
                   { path: ROUTE_PATHS.editorPattern, element: <EditorRoute /> },
                 ],
               },
