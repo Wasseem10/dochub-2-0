@@ -27,13 +27,14 @@ export async function drawFlattenedInputAnnotation({
   const color = colorFromHex(annotation.color);
 
   if (annotation.type === "checkbox") {
-    const boxSize = Math.min(annotation.w * width, annotation.h * height);
+    const markWidth = annotation.w * width;
+    const markHeight = annotation.h * height;
     const x = annotation.x * width;
-    const y = height - annotation.y * height - boxSize;
-    page.drawRectangle({ x, y, width: boxSize, height: boxSize, borderColor: color, borderWidth: 1.5, color: rgb(1, 1, 1), opacity: annotation.opacity, rotate: degrees(Number(annotation.rotation || 0)) });
+    const y = height - annotation.y * height - markHeight;
     if (annotation.checked) {
-      page.drawLine({ start: { x: x + boxSize * 0.22, y: y + boxSize * 0.48 }, end: { x: x + boxSize * 0.42, y: y + boxSize * 0.25 }, thickness: 2, color });
-      page.drawLine({ start: { x: x + boxSize * 0.42, y: y + boxSize * 0.25 }, end: { x: x + boxSize * 0.78, y: y + boxSize * 0.76 }, thickness: 2, color });
+      const thickness = Math.max(1.8, Math.min(markWidth, markHeight) * 0.13);
+      page.drawLine({ start: { x: x + markWidth * 0.08, y: y + markHeight * 0.48 }, end: { x: x + markWidth * 0.36, y: y + markHeight * 0.18 }, thickness, color, opacity: annotation.opacity });
+      page.drawLine({ start: { x: x + markWidth * 0.36, y: y + markHeight * 0.18 }, end: { x: x + markWidth * 0.92, y: y + markHeight * 0.82 }, thickness, color, opacity: annotation.opacity });
     }
     return true;
   }

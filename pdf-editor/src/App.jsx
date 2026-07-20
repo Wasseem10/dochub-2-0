@@ -13,8 +13,9 @@ import AlignRight from "lucide-react/dist/esm/icons/align-right.mjs";
 import Box from "lucide-react/dist/esm/icons/box.mjs";
 import Building2 from "lucide-react/dist/esm/icons/building-2.mjs";
 import CalendarDays from "lucide-react/dist/esm/icons/calendar-days.mjs";
+import ChartNoAxesColumnIncreasing from "lucide-react/dist/esm/icons/chart-no-axes-column-increasing.mjs";
+import Check from "lucide-react/dist/esm/icons/check.mjs";
 import CheckCircle2 from "lucide-react/dist/esm/icons/check-circle-2.mjs";
-import CheckSquare from "lucide-react/dist/esm/icons/check-square.mjs";
 import ChevronDown from "lucide-react/dist/esm/icons/chevron-down.mjs";
 import ChevronUp from "lucide-react/dist/esm/icons/chevron-up.mjs";
 import CircleHelp from "lucide-react/dist/esm/icons/circle-help.mjs";
@@ -75,8 +76,11 @@ import { collection, deleteDoc, doc, getDocs, setDoc } from "firebase/firestore"
 import { deleteObject, getDownloadURL, ref as storageReference, uploadString } from "firebase/storage";
 import { db, isCloudPersistenceConfigured, storage } from "./firebase";
 import { useAuth } from "./auth/AuthContext.jsx";
+import { fileSizeBucket, pageCountBucket, trackProductEvent } from "./analytics/productAnalytics.js";
 import { AuthRequiredModal } from "./components/editor/AuthRequiredModal.jsx";
 import { BrandWordmark } from "./components/public/BrandWordmark.jsx";
+import { isAnalyticsOwner } from "./config/adminAccess.js";
+import { OwnerAnalyticsPanel } from "./pages/app/OwnerAnalyticsPanel.jsx";
 import { LatticePdfLanding } from "./LatticePdfLanding.jsx";
 import { EditorRouteStatePage } from "./pages/app/EditorRouteStatePage.jsx";
 import { EditorToolUploadPage } from "./pages/public/EditorToolUploadPage.jsx";
@@ -91,6 +95,7 @@ import { getPdfLoadErrorMessage, validatePdfUpload } from "./tools/pdfUploadVali
 import { drawFlattenedInputAnnotation } from "./tools/pdfEditorAnnotationExport.js";
 import { attachPdfCommentAnnotation } from "./tools/pdfCommentAnnotations.js";
 import { addPdfLinkAnnotation } from "./editor/pdfLinkAnnotation.mjs";
+import { centeredAnnotationBounds } from "./editor/annotationPlacement.mjs";
 import { protectPdfBytes } from "./tools/protectPdf.js";
 import { EDITOR_TOOL_MODES, getDefaultToolForMode, getToolsForMode, resolveModeForTool } from "./tools/editorToolModes.js";
 import { annotationPatchFromFrame, framesEqual, getAnnotationFrame, moveFrame, normalizeRotation, nudgeFrame, resizeFrame, rotationFromPointer } from "./tools/editorObjectTransforms.js";
@@ -171,7 +176,7 @@ const toolConfig = [
   { id: "line", label: "Line", icon: Minus },
   { id: "comment", label: "Comment", icon: MessageSquare },
   { id: "image", label: "Image", icon: ImageIcon },
-  { id: "checkbox", label: "Check", icon: CheckSquare },
+  { id: "checkbox", label: "Check", icon: Check },
   { id: "field", label: "Text field", icon: FilePlus2 },
   { id: "date", label: "Date", icon: CalendarDays },
   { id: "initials", label: "Initials", icon: Type },
@@ -194,6 +199,7 @@ const referencePrimaryTools = [
   { id: "image", label: "Image", icon: ImageIcon },
   { id: "stamp", label: "Stamp", icon: Stamp },
   { id: "link", label: "Link", icon: Link },
+  { id: "checkbox", label: "Check", icon: Check },
   { id: "note", label: "Note", icon: StickyNote },
 ];
 
@@ -374,6 +380,7 @@ function downloadBlob(blob, name) {
   anchor.style.display = "none";
   window.document.body.appendChild(anchor);
   anchor.click();
+  trackProductEvent("pdf_downloaded", { toolId: "edit-pdf" });
   anchor.remove();
   window.setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
@@ -895,7 +902,7 @@ function Annotation({ annotation, selected, zoom, onSelect, onDrag, onResize, on
         aria-label={annotation.fieldName || "PDF checkbox"}
         title="Double-click to toggle"
       >
-        {annotation.checked && <span className="checkbox-mark" />}
+        {annotation.checked && <Check className="checkbox-mark" strokeWidth={3.25} aria-hidden="true" />}
         {selected && <span className="resize-handle" onPointerDown={resizeStart} />}
       </div>
     );
@@ -1219,7 +1226,7 @@ function ProfessionalAnnotation({ annotation, selected, zoom, activeTool, onSele
   if (annotation.type === "checkbox") {
     return (
       <div className={`annotation checkbox-field ${selected ? "is-selected" : ""}`} style={{ ...commonStyle, "--checkbox-color": annotation.color }} onPointerDown={dragStart} onDoubleClick={(event) => { event.stopPropagation(); onUpdate(annotation.id, { checked: !annotation.checked }); }} role="checkbox" aria-checked={Boolean(annotation.checked)} aria-label={annotation.fieldName || "PDF checkbox"} title="Double-click to toggle">
-        {annotation.checked && <span className="checkbox-mark" />}{controls}
+        {annotation.checked && <Check className="checkbox-mark" strokeWidth={3.25} aria-hidden="true" />}{controls}
       </div>
     );
   }
@@ -2844,14 +2851,14 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     }
 
     if (tool === "checkbox") {
+      const width = 0.038;
+      const pageAspectCorrection = (currentPage?.width || BASE_PAGE_WIDTH) / (currentPage?.height || BASE_PAGE_HEIGHT);
+      const height = width * pageAspectCorrection;
       addAnnotation({
         id: makeId("checkbox"),
         type: "checkbox",
         page: pageIndex,
-        x: clamp(point.x, 0, 0.95),
-        y: clamp(point.y, 0, 0.95),
-        w: 0.035,
-        h: 0.035,
+        ...centeredAnnotationBounds(point, width, height),
         checked: true,
         color: colors.blue,
         opacity: 1,
@@ -3664,6 +3671,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     if (nextTool === "erase") showToast("Click an annotation or existing text item to erase it.");
     if (nextTool === "stamp") showToast("Click the page to place an Approved stamp.");
     if (nextTool === "link") showToast("Click the page, then enter the link address.");
+    if (nextTool === "checkbox") showToast("Click the exact spot where you want the checkmark.");
     setTool(nextTool);
   };
 
@@ -5211,6 +5219,7 @@ export function UploadLanding({
     "AI Tools": ROUTE_PATHS.tools,
     Shared: ROUTE_PATHS.documents,
     Settings: ROUTE_PATHS.settings,
+    Analytics: ROUTE_PATHS.analytics,
     Trash: ROUTE_PATHS.trash,
     Billing: ROUTE_PATHS.settings,
     Team: ROUTE_PATHS.settings,
@@ -5249,6 +5258,7 @@ export function UploadLanding({
     { label: "Documents", icon: FileText },
     { label: "Signatures", icon: PenLine },
     { label: "Templates", icon: Grid2X2 },
+    ...(isAnalyticsOwner(currentUser) ? [{ label: "Analytics", icon: ChartNoAxesColumnIncreasing }] : []),
   ];
 
   const utilityNav = [
@@ -5606,6 +5616,10 @@ export function UploadLanding({
           </div>
         </section>
       );
+    }
+
+    if (activeSection === "Analytics" && isAnalyticsOwner(currentUser)) {
+      return <OwnerAnalyticsPanel />;
     }
 
     if (["Trash", "Billing", "Team", "Integrations"].includes(activeSection)) {
