@@ -117,7 +117,9 @@ export function RedactPdfPage({ tool }) {
 
   const startMark = (event) => {
     if (status !== "ready") return;
-    event.currentTarget.setPointerCapture(event.pointerId);
+    try { event.currentTarget.setPointerCapture(event.pointerId); } catch {
+      // Synthetic accessibility and cross-browser test pointers may not have an active capture target.
+    }
     const start = pointFromEvent(event);
     setDraft({ start, end: start });
   };

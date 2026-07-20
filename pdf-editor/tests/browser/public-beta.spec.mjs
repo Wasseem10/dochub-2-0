@@ -55,10 +55,13 @@ test("permanent redaction output contains no recoverable source text or form fie
   const canvas = page.locator(".redact-canvas-wrap");
   await expect(canvas).toBeVisible();
   const box = await canvas.boundingBox();
-  await page.mouse.move(box.x + box.width * 0.08, box.y + box.height * 0.13);
-  await page.mouse.down();
-  await page.mouse.move(box.x + box.width * 0.72, box.y + box.height * 0.22);
-  await page.mouse.up();
+  const start = { pointerId: 7, pointerType: "mouse", clientX: box.x + box.width * 0.08, clientY: box.y + box.height * 0.13, buttons: 1, bubbles: true };
+  const end = { pointerId: 7, pointerType: "mouse", clientX: box.x + box.width * 0.72, clientY: box.y + box.height * 0.22, buttons: 1, bubbles: true };
+  await canvas.dispatchEvent("pointerdown", start);
+  await page.waitForTimeout(50);
+  await canvas.dispatchEvent("pointermove", end);
+  await page.waitForTimeout(50);
+  await canvas.dispatchEvent("pointerup", { ...end, buttons: 0 });
   await expect(page.getByText(/1 permanent redaction mark/)).toBeVisible();
   const downloadPromise = page.waitForEvent("download");
   await page.getByRole("button", { name: /Apply and download/ }).click();
