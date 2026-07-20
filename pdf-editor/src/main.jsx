@@ -10,6 +10,7 @@ import "./brand-wordmark.css";
 import "./route-shells.css";
 import "./tool-platform.css";
 import "./reference-editor.css";
+import "./release-fixes.css";
 
 createRoot(document.getElementById("root")).render(
   <React.StrictMode>

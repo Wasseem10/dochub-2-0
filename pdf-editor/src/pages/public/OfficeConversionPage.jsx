@@ -7,6 +7,7 @@ import LoaderCircle from "lucide-react/dist/esm/icons/loader-circle.mjs";
 import Upload from "lucide-react/dist/esm/icons/upload.mjs";
 import { PageMetadata } from "../../components/public/PageMetadata.jsx";
 import { ROUTE_PATHS } from "../../router/routePaths.js";
+import { trackProductEvent } from "../../analytics/productAnalytics.js";
 import {
   createDocxFromPdfPages,
   createPdfFromRenderedDocxPages,
@@ -27,6 +28,9 @@ function downloadBytes(bytes, type, name) {
   anchor.href = url;
   anchor.download = name;
   anchor.click();
+  if (String(name).toLowerCase().endsWith(".pdf")) {
+    trackProductEvent("pdf_downloaded", { toolId: window.location.pathname.split("/").filter(Boolean).at(-1) || "office-conversion" });
+  }
   window.setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 

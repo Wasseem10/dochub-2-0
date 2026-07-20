@@ -6,6 +6,7 @@ import RefreshCw from "lucide-react/dist/esm/icons/refresh-cw.mjs";
 import Upload from "lucide-react/dist/esm/icons/upload.mjs";
 import UserPlus from "lucide-react/dist/esm/icons/user-plus.mjs";
 import Users from "lucide-react/dist/esm/icons/users.mjs";
+import FileText from "lucide-react/dist/esm/icons/file-text.mjs";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { createDailyAnalyticsSeries, filterAnalyticsEvents, summarizeAnalyticsEvents } from "../../analytics/analyticsMetrics.js";
 import { db } from "../../firebase.js";
@@ -58,7 +59,7 @@ export function OwnerAnalyticsPanel() {
       setStatus("error");
       setMessage(error?.code === "permission-denied"
         ? "Analytics access is waiting for the owner-only Firestore rule to be deployed."
-        : "RealPDF could not load analytics right now. Try refreshing in a moment.");
+        : "FixThatPDF could not load analytics right now. Try refreshing in a moment.");
     }
   }, []);
 
@@ -74,9 +75,11 @@ export function OwnerAnalyticsPanel() {
 
   const cards = [
     { label: "New accounts", value: metrics.signups, detail: "Successful registrations", icon: UserPlus, tone: "coral" },
-    { label: "Successful logins", value: metrics.logins, detail: `${metrics.googleAuth} through Google`, icon: LogIn, tone: "blue" },
+    { label: "Successful logins", value: metrics.logins, detail: "Email and Google logins", icon: LogIn, tone: "blue" },
+    { label: "Google sign-ins", value: metrics.googleAuth, detail: "Google account authentications", icon: Users, tone: "coral" },
+    { label: "Documents opened", value: metrics.uploads, detail: "PDFs opened in the editor", icon: FileText, tone: "blue" },
+    { label: "PDFs downloaded", value: metrics.downloads, detail: `${metrics.conversionRate}% of opened documents`, icon: Download, tone: "green" },
     { label: "Active users", value: metrics.activeUsers, detail: "Unique signed-in and guest users", icon: Users, tone: "purple" },
-    { label: "PDFs downloaded", value: metrics.downloads, detail: `${metrics.conversionRate}% of completed uploads`, icon: Download, tone: "green" },
   ];
 
   return (
@@ -84,7 +87,7 @@ export function OwnerAnalyticsPanel() {
       <header className="owner-analytics-head">
         <div>
           <span>Owner-only</span>
-          <h1 id="analytics-title">RealPDF analytics</h1>
+          <h1 id="analytics-title">FixThatPDF analytics</h1>
           <p>Private product usage metrics. PDF names and document contents are never collected.</p>
         </div>
         <div className="owner-analytics-actions">
@@ -155,7 +158,7 @@ export function OwnerAnalyticsPanel() {
               </div>
             ))}
           </div>
-        ) : <div className="owner-analytics-empty"><Activity size={24} /><strong>No activity in this period</strong><p>Events will appear after people use this release of RealPDF.</p></div>}
+        ) : <div className="owner-analytics-empty"><Activity size={24} /><strong>No activity in this period</strong><p>Events will appear after people use this FixThatPDF release.</p></div>}
       </article>
     </section>
   );
