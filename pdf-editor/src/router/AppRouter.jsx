@@ -9,8 +9,10 @@ import { ImageConversionPage } from "../pages/public/ImageConversionPage.jsx";
 import { OfficeConversionPage } from "../pages/public/OfficeConversionPage.jsx";
 import { PdfPageToolPage } from "../pages/public/PdfPageToolPage.jsx";
 import { RedactPdfPage } from "../pages/public/RedactPdfPage.jsx";
+import { SecureSharePage } from "../pages/public/SecureSharePage.jsx";
 import { SupportPage } from "../pages/public/SupportPage.jsx";
 import { ToolLandingPage } from "../pages/public/ToolLandingPage.jsx";
+import { TextConversionPage } from "../pages/public/TextConversionPage.jsx";
 import { WorkflowUnavailablePage } from "../pages/public/WorkflowUnavailablePage.jsx";
 import { TOOL_REGISTRY } from "../tools/toolRegistry.js";
 import { getEditorToolPreset } from "../tools/editorToolPresets.js";
@@ -47,7 +49,9 @@ const toolRouteObjects = TOOL_REGISTRY
     element: tool.id === "redact-pdf"
       ? <RedactPdfPage tool={tool} />
       : tool.workflowType === "converter"
-      ? ["pdf-to-word", "word-to-pdf"].includes(tool.id)
+      ? ["pdf-to-txt", "txt-to-pdf"].includes(tool.id)
+        ? <TextConversionPage tool={tool} />
+        : ["pdf-to-word", "word-to-pdf"].includes(tool.id)
         ? <OfficeConversionPage tool={tool} />
         : <ImageConversionPage tool={tool} />
       : tool.workflowType === "page-tool"
@@ -75,6 +79,7 @@ export const appRouteObjects = [
           { path: ROUTE_PATHS.editPdf, element: <PublicEditorRoute /> },
           { path: ROUTE_PATHS.tools, element: <ToolDirectoryPage /> },
           { path: ROUTE_PATHS.support, element: <SupportPage /> },
+          { path: ROUTE_PATHS.sharePattern, element: <SecureSharePage /> },
           ...publicPlaceholderRouteObjects,
           ...toolRouteObjects,
         ],
@@ -126,7 +131,6 @@ export const appRouteObjects = [
           },
         ],
       },
-      { path: ROUTE_PATHS.sharePattern, element: <WorkflowUnavailablePage kind="share" /> },
       { path: ROUTE_PATHS.signPattern, element: <WorkflowUnavailablePage kind="signing" /> },
       { path: "*", element: <NotFoundPage /> },
     ],

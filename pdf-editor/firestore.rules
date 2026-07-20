@@ -15,6 +15,72 @@ service cloud.firestore {
       allow read, create, update, delete: if isSignedIn() && request.auth.uid == userId;
     }
 
+    match /shareLinks/{token} {
+      allow get: if (resource.data.status == "active" && resource.data.expiresAt > request.time)
+        || (isSignedIn() && resource.data.ownerId == request.auth.uid);
+      allow list: if false;
+      allow create: if isSignedIn()
+        && token.size() == 32
+        && request.resource.data.keys().hasOnly([
+          "ownerId",
+          "fileName",
+          "size",
+          "contentType",
+          "chunkCount",
+          "status",
+          "allowDownload",
+          "createdAt",
+          "expiresAt"
+        ])
+        && request.resource.data.ownerId == request.auth.uid
+        && request.resource.data.fileName is string
+        && request.resource.data.fileName.size() > 0
+        && request.resource.data.fileName.size() <= 124
+        && request.resource.data.size is int
+        && request.resource.data.size > 0
+        && request.resource.data.size <= 26214400
+        && request.resource.data.contentType == "application/pdf"
+        && request.resource.data.chunkCount is int
+        && request.resource.data.chunkCount > 0
+        && request.resource.data.chunkCount <= 52
+        && request.resource.data.status == "uploading"
+        && request.resource.data.allowDownload is bool
+        && request.resource.data.createdAt is timestamp
+        && request.resource.data.createdAt <= request.time + duration.value(5, "m")
+        && request.resource.data.expiresAt > request.time
+        && request.resource.data.expiresAt <= request.time + duration.value(30, "d");
+      allow update: if isSignedIn()
+        && resource.data.ownerId == request.auth.uid
+        && resource.data.status == "uploading"
+        && request.resource.data.status == "active"
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["status"]);
+      allow delete: if isSignedIn() && resource.data.ownerId == request.auth.uid;
+
+      match /chunks/{chunkId} {
+        function shareRecord() {
+          return get(/databases/$(database)/documents/shareLinks/$(token));
+        }
+
+        function isShareOwner() {
+          return isSignedIn() && shareRecord().data.ownerId == request.auth.uid;
+        }
+
+        allow get, list: if (shareRecord().data.status == "active" && shareRecord().data.expiresAt > request.time)
+          || isShareOwner();
+        allow create: if isShareOwner()
+          && shareRecord().data.status == "uploading"
+          && request.resource.data.keys().hasOnly(["index", "data"])
+          && request.resource.data.index is int
+          && request.resource.data.index >= 0
+          && request.resource.data.index < shareRecord().data.chunkCount
+          && request.resource.data.data is bytes
+          && request.resource.data.data.size() > 0
+          && request.resource.data.data.size() <= 512000;
+        allow update: if false;
+        allow delete: if isShareOwner();
+      }
+    }
+
     match /productAnalyticsEvents/{eventId} {
       allow create: if request.resource.data.keys().hasOnly([
           "name",

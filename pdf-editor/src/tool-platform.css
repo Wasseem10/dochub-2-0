@@ -436,10 +436,16 @@
 .conversion-dropzone.is-dragging { border-color: #047857; background: #effcf4; box-shadow: 0 0 0 5px rgba(205,250,206,.64); }
 .conversion-dropzone input { display: none; }
 .conversion-dropzone > span { display: grid; width: 54px; height: 54px; place-items: center; border-radius: 16px; background: #cdface; color: #046645; }
+.conversion-dropzone > strong { margin-top: 5px; color: var(--public-ink); font-size: 21px; }
+.conversion-dropzone > small { color: var(--public-muted); font-size: 13px; }
 .conversion-dropzone h2 { margin: 5px 0 0; font-size: 23px; letter-spacing: -.025em; }
 .conversion-dropzone p { max-width: 520px; margin: 0; color: var(--public-muted); line-height: 1.45; }
 .conversion-dropzone button, .conversion-primary-action { display: inline-flex; min-height: 46px; align-items: center; justify-content: center; gap: 8px; margin-top: 8px; padding: 0 20px; border: 0; border-radius: 13px; background: #046645; color: #fff; font: inherit; font-weight: 780; cursor: pointer; }
 .conversion-dropzone button:disabled, .conversion-primary-action:disabled { cursor: not-allowed; opacity: .48; }
+
+.text-conversion-settings { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.text-conversion-settings label { display: grid; gap: 6px; color: var(--public-muted); font-size: 12px; font-weight: 750; }
+.text-conversion-settings select { min-width: 0; height: 40px; padding: 0 10px; border: 1px solid var(--public-line); border-radius: 10px; background: #fff; color: var(--public-ink); font: inherit; }
 
 .editor-tool-upload-page {
   min-height: calc(100vh - 76px);
