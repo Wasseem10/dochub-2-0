@@ -3,6 +3,8 @@ import { expect, test } from "@playwright/test";
 import { strFromU8, unzipSync } from "fflate";
 import { PDFDocument, StandardFonts } from "pdf-lib";
 
+const appPath = (path) => process.env.GITHUB_ACTIONS === "true" ? `/dochub-2-0${path}` : path;
+
 async function samplePdf() {
   const document = await PDFDocument.create();
   const font = await document.embedFont(StandardFonts.Helvetica);
@@ -16,7 +18,7 @@ async function samplePdf() {
 }
 
 async function uploadAndDownload(page, route, buttonLabel) {
-  await page.goto(route);
+  await page.goto(appPath(route));
   await page.locator('input[type="file"]').setInputFiles({
     name: "quarterly-revenue.pdf",
     mimeType: "application/pdf",
