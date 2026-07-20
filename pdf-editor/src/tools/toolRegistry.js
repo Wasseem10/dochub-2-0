@@ -55,7 +55,7 @@ export const TOOL_CATEGORIES = Object.freeze([
 const PARTIAL_EDITOR_LIMIT = "This workflow opens the current browser editor. Supported edits are flattened during export, and source formatting or interactive PDF features may not be preserved.";
 const COMING_SOON_LIMIT = "This tool is not implemented yet. FixThatPDF does not upload or process files for this workflow today.";
 const DEDICATED_CONVERTER_IDS = new Set(["pdf-to-word", "pdf-to-jpg", "pdf-to-png", "word-to-pdf", "jpg-to-pdf", "png-to-pdf"]);
-const DEDICATED_PAGE_TOOL_IDS = new Set(["merge-pdf", "split-pdf", "rotate-pdf", "delete-pdf-pages", "extract-pdf-pages", "reorder-pdf-pages", "organize-pdf", "add-page-numbers", "watermark-pdf", "crop-pdf", "compress-pdf"]);
+const DEDICATED_PAGE_TOOL_IDS = new Set(["merge-pdf", "split-pdf", "rotate-pdf", "delete-pdf-pages", "extract-pdf-pages", "reorder-pdf-pages", "organize-pdf", "add-page-numbers", "watermark-pdf", "crop-pdf", "compress-pdf", "redact-pdf"]);
 
 /** @type {ToolDefinition[]} */
 const definitions = [
@@ -67,7 +67,7 @@ const definitions = [
   ["crop-pdf", "Crop PDF", "Trim page boundaries to keep only the area you need.", "edit-view", "crop", "available", ["application/pdf"], ["application/pdf"], "Browser cropping sets accurate PDF page bounds on selected pages. Original content is preserved outside the visible page box and can be recovered from the source file."],
   ["watermark-pdf", "Watermark PDF", "Apply text or image marks across selected PDF pages.", "edit-view", "watermark", "available", ["application/pdf", "image/png", "image/jpeg"], ["application/pdf"], "Browser watermarking keeps original PDF pages intact and supports text or PNG/JPG marks, selected pages, position, tiling, opacity, rotation, and scale. Encrypted PDFs are not supported."],
   ["add-page-numbers", "Add Page Numbers", "Place consistent page numbers in headers or footers across a PDF.", "edit-view", "numbers", "available", ["application/pdf"], ["application/pdf"], "Browser page numbering supports valid, unencrypted PDFs up to 50 MB and 200 pages, with six header and footer positions."],
-  ["redact-pdf", "Redact PDF", "Permanently remove sensitive content from a PDF before sharing it.", "edit-view", "redact", "coming-soon", ["application/pdf"], ["application/pdf"], "Secure permanent redaction is not available. The editor's current whiteout is visual only and must not be treated as redaction."],
+  ["redact-pdf", "Redact PDF", "Permanently remove sensitive content from a PDF before sharing it.", "edit-view", "redact", "available", ["application/pdf"], ["application/pdf"], "Permanent browser redaction rebuilds every page from rendered pixels, removes source content streams and metadata, and supports unencrypted PDFs up to 20 MB and 50 pages. The output is flattened and no longer searchable, editable, form-fillable, linked, layered, or tagged for accessibility."],
   ["share-pdf", "Share PDF", "Create a controlled link for another person to view or download a PDF.", "edit-view", "share", "coming-soon", ["application/pdf"], [], "Secure links, permissions, passwords, and expiration controls require a backend token service and are not available."],
 
   ["merge-pdf", "Merge PDF", "Combine multiple ordered PDFs into one high-fidelity document.", "organize", "merge", "available", ["application/pdf"], ["application/pdf"], "Browser merging supports up to 20 valid, unencrypted PDFs, 50 MB each, and 200 total pages."],

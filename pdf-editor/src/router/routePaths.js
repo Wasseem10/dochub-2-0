@@ -10,6 +10,8 @@ export const ROUTE_PATHS = Object.freeze({
   integrations: "/integrations",
   contactSales: "/contact-sales",
   help: "/help",
+  support: "/support",
+  dataRetention: "/data-retention",
   privacy: "/privacy",
   terms: "/terms",
   tools: "/tools",

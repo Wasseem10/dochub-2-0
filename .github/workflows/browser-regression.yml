@@ -1,0 +1,46 @@
+name: Public beta browser regression
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  browser:
+    name: ${{ matrix.project }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - project: desktop-chromium
+            browser: chromium
+          - project: desktop-firefox
+            browser: firefox
+          - project: desktop-webkit
+            browser: webkit
+          - project: android-chromium
+            browser: chromium
+          - project: iphone-webkit
+            browser: webkit
+    defaults:
+      run:
+        working-directory: pdf-editor
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: pdf-editor/.nvmrc
+          cache: npm
+          cache-dependency-path: pdf-editor/package-lock.json
+      - run: npm ci
+      - run: npx playwright install --with-deps ${{ matrix.browser }}
+      - run: npm run build
+      - run: npx playwright test --project=${{ matrix.project }}
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-${{ matrix.project }}
+          path: pdf-editor/test-results
+          retention-days: 7

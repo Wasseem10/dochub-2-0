@@ -78,6 +78,7 @@ import { db, isCloudPersistenceConfigured, storage } from "./firebase";
 import { useAuth } from "./auth/AuthContext.jsx";
 import { fileSizeBucket, pageCountBucket, trackProductEvent } from "./analytics/productAnalytics.js";
 import { AuthRequiredModal } from "./components/editor/AuthRequiredModal.jsx";
+import { AccountDeletionCard } from "./components/app/AccountDeletionCard.jsx";
 import { BrandWordmark } from "./components/public/BrandWordmark.jsx";
 import { isAnalyticsOwner } from "./config/adminAccess.js";
 import { OwnerAnalyticsPanel } from "./pages/app/OwnerAnalyticsPanel.jsx";
@@ -5671,6 +5672,7 @@ export function UploadLanding({
               <strong>Export policy</strong>
               <span>Download creates a rebuilt PDF with current page order and annotations.</span>
             </article>
+            <AccountDeletionCard />
           </div>
         </section>
       );

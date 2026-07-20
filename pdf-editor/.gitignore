@@ -13,4 +13,6 @@ qa-comparison.png
 qa-upload-empty.png
 qa-premium-upload.png
 qa-landing-premium.png
+test-results/
+playwright-report/
 public/reference/qa-implementation.png
