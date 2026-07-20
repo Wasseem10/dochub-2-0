@@ -8787,3 +8787,124 @@ main.editor-shell .draw-custom-color .color-trigger.is-palette svg {
   width: 17px !important;
   height: 17px !important;
 }
+
+/* Production compact toolbar: keep the document and tools close to the top. */
+@media (min-width: 901px) {
+  main.editor-shell.editor-shell {
+    grid-template-rows: 48px 60px minmax(0, 1fr) !important;
+  }
+
+  main.editor-shell.editor-shell.has-tool-settings {
+    grid-template-rows: 48px 60px 40px minmax(0, 1fr) !important;
+  }
+
+  main.editor-shell .reference-file-header {
+    width: 100% !important;
+    min-height: 48px !important;
+    height: 48px !important;
+    padding: 0 12px !important;
+  }
+
+  main.editor-shell .reference-brand-lockup,
+  main.editor-shell .reference-header-actions {
+    gap: 6px !important;
+  }
+
+  main.editor-shell .reference-brand-mark {
+    width: 32px !important;
+    height: 32px !important;
+    flex-basis: 32px !important;
+    border-radius: 8px !important;
+  }
+
+  main.editor-shell .reference-brand-name strong {
+    font-size: 17px !important;
+  }
+
+  main.editor-shell .reference-brand-name small {
+    margin-top: 2px !important;
+    font-size: 9px !important;
+  }
+
+  main.editor-shell .reference-header-actions > button {
+    min-width: 58px !important;
+    height: 38px !important;
+    padding: 4px 8px !important;
+    gap: 5px !important;
+    font-size: 11px !important;
+  }
+
+  main.editor-shell .reference-header-actions .reference-done-button {
+    width: 106px !important;
+    min-width: 106px !important;
+    height: 38px !important;
+    margin-left: 4px !important;
+    font-size: 15px !important;
+  }
+
+  main.editor-shell .reference-tool-ribbon {
+    min-height: 60px !important;
+    height: 60px !important;
+    gap: 4px !important;
+    padding: 4px 8px !important;
+  }
+
+  main.editor-shell .reference-toolbar-button {
+    min-width: 50px !important;
+    height: 52px !important;
+    gap: 3px !important;
+    padding: 3px 6px !important;
+    border-radius: 7px !important;
+    font-size: 10.5px !important;
+  }
+
+  main.editor-shell .reference-shape-tool {
+    width: 60px !important;
+    flex-basis: 60px !important;
+  }
+
+  main.editor-shell .reference-shape-tool > .reference-toolbar-button {
+    width: 48px !important;
+    min-width: 48px !important;
+  }
+
+  main.editor-shell .reference-shape-menu-trigger {
+    width: 14px !important;
+    height: 52px !important;
+    padding-top: 30px !important;
+  }
+
+  main.editor-shell > .tool-settings,
+  main.editor-shell > .text-format-settings {
+    min-height: 40px !important;
+    height: 40px !important;
+  }
+
+  main.editor-shell .reference-brand-mark svg,
+  main.editor-shell .reference-header-actions svg,
+  main.editor-shell .reference-toolbar-button svg {
+    width: 19px !important;
+    height: 19px !important;
+  }
+}
+
+/* The Check tool places a blue checkmark itself, without a checkbox outline. */
+main.editor-shell .checkbox-field {
+  min-width: 0 !important;
+  min-height: 0 !important;
+  overflow: visible !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  color: var(--checkbox-color, var(--editor-blue)) !important;
+}
+
+main.editor-shell .checkbox-mark {
+  width: 100% !important;
+  height: 100% !important;
+  overflow: visible !important;
+  border: 0 !important;
+  color: inherit !important;
+  fill: none !important;
+  transform: none !important;
+}
