@@ -14,6 +14,7 @@ import { ROUTE_PATHS } from "../../router/routePaths.js";
 import { createPdfFromImages, createStoredZip, IMAGE_CONVERSION_LIMITS, isSupportedImageType } from "../../tools/imageConversion.js";
 import { absoluteSiteUrl } from "../../config/site.js";
 import { ExportSuccessState } from "../../components/public/ExportSuccessState.jsx";
+import { trackProductEvent } from "../../analytics/productAnalytics.js";
 
 async function loadPdfRenderer() {
   const pdfjsLib = await import("pdfjs-dist");
@@ -31,6 +32,9 @@ function downloadBytes(bytes, type, name) {
   anchor.href = url;
   anchor.download = name;
   anchor.click();
+  if (String(name).toLowerCase().endsWith(".pdf")) {
+    trackProductEvent("pdf_downloaded", { toolId: window.location.pathname.split("/").filter(Boolean).at(-1) || "image-conversion" });
+  }
   window.setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 

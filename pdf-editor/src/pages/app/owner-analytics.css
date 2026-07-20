@@ -11,7 +11,7 @@
 .owner-analytics-actions button:hover { border-color: #2851eb; color: #2851eb; }
 .owner-analytics-notice, .owner-analytics-loading { padding: 13px 15px; border: 1px solid #f0cbc5; border-radius: 12px; background: #fff5f3; color: #a74138; font-size: 12px; font-weight: 700; }
 .owner-analytics-loading { border-color: #dfe3f5; background: #f7f8ff; color: #60647a; }
-.owner-analytics-cards { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 13px; }
+.owner-analytics-cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 13px; }
 .owner-analytics-cards article, .owner-analytics-chart, .owner-analytics-funnel, .owner-analytics-activity { border: 1px solid #ecebf3; border-radius: 17px; background: #fff; box-shadow: 0 8px 25px rgba(51, 45, 85, .045); }
 .owner-analytics-cards article { display: grid; grid-template-columns: 42px 1fr; grid-template-rows: auto auto auto; gap: 2px 11px; padding: 16px; }
 .owner-analytics-cards article > span { display: grid; width: 42px; height: 42px; grid-row: 1 / 4; place-items: center; border-radius: 12px; }
