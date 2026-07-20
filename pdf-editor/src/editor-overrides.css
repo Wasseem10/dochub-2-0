@@ -8365,15 +8365,15 @@ main.editor-shell .continuous-page-skeleton {
   animation: thumbnail-loading 1.15s linear infinite;
 }
 
-/* July 16 editor reference: own branding, equivalent two-row hierarchy. */
+/* July 20 compact editor reference: keep the document header and tool row high and shallow. */
 main.editor-shell.editor-shell {
-  grid-template-rows: 92px 94px minmax(0, 1fr) !important;
+  grid-template-rows: 48px 60px minmax(0, 1fr) !important;
   min-width: 0 !important;
   background: #eef1f7 !important;
 }
 
 main.editor-shell.editor-shell.has-tool-settings {
-  grid-template-rows: 92px 94px 46px minmax(0, 1fr) !important;
+  grid-template-rows: 48px 60px 40px minmax(0, 1fr) !important;
 }
 
 main.editor-shell .reference-file-header {
@@ -8381,9 +8381,9 @@ main.editor-shell .reference-file-header {
   align-items: center !important;
   justify-content: space-between !important;
   width: 100% !important;
-  min-height: 92px !important;
-  height: 92px !important;
-  padding: 0 20px !important;
+  min-height: 48px !important;
+  height: 48px !important;
+  padding: 0 12px !important;
   border: 0 !important;
   border-bottom: 1px solid #d9dee8 !important;
   background: #fff !important;
@@ -8394,16 +8394,16 @@ main.editor-shell .reference-brand-lockup {
   display: flex;
   min-width: 0;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
 }
 
 main.editor-shell .reference-brand-mark {
   display: grid;
-  width: 48px;
-  height: 48px;
-  flex: 0 0 48px;
+  width: 32px;
+  height: 32px;
+  flex: 0 0 32px;
   place-items: center;
-  border-radius: 11px;
+  border-radius: 8px;
   background: var(--editor-blue);
   color: #fff;
   box-shadow: 0 5px 14px rgba(23, 105, 232, .22);
@@ -8421,18 +8421,18 @@ main.editor-shell .reference-brand-name {
 }
 
 main.editor-shell .reference-brand-name strong {
-  font-size: 25px;
+  font-size: 17px;
   font-weight: 820;
   letter-spacing: -.035em;
   line-height: 1.05;
 }
 
 main.editor-shell .reference-brand-name small {
-  max-width: 280px;
-  margin-top: 5px;
+  max-width: 240px;
+  margin-top: 2px;
   overflow: hidden;
   color: #788292;
-  font-size: 11px;
+  font-size: 9px;
   font-weight: 650;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -8445,18 +8445,20 @@ main.editor-shell .reference-header-actions {
 }
 
 main.editor-shell .reference-header-actions > button {
-  display: grid;
-  min-width: 78px;
-  height: 64px;
-  padding: 7px 12px;
+  display: inline-flex;
+  min-width: 58px;
+  height: 38px;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 8px;
   place-items: center;
-  gap: 3px;
+  gap: 5px;
   border: 0;
   border-radius: 9px;
   background: transparent;
   color: #252d3a;
   font: inherit;
-  font-size: 13px;
+  font-size: 11px;
   font-weight: 650;
   cursor: pointer;
 }
@@ -8467,16 +8469,16 @@ main.editor-shell .reference-header-actions > button:hover {
 
 main.editor-shell .reference-header-actions .reference-done-button {
   display: flex;
-  width: 174px;
-  min-width: 174px;
-  height: 64px;
-  margin-left: 6px;
+  width: 106px;
+  min-width: 106px;
+  height: 38px;
+  margin-left: 4px;
   justify-content: center;
   border: 1px solid var(--editor-blue-dark);
   border-radius: 11px;
   background: var(--editor-blue);
   color: #fff;
-  font-size: 22px;
+  font-size: 15px;
   font-weight: 790;
   box-shadow: 0 6px 16px rgba(23, 105, 232, .2);
 }
@@ -8490,11 +8492,11 @@ main.editor-shell .reference-tool-ribbon {
   z-index: 40 !important;
   display: flex !important;
   width: 100% !important;
-  min-height: 94px !important;
-  height: 94px !important;
-  align-items: stretch !important;
-  gap: 8px !important;
-  padding: 9px 12px !important;
+  min-height: 60px !important;
+  height: 60px !important;
+  align-items: center !important;
+  gap: 4px !important;
+  padding: 4px 8px !important;
   overflow-x: auto !important;
   overflow-y: visible !important;
   border: 0 !important;
@@ -8505,20 +8507,20 @@ main.editor-shell .reference-tool-ribbon {
 
 main.editor-shell .reference-toolbar-button {
   display: inline-flex;
-  min-width: 64px;
-  height: 76px;
+  min-width: 50px;
+  height: 52px;
   flex: 0 0 auto;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 7px;
-  padding: 5px 8px;
+  gap: 3px;
+  padding: 3px 6px;
   border: 1px solid transparent;
   border-radius: 7px;
   background: transparent;
   color: #2c3545;
   font: inherit;
-  font-size: 12px;
+  font-size: 10.5px;
   font-weight: 650;
   line-height: 1;
   white-space: nowrap;
@@ -8543,15 +8545,15 @@ main.editor-shell .reference-toolbar-button:disabled {
 
 main.editor-shell .reference-thumbnail-toggle {
   position: relative;
-  min-width: 164px;
+  min-width: 112px;
   align-items: flex-start;
-  padding-left: 18px;
+  padding-left: 12px;
 }
 
 main.editor-shell .reference-thumbnail-toggle > svg:last-child {
   position: absolute;
-  right: 12px;
-  bottom: 18px;
+  right: 8px;
+  bottom: 19px;
 }
 
 main.editor-shell .reference-history-tools,
@@ -8564,7 +8566,7 @@ main.editor-shell .reference-secondary-tools {
 }
 
 main.editor-shell .reference-history-tools {
-  padding: 0 8px;
+  padding: 0 5px;
   border-right: 1px solid #dde3ec;
 }
 
@@ -8574,27 +8576,27 @@ main.editor-shell .reference-primary-tools {
 
 main.editor-shell .reference-secondary-tools {
   margin-left: auto;
-  padding-left: 8px;
+  padding-left: 5px;
   border-left: 1px solid #dde3ec;
 }
 
 main.editor-shell .reference-shape-tool {
   position: relative;
   display: flex;
-  width: 76px;
-  flex: 0 0 76px;
+  width: 60px;
+  flex: 0 0 60px;
 }
 
 main.editor-shell .reference-shape-tool > .reference-toolbar-button {
-  width: 62px;
-  min-width: 62px;
+  width: 48px;
+  min-width: 48px;
   padding-right: 2px;
 }
 
 main.editor-shell .reference-shape-menu-trigger {
-  width: 18px;
-  height: 76px;
-  padding: 42px 0 0;
+  width: 14px;
+  height: 52px;
+  padding: 30px 0 0;
   border: 0;
   background: transparent;
   color: #4b5565;
@@ -8603,7 +8605,7 @@ main.editor-shell .reference-shape-menu-trigger {
 
 main.editor-shell .reference-shape-menu {
   position: absolute;
-  top: 82px;
+  top: 58px;
   left: 0;
   z-index: 90;
   display: grid;
@@ -8638,9 +8640,36 @@ main.editor-shell .reference-shape-menu button:hover {
 
 main.editor-shell > .tool-settings,
 main.editor-shell > .text-format-settings {
-  min-height: 46px !important;
-  height: 46px !important;
+  min-height: 40px !important;
+  height: 40px !important;
   background: #fff !important;
+}
+
+main.editor-shell .reference-brand-mark svg,
+main.editor-shell .reference-header-actions svg,
+main.editor-shell .reference-toolbar-button svg {
+  width: 19px;
+  height: 19px;
+}
+
+main.editor-shell .checkbox-field {
+  min-width: 0;
+  min-height: 0;
+  overflow: visible;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--checkbox-color, var(--editor-blue));
+}
+
+main.editor-shell .checkbox-mark {
+  width: 100% !important;
+  height: 100% !important;
+  overflow: visible;
+  border: 0 !important;
+  color: inherit;
+  fill: none;
+  transform: none !important;
 }
 
 main.editor-shell .workspace,

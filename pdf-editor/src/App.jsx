@@ -21,8 +21,8 @@ import Bell from "lucide-react/dist/esm/icons/bell.mjs";
 import Box from "lucide-react/dist/esm/icons/box.mjs";
 import Building2 from "lucide-react/dist/esm/icons/building-2.mjs";
 import CalendarDays from "lucide-react/dist/esm/icons/calendar-days.mjs";
+import Check from "lucide-react/dist/esm/icons/check.mjs";
 import CheckCircle2 from "lucide-react/dist/esm/icons/check-circle-2.mjs";
-import CheckSquare from "lucide-react/dist/esm/icons/check-square.mjs";
 import ChevronDown from "lucide-react/dist/esm/icons/chevron-down.mjs";
 import CircleHelp from "lucide-react/dist/esm/icons/circle-help.mjs";
 import Copy from "lucide-react/dist/esm/icons/copy.mjs";
@@ -83,6 +83,7 @@ import { fileSizeBucket, pageCountBucket, trackProductEvent } from "./analytics/
 import { EDITOR_LIMITS, validateEditorPageCount, validateEditorPdfFile } from "./config/editorLimits.js";
 import { consolidatePdfSources, finalizePdfExport } from "./editor/exportPdf.js";
 import { createEditorClipboardPayload, createPastedEditorObject, EDITOR_CLIPBOARD_MIME, editorClipboardPlainText, parseEditorClipboardPayload } from "./editor/editorClipboard.mjs";
+import { centeredAnnotationBounds, pointerToNormalizedPoint } from "./editor/annotationPlacement.mjs";
 import { closestPageToViewportCenter, continuousPageScrollTarget, createContinuousPageLayout, visibleContinuousPageRange } from "./editor/continuousViewport.mjs";
 import { EDITOR_MODE_TOOLS, moveEditorObject, resizeEditorObjectFromHandle, rotateEditorObjectWithPage, thumbnailScrollTarget, unrotateEditorObjectFromPage, visibleThumbnailRange } from "./editor/editorModel.js";
 import { createPdfDocumentController } from "./editor/pdfDocumentController.mjs";
@@ -182,7 +183,7 @@ const toolConfig = [
   { id: "line", label: "Line", icon: Minus },
   { id: "comment", label: "Comment", icon: MessageSquare },
   { id: "image", label: "Image", icon: ImageIcon },
-  { id: "checkbox", label: "Check", icon: CheckSquare },
+  { id: "checkbox", label: "Check", icon: Check },
   { id: "field", label: "Text field", icon: FilePlus2 },
   { id: "date", label: "Date", icon: CalendarDays },
   { id: "initials", label: "Initials", icon: Type },
@@ -218,6 +219,7 @@ const referencePrimaryTools = [
   { id: "image", label: "Image", icon: ImageIcon },
   { id: "stamp", label: "Stamp", icon: Stamp },
   { id: "link", label: "Link", icon: Link },
+  { id: "checkbox", label: "Check", icon: Check },
   { id: "note", label: "Note", icon: StickyNote },
 ];
 
@@ -419,11 +421,7 @@ function normalizeHexColor(value) {
 }
 
 function pointerToNormalized(event, pageElement) {
-  const rect = pageElement.getBoundingClientRect();
-  return {
-    x: clamp((event.clientX - rect.left) / rect.width, 0, 1),
-    y: clamp((event.clientY - rect.top) / rect.height, 0, 1),
-  };
+  return pointerToNormalizedPoint(event, pageElement.getBoundingClientRect());
 }
 
 function extractDetectedTextItems(pdfjsLib, textContent, viewport, pageRecord, pageIndex) {
@@ -996,7 +994,7 @@ function Annotation({ annotation, selected, zoom, activeTool, onSelect, onDrag, 
   if (annotation.type === "checkbox") {
     return (
       <div className={`annotation checkbox-field ${selected ? "is-selected" : ""}`} style={{ ...commonStyle, "--checkbox-color": annotation.color }} onPointerDown={dragStart}>
-        {annotation.checked && <span className="checkbox-mark" />}
+        {annotation.checked && <Check className="checkbox-mark" strokeWidth={3.25} aria-hidden="true" />}
         {selected && <button type="button" className="checkbox-toggle" onPointerDown={(event) => event.stopPropagation()} onClick={() => { onInteractionStart?.(); onUpdate(annotation.id, { checked: !annotation.checked }); }}>{annotation.checked ? "Uncheck" : "Check"}</button>}
         {selectionHandles}
       </div>
@@ -2803,14 +2801,15 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     }
 
     if (tool === "checkbox") {
+      const width = 0.038;
+      const pageAspectCorrection = (currentPage?.width || BASE_PAGE_WIDTH) / (currentPage?.height || BASE_PAGE_HEIGHT);
+      const height = width * pageAspectCorrection;
+      const bounds = centeredAnnotationBounds(point, width, height);
       addAnnotation({
         id: makeId("checkbox"),
         type: "checkbox",
         page: pageIndex,
-        x: clamp(point.x, 0, 0.95),
-        y: clamp(point.y, 0, 0.95),
-        w: 0.035,
-        h: 0.035,
+        ...bounds,
         checked: true,
         color: colors.blue,
         opacity: 1,
@@ -3363,22 +3362,14 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       }
 
       if (annotation.type === "checkbox") {
-        const boxSize = Math.min(annotation.w * width, annotation.h * height);
+        const markWidth = annotation.w * width;
+        const markHeight = annotation.h * height;
         const x = annotation.x * width;
-        const y = height - annotation.y * height - boxSize;
-        page.drawRectangle({
-          x,
-          y,
-          width: boxSize,
-          height: boxSize,
-          borderColor: color,
-          borderWidth: 1.5,
-          color: rgb(1, 1, 1),
-          opacity: annotation.opacity,
-        });
+        const y = height - annotation.y * height - markHeight;
         if (annotation.checked) {
-          page.drawLine({ start: { x: x + boxSize * 0.22, y: y + boxSize * 0.48 }, end: { x: x + boxSize * 0.42, y: y + boxSize * 0.25 }, thickness: 2, color });
-          page.drawLine({ start: { x: x + boxSize * 0.42, y: y + boxSize * 0.25 }, end: { x: x + boxSize * 0.78, y: y + boxSize * 0.76 }, thickness: 2, color });
+          const thickness = Math.max(1.8, Math.min(markWidth, markHeight) * 0.13);
+          page.drawLine({ start: { x: x + markWidth * 0.08, y: y + markHeight * 0.48 }, end: { x: x + markWidth * 0.36, y: y + markHeight * 0.18 }, thickness, color, opacity: annotation.opacity });
+          page.drawLine({ start: { x: x + markWidth * 0.36, y: y + markHeight * 0.18 }, end: { x: x + markWidth * 0.92, y: y + markHeight * 0.82 }, thickness, color, opacity: annotation.opacity });
         }
       }
 
@@ -3758,6 +3749,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     if (nextTool === "erase") showToast("Click an annotation or object to erase it.");
     if (nextTool === "stamp") showToast("Click the page to place an Approved stamp.");
     if (nextTool === "link") showToast("Click the page, then enter the link address.");
+    if (nextTool === "checkbox") showToast("Click the exact spot where you want the checkmark.");
     if (nextTool === "note") showToast("Click the page to place a note.");
     setTool(nextTool);
   };
