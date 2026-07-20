@@ -81,6 +81,7 @@ import { AuthRequiredModal } from "./components/editor/AuthRequiredModal.jsx";
 import { AccountDeletionCard } from "./components/app/AccountDeletionCard.jsx";
 import { BrandWordmark } from "./components/public/BrandWordmark.jsx";
 import { isAnalyticsOwner } from "./config/adminAccess.js";
+import { createSecurePdfShare, revokeSecurePdfShare } from "./sharing/securePdfSharing.js";
 import { OwnerAnalyticsPanel } from "./pages/app/OwnerAnalyticsPanel.jsx";
 import { LatticePdfLanding } from "./LatticePdfLanding.jsx";
 import { EditorRouteStatePage } from "./pages/app/EditorRouteStatePage.jsx";
@@ -2162,6 +2163,27 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   const openShareSettings = async () => {
     if (!(await requireAuthenticationForEditorAction("share"))) return;
     setShareModalOpen(true);
+  };
+
+  const createDocumentShare = async ({ expirationDays }) => {
+    if (!currentUser?.uid || !db || !storage) throw new Error("Secure sharing is not configured for this account.");
+    const exported = await exportPdf({ download: false, showResult: false });
+    if (!exported) throw new Error("The current PDF could not be prepared for sharing.");
+    const result = await createSecurePdfShare({
+      db,
+      storage,
+      userId: currentUser.uid,
+      pdfBlob: exported.blob,
+      fileName: exported.name,
+      expirationDays,
+    });
+    showToast("Secure sharing link created.");
+    return { ...result, url: `${window.location.origin}/share/${result.token}` };
+  };
+
+  const revokeDocumentShare = async (token) => {
+    await revokeSecurePdfShare({ db, storage, userId: currentUser?.uid, token });
+    showToast("Sharing link revoked.");
   };
 
   const handleLandingDropFiles = (files) => {
@@ -4460,6 +4482,8 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       {shareModalOpen && (
         <ShareModal
           fileName={fileName}
+          onCreate={createDocumentShare}
+          onRevoke={revokeDocumentShare}
           onExport={exportPdf}
           onClose={() => setShareModalOpen(false)}
         />
@@ -6385,7 +6409,45 @@ function SignatureModal({ defaultName, mode = "signature", onClose, onSave }) {
   );
 }
 
-function ShareModal({ fileName, onClose, onExport }) {
+function ShareModal({ fileName, onClose, onCreate, onRevoke, onExport }) {
+  const [expirationDays, setExpirationDays] = useState(7);
+  const [share, setShare] = useState(null);
+  const [status, setStatus] = useState("idle");
+  const [error, setError] = useState("");
+
+  const createLink = async () => {
+    setStatus("creating");
+    setError("");
+    try {
+      setShare(await onCreate({ expirationDays }));
+      setStatus("ready");
+    } catch (shareError) {
+      setStatus("idle");
+      setError(shareError.message || "The sharing link could not be created.");
+    }
+  };
+
+  const copyLink = async () => {
+    if (!share?.url) return;
+    await navigator.clipboard.writeText(share.url);
+    setStatus("copied");
+    window.setTimeout(() => setStatus("ready"), 1600);
+  };
+
+  const revokeLink = async () => {
+    if (!share?.token) return;
+    setStatus("revoking");
+    setError("");
+    try {
+      await onRevoke(share.token);
+      setShare(null);
+      setStatus("idle");
+    } catch (shareError) {
+      setStatus("ready");
+      setError(shareError.message || "The sharing link could not be revoked.");
+    }
+  };
+
   return (
     <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="Share document">
       <section className="share-modal">
@@ -6401,15 +6463,18 @@ function ShareModal({ fileName, onClose, onExport }) {
             <div className="share-card-head">
               <Lock size={20} />
               <div>
-                <h3>Secure sharing is unavailable</h3>
-                <p>FixThatPDF will not generate a public document URL until a server-side token service can enforce ownership, permissions, expiration, and revocation.</p>
+                <h3>Read-only secure link</h3>
+                <p>Create an unguessable link to the current exported PDF. The link expires automatically and can be revoked at any time.</p>
               </div>
             </div>
+            {!share ? <div className="share-grid"><label className="field"><span>Link expiration</span><select value={expirationDays} onChange={(event) => setExpirationDays(Number(event.target.value))}><option value={1}>1 day</option><option value={7}>7 days</option><option value={30}>30 days</option></select></label><div className="share-security-note"><Lock size={16} /><span>Anyone with the link can view and download until it expires.</span></div></div> : <><div className="share-link-row"><input aria-label="Secure sharing link" readOnly value={share.url} onFocus={(event) => event.target.select()} /><button type="button" onClick={copyLink}><Copy size={15} /> {status === "copied" ? "Copied" : "Copy"}</button></div><div className="share-expiration">Expires {share.expiresAt.toLocaleString()}</div></>}
+            {error && <p className="share-error" role="alert">{error}</p>}
           </section>
         </div>
         <footer>
+          {share ? <button type="button" className="modal-secondary is-danger" disabled={status === "revoking"} onClick={revokeLink}>{status === "revoking" ? "Revoking…" : "Revoke link"}</button> : <button type="button" className="modal-secondary" onClick={onExport}><Download size={16} /> Export instead</button>}
           <button type="button" className="modal-secondary" onClick={onClose}>Done</button>
-          <button type="button" className="modal-primary" onClick={onExport}><Download size={16} /> Export PDF</button>
+          {!share && <button type="button" className="modal-primary" disabled={status === "creating"} onClick={createLink}><Share2 size={16} /> {status === "creating" ? "Creating…" : "Create secure link"}</button>}
         </footer>
       </section>
     </div>

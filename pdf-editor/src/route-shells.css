@@ -106,6 +106,59 @@
   color: #26364d;
 }
 
+.secure-share-page {
+  min-height: calc(100vh - 68px);
+  padding: 24px;
+  background: #eef2f8;
+  color: #111827;
+}
+
+.secure-share-header {
+  display: flex;
+  width: min(1240px, 100%);
+  min-height: 76px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  margin: 0 auto 16px;
+  padding: 14px 18px;
+  border: 1px solid #dce3ef;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 12px 34px rgba(15, 23, 42, .08);
+}
+
+.secure-share-header > div,
+.secure-share-header nav,
+.secure-share-header a,
+.secure-share-footer {
+  display: flex;
+  align-items: center;
+}
+
+.secure-share-header > div { min-width: 0; gap: 12px; }
+.secure-share-header > div > span { display: grid; width: 42px; height: 42px; flex: 0 0 auto; place-items: center; border-radius: 12px; background: #e8f1ff; color: #2851eb; }
+.secure-share-header h1 { overflow: hidden; margin: 0; font-size: 17px; text-overflow: ellipsis; white-space: nowrap; }
+.secure-share-header p { margin: 4px 0 0; color: #687386; font-size: 12px; }
+.secure-share-header nav { flex: 0 0 auto; gap: 8px; }
+.secure-share-header a { min-height: 40px; justify-content: center; gap: 7px; padding: 0 14px; border: 1px solid #d7deea; border-radius: 10px; color: #263247; font-size: 13px; font-weight: 800; text-decoration: none; }
+.secure-share-header a.is-primary { border-color: #2851eb; background: #2851eb; color: #fff; }
+.secure-share-viewer { width: min(1240px, 100%); height: max(620px, calc(100vh - 210px)); margin: 0 auto; overflow: hidden; border: 1px solid #d5dce8; border-radius: 16px; background: #525a68; box-shadow: 0 18px 50px rgba(15, 23, 42, .14); }
+.secure-share-viewer object { width: 100%; height: 100%; border: 0; }
+.secure-share-footer { width: min(1240px, 100%); justify-content: center; gap: 6px; margin: 13px auto 0; color: #687386; font-size: 12px; }
+.secure-share-state { display: grid; width: min(520px, 100%); justify-items: center; gap: 11px; margin: 12vh auto 0; padding: 42px; border: 1px solid #dce3ef; border-radius: 18px; background: #fff; text-align: center; box-shadow: 0 18px 50px rgba(15, 23, 42, .1); }
+.secure-share-state svg { color: #2851eb; }
+.secure-share-state h1 { margin: 0; font-size: 26px; }
+.secure-share-state p { margin: 0; color: #657084; line-height: 1.5; }
+.secure-share-state a { margin-top: 8px; padding: 11px 15px; border-radius: 9px; background: #2851eb; color: #fff; font-weight: 800; text-decoration: none; }
+
+@media (max-width: 700px) {
+  .secure-share-page { padding: 12px; }
+  .secure-share-header { align-items: stretch; flex-direction: column; }
+  .secure-share-header nav { display: grid; grid-template-columns: 1fr 1fr; }
+  .secure-share-viewer { height: calc(100vh - 260px); min-height: 480px; }
+}
+
 .route-error-detail {
   overflow: auto;
   padding: 14px;
