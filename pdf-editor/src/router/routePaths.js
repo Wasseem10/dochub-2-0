@@ -31,6 +31,7 @@ export const ROUTE_PATHS = Object.freeze({
   appTemplates: "/app/templates",
   signatures: "/app/signatures",
   settings: "/app/settings",
+  analytics: "/app/analytics",
   trash: "/app/trash",
   editorPattern: "/app/editor/:documentId",
   sharePattern: "/share/:token",

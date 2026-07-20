@@ -13,6 +13,7 @@ import AlignRight from "lucide-react/dist/esm/icons/align-right.mjs";
 import Box from "lucide-react/dist/esm/icons/box.mjs";
 import Building2 from "lucide-react/dist/esm/icons/building-2.mjs";
 import CalendarDays from "lucide-react/dist/esm/icons/calendar-days.mjs";
+import ChartNoAxesColumnIncreasing from "lucide-react/dist/esm/icons/chart-no-axes-column-increasing.mjs";
 import Check from "lucide-react/dist/esm/icons/check.mjs";
 import CheckCircle2 from "lucide-react/dist/esm/icons/check-circle-2.mjs";
 import ChevronDown from "lucide-react/dist/esm/icons/chevron-down.mjs";
@@ -75,8 +76,11 @@ import { collection, deleteDoc, doc, getDocs, setDoc } from "firebase/firestore"
 import { deleteObject, getDownloadURL, ref as storageReference, uploadString } from "firebase/storage";
 import { db, isCloudPersistenceConfigured, storage } from "./firebase";
 import { useAuth } from "./auth/AuthContext.jsx";
+import { fileSizeBucket, pageCountBucket, trackProductEvent } from "./analytics/productAnalytics.js";
 import { AuthRequiredModal } from "./components/editor/AuthRequiredModal.jsx";
 import { BrandWordmark } from "./components/public/BrandWordmark.jsx";
+import { isAnalyticsOwner } from "./config/adminAccess.js";
+import { OwnerAnalyticsPanel } from "./pages/app/OwnerAnalyticsPanel.jsx";
 import { LatticePdfLanding } from "./LatticePdfLanding.jsx";
 import { EditorRouteStatePage } from "./pages/app/EditorRouteStatePage.jsx";
 import { EditorToolUploadPage } from "./pages/public/EditorToolUploadPage.jsx";
@@ -376,6 +380,7 @@ function downloadBlob(blob, name) {
   anchor.style.display = "none";
   window.document.body.appendChild(anchor);
   anchor.click();
+  trackProductEvent("pdf_downloaded", { toolId: "edit-pdf" });
   anchor.remove();
   window.setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
@@ -5214,6 +5219,7 @@ export function UploadLanding({
     "AI Tools": ROUTE_PATHS.tools,
     Shared: ROUTE_PATHS.documents,
     Settings: ROUTE_PATHS.settings,
+    Analytics: ROUTE_PATHS.analytics,
     Trash: ROUTE_PATHS.trash,
     Billing: ROUTE_PATHS.settings,
     Team: ROUTE_PATHS.settings,
@@ -5252,6 +5258,7 @@ export function UploadLanding({
     { label: "Documents", icon: FileText },
     { label: "Signatures", icon: PenLine },
     { label: "Templates", icon: Grid2X2 },
+    ...(isAnalyticsOwner(currentUser) ? [{ label: "Analytics", icon: ChartNoAxesColumnIncreasing }] : []),
   ];
 
   const utilityNav = [
@@ -5609,6 +5616,10 @@ export function UploadLanding({
           </div>
         </section>
       );
+    }
+
+    if (activeSection === "Analytics" && isAnalyticsOwner(currentUser)) {
+      return <OwnerAnalyticsPanel />;
     }
 
     if (["Trash", "Billing", "Team", "Integrations"].includes(activeSection)) {

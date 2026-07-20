@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   createUserWithEmailAndPassword,
+  getAdditionalUserInfo,
   onAuthStateChanged,
   sendPasswordResetEmail,
   signInWithEmailAndPassword,
@@ -9,6 +10,7 @@ import {
   updateProfile,
 } from "firebase/auth";
 import { auth, googleProvider, isFirebaseConfigured } from "../firebase.js";
+import { trackProductEvent } from "../analytics/productAnalytics.js";
 import { AuthContext } from "./AuthContext.jsx";
 
 export function mapFirebaseUser(user) {
@@ -65,6 +67,11 @@ export default function FirebaseAuthProvider({ children }) {
           await updateProfile(credential.user, { displayName: name.trim() });
         }
         const user = mapFirebaseUser(auth.currentUser || credential.user);
+        const additionalUserInfo = getAdditionalUserInfo(credential);
+        const isNewAccount = provider === "google" ? Boolean(additionalUserInfo?.isNewUser) : mode === "signup";
+        trackProductEvent(isNewAccount ? "account_signed_up" : "account_logged_in", {
+          authMethod: provider === "google" ? "google" : "password",
+        });
         setCurrentUser(user);
         return { ok: true, user };
       } catch (error) {
