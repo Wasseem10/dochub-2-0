@@ -9,6 +9,7 @@ import { ToolDirectoryPage } from "../../src/pages/public/ToolDirectoryPage.jsx"
 import { ImageConversionPage } from "../../src/pages/public/ImageConversionPage.jsx";
 import { OfficeConversionPage } from "../../src/pages/public/OfficeConversionPage.jsx";
 import { OcrPdfPage } from "../../src/pages/public/OcrPdfPage.jsx";
+import { OpenDocumentConversionPage } from "../../src/pages/public/OpenDocumentConversionPage.jsx";
 import { PdfPageToolPage } from "../../src/pages/public/PdfPageToolPage.jsx";
 import { PdfProtectionPage } from "../../src/pages/public/PdfProtectionPage.jsx";
 import { ScanPdfPage } from "../../src/pages/public/ScanPdfPage.jsx";
@@ -189,6 +190,16 @@ describe("public PDF tool platform", () => {
       expect(scan.root.findAllByType("input").some((input) => input.props.type === "file" && input.props.multiple)).toBe(true);
       expect(textOf(scan.root).includes("Private browser processing")).toBe(true);
       await unmount(scan);
+    }
+  });
+
+  it("renders all remaining document-to-PDF workspaces", async () => {
+    for (const toolId of ["rtf-to-pdf", "odt-to-pdf", "odp-to-pdf", "ods-to-pdf", "epub-to-pdf", "zip-to-pdf"]) {
+      const renderer = await render(<OpenDocumentConversionPage tool={TOOL_BY_ID.get(toolId)} />);
+      expect(renderer.root.findAllByType("input").some((input) => input.props.type === "file")).toBe(true);
+      expect(textOf(renderer.root).includes("Download PDF")).toBe(true);
+      expect(textOf(renderer.root).includes("Private browser processing")).toBe(true);
+      await unmount(renderer);
     }
   });
 
