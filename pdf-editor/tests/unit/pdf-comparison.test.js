@@ -15,6 +15,51 @@ describe("PDF comparison", () => {
     expect(compareTextStrings("approved total 42", "revised total 43")).toEqual({ added: 2, removed: 2, changed: 4 });
   });
 
+  it("groups adjacent changed tiles into clean review regions", () => {
+    const width = 24;
+    const height = 12;
+    const first = new Uint8ClampedArray(width * height * 4).fill(255);
+    const second = new Uint8ClampedArray(first);
+    for (let y = 0; y < 6; y += 1) {
+      for (let x = 0; x < 18; x += 1) {
+        const offset = (y * width + x) * 4;
+        second[offset] = 0;
+        second[offset + 1] = 0;
+        second[offset + 2] = 0;
+      }
+    }
+    const visual = compareRgbaImages(first, second, width, height, { tileSize: 6, minimumRatio: 0.03 });
+    expect(visual.rects).toHaveLength(1);
+    expect(visual.rects[0].width).toBeGreaterThan(0.7);
+  });
+
+  it("filters isolated low-confidence pixel noise and limits visual clutter", () => {
+    const width = 64;
+    const height = 64;
+    const first = new Uint8ClampedArray(width * height * 4).fill(255);
+    const noisy = new Uint8ClampedArray(first);
+    noisy[0] = 0;
+    noisy[1] = 0;
+    noisy[2] = 0;
+    expect(compareRgbaImages(first, noisy, width, height, { tileSize: 8, minimumRatio: 0.03 }).rects).toHaveLength(0);
+
+    const changed = new Uint8ClampedArray(first);
+    for (let top = 0; top < height; top += 16) {
+      for (let left = 0; left < width; left += 16) {
+        for (let y = top; y < top + 8; y += 1) {
+          for (let x = left; x < left + 8; x += 1) {
+            const offset = (y * width + x) * 4;
+            changed[offset] = 0;
+            changed[offset + 1] = 0;
+            changed[offset + 2] = 0;
+          }
+        }
+      }
+    }
+    const limited = compareRgbaImages(first, changed, width, height, { tileSize: 8, minimumRatio: 0.03, maxRegions: 4 });
+    expect(limited.rects.length).toBeLessThanOrEqual(4);
+  });
+
   it("creates a valid marked comparison report", async () => {
     const bytes = await createComparisonPdfReport([{ pageNumber: 1, statusLabel: "Changed", similarity: 82, textAdded: 2, textRemoved: 1, firstPng: PNG, secondPng: PNG, rects: [{ x: 0.1, y: 0.1, width: 0.2, height: 0.1 }] }]);
     expect((await PDFDocument.load(bytes)).getPageCount()).toBe(1);

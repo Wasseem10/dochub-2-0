@@ -30,7 +30,7 @@
 .comparison-previews figure { min-width: 0; margin: 0; }
 .comparison-previews figure > div { position: relative; min-height: 180px; overflow: hidden; border: 1px solid #d9dfeb; border-radius: 10px; background: #f4f6fa; }
 .comparison-previews img { display: block; width: 100%; height: auto; }
-.comparison-previews i { position: absolute; border: 2px solid #ef2638; background: rgba(239,38,56,.14); pointer-events: none; }
+.comparison-previews i { position: absolute; border: 2px solid #e11d48; border-radius: 5px; background: rgba(225,29,72,.07); box-shadow: 0 0 0 1px rgba(255,255,255,.72), 0 2px 8px rgba(136,19,55,.12); pointer-events: none; }
 .comparison-previews figcaption { margin-top: 6px; color: #657087; font-size: 11px; font-weight: 700; text-align: center; }
 .comparison-missing { display: grid; place-items: center; color: #7b8497; font-size: 13px; font-weight: 700; }
 @media (max-width: 760px) { .comparison-upload-grid { grid-template-columns: 1fr; }.comparison-action-card, .comparison-results > header { align-items: stretch; flex-direction: column; }.comparison-action-card button, .comparison-results > header button { width: 100%; }.comparison-page-list article { grid-template-columns: 1fr; }.comparison-previews { gap: 10px; } }
