@@ -41,7 +41,7 @@ export function MarketingHeader() {
           <Link to="/organize-pdf">Organize PDF</Link>
           <Link to={ROUTE_PATHS.signPdf}>Sign PDF</Link>
           <Link to="/pdf-to-jpg">Convert PDF</Link>
-          <Link to={ROUTE_PATHS.privacy}>Privacy</Link>
+          <Link to={ROUTE_PATHS.resources}>Resources</Link>
         </nav>
         <div className="marketing-header-actions">
           <Link className="marketing-login" to={ROUTE_PATHS.login}>Log in</Link>
@@ -58,6 +58,7 @@ export function MarketingHeader() {
           <Link to="/organize-pdf" onClick={closeMenus}>Organize PDF</Link>
           <Link to={ROUTE_PATHS.signPdf} onClick={closeMenus}>Sign PDF</Link>
           <Link to="/pdf-to-jpg" onClick={closeMenus}>Convert PDF</Link>
+          <Link to={ROUTE_PATHS.resources} onClick={closeMenus}>Resources</Link>
           <Link to={ROUTE_PATHS.privacy} onClick={closeMenus}>Privacy</Link>
           <Link to={ROUTE_PATHS.login} onClick={closeMenus}>Log in</Link>
         </nav>

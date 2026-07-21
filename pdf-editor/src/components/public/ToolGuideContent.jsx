@@ -5,6 +5,7 @@ import Info from "lucide-react/dist/esm/icons/info.mjs";
 import ShieldCheck from "lucide-react/dist/esm/icons/shield-check.mjs";
 import { ToolIcon } from "../../tools/ToolIcon.jsx";
 import { getRelatedTools } from "../../tools/toolRegistry.js";
+import { ToolEvidencePanel } from "./ToolEvidencePanel.jsx";
 
 export function ToolGuideContent({ tool }) {
   const relatedTools = getRelatedTools(tool);
@@ -16,6 +17,8 @@ export function ToolGuideContent({ tool }) {
         <h2 id={`${tool.id}-guide-heading`}>How to use {tool.name} safely</h2>
         <p>{tool.longDescription}</p>
       </header>
+
+      <ToolEvidencePanel tool={tool} />
 
       <div className="tool-guide-grid">
         <article className="tool-guide-steps">

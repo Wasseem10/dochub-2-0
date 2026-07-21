@@ -4,8 +4,8 @@ This plan is designed to maximize qualified unpaid traffic and completed PDF tas
 
 ## What is already implemented
 
-- 88 canonical, indexable public URLs in `sitemap.xml`, covering released tools, category hubs, product pages, and company information.
-- Readable HTML prerendered for 95 public routes so crawlers and no-JavaScript visitors can understand every page.
+- 101 canonical, indexable public URLs in `sitemap.xml`, covering released tools, category hubs, original research, guides, workflow playbooks, and company information.
+- Readable HTML prerendered for 107 public routes so crawlers and no-JavaScript visitors can understand every page.
 - Unique titles, descriptions, canonical URLs, one H1, crawlable internal links, Open Graph/Twitter metadata, and eligible WebPage, WebSite, Organization, Breadcrumb, HowTo, and selective FAQ structured data.
 - No fake ratings or review markup. Ineligible SoftwareApplication markup was removed.
 - A real no-index 404 page and no-index headers for account, app, sharing-token, and signing-token routes.
@@ -14,6 +14,7 @@ This plan is designed to maximize qualified unpaid traffic and completed PDF tas
 - A build-blocking SEO audit: `npm run audit:seo`.
 - A Priority 1 product-quality gate covering 21 high-intent tools across simple, complex, scanned, encrypted, malformed, large-document, Android, and iPhone cases: `npm run test:quality`.
 - Owner-only per-tool quality metrics for rejected uploads, attempts, success rate, downloads, median/P95 processing time, and mobile failures.
+- A build-blocking Priority 2 editorial audit covering 21 tool evidence records, 15 original resources, 57 page-specific visual assets, research fixtures, redaction proof, and five downloadable DOCX templates: `npm run audit:editorial`.
 
 ## Priority 0: complete after the final name and domain are chosen
 
@@ -48,6 +49,8 @@ For each tool, maintain a test set with simple, complex, scanned, encrypted, mal
 Do not market a workflow as fully supported until its output passes the test set. Show an accurate file/page/language limitation near the uploader and give a useful recovery path.
 
 ## Priority 2: create pages worth citing, not keyword variants
+
+Implementation status: complete for the current 21-tool and 15-resource scope as of July 21, 2026. Every core tool now publishes a realistic example, an exact regression assertion and method, an original demonstration, a last-tested date, accountable owner identity, and a 1200×630 share image. The Q3 2026 benchmark, redaction proof, OCR matrix, editable templates, five workflow playbooks, and trust-center pages are published as one substantive URL per real intent.
 
 Do not generate hundreds of near-duplicate “best/free/online” pages. Strengthen the existing URL for each search intent.
 

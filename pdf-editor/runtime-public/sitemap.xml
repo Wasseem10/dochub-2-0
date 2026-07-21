@@ -7,6 +7,7 @@
   <url><loc>https://dochub-2-0.vercel.app/ai-pdf</loc></url>
   <url><loc>https://dochub-2-0.vercel.app/ai-question-generator</loc></url>
   <url><loc>https://dochub-2-0.vercel.app/annotate-pdf</loc></url>
+  <url><loc>https://dochub-2-0.vercel.app/architecture</loc></url>
   <url><loc>https://dochub-2-0.vercel.app/ask-pdf</loc></url>
   <url><loc>https://dochub-2-0.vercel.app/chat-with-pdf</loc></url>
   <url><loc>https://dochub-2-0.vercel.app/comment-on-pdf</loc></url>
@@ -26,9 +27,12 @@
   <url><loc>https://dochub-2-0.vercel.app/features</loc></url>
   <url><loc>https://dochub-2-0.vercel.app/fill-pdf</loc></url>
   <url><loc>https://dochub-2-0.vercel.app/flatten-pdf</loc></url>
+  <url><loc>https://dochub-2-0.vercel.app/guides/ocr-quality</loc></url>
+  <url><loc>https://dochub-2-0.vercel.app/guides/redact-pdf-safely</loc></url>
   <url><loc>https://dochub-2-0.vercel.app/help</loc></url>
   <url><loc>https://dochub-2-0.vercel.app/html-to-pdf</loc></url>
   <url><loc>https://dochub-2-0.vercel.app/image-to-searchable-pdf</loc></url>
+  <url><loc>https://dochub-2-0.vercel.app/incident-history</loc></url>
   <url><loc>https://dochub-2-0.vercel.app/invoice-templates</loc></url>
   <url><loc>https://dochub-2-0.vercel.app/jpg-to-pdf</loc></url>
   <url><loc>https://dochub-2-0.vercel.app/merge-pdf</loc></url>
@@ -57,6 +61,8 @@
   <url><loc>https://dochub-2-0.vercel.app/remove-pdf-password</loc></url>
   <url><loc>https://dochub-2-0.vercel.app/reorder-pdf-pages</loc></url>
   <url><loc>https://dochub-2-0.vercel.app/request-signatures</loc></url>
+  <url><loc>https://dochub-2-0.vercel.app/research/pdf-conversion-benchmark</loc></url>
+  <url><loc>https://dochub-2-0.vercel.app/resources</loc></url>
   <url><loc>https://dochub-2-0.vercel.app/resume-analyzer</loc></url>
   <url><loc>https://dochub-2-0.vercel.app/resume-templates</loc></url>
   <url><loc>https://dochub-2-0.vercel.app/review-pdf</loc></url>
@@ -69,6 +75,7 @@
   <url><loc>https://dochub-2-0.vercel.app/split-pdf</loc></url>
   <url><loc>https://dochub-2-0.vercel.app/summarize-pdf</loc></url>
   <url><loc>https://dochub-2-0.vercel.app/support</loc></url>
+  <url><loc>https://dochub-2-0.vercel.app/templates</loc></url>
   <url><loc>https://dochub-2-0.vercel.app/terms</loc></url>
   <url><loc>https://dochub-2-0.vercel.app/tools</loc></url>
   <url><loc>https://dochub-2-0.vercel.app/tools/compare-pdf-tools</loc></url>
@@ -85,7 +92,13 @@
   <url><loc>https://dochub-2-0.vercel.app/translate-pdf</loc></url>
   <url><loc>https://dochub-2-0.vercel.app/txt-to-pdf</loc></url>
   <url><loc>https://dochub-2-0.vercel.app/unlock-pdf</loc></url>
+  <url><loc>https://dochub-2-0.vercel.app/uptime</loc></url>
   <url><loc>https://dochub-2-0.vercel.app/watermark-pdf</loc></url>
   <url><loc>https://dochub-2-0.vercel.app/word-to-pdf</loc></url>
+  <url><loc>https://dochub-2-0.vercel.app/workflows/education-pdf-workflow</loc></url>
+  <url><loc>https://dochub-2-0.vercel.app/workflows/legal-operations-pdf-workflow</loc></url>
+  <url><loc>https://dochub-2-0.vercel.app/workflows/real-estate-pdf-workflow</loc></url>
+  <url><loc>https://dochub-2-0.vercel.app/workflows/recruiting-pdf-workflow</loc></url>
+  <url><loc>https://dochub-2-0.vercel.app/workflows/small-business-pdf-workflow</loc></url>
   <url><loc>https://dochub-2-0.vercel.app/zip-to-pdf</loc></url>
 </urlset>

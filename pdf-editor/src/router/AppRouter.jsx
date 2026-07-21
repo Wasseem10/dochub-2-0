@@ -13,6 +13,7 @@ import { ToolLandingPage } from "../pages/public/ToolLandingPage.jsx";
 import { WorkflowUnavailablePage } from "../pages/public/WorkflowUnavailablePage.jsx";
 import { TOOL_REGISTRY } from "../tools/toolRegistry.js";
 import { TOOL_CATEGORY_PAGES } from "../tools/toolCategoryPages.js";
+import { EDITORIAL_RESOURCE_PATHS } from "../editorial/editorialRoutePaths.js";
 import { getEditorToolPreset } from "../tools/editorToolPresets.js";
 import { LazyAppContent, LazyAuthRouteProvider, LazyGuestAppRoute } from "./LazyAppRoute.jsx";
 import { OwnerRoute } from "./OwnerRoute.jsx";
@@ -39,6 +40,7 @@ const LazyStructuredPdfConversionPage = lazyNamed(() => import("../pages/public/
 const LazyTemplateBuilderPage = lazyNamed(() => import("../pages/public/TemplateBuilderPage.jsx"), "TemplateBuilderPage");
 const LazyTextConversionPage = lazyNamed(() => import("../pages/public/TextConversionPage.jsx"), "TextConversionPage");
 const LazyToPdfConversionPage = lazyNamed(() => import("../pages/public/ToPdfConversionPage.jsx"), "ToPdfConversionPage");
+const LazyEditorialResourceRoute = lazyNamed(() => import("../pages/public/EditorialResourceRoute.jsx"), "EditorialResourceRoute");
 
 function PublicToolBoundary({ children }) {
   return <Suspense fallback={<div className="public-route-loading" role="status">Opening PDF tool…</div>}>{children}</Suspense>;
@@ -57,7 +59,8 @@ export function PublicEditorRoute() {
   return <LazyGuestAppRoute view={documentId ? "public-editor" : "tool-upload"} publicTool={publicTool} documentId={documentId} />;
 }
 
-const publicPlaceholderRouteObjects = PUBLIC_PLACEHOLDER_ROUTES.filter((route) => route.path !== ROUTE_PATHS.features).map((route) => ({
+const editorialResourcePathSet = new Set(EDITORIAL_RESOURCE_PATHS);
+const publicPlaceholderRouteObjects = PUBLIC_PLACEHOLDER_ROUTES.filter((route) => route.path !== ROUTE_PATHS.features && !editorialResourcePathSet.has(route.path)).map((route) => ({
   path: route.path,
   element: <PublicPlaceholderPage {...route} />,
 }));
@@ -104,6 +107,11 @@ const toolCategoryRouteObjects = TOOL_CATEGORY_PAGES.map((categoryPage) => ({
   element: <ToolCategoryPage categoryPage={categoryPage} />,
 }));
 
+const editorialResourceRouteObjects = EDITORIAL_RESOURCE_PATHS.map((path) => ({
+  path,
+  element: <PublicToolBoundary><LazyEditorialResourceRoute /></PublicToolBoundary>,
+}));
+
 const appScreenRouteObjects = Object.entries(APP_ROUTE_SECTIONS).map(([path, appSection]) => ({
   path,
   element: <LazyAppContent view="dashboard" appSection={appSection} />,
@@ -123,6 +131,7 @@ export const appRouteObjects = [
           { path: ROUTE_PATHS.features, element: <FeaturesPage /> },
           { path: ROUTE_PATHS.tools, element: <ToolDirectoryPage /> },
           { path: ROUTE_PATHS.support, element: <PublicToolBoundary><LazySupportPage /></PublicToolBoundary> },
+          ...editorialResourceRouteObjects,
           { path: ROUTE_PATHS.sharePattern, element: <PublicToolBoundary><LazySecureSharePage /></PublicToolBoundary> },
           ...toolCategoryRouteObjects,
           ...publicPlaceholderRouteObjects,

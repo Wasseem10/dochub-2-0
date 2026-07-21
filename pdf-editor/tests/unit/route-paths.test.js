@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { APP_ROUTE_SECTIONS, PUBLIC_PLACEHOLDER_ROUTES } from "../../src/router/routes.js";
 import { currentLocationPath, editorPath, ROUTE_PATHS, sharePath, signPath } from "../../src/router/routePaths.js";
+import { EDITORIAL_RESOURCE_PATHS } from "../../src/editorial/editorialRoutePaths.js";
 import { TOOL_REGISTRY } from "../../src/tools/toolRegistry.js";
 
 describe("route path configuration", () => {
@@ -18,6 +19,7 @@ describe("route path configuration", () => {
       ROUTE_PATHS.signPattern,
       ...PUBLIC_PLACEHOLDER_ROUTES.map(({ path }) => path),
       ...TOOL_REGISTRY.map(({ route }) => route),
+      ...EDITORIAL_RESOURCE_PATHS,
       ...Object.keys(APP_ROUTE_SECTIONS),
     ]);
 

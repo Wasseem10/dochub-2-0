@@ -1,0 +1,9 @@
+FixThatPDF redaction verification proof
+Generated: 2026-07-21
+
+Before sample contains fictional secret in extracted text: True
+After sample contains fictional secret in extracted text: False
+After sample page count: 1
+
+Expected safe result: before=True, after=False, page count=1.
+Visual inspection, metadata review, search, select/copy, and a second-person check remain required for real disclosures.

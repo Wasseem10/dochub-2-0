@@ -3,6 +3,7 @@ import { ROUTE_PATHS } from "../src/router/routePaths.js";
 import { TOOL_CATEGORY_PAGES } from "../src/tools/toolCategoryPages.js";
 import { TOOL_REGISTRY, validateToolRegistry } from "../src/tools/toolRegistry.js";
 import { resolveSiteUrl } from "./site-url.mjs";
+import { EDITORIAL_RESOURCE_PATHS } from "../src/editorial/editorialRoutePaths.js";
 
 const siteUrl = resolveSiteUrl();
 const registryErrors = validateToolRegistry();
@@ -21,6 +22,7 @@ const paths = [
   ROUTE_PATHS.help,
   ROUTE_PATHS.dataRetention,
   ROUTE_PATHS.terms,
+  ...EDITORIAL_RESOURCE_PATHS,
   ...TOOL_CATEGORY_PAGES.map(({ route }) => route),
   ...TOOL_REGISTRY.filter(({ status }) => status !== "coming-soon").map(({ route }) => route),
 ];

@@ -1,0 +1,128 @@
+{
+  "benchmark": "FixThatPDF Q3 2026 browser PDF conversion and fidelity benchmark",
+  "testedAt": "2026-07-21",
+  "status": "passed",
+  "coreToolCount": 21,
+  "riskScenarios": [
+    "simple",
+    "complex_layout",
+    "scanned",
+    "encrypted",
+    "malformed",
+    "large",
+    "mobile"
+  ],
+  "browserClasses": [
+    "desktop-chromium",
+    "android-chromium",
+    "iphone-webkit"
+  ],
+  "tools": [
+    {
+      "toolId": "edit-pdf",
+      "result": "1/1 styled-text round-trip fixture exported, reopened, and retained its detected style",
+      "method": "Browser regression checks text detection, placement, history, export, and parseable reopen"
+    },
+    {
+      "toolId": "merge-pdf",
+      "result": "3/3 expected native pages were present in the merged regression output",
+      "method": "The test reopens the downloaded PDF and counts copied source pages"
+    },
+    {
+      "toolId": "split-pdf",
+      "result": "2/2 selected pages were present in the split regression output",
+      "method": "The test downloads the range and verifies the resulting PDF page count"
+    },
+    {
+      "toolId": "compress-pdf",
+      "result": "The regression output was smaller than its source fixture and remained parseable",
+      "method": "The browser test compares byte size and reopens the downloaded result"
+    },
+    {
+      "toolId": "pdf-to-word",
+      "result": "The regression DOCX contained a valid Word document body and visual-fidelity fallback",
+      "method": "Tests inspect the OOXML package and verify the recovery path for image-only PDFs"
+    },
+    {
+      "toolId": "pdf-to-excel",
+      "result": "1/1 expected worksheet was packaged with the fixture's structured cell content",
+      "method": "The regression test opens the XLSX archive and checks worksheet XML"
+    },
+    {
+      "toolId": "pdf-to-powerpoint",
+      "result": "1/1 expected slide and its media relationship were present in the PPTX package",
+      "method": "The regression test inspects slide XML and the packaged page image"
+    },
+    {
+      "toolId": "pdf-to-html",
+      "result": "1/1 expected responsive SVG page was created with extracted text content",
+      "method": "The test inspects the downloaded HTML for its SVG viewBox and page text"
+    },
+    {
+      "toolId": "word-to-pdf",
+      "result": "The expected phrase was found in the downloaded PDF's searchable text layer",
+      "method": "The browser test converts the DOCX, reopens the PDF, and extracts text"
+    },
+    {
+      "toolId": "excel-to-pdf",
+      "result": "The expected Quarter Total label was found in the converted PDF",
+      "method": "The regression test reopens the PDF and verifies extracted table text"
+    },
+    {
+      "toolId": "powerpoint-to-pdf",
+      "result": "The expected slide phrase was found in the converted PDF",
+      "method": "The regression test reopens the PDF and verifies extracted slide text"
+    },
+    {
+      "toolId": "html-to-pdf",
+      "result": "The expected 42,000 value was searchable in the resulting PDF",
+      "method": "The regression test converts sanitized HTML and verifies extracted PDF text"
+    },
+    {
+      "toolId": "jpg-to-pdf",
+      "result": "1/1 JPEG fixture produced a valid one-page PDF",
+      "method": "The browser test creates a JPEG, converts it, and parses the downloaded PDF"
+    },
+    {
+      "toolId": "png-to-pdf",
+      "result": "1/1 PNG fixture produced a valid one-page PDF",
+      "method": "The browser test converts the PNG and parses the downloaded PDF"
+    },
+    {
+      "toolId": "pdf-to-jpg",
+      "result": "1/1 output began with the verified JPEG FF D8 signature",
+      "method": "The regression test downloads the image and inspects its leading bytes"
+    },
+    {
+      "toolId": "pdf-to-png",
+      "result": "1/1 output matched the verified PNG file signature",
+      "method": "The regression test downloads the image and inspects its eight-byte signature"
+    },
+    {
+      "toolId": "ocr-pdf",
+      "result": "The known fixture text was recognized and a confidence result was reported",
+      "method": "The OCR regression runs locally and checks recognized text plus quality reporting"
+    },
+    {
+      "toolId": "sign-pdf",
+      "result": "The expected signature text was present after export and reopen",
+      "method": "The regression places a signature, downloads the PDF, and inspects its content"
+    },
+    {
+      "toolId": "protect-pdf",
+      "result": "The regression output contained an encryption dictionary and rejected an unauthenticated open",
+      "method": "The test inspects the PDF encryption structure and verifies password behavior"
+    },
+    {
+      "toolId": "unlock-pdf",
+      "result": "1/1 authorized fixture downloaded as a parseable unlocked PDF",
+      "method": "The browser test supplies the password and reopens the downloaded output"
+    },
+    {
+      "toolId": "compare-pdf",
+      "result": "The regression produced reviewable text changes and a valid marked report PDF",
+      "method": "Tests verify grouped changes, navigation, focused regions, and report export"
+    }
+  ],
+  "interpretation": "Passed means the named property was verified for the published regression fixture. It is not a promise of perfect output for every PDF."
+}

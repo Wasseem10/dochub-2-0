@@ -42,6 +42,18 @@ const directRoutes = [
   "/enterprise",
   "/security",
   "/templates",
+  "/resources",
+  "/research/pdf-conversion-benchmark",
+  "/guides/redact-pdf-safely",
+  "/guides/ocr-quality",
+  "/workflows/education-pdf-workflow",
+  "/workflows/recruiting-pdf-workflow",
+  "/workflows/legal-operations-pdf-workflow",
+  "/workflows/real-estate-pdf-workflow",
+  "/workflows/small-business-pdf-workflow",
+  "/architecture",
+  "/uptime",
+  "/incident-history",
   "/developers",
   "/integrations",
   "/contact-sales",
@@ -112,6 +124,24 @@ for (const [path, expectedHeading] of [
     assert.match(html, new RegExp(`<h1>[^<]*${expectedHeading}`, "i"));
     assert.match(html, /<h2>How to use/);
     assert.match(html, /Privacy, supported files, and limits/);
+    assert.match(html, /application\/ld\+json/);
+  });
+}
+
+for (const [path, expectedHeading, expectedDetail] of [
+  ["/research/pdf-conversion-benchmark", "reproducible benchmark", "Simple searchable PDF"],
+  ["/guides/redact-pdf-safely", "prove sensitive text is gone", "Extraction proof"],
+  ["/guides/ocr-quality", "Choose OCR settings", "Recommended OCR approach"],
+  ["/templates", "templates you can actually edit", "Small-business invoice"],
+  ["/architecture", "How FixThatPDF processes documents", "Local document processing"],
+]) {
+  test(`prerendered resource ${path} publishes accountable original content`, async () => {
+    const html = await readFile(`dist${path}.html`, "utf8");
+    assert.match(html, new RegExp(expectedHeading, "i"));
+    assert.match(html, new RegExp(expectedDetail, "i"));
+    assert.match(html, /FixThatPDF Product Engineering/);
+    assert.match(html, /dateModified/);
+    assert.match(html, /og:image:width" content="1200"/);
     assert.match(html, /application\/ld\+json/);
   });
 }

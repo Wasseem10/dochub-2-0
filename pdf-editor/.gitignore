@@ -15,4 +15,5 @@ qa-premium-upload.png
 qa-landing-premium.png
 test-results/
 playwright-report/
+output/
 public/reference/qa-implementation.png
