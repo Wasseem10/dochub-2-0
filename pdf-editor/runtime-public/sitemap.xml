@@ -15,14 +15,17 @@
   <url><loc>http://localhost:4173/excel-to-pdf</loc></url>
   <url><loc>http://localhost:4173/extract-pdf-pages</loc></url>
   <url><loc>http://localhost:4173/fill-pdf</loc></url>
+  <url><loc>http://localhost:4173/flatten-pdf</loc></url>
   <url><loc>http://localhost:4173/help</loc></url>
   <url><loc>http://localhost:4173/html-to-pdf</loc></url>
+  <url><loc>http://localhost:4173/image-to-searchable-pdf</loc></url>
   <url><loc>http://localhost:4173/jpg-to-pdf</loc></url>
   <url><loc>http://localhost:4173/merge-pdf</loc></url>
   <url><loc>http://localhost:4173/ocr-pdf</loc></url>
   <url><loc>http://localhost:4173/organize-pdf</loc></url>
   <url><loc>http://localhost:4173/pdf-form-filler</loc></url>
   <url><loc>http://localhost:4173/pdf-reader</loc></url>
+  <url><loc>http://localhost:4173/pdf-scanner</loc></url>
   <url><loc>http://localhost:4173/pdf-to-excel</loc></url>
   <url><loc>http://localhost:4173/pdf-to-html</loc></url>
   <url><loc>http://localhost:4173/pdf-to-jpg</loc></url>
@@ -35,10 +38,12 @@
   <url><loc>http://localhost:4173/privacy</loc></url>
   <url><loc>http://localhost:4173/protect-pdf</loc></url>
   <url><loc>http://localhost:4173/redact-pdf</loc></url>
+  <url><loc>http://localhost:4173/remove-pdf-password</loc></url>
   <url><loc>http://localhost:4173/reorder-pdf-pages</loc></url>
   <url><loc>http://localhost:4173/request-signatures</loc></url>
   <url><loc>http://localhost:4173/review-pdf</loc></url>
   <url><loc>http://localhost:4173/rotate-pdf</loc></url>
+  <url><loc>http://localhost:4173/scan-to-pdf</loc></url>
   <url><loc>http://localhost:4173/security</loc></url>
   <url><loc>http://localhost:4173/share-pdf</loc></url>
   <url><loc>http://localhost:4173/sign-pdf</loc></url>
@@ -46,6 +51,7 @@
   <url><loc>http://localhost:4173/terms</loc></url>
   <url><loc>http://localhost:4173/tools</loc></url>
   <url><loc>http://localhost:4173/txt-to-pdf</loc></url>
+  <url><loc>http://localhost:4173/unlock-pdf</loc></url>
   <url><loc>http://localhost:4173/watermark-pdf</loc></url>
   <url><loc>http://localhost:4173/word-to-pdf</loc></url>
 </urlset>
