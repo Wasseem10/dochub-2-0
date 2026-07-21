@@ -17,7 +17,7 @@ import { ScanPdfPage } from "../../src/pages/public/ScanPdfPage.jsx";
 import { StructuredPdfConversionPage } from "../../src/pages/public/StructuredPdfConversionPage.jsx";
 import { ToPdfConversionPage } from "../../src/pages/public/ToPdfConversionPage.jsx";
 import { EditorToolUploadPage } from "../../src/pages/public/EditorToolUploadPage.jsx";
-import { ToolLandingPage } from "../../src/pages/public/ToolLandingPage.jsx";
+import { TemplateBuilderPage } from "../../src/pages/public/TemplateBuilderPage.jsx";
 import { TOOL_BY_ID } from "../../src/tools/toolRegistry.js";
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
@@ -82,7 +82,7 @@ describe("public PDF tool platform", () => {
     await unmount(protect);
   });
 
-  it("opens complete review tools and keeps unavailable tools informational", async () => {
+  it("opens complete review tools", async () => {
     const review = await render(<EditorToolUploadPage toolId="review-pdf" fileInputRef={{ current: null }} onUpload={() => {}} onDropFiles={() => {}} uploadError="" uploadStage={{ status: "idle" }} />);
     expect(textOf(review.root).includes("Review a PDF online")).toBe(true);
     expect(review.root.findAllByType("input").some((input) => input.props.type === "file")).toBe(true);
@@ -92,12 +92,6 @@ describe("public PDF tool platform", () => {
     expect(textOf(comment.root).includes("Comment on a PDF online")).toBe(true);
     await unmount(comment);
 
-    const coming = await render(<ToolLandingPage tool={TOOL_BY_ID.get("contract-templates")} />);
-    expect(coming.root.findAllByType("input")).toHaveLength(0);
-    expect(coming.root.findAllByType("button")).toHaveLength(0);
-    expect(textOf(coming.root).includes("Coming soon")).toBe(true);
-    expect(textOf(coming.root).includes("Real contract templates")).toBe(true);
-    await unmount(coming);
   });
 
   it("renders real upload controls for dedicated image converters", async () => {
@@ -210,6 +204,17 @@ describe("public PDF tool platform", () => {
       expect(renderer.root.findAllByType("input").some((input) => input.props.type === "file" && input.props.accept.includes("application/pdf"))).toBe(true);
       expect(textOf(renderer.root).includes("No document text enters analytics")).toBe(true);
       expect(textOf(renderer.root).includes("source pages")).toBe(true);
+      await unmount(renderer);
+    }
+  });
+
+  it("renders editable, downloadable template builders for every template route", async () => {
+    for (const toolId of ["resume-templates", "contract-templates", "nda-templates", "invoice-templates", "offer-letter-templates"]) {
+      const renderer = await render(<TemplateBuilderPage tool={TOOL_BY_ID.get(toolId)} />);
+      expect(renderer.root.findAllByType("input").length).toBeGreaterThan(2);
+      expect(textOf(renderer.root).includes("Live PDF preview")).toBe(true);
+      expect(renderer.root.findAllByType("button").some((button) => textOf(button).includes("Download PDF"))).toBe(true);
+      expect(textOf(renderer.root).includes("Fields stay on this device")).toBe(true);
       await unmount(renderer);
     }
   });

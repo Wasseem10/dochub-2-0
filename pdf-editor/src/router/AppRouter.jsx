@@ -18,6 +18,7 @@ import { SecureSharePage } from "../pages/public/SecureSharePage.jsx";
 import { ScanPdfPage } from "../pages/public/ScanPdfPage.jsx";
 import { StructuredPdfConversionPage } from "../pages/public/StructuredPdfConversionPage.jsx";
 import { SupportPage } from "../pages/public/SupportPage.jsx";
+import { TemplateBuilderPage } from "../pages/public/TemplateBuilderPage.jsx";
 import { ToolLandingPage } from "../pages/public/ToolLandingPage.jsx";
 import { TextConversionPage } from "../pages/public/TextConversionPage.jsx";
 import { ToPdfConversionPage } from "../pages/public/ToPdfConversionPage.jsx";
@@ -64,6 +65,8 @@ const toolRouteObjects = TOOL_REGISTRY
         ? <OpenDocumentConversionPage tool={tool} />
       : ["ai-pdf", "chat-with-pdf", "summarize-pdf", "translate-pdf", "extract-data-from-pdf", "ask-pdf", "ai-question-generator", "contract-analyzer", "resume-analyzer"].includes(tool.id)
         ? <DocumentAnalysisPage tool={tool} />
+      : ["resume-templates", "contract-templates", "nda-templates", "invoice-templates", "offer-letter-templates"].includes(tool.id)
+        ? <TemplateBuilderPage tool={tool} />
       : ["compare-pdf", "document-version-comparison"].includes(tool.id)
         ? <ComparePdfPage tool={tool} />
       : tool.id === "ocr-pdf"

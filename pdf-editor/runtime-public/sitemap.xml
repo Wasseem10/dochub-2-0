@@ -13,6 +13,7 @@
   <url><loc>http://localhost:4173/compare-pdf</loc></url>
   <url><loc>http://localhost:4173/compress-pdf</loc></url>
   <url><loc>http://localhost:4173/contract-analyzer</loc></url>
+  <url><loc>http://localhost:4173/contract-templates</loc></url>
   <url><loc>http://localhost:4173/crop-pdf</loc></url>
   <url><loc>http://localhost:4173/delete-pdf-pages</loc></url>
   <url><loc>http://localhost:4173/document-version-comparison</loc></url>
@@ -26,12 +27,15 @@
   <url><loc>http://localhost:4173/help</loc></url>
   <url><loc>http://localhost:4173/html-to-pdf</loc></url>
   <url><loc>http://localhost:4173/image-to-searchable-pdf</loc></url>
+  <url><loc>http://localhost:4173/invoice-templates</loc></url>
   <url><loc>http://localhost:4173/jpg-to-pdf</loc></url>
   <url><loc>http://localhost:4173/merge-pdf</loc></url>
+  <url><loc>http://localhost:4173/nda-templates</loc></url>
   <url><loc>http://localhost:4173/ocr-pdf</loc></url>
   <url><loc>http://localhost:4173/odp-to-pdf</loc></url>
   <url><loc>http://localhost:4173/ods-to-pdf</loc></url>
   <url><loc>http://localhost:4173/odt-to-pdf</loc></url>
+  <url><loc>http://localhost:4173/offer-letter-templates</loc></url>
   <url><loc>http://localhost:4173/organize-pdf</loc></url>
   <url><loc>http://localhost:4173/pdf-form-filler</loc></url>
   <url><loc>http://localhost:4173/pdf-reader</loc></url>
@@ -52,6 +56,7 @@
   <url><loc>http://localhost:4173/reorder-pdf-pages</loc></url>
   <url><loc>http://localhost:4173/request-signatures</loc></url>
   <url><loc>http://localhost:4173/resume-analyzer</loc></url>
+  <url><loc>http://localhost:4173/resume-templates</loc></url>
   <url><loc>http://localhost:4173/review-pdf</loc></url>
   <url><loc>http://localhost:4173/rotate-pdf</loc></url>
   <url><loc>http://localhost:4173/rtf-to-pdf</loc></url>
