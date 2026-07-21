@@ -1,0 +1,52 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    function ownsPath(userId) {
+      return request.auth != null && request.auth.uid == userId;
+    }
+
+    function shareRecord(token) {
+      return firestore.get(/databases/(default)/documents/shareLinks/$(token));
+    }
+
+    function ownsShare(token) {
+      let share = shareRecord(token);
+      return request.auth != null && share.data.ownerId == request.auth.uid;
+    }
+
+    function isActiveShare(token) {
+      let share = shareRecord(token);
+      return share.data.status == "active"
+        && share.data.storagePath == "shares/" + token + "/document.pdf"
+        && share.data.expiresAt > request.time;
+    }
+
+    match /users/{userId}/documents/{documentId}/document.json {
+      allow read, delete: if ownsPath(userId);
+      allow create, update: if ownsPath(userId)
+        && request.resource.size > 0
+        && request.resource.size < 80 * 1024 * 1024
+        && request.resource.contentType == "application/json";
+    }
+
+    match /shares/{token}/document.pdf {
+      allow read: if token.matches("^[A-Za-z0-9_-]{32}$")
+        && (isActiveShare(token) || ownsShare(token));
+      allow create: if token.matches("^[A-Za-z0-9_-]{32}$")
+        && ownsShare(token)
+        && shareRecord(token).data.status == "uploading"
+        && request.resource.size > 0
+        && request.resource.size <= 25 * 1024 * 1024
+        && request.resource.contentType == "application/pdf"
+        && request.resource.metadata.ownerId == request.auth.uid
+        && request.resource.metadata.shareToken == token;
+      allow update: if false;
+      allow delete: if ownsShare(token);
+    }
+
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

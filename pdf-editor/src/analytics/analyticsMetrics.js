@@ -5,6 +5,12 @@ export const ANALYTICS_RANGE_DAYS = Object.freeze({
   all: null,
 });
 
+export function analyticsRangeStart(range, now = new Date()) {
+  const days = ANALYTICS_RANGE_DAYS[range];
+  if (!days) return null;
+  return new Date(now.getTime() - days * 24 * 60 * 60 * 1000).toISOString();
+}
+
 export function eventDate(event) {
   const value = event?.occurredAt?.toDate?.() || event?.clientOccurredAt || event?.occurredAt;
   const date = value instanceof Date ? value : new Date(value || 0);
@@ -12,9 +18,9 @@ export function eventDate(event) {
 }
 
 export function filterAnalyticsEvents(events, range, now = new Date()) {
-  const days = ANALYTICS_RANGE_DAYS[range];
-  if (!days) return [...events];
-  const cutoff = now.getTime() - days * 24 * 60 * 60 * 1000;
+  const rangeStart = analyticsRangeStart(range, now);
+  if (!rangeStart) return [...events];
+  const cutoff = new Date(rangeStart).getTime();
   return events.filter((event) => eventDate(event).getTime() >= cutoff);
 }
 

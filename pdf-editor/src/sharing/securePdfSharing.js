@@ -1,4 +1,5 @@
-import { Bytes, collection, deleteDoc, doc, getDoc, getDocs, orderBy, query, setDoc, Timestamp, updateDoc, writeBatch } from "firebase/firestore";
+import { collection, deleteDoc, doc, getDoc, getDocs, orderBy, query, setDoc, Timestamp, updateDoc, writeBatch } from "firebase/firestore";
+import { deleteObject, getBytes, ref as storageReference, uploadBytes } from "firebase/storage";
 
 export const SECURE_SHARE_LIMITS = Object.freeze({
   maxBytes: 25 * 1024 * 1024,
@@ -7,10 +8,9 @@ export const SECURE_SHARE_LIMITS = Object.freeze({
 
 const TOKEN_BYTES = 24;
 const TOKEN_PATTERN = /^[A-Za-z0-9_-]{32}$/;
-const SHARE_CHUNK_BYTES = 500 * 1024;
 
-function requireCloudServices(db) {
-  if (!db) throw new Error("Secure sharing is not configured for this deployment.");
+function requireCloudServices(db, storage, storageRequired = true) {
+  if (!db || (storageRequired && !storage)) throw new Error("Secure sharing is not configured for this deployment.");
 }
 
 export function createShareToken(cryptoApi = globalThis.crypto) {
@@ -30,7 +30,9 @@ export function normalizeExpirationDays(value) {
 }
 
 export function isShareRecordAccessible(record, now = new Date()) {
-  if (!record || record.status !== "active" || !Number.isInteger(record.chunkCount) || record.chunkCount < 1) return false;
+  const hasStoredPdf = typeof record?.storagePath === "string"
+    || (Number.isInteger(record?.chunkCount) && record.chunkCount > 0);
+  if (!record || record.status !== "active" || !hasStoredPdf) return false;
   const expiration = record.expiresAt?.toDate?.() || new Date(record.expiresAt || 0);
   return Number.isFinite(expiration.getTime()) && expiration.getTime() > now.getTime();
 }
@@ -45,8 +47,13 @@ function safePdfName(fileName) {
   return /\.pdf$/i.test(cleaned) ? cleaned : `${cleaned || "shared-document"}.pdf`;
 }
 
-export async function createSecurePdfShare({ db, userId, pdfBlob, fileName, expirationDays = 7, now = new Date() }) {
-  requireCloudServices(db);
+export function secureShareStoragePath(token) {
+  if (!isValidShareToken(token)) throw new Error("A valid sharing token is required.");
+  return `shares/${token}/document.pdf`;
+}
+
+export async function createSecurePdfShare({ db, storage, userId, pdfBlob, fileName, expirationDays = 7, now = new Date() }) {
+  requireCloudServices(db, storage);
   if (!userId) throw new Error("Sign in before creating a sharing link.");
   if (!(pdfBlob instanceof Blob) || pdfBlob.type !== "application/pdf") throw new Error("Only PDF files can be shared.");
   if (!pdfBlob.size || pdfBlob.size > SECURE_SHARE_LIMITS.maxBytes) throw new Error("Shared PDFs must be between 1 byte and 25 MB.");
@@ -56,15 +63,14 @@ export async function createSecurePdfShare({ db, userId, pdfBlob, fileName, expi
   const expiresAt = new Date(now.getTime() + days * 24 * 60 * 60 * 1000);
   const shareRef = doc(db, "shareLinks", token);
   const name = safePdfName(fileName);
-  const bytes = new Uint8Array(await pdfBlob.arrayBuffer());
-  const chunkCount = Math.ceil(bytes.byteLength / SHARE_CHUNK_BYTES);
+  const storagePath = secureShareStoragePath(token);
 
   await setDoc(shareRef, {
     ownerId: userId,
     fileName: name,
     size: pdfBlob.size,
     contentType: "application/pdf",
-    chunkCount,
+    storagePath,
     status: "uploading",
     allowDownload: true,
     createdAt: Timestamp.fromDate(now),
@@ -72,28 +78,22 @@ export async function createSecurePdfShare({ db, userId, pdfBlob, fileName, expi
   });
 
   try {
-    for (let index = 0; index < chunkCount; index += 1) {
-      const start = index * SHARE_CHUNK_BYTES;
-      const data = Bytes.fromUint8Array(bytes.slice(start, start + SHARE_CHUNK_BYTES));
-      await setDoc(doc(db, "shareLinks", token, "chunks", String(index).padStart(3, "0")), { index, data });
-    }
+    await uploadBytes(storageReference(storage, storagePath), pdfBlob, {
+      contentType: "application/pdf",
+      customMetadata: { ownerId: userId, shareToken: token },
+    });
     await updateDoc(shareRef, { status: "active" });
   } catch (error) {
-    const chunkSnapshot = await getDocs(collection(db, "shareLinks", token, "chunks")).catch(() => null);
-    if (chunkSnapshot?.docs.length) {
-      const cleanup = writeBatch(db);
-      chunkSnapshot.docs.forEach((chunk) => cleanup.delete(chunk.ref));
-      await cleanup.commit().catch(() => {});
-    }
+    await deleteObject(storageReference(storage, storagePath)).catch(() => {});
     await deleteDoc(shareRef).catch(() => {});
     throw error;
   }
 
-  return { token, fileName: name, size: pdfBlob.size, chunkCount, expiresAt };
+  return { token, fileName: name, size: pdfBlob.size, storagePath, expiresAt };
 }
 
-export async function loadSecurePdfShare({ db, token, now = new Date() }) {
-  requireCloudServices(db);
+export async function loadSecurePdfShare({ db, storage, token, now = new Date() }) {
+  requireCloudServices(db, storage, false);
   if (!isValidShareToken(token)) return { status: "invalid" };
 
   try {
@@ -101,6 +101,22 @@ export async function loadSecurePdfShare({ db, token, now = new Date() }) {
     if (!snapshot.exists()) return { status: "invalid" };
     const record = snapshot.data();
     if (!isShareRecordAccessible(record, now)) return { status: "expired" };
+    if (record.storagePath) {
+      if (!storage || record.storagePath !== secureShareStoragePath(token)) return { status: "invalid" };
+      const buffer = await getBytes(storageReference(storage, record.storagePath), SECURE_SHARE_LIMITS.maxBytes);
+      const bytes = new Uint8Array(buffer);
+      if (!bytes.byteLength || bytes.byteLength !== Number(record.size)) return { status: "invalid" };
+      return {
+        status: "ready",
+        blob: new Blob([bytes], { type: "application/pdf" }),
+        fileName: safePdfName(record.fileName),
+        size: bytes.byteLength,
+        expiresAt: record.expiresAt?.toDate?.() || new Date(record.expiresAt),
+        allowDownload: record.allowDownload !== false,
+      };
+    }
+
+    // Legacy shares stored file chunks in Firestore. Keep them readable until they expire.
     const chunkSnapshot = await getDocs(query(collection(db, "shareLinks", token, "chunks"), orderBy("index")));
     if (chunkSnapshot.docs.length !== record.chunkCount) return { status: "invalid" };
     const chunks = chunkSnapshot.docs.map((chunk) => chunk.data().data?.toUint8Array?.()).filter(Boolean);
@@ -126,12 +142,16 @@ export async function loadSecurePdfShare({ db, token, now = new Date() }) {
   }
 }
 
-export async function revokeSecurePdfShare({ db, userId, token }) {
-  requireCloudServices(db);
+export async function revokeSecurePdfShare({ db, storage, userId, token }) {
+  requireCloudServices(db, storage, false);
   if (!userId || !isValidShareToken(token)) throw new Error("This sharing link cannot be revoked.");
   const shareRef = doc(db, "shareLinks", token);
   const snapshot = await getDoc(shareRef);
   if (!snapshot.exists() || snapshot.data().ownerId !== userId) throw new Error("You do not own this sharing link.");
+  const record = snapshot.data();
+  if (record.storagePath && storage) {
+    await deleteObject(storageReference(storage, record.storagePath)).catch(() => {});
+  }
   const chunkSnapshot = await getDocs(collection(db, "shareLinks", token, "chunks"));
   if (chunkSnapshot.docs.length) {
     const deletion = writeBatch(db);

@@ -1,7 +1,8 @@
-import { addDoc, collection, serverTimestamp } from "firebase/firestore";
+import { addDoc, collection, serverTimestamp, Timestamp } from "firebase/firestore";
 import { auth, db } from "../firebase.js";
 
 const CATEGORIES = new Set(["product_help", "bug", "account", "privacy", "security", "other"]);
+const SUPPORT_RETENTION_DAYS = 730;
 
 export function validateSupportRequest(request) {
   const name = request.name?.trim() || "";
@@ -26,6 +27,7 @@ export async function submitSupportRequest(request) {
       actorId: auth?.currentUser?.uid || null,
       createdAt: serverTimestamp(),
       clientCreatedAt: new Date().toISOString(),
+      expiresAt: Timestamp.fromDate(new Date(Date.now() + SUPPORT_RETENTION_DAYS * 24 * 60 * 60 * 1000)),
     });
     return { ok: true };
   } catch {

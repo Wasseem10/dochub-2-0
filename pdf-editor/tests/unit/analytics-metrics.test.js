@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createDailyAnalyticsSeries, filterAnalyticsEvents, summarizeAnalyticsEvents } from "../../src/analytics/analyticsMetrics.js";
+import { analyticsRangeStart, createDailyAnalyticsSeries, filterAnalyticsEvents, summarizeAnalyticsEvents } from "../../src/analytics/analyticsMetrics.js";
 
 const now = new Date("2026-07-20T12:00:00.000Z");
 
@@ -31,6 +31,8 @@ describe("owner analytics metrics", () => {
   });
 
   it("filters ranges and produces daily activity", () => {
+    expect(analyticsRangeStart("30d", now)).toBe("2026-06-20T12:00:00.000Z");
+    expect(analyticsRangeStart("all", now)).toBeNull();
     const recent = filterAnalyticsEvents(events, "30d", now);
     expect(recent).toHaveLength(7);
     const series = createDailyAnalyticsSeries(recent, 2, now);

@@ -32,7 +32,7 @@ export function ToolGuideContent({ tool }) {
 
       <div className="tool-guide-trust-grid">
         <article className="is-private"><ShieldCheck size={25} /><div><small>Privacy</small><h3>What happens to your file</h3><p>{tool.privacySummary}</p></div></article>
-        <article className="is-limit"><Info size={25} /><div><small>Current boundaries</small><h3>Know the limitations</h3><p>{tool.currentLimitations}</p></div></article>
+        <article className="is-limit"><Info size={25} /><div><small>File support</small><h3>Supported files and current limits</h3><p>{tool.currentLimitations}</p></div></article>
       </div>
 
       <section className="tool-guide-use-cases">

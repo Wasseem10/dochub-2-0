@@ -267,7 +267,7 @@ function buildBaseTool([slug, name, shortDescription, category, icon, status, su
     availabilityLabel,
     seoTitle: `${name} Online | FixThatPDF`,
     metaDescription: `${shortDescription} See current availability, supported formats, and limitations in FixThatPDF.`,
-    heroHeadline: `${name}, with honest limits`,
+    heroHeadline: `${name} online, with private browser processing`,
     heroSubheadline: shortDescription,
     benefits: [content.benefit, `Inputs: ${inputLabel}.`, `Outputs: ${outputLabel}.`],
     steps: defaultSteps,

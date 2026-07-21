@@ -1,4 +1,5 @@
 import { initializeApp } from "firebase/app";
+import { initializeAppCheck, ReCaptchaEnterpriseProvider } from "firebase/app-check";
 import { browserLocalPersistence, getAuth, GoogleAuthProvider, setPersistence } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
@@ -21,6 +22,13 @@ export const isFirebaseConfigured = Boolean(
 );
 
 export const firebaseApp = isFirebaseConfigured ? initializeApp(firebaseConfig) : null;
+const appCheckSiteKey = import.meta.env.VITE_FIREBASE_APP_CHECK_SITE_KEY;
+export const appCheck = firebaseApp && appCheckSiteKey && typeof window !== "undefined"
+  ? initializeAppCheck(firebaseApp, {
+      provider: new ReCaptchaEnterpriseProvider(appCheckSiteKey),
+      isTokenAutoRefreshEnabled: true,
+    })
+  : null;
 export const auth = firebaseApp ? getAuth(firebaseApp) : null;
 if (auth) {
   setPersistence(auth, browserLocalPersistence).catch(() => {

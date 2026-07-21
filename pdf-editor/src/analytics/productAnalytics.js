@@ -22,6 +22,7 @@ const ALLOWED_EVENTS = new Set([
 const ALLOWED_PROPERTIES = new Set(["toolId", "fileSizeBucket", "pageCountBucket", "errorCategory", "result", "authMethod", "route", "operation", "durationBucket"]);
 const ANALYTICS_COLLECTION = "productAnalyticsEvents";
 const VISITOR_KEY = "realpdf_analytics_visitor_id";
+const ANALYTICS_RETENTION_DAYS = 400;
 
 function visitorId() {
   try {
@@ -37,7 +38,7 @@ function visitorId() {
 
 async function persistProductEvent(event) {
   try {
-    const [{ auth, db }, { addDoc, collection, serverTimestamp }] = await Promise.all([
+    const [{ auth, db }, { addDoc, collection, serverTimestamp, Timestamp }] = await Promise.all([
       import("../firebase.js"),
       import("firebase/firestore"),
     ]);
@@ -49,6 +50,7 @@ async function persistProductEvent(event) {
       visitorId: visitorId(),
       occurredAt: serverTimestamp(),
       clientOccurredAt: new Date().toISOString(),
+      expiresAt: Timestamp.fromDate(new Date(Date.now() + ANALYTICS_RETENTION_DAYS * 24 * 60 * 60 * 1000)),
     });
   } catch (error) {
     if (import.meta.env.DEV) console.warn("[RealPDF analytics] Event storage failed", error?.code || error?.message);
@@ -71,7 +73,12 @@ export function pageCountBucket(count = 0) {
 }
 
 export function sanitizeAnalyticsProperties(properties = {}) {
-  return Object.fromEntries(Object.entries(properties).filter(([key, value]) => ALLOWED_PROPERTIES.has(key) && ["string", "number", "boolean"].includes(typeof value)));
+  return Object.fromEntries(Object.entries(properties).flatMap(([key, value]) => {
+    if (!ALLOWED_PROPERTIES.has(key) || !["string", "number", "boolean"].includes(typeof value)) return [];
+    if (typeof value === "string") return [[key, value.slice(0, 160)]];
+    if (typeof value === "number" && !Number.isFinite(value)) return [];
+    return [[key, value]];
+  }));
 }
 
 export function trackProductEvent(name, properties = {}) {

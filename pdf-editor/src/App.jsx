@@ -95,6 +95,7 @@ import { getEditorToolPreset, resolveEditorActiveTool } from "./tools/editorTool
 import { claimGuestDocument, editorActionNeedsAccount, GUEST_OWNER_ID, recoverDocumentAsGuest, resolveEditorStorageOwnerId } from "./tools/guestDocumentSession.js";
 import { clearEditorSession, loadEditorSession, saveEditorSession } from "./tools/editorSessionStore.js";
 import { loadLocalDocuments, saveLocalDocuments } from "./tools/localDocumentStore.js";
+import { planCloudDocumentSync, runWithConcurrency } from "./tools/cloudDocumentSync.js";
 import { extractPdfFormAnnotations } from "./tools/pdfFormFields.js";
 import { getPdfLoadErrorMessage, MAX_PDF_EDITOR_PAGES, validatePdfUpload } from "./tools/pdfUploadValidation.js";
 import { drawFlattenedInputAnnotation } from "./tools/pdfEditorAnnotationExport.js";
@@ -1849,13 +1850,16 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       return;
     }
 
-    const nextIds = new Set(nextDocuments.map((documentRecord) => documentRecord.id));
-    const deletedDocuments = previousDocuments.filter((documentRecord) => documentRecord.id && !nextIds.has(documentRecord.id));
+    const { uploads, deletes } = planCloudDocumentSync(previousDocuments, nextDocuments);
+    if (!uploads.length && !deletes.length) {
+      setCloudSyncStatus("synced");
+      return;
+    }
     setCloudSyncStatus("syncing");
 
-    Promise.all([
-      ...nextDocuments.map((documentRecord) => uploadDocumentRecordToCloud(currentUser.uid, documentRecord)),
-      ...deletedDocuments.map((documentRecord) => deleteDocumentRecordFromCloud(currentUser.uid, documentRecord.id)),
+    runWithConcurrency([
+      ...uploads.map((documentRecord) => () => uploadDocumentRecordToCloud(currentUser.uid, documentRecord)),
+      ...deletes.map((documentRecord) => () => deleteDocumentRecordFromCloud(currentUser.uid, documentRecord.id)),
     ])
       .then(() => setCloudSyncStatus("synced"))
       .catch(() => {
@@ -2397,6 +2401,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     if (!exported) throw new Error("The current PDF could not be prepared for sharing.");
     const result = await createSecurePdfShare({
       db,
+      storage,
       userId: currentUser.uid,
       pdfBlob: exported.blob,
       fileName: exported.name,
@@ -2407,7 +2412,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   };
 
   const revokeDocumentShare = async (token) => {
-    await revokeSecurePdfShare({ db, userId: currentUser?.uid, token });
+    await revokeSecurePdfShare({ db, storage, userId: currentUser?.uid, token });
     showToast("Sharing link revoked.");
   };
 

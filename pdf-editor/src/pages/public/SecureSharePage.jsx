@@ -5,7 +5,7 @@ import FileText from "lucide-react/dist/esm/icons/file-text.mjs";
 import LoaderCircle from "lucide-react/dist/esm/icons/loader-circle.mjs";
 import Lock from "lucide-react/dist/esm/icons/lock.mjs";
 import { Link, useParams } from "react-router-dom";
-import { db } from "../../firebase.js";
+import { db, storage } from "../../firebase.js";
 import { ROUTE_PATHS } from "../../router/routePaths.js";
 import { loadSecurePdfShare } from "../../sharing/securePdfSharing.js";
 
@@ -22,7 +22,7 @@ export function SecureSharePage() {
   useEffect(() => {
     let cancelled = false;
     let objectUrl = "";
-    loadSecurePdfShare({ db, token })
+    loadSecurePdfShare({ db, storage, token })
       .then((result) => {
         if (cancelled) return;
         if (result.status === "ready") {

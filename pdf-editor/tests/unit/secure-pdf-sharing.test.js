@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { createShareToken, isShareRecordAccessible, isValidShareToken, normalizeExpirationDays } from "../../src/sharing/securePdfSharing.js";
+import { createShareToken, isShareRecordAccessible, isValidShareToken, normalizeExpirationDays, secureShareStoragePath } from "../../src/sharing/securePdfSharing.js";
 
 describe("secure PDF sharing", () => {
   it("creates a 192-bit URL-safe token", () => {
@@ -12,6 +12,7 @@ describe("secure PDF sharing", () => {
     expect(token).toHaveLength(32);
     expect(isValidShareToken(token)).toBe(true);
     expect(isValidShareToken("short-token")).toBe(false);
+    expect(secureShareStoragePath(token)).toBe(`shares/${token}/document.pdf`);
   });
 
   it("uses only supported expiration windows", () => {

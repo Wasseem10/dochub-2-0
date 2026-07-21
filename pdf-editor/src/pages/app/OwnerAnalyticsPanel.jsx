@@ -1,4 +1,4 @@
-import { collection, deleteDoc, doc, getDocs, limit, orderBy, query, updateDoc } from "firebase/firestore";
+import { collection, deleteDoc, doc, getCountFromServer, getDocs, limit, orderBy, query, updateDoc, where } from "firebase/firestore";
 import Activity from "lucide-react/dist/esm/icons/activity.mjs";
 import Download from "lucide-react/dist/esm/icons/download.mjs";
 import LogIn from "lucide-react/dist/esm/icons/log-in.mjs";
@@ -12,7 +12,7 @@ import CheckCircle2 from "lucide-react/dist/esm/icons/check-circle-2.mjs";
 import Gauge from "lucide-react/dist/esm/icons/gauge.mjs";
 import LifeBuoy from "lucide-react/dist/esm/icons/life-buoy.mjs";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { createDailyAnalyticsSeries, filterAnalyticsEvents, summarizeAnalyticsEvents } from "../../analytics/analyticsMetrics.js";
+import { analyticsRangeStart, createDailyAnalyticsSeries, filterAnalyticsEvents, summarizeAnalyticsEvents } from "../../analytics/analyticsMetrics.js";
 import { db } from "../../firebase.js";
 import "./owner-analytics.css";
 
@@ -49,6 +49,7 @@ export function OwnerAnalyticsPanel() {
   const [status, setStatus] = useState("loading");
   const [message, setMessage] = useState("");
   const [supportRequests, setSupportRequests] = useState([]);
+  const [serverCounts, setServerCounts] = useState(null);
 
   const loadAnalytics = useCallback(async () => {
     if (!db) {
@@ -58,12 +59,56 @@ export function OwnerAnalyticsPanel() {
     }
     setStatus("loading");
     setMessage("");
+    setServerCounts(null);
     try {
-      const eventQuery = query(collection(db, "productAnalyticsEvents"), orderBy("clientOccurredAt", "desc"), limit(5000));
+      const analyticsCollection = collection(db, "productAnalyticsEvents");
+      const rangeStart = analyticsRangeStart(range);
+      const eventQuery = rangeStart
+        ? query(analyticsCollection, where("clientOccurredAt", ">=", rangeStart), orderBy("clientOccurredAt", "desc"), limit(5000))
+        : query(analyticsCollection, orderBy("clientOccurredAt", "desc"), limit(5000));
       const supportQuery = query(collection(db, "supportRequests"), orderBy("clientCreatedAt", "desc"), limit(250));
-      const [snapshot, supportSnapshot] = await Promise.all([getDocs(eventQuery), getDocs(supportQuery)]);
+      const countEvent = async (name, authMethod = null) => {
+        const constraints = [where("name", "==", name)];
+        if (authMethod) constraints.push(where("properties.authMethod", "==", authMethod));
+        if (rangeStart) constraints.push(where("clientOccurredAt", ">=", rangeStart));
+        const snapshot = await getCountFromServer(query(analyticsCollection, ...constraints));
+        return snapshot.data().count;
+      };
+      const aggregateCounts = Promise.all([
+        countEvent("account_signed_up"),
+        countEvent("account_logged_in"),
+        countEvent("account_signed_up", "google"),
+        countEvent("account_logged_in", "google"),
+        countEvent("document_opened"),
+        countEvent("pdf_downloaded"),
+        countEvent("client_error"),
+        countEvent("unhandled_rejection"),
+        countEvent("export_failed"),
+        countEvent("slow_operation"),
+      ]).catch(() => null);
+      const [snapshot, supportSnapshot, countValues] = await Promise.all([
+        getDocs(eventQuery),
+        getDocs(supportQuery),
+        aggregateCounts,
+      ]);
       setEvents(snapshot.docs.map((eventDocument) => ({ id: eventDocument.id, ...eventDocument.data() })));
       setSupportRequests(supportSnapshot.docs.map((requestDocument) => ({ id: requestDocument.id, ...requestDocument.data() })));
+      if (countValues) {
+        const [signups, logins, googleSignups, googleLogins, uploads, downloads, clientErrors, unhandledRejections, failedExports, slowOperations] = countValues;
+        setServerCounts({
+          signups,
+          logins,
+          googleAuth: googleSignups + googleLogins,
+          uploads,
+          downloads,
+          clientErrors: clientErrors + unhandledRejections,
+          failedExports,
+          slowOperations,
+          conversionRate: uploads ? Math.round((downloads / uploads) * 100) : 0,
+        });
+      } else {
+        setMessage("Scalable totals are waiting for the analytics indexes to finish deploying. Recent activity is shown below.");
+      }
       setStatus("ready");
     } catch (error) {
       setStatus("error");
@@ -71,7 +116,7 @@ export function OwnerAnalyticsPanel() {
         ? "Analytics access is waiting for the owner-only Firestore rule to be deployed."
         : "FixThatPDF could not load analytics right now. Try refreshing in a moment.");
     }
-  }, []);
+  }, [range]);
 
   useEffect(() => {
     loadAnalytics();
@@ -79,6 +124,7 @@ export function OwnerAnalyticsPanel() {
 
   const filteredEvents = useMemo(() => filterAnalyticsEvents(events, range), [events, range]);
   const metrics = useMemo(() => summarizeAnalyticsEvents(filteredEvents), [filteredEvents]);
+  const displayedMetrics = serverCounts ? { ...metrics, ...serverCounts } : metrics;
   const dailySeries = useMemo(() => createDailyAnalyticsSeries(filteredEvents, range === "7d" ? 7 : 14), [filteredEvents, range]);
   const maxDailyEvents = Math.max(1, ...dailySeries.map((day) => day.events));
   const recentEvents = filteredEvents.slice(0, 12);
@@ -93,12 +139,12 @@ export function OwnerAnalyticsPanel() {
   };
 
   const cards = [
-    { label: "New accounts", value: metrics.signups, detail: "Successful registrations", icon: UserPlus, tone: "coral" },
-    { label: "Successful logins", value: metrics.logins, detail: "Email and Google logins", icon: LogIn, tone: "blue" },
-    { label: "Google sign-ins", value: metrics.googleAuth, detail: "Google account authentications", icon: Users, tone: "coral" },
-    { label: "Documents opened", value: metrics.uploads, detail: "PDFs opened in the editor", icon: FileText, tone: "blue" },
-    { label: "PDFs downloaded", value: metrics.downloads, detail: `${metrics.conversionRate}% of opened documents`, icon: Download, tone: "green" },
-    { label: "Active users", value: metrics.activeUsers, detail: "Unique signed-in and guest users", icon: Users, tone: "purple" },
+    { label: "New accounts", value: displayedMetrics.signups, detail: "Successful registrations", icon: UserPlus, tone: "coral" },
+    { label: "Successful logins", value: displayedMetrics.logins, detail: "Email and Google logins", icon: LogIn, tone: "blue" },
+    { label: "Google sign-ins", value: displayedMetrics.googleAuth, detail: "Google account authentications", icon: Users, tone: "coral" },
+    { label: "Documents opened", value: displayedMetrics.uploads, detail: "PDFs opened in the editor", icon: FileText, tone: "blue" },
+    { label: "PDFs downloaded", value: displayedMetrics.downloads, detail: `${displayedMetrics.conversionRate}% of opened documents`, icon: Download, tone: "green" },
+    { label: "Recent active users", value: displayedMetrics.activeUsers, detail: "Unique users in the loaded activity feed", icon: Users, tone: "purple" },
   ];
 
   return (
@@ -123,7 +169,7 @@ export function OwnerAnalyticsPanel() {
         </div>
       </header>
 
-      {status === "error" && <div className="owner-analytics-notice" role="alert">{message}</div>}
+      {message && <div className="owner-analytics-notice" role={status === "error" ? "alert" : "status"}>{message}</div>}
       {status === "loading" && !events.length && <div className="owner-analytics-loading">Loading private analytics…</div>}
 
       <div className="owner-analytics-cards">
@@ -141,7 +187,7 @@ export function OwnerAnalyticsPanel() {
         <article className="owner-analytics-chart">
           <div className="owner-analytics-section-title">
             <div><h2>Daily activity</h2><p>All tracked product events</p></div>
-            <strong><Activity size={16} /> {filteredEvents.length.toLocaleString()} events</strong>
+            <strong><Activity size={16} /> {filteredEvents.length.toLocaleString()} recent events</strong>
           </div>
           <div className="owner-analytics-bars" aria-label="Daily analytics chart">
             {dailySeries.map((day) => (
@@ -156,9 +202,9 @@ export function OwnerAnalyticsPanel() {
         <article className="owner-analytics-funnel">
           <div className="owner-analytics-section-title"><div><h2>PDF usage</h2><p>Upload-to-download funnel</p></div><Upload size={20} /></div>
           <dl>
-            <div><dt>Completed uploads</dt><dd>{metrics.uploads.toLocaleString()}</dd></div>
-            <div><dt>PDF downloads</dt><dd>{metrics.downloads.toLocaleString()}</dd></div>
-            <div><dt>Download conversion</dt><dd>{metrics.conversionRate}%</dd></div>
+            <div><dt>Completed uploads</dt><dd>{displayedMetrics.uploads.toLocaleString()}</dd></div>
+            <div><dt>PDF downloads</dt><dd>{displayedMetrics.downloads.toLocaleString()}</dd></div>
+            <div><dt>Download conversion</dt><dd>{displayedMetrics.conversionRate}%</dd></div>
           </dl>
         </article>
       </div>
@@ -166,9 +212,9 @@ export function OwnerAnalyticsPanel() {
       <article className="owner-analytics-activity owner-monitoring">
         <div className="owner-analytics-section-title"><div><h2>Production health</h2><p>Privacy-safe failures and slow operations</p></div><Gauge size={20} /></div>
         <div className="owner-monitoring-cards">
-          <span><strong>{metrics.clientErrors.toLocaleString()}</strong><small>Browser errors</small></span>
-          <span><strong>{metrics.failedExports.toLocaleString()}</strong><small>Failed exports</small></span>
-          <span><strong>{metrics.slowOperations.toLocaleString()}</strong><small>Slow operations</small></span>
+          <span><strong>{displayedMetrics.clientErrors.toLocaleString()}</strong><small>Browser errors</small></span>
+          <span><strong>{displayedMetrics.failedExports.toLocaleString()}</strong><small>Failed exports</small></span>
+          <span><strong>{displayedMetrics.slowOperations.toLocaleString()}</strong><small>Slow operations</small></span>
         </div>
         {diagnosticEvents.length ? <div className="owner-analytics-table">
           <div className="owner-analytics-row is-head"><span>Issue</span><span>Category</span><span>Route</span><span>Time</span></div>

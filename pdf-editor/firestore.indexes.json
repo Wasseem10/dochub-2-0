@@ -1,0 +1,22 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "productAnalyticsEvents",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "name", "order": "ASCENDING" },
+        { "fieldPath": "clientOccurredAt", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "productAnalyticsEvents",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "name", "order": "ASCENDING" },
+        { "fieldPath": "properties.authMethod", "order": "ASCENDING" },
+        { "fieldPath": "clientOccurredAt", "order": "ASCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

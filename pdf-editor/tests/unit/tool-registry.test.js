@@ -19,6 +19,7 @@ describe("FixThatPDF tool registry", () => {
     expect(TOOL_CATEGORIES).toHaveLength(11);
     expect(validateToolRegistry()).toEqual([]);
     TOOL_REGISTRY.forEach((tool) => requiredFields.forEach((field) => expect(tool, `${tool.id}.${field}`).toHaveProperty(field)));
+    expect(TOOL_REGISTRY.every((tool) => !tool.heroHeadline.includes("honest limits"))).toBe(true);
   });
 
   it("truthfully exposes released editor and conversion workflows", () => {
