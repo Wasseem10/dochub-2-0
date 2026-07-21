@@ -102,6 +102,22 @@ async function persistProductEvent(event) {
   }
 }
 
+function queueProductEventPersistence(event) {
+  const isLowPriorityPageView = ["page_viewed", "homepage_viewed"].includes(event.name);
+  if (!isLowPriorityPageView) {
+    void persistProductEvent(event);
+    return;
+  }
+
+  // Page-view storage loads the optional Firebase client. Keep that work out of
+  // the homepage's critical rendering path so the hero and upload control win
+  // the initial network/main-thread budget. Conversion and error events remain
+  // immediate; page views begin after the page is fully loaded.
+  const persistAfterLoad = () => window.setTimeout(() => void persistProductEvent(event), 1500);
+  if (document.readyState === "complete") persistAfterLoad();
+  else window.addEventListener("load", persistAfterLoad, { once: true });
+}
+
 export function fileSizeBucket(bytes = 0) {
   if (bytes < 1024 * 1024) return "under_1mb";
   if (bytes < 5 * 1024 * 1024) return "1_5mb";
@@ -131,7 +147,7 @@ export function trackProductEvent(name, properties = {}) {
   const event = { name, properties: sanitizeAnalyticsProperties(properties) };
   if (typeof window !== "undefined") {
     window.dispatchEvent(new CustomEvent("realpdf:analytics", { detail: event }));
-    void persistProductEvent(event);
+    queueProductEventPersistence(event);
   }
   if (import.meta.env.DEV) console.info("[FixThatPDF analytics]", event);
   return true;
