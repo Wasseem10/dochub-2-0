@@ -6,6 +6,7 @@ import { NotFoundPage } from "../pages/errors/NotFoundPage.jsx";
 import { PublicPlaceholderPage } from "../pages/public/PublicPlaceholderPage.jsx";
 import { ComparePdfPage } from "../pages/public/ComparePdfPage.jsx";
 import { DocumentAnalysisPage } from "../pages/public/DocumentAnalysisPage.jsx";
+import { FeaturesPage } from "../pages/public/FeaturesPage.jsx";
 import { ToolDirectoryPage } from "../pages/public/ToolDirectoryPage.jsx";
 import { ImageConversionPage } from "../pages/public/ImageConversionPage.jsx";
 import { OfficeConversionPage } from "../pages/public/OfficeConversionPage.jsx";
@@ -46,7 +47,7 @@ export function PublicEditorRoute() {
   return <LazyGuestAppRoute view={documentId ? "public-editor" : "tool-upload"} publicTool={publicTool} documentId={documentId} />;
 }
 
-const publicPlaceholderRouteObjects = PUBLIC_PLACEHOLDER_ROUTES.map((route) => ({
+const publicPlaceholderRouteObjects = PUBLIC_PLACEHOLDER_ROUTES.filter((route) => route.path !== ROUTE_PATHS.features).map((route) => ({
   path: route.path,
   element: <PublicPlaceholderPage {...route} />,
 }));
@@ -104,6 +105,7 @@ export const appRouteObjects = [
         children: [
           { path: ROUTE_PATHS.home, element: <LazyPublicAppRoute view="landing" /> },
           { path: ROUTE_PATHS.editPdf, element: <PublicEditorRoute /> },
+          { path: ROUTE_PATHS.features, element: <FeaturesPage /> },
           { path: ROUTE_PATHS.tools, element: <ToolDirectoryPage /> },
           { path: ROUTE_PATHS.support, element: <SupportPage /> },
           { path: ROUTE_PATHS.sharePattern, element: <SecureSharePage /> },

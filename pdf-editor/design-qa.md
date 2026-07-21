@@ -1,44 +1,59 @@
-# Design QA — Draw settings toolbar
+# Dashboard redesign design QA
 
-- Source visual truth: `/var/folders/y5/5nxfxhk97_9fmsmdf8tqj81r0000gn/T/TemporaryItems/NSIRD_screencaptureui_mvtaxh/Screenshot 2026-07-17 at 7.00.17 PM.png`
-- Implementation screenshot: `qa-draw-settings/implementation.jpg`
-- Custom picker screenshot: `qa-draw-settings/custom-picker.jpg`
-- Full comparison evidence: `qa-draw-settings/comparison.png`
-- Viewport: 1280 × 720 implementation; source and implementation toolbar regions normalized to 1280px wide in the comparison.
-- State: blank PDF open, Draw active, red preset selected, 4px pen size.
+- Source visual truth: `/Users/wasseemdabbas/.codex/generated_images/019f7d99-682c-7551-8036-1bae63d2a1df/exec-cb1bd668-6a5f-49c1-b2ba-eda00919907f.png`
+- Implementation screenshot: `/tmp/fixthatpdf-dashboard-implemented.png`
+- Full-view comparison: `/tmp/fixthatpdf-dashboard-qa-comparison.png`
+- Focused comparison: `/tmp/fixthatpdf-dashboard-qa-focused.png`
+- Mobile dashboard screenshot: `/tmp/fixthatpdf-dashboard-mobile.png`
+- Features page screenshots: `/tmp/fixthatpdf-features-page.png`, `/tmp/fixthatpdf-features-mobile.png`
+- Desktop viewport: `1440 × 1024`
+- Mobile viewport: `390 × 844`
+- State: local dashboard with four saved documents; dashboard list view; features page default catalog state
 
-## Findings
+## Full-view comparison evidence
 
-No actionable P0, P1, or P2 findings remain.
+The implementation preserves the selected design's primary hierarchy and proportions: compact blue welcome band, three recently opened documents, one segmented three-task bar, and a grouped all-documents library. The navigation, top actions, document controls, and library toolbar align with the same desktop composition. The implementation adds the requested All features navigation item while maintaining the original sidebar rhythm.
 
-- Fonts and typography: passed. Labels use the editor's compact DM Sans UI hierarchy and remain readable without clipping.
-- Spacing and layout rhythm: passed. One centered 58px settings capsule sits below the primary toolbar with separated Color and Size groups.
-- Colors and visual tokens: passed. The six direct swatches, blue selected ring, powder-blue size selection, and white surface match FixThatPDF's editor tokens.
-- Image and icon fidelity: passed. Existing Lucide Paintbrush and Palette icons are used; no replacement image assets were required.
-- Copy and content: passed. “Draw,” “Color,” and “Size” are concise, and every visible control maps to a real setting.
-- Affordance and accessibility: passed. Presets expose pressed state and descriptive labels; the custom picker is keyboard-addressable; the size slider retains an accessible name and live pixel output.
+The implementation uses real saved-document state. QA documents are blank local PDFs, so their preview content and names intentionally differ from the sample resume, form, strategy, and invoice content pictured in the source. Uploaded documents use their actual first-page images through the same preview component.
 
-## Interaction verification
+## Focused comparison evidence
 
-- Activated Draw from the primary editor toolbar.
-- Selected the red preset and verified its pressed/selected state.
-- Selected the 8px preset in the integration test and verified the live output changed to 8px.
-- Opened the custom color dialog from the Palette control.
-- Verified the existing drawing model consumes `drawColor` and `drawStroke` for new stroke drafts.
-- Integration tests: 3 passed across Draw settings and dashboard regression coverage.
-- ESLint: 0 errors; existing repository warnings remain.
-- Production build: passed.
+The focused comparison covers the welcome header, recent-work cards, task bar, and library toolbar/rows at matched scale. Card radii, paper-preview framing, action placement, section gaps, and blue surface treatments closely follow the source. No additional focused crop was necessary because all small toolbar and row controls remain legible in the focused evidence.
+
+## Required fidelity surfaces
+
+- Fonts and typography: Funnel Display headings and DM Sans interface text match the existing FixThatPDF system and the selected mock. Hierarchy, weight, wrapping, and truncation are consistent at desktop and mobile sizes.
+- Spacing and layout rhythm: Desktop section order, margins, three-column recent grid, segmented task bar, and grouped library match the source. Mobile collapses cleanly to one-column recent cards and stacked tasks without horizontal overflow.
+- Colors and visual tokens: The implementation uses FixThatPDF blue `#2851eb`, powder blue, white, cool gray, and navy. Semantic status and favorite states remain distinguishable with accessible contrast.
+- Image quality and asset fidelity: The header uses a dedicated generated paper-motif PNG, not CSS or placeholder art. Real document first-page images are rendered when available; documents without page imagery use the existing Lucide file icon fallback.
+- Copy and content: Dashboard labels match the selected design. The feature directory is generated from the production tool registry so feature names, descriptions, availability, routes, and counts stay accurate.
 
 ## Comparison history
 
-### Iteration 1
+1. Initial populated capture found a P1 broken welcome-header image because the asset was placed in `public/` while Vite uses `runtime-public/`.
+   - Fix: moved the generated asset to `runtime-public/dashboard/continue-header-motif.png`, rendered it as a real image element, and restarted the preview.
+   - Post-fix evidence: `/tmp/fixthatpdf-dashboard-implemented.png` shows the full paper motif with no broken-image indicator.
+2. Initial empty-state capture did not match the source's populated document state.
+   - Fix: created four local documents through the working Blank PDF flow and recaptured the dashboard.
+   - Post-fix evidence: recent cards and four library rows are visible in the final desktop capture.
+3. Mobile verification found no hidden primary actions or horizontal overflow. The long document library continues vertically as intended.
 
-- Earlier finding [P1]: the settings strip stretched across the viewport, overlapped itself, clipped “Pen color + size,” and exposed only one ambiguous color dot.
-- Fix: replaced the strip with a compact grouped toolbar, six direct color presets, a custom Palette trigger, five size presets, fine-size slider, and live pixel value.
-- Post-fix evidence: `qa-draw-settings/implementation.jpg` and `qa-draw-settings/comparison.png` show the panel centered below the toolbar with all controls visible and no overlap.
+## Interactions verified
 
-## Focused comparison
+- Create a blank PDF and return to the dashboard.
+- Open recent-document cards and library rows.
+- Toggle list/grid views.
+- Favorite a document and filter to favorites.
+- Search the public feature catalog and reduce it to matching workflows.
+- Open the public Features route from navigation.
 
-A focused toolbar-region comparison was required because the full editor screenshot made the small controls difficult to judge. The normalized comparison confirms the selected color, size controls, labels, borders, spacing, and panel bounds are all legible.
+## Findings
+
+No actionable P0, P1, or P2 design mismatches remain.
+
+## Follow-up polish
+
+- P3: Real uploaded PDF thumbnails will make the recent-work cards visually richer than the blank-document QA state.
+- P3: User-specific names and timestamps naturally differ from the static reference mock.
 
 final result: passed

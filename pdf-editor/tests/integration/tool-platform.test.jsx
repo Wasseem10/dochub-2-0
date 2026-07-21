@@ -6,6 +6,7 @@ import { MarketingFooter } from "../../src/components/public/MarketingFooter.jsx
 import { MarketingHeader } from "../../src/components/public/MarketingHeader.jsx";
 import { ComparePdfPage } from "../../src/pages/public/ComparePdfPage.jsx";
 import { DocumentAnalysisPage } from "../../src/pages/public/DocumentAnalysisPage.jsx";
+import { FeaturesPage } from "../../src/pages/public/FeaturesPage.jsx";
 import { ToolDirectoryPage } from "../../src/pages/public/ToolDirectoryPage.jsx";
 import { ImageConversionPage } from "../../src/pages/public/ImageConversionPage.jsx";
 import { OfficeConversionPage } from "../../src/pages/public/OfficeConversionPage.jsx";
@@ -39,6 +40,18 @@ async function unmount(renderer) {
 }
 
 describe("public PDF tool platform", () => {
+  it("shows every released feature on the public features page", async () => {
+    const renderer = await render(<FeaturesPage />);
+    const text = textOf(renderer.root);
+    expect(text).toContain("Every feature you need to finish a PDF.");
+    expect(text).toContain("All working FixThatPDF features");
+    expect(text).toContain("PDF to Excel");
+    expect(text).toContain("PowerPoint to PDF");
+    expect(text).toContain("OCR PDF");
+    expect(text).toContain("Compare PDFs");
+    await unmount(renderer);
+  });
+
   it("searches, filters, and clears the complete tool directory", async () => {
     const renderer = await render(<ToolDirectoryPage />);
     const root = renderer.root;
