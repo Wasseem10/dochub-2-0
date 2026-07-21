@@ -7,6 +7,7 @@ import { PublicPlaceholderPage } from "../pages/public/PublicPlaceholderPage.jsx
 import { ToolDirectoryPage } from "../pages/public/ToolDirectoryPage.jsx";
 import { ImageConversionPage } from "../pages/public/ImageConversionPage.jsx";
 import { OfficeConversionPage } from "../pages/public/OfficeConversionPage.jsx";
+import { OcrPdfPage } from "../pages/public/OcrPdfPage.jsx";
 import { PdfPageToolPage } from "../pages/public/PdfPageToolPage.jsx";
 import { RedactPdfPage } from "../pages/public/RedactPdfPage.jsx";
 import { SecureSharePage } from "../pages/public/SecureSharePage.jsx";
@@ -14,6 +15,7 @@ import { StructuredPdfConversionPage } from "../pages/public/StructuredPdfConver
 import { SupportPage } from "../pages/public/SupportPage.jsx";
 import { ToolLandingPage } from "../pages/public/ToolLandingPage.jsx";
 import { TextConversionPage } from "../pages/public/TextConversionPage.jsx";
+import { ToPdfConversionPage } from "../pages/public/ToPdfConversionPage.jsx";
 import { WorkflowUnavailablePage } from "../pages/public/WorkflowUnavailablePage.jsx";
 import { TOOL_REGISTRY } from "../tools/toolRegistry.js";
 import { getEditorToolPreset } from "../tools/editorToolPresets.js";
@@ -49,9 +51,13 @@ const toolRouteObjects = TOOL_REGISTRY
     path: tool.route,
     element: tool.id === "redact-pdf"
       ? <RedactPdfPage tool={tool} />
+      : tool.id === "ocr-pdf"
+        ? <OcrPdfPage tool={tool} />
       : tool.workflowType === "converter"
       ? ["pdf-to-excel", "pdf-to-powerpoint", "pdf-to-html"].includes(tool.id)
         ? <StructuredPdfConversionPage tool={tool} />
+        : ["excel-to-pdf", "powerpoint-to-pdf", "html-to-pdf"].includes(tool.id)
+          ? <ToPdfConversionPage tool={tool} />
         : ["pdf-to-txt", "txt-to-pdf"].includes(tool.id)
           ? <TextConversionPage tool={tool} />
           : ["pdf-to-word", "word-to-pdf"].includes(tool.id)
