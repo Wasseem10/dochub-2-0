@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 import { MarketingFooter } from "../../src/components/public/MarketingFooter.jsx";
 import { MarketingHeader } from "../../src/components/public/MarketingHeader.jsx";
 import { ComparePdfPage } from "../../src/pages/public/ComparePdfPage.jsx";
+import { DocumentAnalysisPage } from "../../src/pages/public/DocumentAnalysisPage.jsx";
 import { ToolDirectoryPage } from "../../src/pages/public/ToolDirectoryPage.jsx";
 import { ImageConversionPage } from "../../src/pages/public/ImageConversionPage.jsx";
 import { OfficeConversionPage } from "../../src/pages/public/OfficeConversionPage.jsx";
@@ -91,11 +92,11 @@ describe("public PDF tool platform", () => {
     expect(textOf(comment.root).includes("Comment on a PDF online")).toBe(true);
     await unmount(comment);
 
-    const coming = await render(<ToolLandingPage tool={TOOL_BY_ID.get("contract-analyzer")} />);
+    const coming = await render(<ToolLandingPage tool={TOOL_BY_ID.get("contract-templates")} />);
     expect(coming.root.findAllByType("input")).toHaveLength(0);
     expect(coming.root.findAllByType("button")).toHaveLength(0);
     expect(textOf(coming.root).includes("Coming soon")).toBe(true);
-    expect(textOf(coming.root).includes("Clause extraction is not implemented")).toBe(true);
+    expect(textOf(coming.root).includes("Real contract templates")).toBe(true);
     await unmount(coming);
   });
 
@@ -199,6 +200,16 @@ describe("public PDF tool platform", () => {
       expect(renderer.root.findAllByType("input").some((input) => input.props.type === "file")).toBe(true);
       expect(textOf(renderer.root).includes("Download PDF")).toBe(true);
       expect(textOf(renderer.root).includes("Private browser processing")).toBe(true);
+      await unmount(renderer);
+    }
+  });
+
+  it("renders private source-grounded document analysis workspaces", async () => {
+    for (const toolId of ["ai-pdf", "chat-with-pdf", "summarize-pdf", "translate-pdf", "extract-data-from-pdf", "ask-pdf", "ai-question-generator", "contract-analyzer", "resume-analyzer"]) {
+      const renderer = await render(<DocumentAnalysisPage tool={TOOL_BY_ID.get(toolId)} />);
+      expect(renderer.root.findAllByType("input").some((input) => input.props.type === "file" && input.props.accept.includes("application/pdf"))).toBe(true);
+      expect(textOf(renderer.root).includes("No document text enters analytics")).toBe(true);
+      expect(textOf(renderer.root).includes("source pages")).toBe(true);
       await unmount(renderer);
     }
   });

@@ -4,16 +4,22 @@
   <url><loc>http://localhost:4173/add-date-fields</loc></url>
   <url><loc>http://localhost:4173/add-initials</loc></url>
   <url><loc>http://localhost:4173/add-page-numbers</loc></url>
+  <url><loc>http://localhost:4173/ai-pdf</loc></url>
+  <url><loc>http://localhost:4173/ai-question-generator</loc></url>
   <url><loc>http://localhost:4173/annotate-pdf</loc></url>
+  <url><loc>http://localhost:4173/ask-pdf</loc></url>
+  <url><loc>http://localhost:4173/chat-with-pdf</loc></url>
   <url><loc>http://localhost:4173/comment-on-pdf</loc></url>
   <url><loc>http://localhost:4173/compare-pdf</loc></url>
   <url><loc>http://localhost:4173/compress-pdf</loc></url>
+  <url><loc>http://localhost:4173/contract-analyzer</loc></url>
   <url><loc>http://localhost:4173/crop-pdf</loc></url>
   <url><loc>http://localhost:4173/delete-pdf-pages</loc></url>
   <url><loc>http://localhost:4173/document-version-comparison</loc></url>
   <url><loc>http://localhost:4173/edit-pdf</loc></url>
   <url><loc>http://localhost:4173/epub-to-pdf</loc></url>
   <url><loc>http://localhost:4173/excel-to-pdf</loc></url>
+  <url><loc>http://localhost:4173/extract-data-from-pdf</loc></url>
   <url><loc>http://localhost:4173/extract-pdf-pages</loc></url>
   <url><loc>http://localhost:4173/fill-pdf</loc></url>
   <url><loc>http://localhost:4173/flatten-pdf</loc></url>
@@ -45,6 +51,7 @@
   <url><loc>http://localhost:4173/remove-pdf-password</loc></url>
   <url><loc>http://localhost:4173/reorder-pdf-pages</loc></url>
   <url><loc>http://localhost:4173/request-signatures</loc></url>
+  <url><loc>http://localhost:4173/resume-analyzer</loc></url>
   <url><loc>http://localhost:4173/review-pdf</loc></url>
   <url><loc>http://localhost:4173/rotate-pdf</loc></url>
   <url><loc>http://localhost:4173/rtf-to-pdf</loc></url>
@@ -53,8 +60,10 @@
   <url><loc>http://localhost:4173/share-pdf</loc></url>
   <url><loc>http://localhost:4173/sign-pdf</loc></url>
   <url><loc>http://localhost:4173/split-pdf</loc></url>
+  <url><loc>http://localhost:4173/summarize-pdf</loc></url>
   <url><loc>http://localhost:4173/terms</loc></url>
   <url><loc>http://localhost:4173/tools</loc></url>
+  <url><loc>http://localhost:4173/translate-pdf</loc></url>
   <url><loc>http://localhost:4173/txt-to-pdf</loc></url>
   <url><loc>http://localhost:4173/unlock-pdf</loc></url>
   <url><loc>http://localhost:4173/watermark-pdf</loc></url>
