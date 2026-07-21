@@ -59,6 +59,6 @@ describe("Office conversion primitives", () => {
     const standardFontDataUrl = new URL("../../node_modules/pdfjs-dist/standard_fonts/", import.meta.url).toString();
     const renderedPdf = await pdfjsLib.getDocument({ data: pdfBytes, standardFontDataUrl }).promise;
     const textContent = await (await renderedPdf.getPage(1)).getTextContent();
-    expect(textContent.items.map((item) => item.str.trim()).filter(Boolean)).toEqual(["Searchable", "document"]);
+    expect(textContent.items.map((item) => item.str).join("").replace(/\s+/g, " ").trim()).toBe("Searchable document");
   });
 });
