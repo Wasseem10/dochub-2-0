@@ -891,6 +891,14 @@
 .conversion-secondary-action { display: inline-flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 43px; margin-top: 10px; border: 1px solid #cbd7d1; border-radius: 12px; background: #fff; color: #23483b; font: inherit; font-size: 13px; font-weight: 760; cursor: pointer; }
 .conversion-secondary-action:hover { border-color: #77aa92; background: #f5fbf8; }
 .ocr-status { margin: 9px 0 0; color: var(--public-muted); font-size: 12px; line-height: 1.4; }
+.ocr-settings-grid { display: grid; gap: 10px; }
+.ocr-settings-grid label { display: grid; gap: 6px; color: var(--public-muted); font-size: 12px; font-weight: 750; }
+.ocr-settings-grid select { box-sizing: border-box; width: 100%; min-height: 42px; padding: 0 34px 0 11px; border: 1px solid #d9e2dd; border-radius: 11px; background: #fff; color: var(--public-ink); font: inherit; }
+.ocr-settings-grid select:focus-visible { outline: 3px solid rgba(4,102,69,.18); outline-offset: 2px; border-color: #4d9477; }
+.ocr-quality-result { display: grid; gap: 3px; margin-top: 12px; padding: 12px 13px; border: 1px solid #b8dfc7; border-radius: 12px; background: #f1fbf5; color: #155f40; }
+.ocr-quality-result strong { font-size: 13px; }
+.ocr-quality-result span { font-size: 11px; line-height: 1.4; }
+.ocr-quality-result.needs-review { border-color: #f4c99a; background: #fff8ef; color: #8a4b0f; }
 .is-spinning { animation: conversion-spin .8s linear infinite; }
 @keyframes conversion-spin { to { transform: rotate(360deg); } }
 

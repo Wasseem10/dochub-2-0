@@ -109,6 +109,7 @@ import { detectedTextBaseline, resolveDetectedTextStyle, sampleDetectedTextBackg
 import { canSaveEditorSignature } from "./tools/editorSignature.js";
 import { duplicateEditorPageState, rotateEditorPageRecord } from "./tools/editorPageOrganizer.js";
 import { applyNativePdfFormAnnotation, createEditorExportDocument } from "./tools/pdfEditorPageExport.js";
+import { sanitizeReplacedPdfBytes } from "./tools/pdfExportSanitizer.js";
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
   "pdfjs-dist/build/pdf.worker.mjs",
@@ -600,6 +601,8 @@ async function renderPdfEditorPage(documentProxy, sourcePageIndex, outputPageInd
     id: makeId("page"),
     number: outputPageIndex + 1,
     originalIndex: sourcePageIndex,
+    pdfWidth: textViewport.width,
+    pdfHeight: textViewport.height,
     width: displayWidth,
     height: displayHeight,
     image: canvas.toDataURL("image/png"),
@@ -618,6 +621,26 @@ async function renderPdfEditorPage(documentProxy, sourcePageIndex, outputPageInd
     pageRecord,
     detectedItems,
     detectedFormFields: extractPdfFormAnnotations(pdfAnnotations, textViewport, outputPageIndex, makeId),
+  };
+}
+
+async function renderPdfPageForReplacement(documentProxy, sourcePageIndex) {
+  const page = await documentProxy.getPage(sourcePageIndex + 1);
+  const pageSize = page.getViewport({ scale: 1 });
+  const maxPixels = 12_000_000;
+  const scale = Math.max(1.5, Math.min(2.5, Math.sqrt(maxPixels / Math.max(1, pageSize.width * pageSize.height))));
+  const viewport = page.getViewport({ scale });
+  const canvas = window.document.createElement("canvas");
+  canvas.width = Math.ceil(viewport.width);
+  canvas.height = Math.ceil(viewport.height);
+  const context = canvas.getContext("2d", { alpha: false });
+  context.fillStyle = "#ffffff";
+  context.fillRect(0, 0, canvas.width, canvas.height);
+  await page.render({ canvasContext: context, viewport, background: "#ffffff" }).promise;
+  return {
+    image: canvas.toDataURL("image/png"),
+    pdfWidth: pageSize.width,
+    pdfHeight: pageSize.height,
   };
 }
 
@@ -3526,10 +3549,33 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     setIsExporting(true);
     try {
     await saveActiveDocument(true);
-    const { pdfDoc, nativeSourcePreserved } = await createEditorExportDocument({
+    const changedTextPageIndexes = new Set(
+      detectedTextItems
+        .filter((candidate) => candidate.isEdited || candidate.isDeleted)
+        .map((candidate) => candidate.pageNumber),
+    );
+    const rebuiltPages = new Map();
+    let exportDocumentProxy = pdfDocumentRef.current;
+    let destroyExportDocumentProxy = false;
+    if (changedTextPageIndexes.size && !exportDocumentProxy && pdfBytes) {
+      exportDocumentProxy = await pdfjsLib.getDocument({ data: pdfBytes.slice(0) }).promise;
+      destroyExportDocumentProxy = true;
+    }
+    try {
+      for (const changedPageIndex of changedTextPageIndexes) {
+        const pageRecord = pages[changedPageIndex];
+        if (!pageRecord || pageRecord.source !== "pdf" || !exportDocumentProxy) continue;
+        const sourcePageIndex = Number.isInteger(pageRecord.originalIndex) ? pageRecord.originalIndex : changedPageIndex;
+        rebuiltPages.set(changedPageIndex, await renderPdfPageForReplacement(exportDocumentProxy, sourcePageIndex));
+      }
+    } finally {
+      if (destroyExportDocumentProxy) await exportDocumentProxy?.destroy?.();
+    }
+    const { pdfDoc, nativeSourcePreserved, rebuiltPageIndexes } = await createEditorExportDocument({
       pdfBytes,
       pages,
       embedDataUrlImage,
+      rebuiltPages,
     });
 
     const helvetica = await pdfDoc.embedFont(StandardFonts.Helvetica);
@@ -3561,6 +3607,38 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     const pickPdfFont = (fontFamily = "", isBold = false, isItalic = false) => {
       return pdfFonts[standardPdfFontVariant(fontFamily, isBold, isItalic)] || helvetica;
     };
+
+    for (const item of detectedTextItems.filter((candidate) => (
+      rebuiltPageIndexes.has(candidate.pageNumber)
+      && !candidate.isEdited
+      && !candidate.isDeleted
+      && String(candidate.currentText || "").trim()
+    ))) {
+      const page = pdfDoc.getPages()[item.pageNumber];
+      if (!page) continue;
+      const { width, height } = page.getSize();
+      const pageRecord = pages[item.pageNumber] || {};
+      const pdfScale = width / (pageRecord.width || BASE_PAGE_WIDTH);
+      const boxHeight = item.h * height;
+      const fontSize = clamp((item.fontSize || 11) * pdfScale, 4, 54);
+      const font = pickPdfFont(item.fontFamily, item.bold, item.italic);
+      const baseline = detectedTextBaseline(item, height, boxHeight, fontSize);
+      try {
+        String(item.currentText || "").split("\n").forEach((line, index) => {
+          page.drawText(line, {
+            x: item.x * width + 1.5,
+            y: baseline - index * fontSize * 1.18,
+            size: fontSize,
+            font,
+            color: rgb(0, 0, 0),
+            opacity: 0,
+            rotate: degrees(Number(item.rotation || 0)),
+          });
+        });
+      } catch {
+        // The rasterized page still preserves glyphs that a standard PDF font cannot encode.
+      }
+    }
 
     for (const item of detectedTextItems.filter((candidate) => candidate.isEdited || candidate.isDeleted)) {
       const page = pdfDoc.getPages()[item.pageNumber];
@@ -3609,7 +3687,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       const { width, height } = page.getSize();
       const color = hexToRgb(annotation.color || colors.black);
 
-      if (nativeSourcePreserved && applyNativePdfFormAnnotation(pdfDoc, annotation)) {
+      if (nativeSourcePreserved && !rebuiltPageIndexes.has(annotation.page) && applyNativePdfFormAnnotation(pdfDoc, annotation)) {
         continue;
       }
 
@@ -3803,7 +3881,8 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     if (nativeSourcePreserved) {
       try { pdfDoc.getForm().updateFieldAppearances(helvetica); } catch { /* PDFs without compatible AcroForm fields need no update. */ }
     }
-    const bytes = await pdfDoc.save();
+    let bytes = await pdfDoc.save();
+    if (rebuiltPageIndexes.size) bytes = await sanitizeReplacedPdfBytes(bytes);
     const exported = {
       bytes,
       blob: new Blob([bytes], { type: "application/pdf" }),
@@ -3812,11 +3891,14 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     if (shouldDownload) downloadBlob(exported.blob, exported.name);
     setSaved(true);
     setSaveState("saved");
-    if (shouldShowResult) showToast(nativeSourcePreserved
+    if (shouldShowResult) showToast(rebuiltPageIndexes.size
+      ? "Exported with replaced text permanently removed from the PDF."
+      : nativeSourcePreserved
       ? "Exported edits while preserving the original PDF structure."
       : "Exported PDF with the updated page order and edits.");
     return exported;
-    } catch {
+    } catch (error) {
+      console.error("PDF export failed", error);
       showToast("Export failed. Try saving locally, then export again.");
       return null;
     } finally {

@@ -2,6 +2,12 @@ import { describe, expect, it } from "vitest";
 import { PDFDocument } from "pdf-lib";
 import { appendEditorPages, applyNativePdfFormAnnotation, canPreserveNativePdfDocument, createEditorExportDocument } from "../../src/tools/pdfEditorPageExport.js";
 
+const PNG_DATA_URL = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=";
+
+async function embedDataUrlImage(pdfDoc) {
+  return pdfDoc.embedPng(Buffer.from(PNG_DATA_URL.split(",")[1], "base64"));
+}
+
 describe("editor page export plan", () => {
   it("keeps the original document catalog when source pages remain in place", async () => {
     const source = await PDFDocument.create();
@@ -37,6 +43,31 @@ describe("editor page export plan", () => {
     });
     expect(result.nativeSourcePreserved).toBe(false);
     expect(result.pdfDoc.getPages()[0].getRotation().angle).toBe(90);
+  });
+
+  it("replaces only changed native pages while retaining metadata and untouched form pages", async () => {
+    const source = await PDFDocument.create();
+    source.setTitle("Replacement fidelity source");
+    source.addPage([612, 792]);
+    const formPage = source.addPage([500, 700]);
+    const name = source.getForm().createTextField("customer.name");
+    name.setText("Ada Lovelace");
+    name.addToPage(formPage, { x: 50, y: 600, width: 180, height: 24 });
+    const sourceBytes = await source.save();
+    const result = await createEditorExportDocument({
+      pdfBytes: sourceBytes,
+      pages: [
+        { source: "pdf", originalIndex: 0, rotation: 0 },
+        { source: "pdf", originalIndex: 1, rotation: 0 },
+      ],
+      rebuiltPages: new Map([[0, { image: PNG_DATA_URL, pdfWidth: 612, pdfHeight: 792 }]]),
+      embedDataUrlImage,
+    });
+    const reopened = await PDFDocument.load(await result.pdfDoc.save());
+    expect(Array.from(result.rebuiltPageIndexes)).toEqual([0]);
+    expect(reopened.getTitle()).toBe("Replacement fidelity source");
+    expect(reopened.getPageCount()).toBe(2);
+    expect(reopened.getForm().getTextField("customer.name").getText()).toBe("Ada Lovelace");
   });
 
   it("updates native AcroForm values instead of painting duplicate flattened fields", async () => {
