@@ -97,7 +97,12 @@ async function renderHtmlPages(iframe, setProgress) {
   const documentNode = iframe?.contentDocument;
   const root = documentNode?.body;
   if (!root) throw new Error("The safe HTML preview is not ready yet.");
-  await documentNode.fonts?.ready;
+  if (documentNode.fonts?.ready) {
+    await Promise.race([
+      documentNode.fonts.ready,
+      new Promise((resolve) => window.setTimeout(resolve, 1200)),
+    ]);
+  }
   const contentHeight = Math.max(1056, documentNode.documentElement.scrollHeight, root.scrollHeight);
   iframe.style.height = `${contentHeight}px`;
   await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
