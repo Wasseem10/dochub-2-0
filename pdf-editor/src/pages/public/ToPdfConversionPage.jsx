@@ -85,12 +85,61 @@ function collectTextItems(root) {
       range.setStart(node, match.index);
       range.setEnd(node, match.index + match[0].length);
       const rect = range.getBoundingClientRect();
-      if (rect.width > 0 && rect.height > 0) result.push({ text: match[0], left: rect.left - rootBounds.left, top: rect.top - rootBounds.top, width: rect.width, height: rect.height });
+      const style = root.ownerDocument.defaultView.getComputedStyle(node.parentElement);
+      if (rect.width > 0 && rect.height > 0 && style.visibility !== "hidden" && style.display !== "none") result.push({
+        text: match[0],
+        left: rect.left - rootBounds.left,
+        top: rect.top - rootBounds.top,
+        width: rect.width,
+        height: rect.height,
+        color: style.color,
+        fontFamily: style.fontFamily,
+        fontSize: Number.parseFloat(style.fontSize) || rect.height,
+        fontWeight: style.fontWeight,
+        fontStyle: style.fontStyle,
+      });
       range.detach();
     }
     node = walker.nextNode();
   }
   return { width: Math.max(1, rootBounds.width), items: result };
+}
+
+function drawHtmlSnapshot(root, contentHeight, scale) {
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.round(816 * scale);
+  canvas.height = Math.round(contentHeight * scale);
+  const context = canvas.getContext("2d");
+  context.scale(scale, scale);
+  context.fillStyle = "#ffffff";
+  context.fillRect(0, 0, 816, contentHeight);
+  const rootBounds = root.getBoundingClientRect();
+  root.querySelectorAll("*").forEach((element) => {
+    const style = root.ownerDocument.defaultView.getComputedStyle(element);
+    if (style.display === "none" || style.visibility === "hidden") return;
+    const rect = element.getBoundingClientRect();
+    const x = rect.left - rootBounds.left;
+    const y = rect.top - rootBounds.top;
+    if (rect.width <= 0 || rect.height <= 0 || y > contentHeight || y + rect.height < 0) return;
+    if (style.backgroundColor && style.backgroundColor !== "transparent" && !style.backgroundColor.endsWith(", 0)")) {
+      context.fillStyle = style.backgroundColor;
+      context.fillRect(x, y, rect.width, rect.height);
+    }
+    const borderWidth = Number.parseFloat(style.borderTopWidth) || 0;
+    if (borderWidth > 0 && style.borderTopStyle !== "none") {
+      context.strokeStyle = style.borderTopColor || "#000000";
+      context.lineWidth = borderWidth;
+      context.strokeRect(x, y, rect.width, rect.height);
+    }
+  });
+  const text = collectTextItems(root);
+  text.items.forEach((item) => {
+    context.fillStyle = item.color || "#111827";
+    context.font = `${item.fontStyle || "normal"} ${item.fontWeight || "400"} ${item.fontSize}px ${item.fontFamily || "sans-serif"}`;
+    context.textBaseline = "alphabetic";
+    context.fillText(item.text, item.left, item.top + Math.min(item.height, item.fontSize * 0.92));
+  });
+  return { canvas, text };
 }
 
 async function renderHtmlPages(iframe, setProgress) {
@@ -106,12 +155,11 @@ async function renderHtmlPages(iframe, setProgress) {
   const contentHeight = Math.max(1056, documentNode.documentElement.scrollHeight, root.scrollHeight);
   iframe.style.height = `${contentHeight}px`;
   await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-  const html2canvas = (await import("html2canvas")).default;
   const scale = 1.25;
-  const canvas = await html2canvas(root, { scale, backgroundColor: "#ffffff", useCORS: false, allowTaint: false, logging: false, width: 816, height: contentHeight, windowWidth: 816, windowHeight: contentHeight });
   const pageHeightCss = 1056;
+  if (contentHeight > pageHeightCss * 50) throw new Error("HTML conversion supports up to 50 rendered pages.");
+  const { canvas, text } = drawHtmlSnapshot(root, contentHeight, scale);
   const pageHeightPixels = Math.round(pageHeightCss * scale);
-  const text = collectTextItems(root);
   const pageCount = Math.ceil(contentHeight / pageHeightCss);
   const pages = [];
   for (let index = 0; index < pageCount; index += 1) {

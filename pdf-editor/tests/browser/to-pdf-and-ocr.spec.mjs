@@ -35,6 +35,10 @@ test("Excel, PowerPoint, and HTML each produce a valid PDF download", async ({ p
   const htmlResult = await downloadConversion(page, "/html-to-pdf", { name: "invoice.html", mimeType: "text/html", buffer: html });
   expect(htmlResult.download.suggestedFilename()).toBe("invoice.pdf");
   expect((await PDFDocument.load(htmlResult.bytes)).getPageCount()).toBe(1);
+  const renderedHtmlPdf = await pdfjsLib.getDocument({ data: htmlResult.bytes.slice(0), disableWorker: true, verbosity: 0 }).promise;
+  const htmlText = (await (await renderedHtmlPdf.getPage(1)).getTextContent()).items.map((item) => item.str).join(" ");
+  expect(htmlText).toContain("Local");
+  expect(htmlText).toContain("42,000");
 });
 
 test("OCR recognizes a scanned page and downloads a searchable PDF", async ({ page }, testInfo) => {
