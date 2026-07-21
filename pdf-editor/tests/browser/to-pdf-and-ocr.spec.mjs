@@ -53,7 +53,7 @@ test("OCR recognizes a scanned page and downloads a searchable PDF", async ({ pa
   await expect(page.getByLabel("Page orientation")).toHaveValue("auto");
   const result = await downloadConversion(page, "/ocr-pdf", { name: "scan.pdf", mimeType: "application/pdf", buffer: Buffer.from(await source.save()) }, "Run OCR and download PDF");
   expect(result.download.suggestedFilename()).toBe("scan-searchable.pdf");
-  await expect(page.getByText(/confidence/)).toBeVisible();
+  await expect(page.locator(".ocr-quality-result strong")).toContainText(/confidence/);
   await result.download.saveAs(testInfo.outputPath("ocr-searchable.pdf"));
   const documentProxy = await pdfjsLib.getDocument({ data: result.bytes.slice(0), disableWorker: true, verbosity: 0 }).promise;
   const text = (await (await documentProxy.getPage(1)).getTextContent()).items.map((item) => item.str).join(" ");
