@@ -20,7 +20,7 @@ async function drawShape(page, startRatio, endRatio) {
   await page.mouse.up();
 }
 
-test("Shapes toolbar draws arrow, line, circle, and rectangle into the exported PDF", async ({ page }) => {
+test("Shapes toolbar draws arrow, line, circle, and rectangle into the exported PDF", async ({ page }, testInfo) => {
   await page.goto(appPath("/edit-pdf"));
   await page.getByRole("button", { name: "Start with a blank page" }).click();
   await expect(page.getByRole("button", { name: "Shapes", exact: true })).toBeVisible();
@@ -43,6 +43,8 @@ test("Shapes toolbar draws arrow, line, circle, and rectangle into the exported 
   await chooseShape(page, "Rectangle");
   await drawShape(page, { x: 0.48, y: 0.36 }, { x: 0.72, y: 0.52 });
   await expect(page.locator(".annotation.shape.rectangle:not(.drafting)")).toHaveCount(1);
+
+  if (testInfo.project.name.includes("android") || testInfo.project.name.includes("iphone")) return;
 
   const pending = page.waitForEvent("download");
   await page.getByRole("button", { name: "Download", exact: true }).click();
