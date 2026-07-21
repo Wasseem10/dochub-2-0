@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { analyticsRangeStart, createDailyAnalyticsSeries, filterAnalyticsEvents, groupAnalyticsProperty, summarizeAnalyticsEvents } from "../../src/analytics/analyticsMetrics.js";
+import { priorityOneToolCoverage } from "../../config/priority-one-quality.mjs";
+import { analyticsRangeStart, createDailyAnalyticsSeries, createToolQualityScorecard, filterAnalyticsEvents, groupAnalyticsProperty, PRIORITY_ONE_TOOL_IDS, summarizeAnalyticsEvents } from "../../src/analytics/analyticsMetrics.js";
 
 const now = new Date("2026-07-20T12:00:00.000Z");
 
@@ -48,5 +49,36 @@ describe("owner analytics metrics", () => {
     const series = createDailyAnalyticsSeries(recent, 2, now);
     expect(series.map((day) => day.events)).toEqual([2, 7]);
     expect(series.map((day) => day.users)).toEqual([1, 3]);
+  });
+
+  it("builds per-tool success, conversion, timing, and device metrics", () => {
+    const qualityEvents = [
+      { name: "upload_started", properties: { toolId: "merge-pdf" } },
+      { name: "upload_validation_failed", properties: { toolId: "merge-pdf", errorCategory: "invalid_pdf" } },
+      { name: "upload_started", properties: { toolId: "merge-pdf" } },
+      { name: "export_started", properties: { toolId: "merge-pdf" } },
+      { name: "export_started", properties: { toolId: "merge-pdf" } },
+      { name: "export_succeeded", properties: { toolId: "merge-pdf", durationMs: 800 } },
+      { name: "export_failed", properties: { toolId: "merge-pdf", deviceClass: "mobile" } },
+      { name: "pdf_downloaded", properties: { toolId: "merge-pdf" } },
+    ];
+    expect(createToolQualityScorecard(qualityEvents, ["merge-pdf"])).toEqual([{
+      toolId: "merge-pdf",
+      uploads: 2,
+      validationFailures: 1,
+      attempts: 2,
+      successes: 1,
+      failures: 1,
+      downloads: 1,
+      successRate: 50,
+      uploadToDownloadRate: 50,
+      medianDurationMs: 800,
+      p95DurationMs: 800,
+      failedByDevice: { desktop: 0, mobile: 1, unknown: 0 },
+    }]);
+  });
+
+  it("keeps the production scorecard aligned with the release-gate manifest", () => {
+    expect(priorityOneToolCoverage.map(({ toolId }) => toolId)).toEqual(PRIORITY_ONE_TOOL_IDS);
   });
 });

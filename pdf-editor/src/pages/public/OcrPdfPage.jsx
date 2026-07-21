@@ -5,7 +5,7 @@ import FileSearch from "lucide-react/dist/esm/icons/file-search.mjs";
 import LoaderCircle from "lucide-react/dist/esm/icons/loader-circle.mjs";
 import Upload from "lucide-react/dist/esm/icons/upload.mjs";
 import { Link } from "react-router-dom";
-import { trackProductEvent } from "../../analytics/productAnalytics.js";
+import { beginToolOperation, pageCountBucket, trackProductEvent, trackToolUpload, trackUploadValidationFailure } from "../../analytics/productAnalytics.js";
 import { PageMetadata } from "../../components/public/PageMetadata.jsx";
 import { ToolGuideContent } from "../../components/public/ToolGuideContent.jsx";
 import { ROUTE_PATHS } from "../../router/routePaths.js";
@@ -67,6 +67,7 @@ function downloadBytes(bytes, type, name, toolId) {
   anchor.href = url;
   anchor.download = name;
   anchor.click();
+  trackProductEvent("result_downloaded", { toolId });
   if (type === "application/pdf") trackProductEvent("pdf_downloaded", { toolId });
   window.setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
@@ -88,16 +89,18 @@ export function OcrPdfPage({ tool }) {
 
   const loadFile = async (nextFile) => {
     const validationError = validateOcrPdf(nextFile);
-    if (validationError) { setError(validationError); return; }
+    if (validationError) { trackUploadValidationFailure(tool.id, "invalid_pdf"); setError(validationError); return; }
     setStatus("reading"); setError(""); setResult(null);
     try {
       const bytes = new Uint8Array(await nextFile.arrayBuffer());
       const pdfjs = await loadPdfRenderer();
       const documentProxy = await pdfjs.getDocument({ data: bytes.slice(0) }).promise;
       if (documentProxy.numPages > OCR_PDF_LIMITS.maxPages) throw new Error(`OCR supports up to ${OCR_PDF_LIMITS.maxPages} pages per PDF.`);
+      trackToolUpload(tool.id, nextFile, { pageCount: documentProxy.numPages });
       setFile(nextFile); setSourceBytes(bytes); setPageCount(documentProxy.numPages); setStatus("idle");
       await documentProxy.destroy?.();
     } catch (loadError) {
+      trackUploadValidationFailure(tool.id, "invalid_pdf");
       setFile(null); setSourceBytes(null); setPageCount(0); setStatus("idle");
       setError(loadError.message || "This PDF could not be opened.");
     }
@@ -107,6 +110,7 @@ export function OcrPdfPage({ tool }) {
     if (!file || !sourceBytes) return;
     if (!isSupportedOcrLanguage(language)) { setError("Choose a supported OCR language."); return; }
     setStatus("processing"); setStatusText("Loading the OCR engine…"); setProgress(1); setError(""); setResult(null);
+    const operation = beginToolOperation(tool.id, { operation: `ocr_${language}`, slowAfterMs: 30000 });
     let worker;
     try {
       const [{ createWorker }, pdfjs] = await Promise.all([import("tesseract.js"), loadPdfRenderer()]);
@@ -155,7 +159,9 @@ export function OcrPdfPage({ tool }) {
       const confidence = summarizeOcrConfidence(pages);
       setResult({ pdfBytes, text, baseName, confidence }); setProgress(100); setStatus("complete");
       downloadBytes(pdfBytes, "application/pdf", `${baseName}-searchable.pdf`, tool.id);
+      operation.succeed({ result: confidence.rating, pageCountBucket: pageCountBucket(pages.length) });
     } catch (ocrError) {
+      operation.fail("ocr_failed");
       setStatus("idle"); setError(ocrError.message || "Text recognition could not be completed.");
     } finally {
       await worker?.terminate();

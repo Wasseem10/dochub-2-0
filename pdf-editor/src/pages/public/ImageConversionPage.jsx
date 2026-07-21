@@ -15,7 +15,7 @@ import { ROUTE_PATHS } from "../../router/routePaths.js";
 import { createPdfFromImages, createStoredZip, IMAGE_CONVERSION_LIMITS, isSupportedImageType } from "../../tools/imageConversion.js";
 import { toolSeoSchemas } from "../../tools/toolSeoSchemas.js";
 import { ExportSuccessState } from "../../components/public/ExportSuccessState.jsx";
-import { trackProductEvent } from "../../analytics/productAnalytics.js";
+import { beginToolOperation, pageCountBucket, trackProductEvent, trackToolUpload, trackUploadValidationFailure } from "../../analytics/productAnalytics.js";
 
 async function loadPdfRenderer() {
   const pdfjsLib = await import("pdfjs-dist");
@@ -33,8 +33,10 @@ function downloadBytes(bytes, type, name) {
   anchor.href = url;
   anchor.download = name;
   anchor.click();
+  const toolId = window.location.pathname.split("/").filter(Boolean).at(-1) || "image-conversion";
+  trackProductEvent("result_downloaded", { toolId });
   if (String(name).toLowerCase().endsWith(".pdf")) {
-    trackProductEvent("pdf_downloaded", { toolId: window.location.pathname.split("/").filter(Boolean).at(-1) || "image-conversion" });
+    trackProductEvent("pdf_downloaded", { toolId });
   }
   window.setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
@@ -66,7 +68,7 @@ function formatBytes(bytes) {
 function getFriendlyPdfError(error) {
   const message = String(error?.message || "").toLowerCase();
   if (error?.name === "PasswordException" || message.includes("password")) return "This PDF is encrypted. Remove its password with an authorized tool, then try again.";
-  if (message.includes("invalid pdf") || message.includes("missing pdf")) return "This PDF appears corrupted or incomplete. Try downloading a fresh copy.";
+  if (message.includes("invalid pdf") || message.includes("missing pdf") || message.includes("no pdf header") || message.includes("parse pdf")) return "This PDF appears corrupted or incomplete. Try downloading a fresh copy.";
   return "FixThatPDF could not read this PDF. Try a valid, unencrypted file under 50 MB.";
 }
 
@@ -108,16 +110,19 @@ function ImagesToPdfWorkspace({ tool }) {
     setError("");
     if (!files.length) return;
     if (images.length + files.length > IMAGE_CONVERSION_LIMITS.maxImageCount) {
+      trackUploadValidationFailure(tool.id, "too_many_files");
       setError(`Choose no more than ${IMAGE_CONVERSION_LIMITS.maxImageCount} images at once.`);
       return;
     }
     const expectedType = acceptsPng ? "image/png" : "image/jpeg";
     const invalid = files.find((file) => !isSupportedImageType(file.type, file.name) || (acceptsPng ? file.type !== "image/png" && !file.name.toLowerCase().endsWith(".png") : file.type === "image/png" || file.name.toLowerCase().endsWith(".png")));
     if (invalid) {
+      trackUploadValidationFailure(tool.id, "wrong_file_type");
       setError(`${tool.name} accepts ${acceptsPng ? "PNG" : "JPG"} images. ${invalid.name} is not supported here.`);
       return;
     }
     if (files.some((file) => file.size > IMAGE_CONVERSION_LIMITS.maxInputBytes)) {
+      trackUploadValidationFailure(tool.id, "file_too_large");
       setError("Each image must be under 50 MB.");
       return;
     }
@@ -127,11 +132,13 @@ function ImagesToPdfWorkspace({ tool }) {
         const previewUrl = URL.createObjectURL(file);
         previewUrlsRef.current.push(previewUrl);
         const dimensions = await readImageDimensions(previewUrl);
+        trackToolUpload(tool.id, file);
         return { id: makeId("image"), name: file.name, size: file.size, mimeType: expectedType, bytes: new Uint8Array(await file.arrayBuffer()), previewUrl, ...dimensions };
       }));
       setImages((current) => [...current, ...records]);
       setStatus("idle");
     } catch (uploadError) {
+      trackUploadValidationFailure(tool.id, "invalid_image");
       setStatus("idle");
       setError(uploadError.message || "One of these images could not be read.");
     }
@@ -156,11 +163,14 @@ function ImagesToPdfWorkspace({ tool }) {
   const exportPdf = async () => {
     setStatus("converting");
     setError("");
+    const operation = beginToolOperation(tool.id, { operation: "convert" });
     try {
       const bytes = await createPdfFromImages(images, { pageSize, orientation, margin, title: `${tool.name} conversion` });
       downloadBytes(bytes, "application/pdf", `${acceptsPng ? "png" : "jpg"}-images.pdf`);
+      operation.succeed({ pageCountBucket: pageCountBucket(images.length) });
       setStatus("complete");
     } catch (conversionError) {
+      operation.fail("conversion_failed");
       setStatus("idle");
       setError(conversionError.message || "The PDF could not be created.");
     }
@@ -224,10 +234,12 @@ function PdfToImagesWorkspace({ tool }) {
     if (!file) return;
     setError("");
     if (file.type !== "application/pdf" && !file.name.toLowerCase().endsWith(".pdf")) {
+      trackUploadValidationFailure(tool.id, "wrong_file_type");
       setError("Choose a PDF file.");
       return;
     }
     if (file.size > IMAGE_CONVERSION_LIMITS.maxInputBytes) {
+      trackUploadValidationFailure(tool.id, "file_too_large");
       setError("PDFs must be under 50 MB for this browser conversion workflow.");
       return;
     }
@@ -240,6 +252,7 @@ function PdfToImagesWorkspace({ tool }) {
       const pdfjsLib = await loadPdfRenderer();
       const documentProxy = await pdfjsLib.getDocument({ data: buffer.slice(0) }).promise;
       if (documentProxy.numPages > IMAGE_CONVERSION_LIMITS.maxPdfPages) throw new Error(`This PDF has ${documentProxy.numPages} pages. The current limit is ${IMAGE_CONVERSION_LIMITS.maxPdfPages}.`);
+      trackToolUpload(tool.id, file, { pageCount: documentProxy.numPages });
       const pageRecords = [];
       for (let pageNumber = 1; pageNumber <= documentProxy.numPages; pageNumber += 1) {
         const page = await documentProxy.getPage(pageNumber);
@@ -261,6 +274,7 @@ function PdfToImagesWorkspace({ tool }) {
       setSelectedPages(new Set(pageRecords.map((page) => page.pageNumber)));
       setStatus("idle");
     } catch (pdfError) {
+      trackUploadValidationFailure(tool.id, "invalid_pdf");
       setStatus("idle");
       setPdfDocument(null);
       setPages([]);
@@ -279,6 +293,7 @@ function PdfToImagesWorkspace({ tool }) {
     setStatus("converting");
     setError("");
     setProgress(0);
+    const operation = beginToolOperation(tool.id, { operation: `convert_${outputPng ? "png" : "jpg"}` });
     try {
       const chosen = [...selectedPages].sort((a, b) => a - b);
       const outputFiles = [];
@@ -303,8 +318,10 @@ function PdfToImagesWorkspace({ tool }) {
       const baseName = pdfFile.name.replace(/\.pdf$/i, "") || "realpdf-pages";
       if (outputFiles.length === 1) downloadBytes(outputFiles[0].data, outputPng ? "image/png" : "image/jpeg", `${baseName}-${outputFiles[0].name}`);
       else downloadBytes(createStoredZip(outputFiles), "application/zip", `${baseName}-${outputPng ? "png" : "jpg"}.zip`);
+      operation.succeed({ pageCountBucket: pageCountBucket(chosen.length) });
       setStatus("complete");
     } catch (conversionError) {
+      operation.fail("conversion_failed");
       setStatus("idle");
       setError(conversionError.message || "The selected pages could not be converted.");
     }

@@ -22,7 +22,7 @@ import { cropPdfPages } from "../../tools/pdfCrop.js";
 import { addPageNumbersToPdf, buildPdfFromPagePlan, extractPdfPages, inspectPdfBytes, mergePdfDocuments, PAGE_TOOL_LIMITS, parsePageRanges, splitPdfByRanges } from "../../tools/pdfPageOperations.js";
 import { addWatermarkToPdf } from "../../tools/pdfWatermark.js";
 import { ExportSuccessState } from "../../components/public/ExportSuccessState.jsx";
-import { trackProductEvent } from "../../analytics/productAnalytics.js";
+import { beginToolOperation, pageCountBucket, trackProductEvent, trackToolUpload, trackUploadValidationFailure } from "../../analytics/productAnalytics.js";
 import { toolSeoSchemas } from "../../tools/toolSeoSchemas.js";
 
 async function loadPdfRenderer() {
@@ -46,14 +46,16 @@ function downloadBytes(bytes, type, name) {
   anchor.href = url;
   anchor.download = name;
   anchor.click();
-  trackProductEvent("pdf_downloaded", { toolId: window.location.pathname.split("/").filter(Boolean).at(-1) || "pdf-page-tool" });
+  const toolId = window.location.pathname.split("/").filter(Boolean).at(-1) || "pdf-page-tool";
+  trackProductEvent("result_downloaded", { toolId });
+  if (type === "application/pdf") trackProductEvent("pdf_downloaded", { toolId });
   window.setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 function friendlyPdfError(error) {
   const message = String(error?.message || "").toLowerCase();
   if (error?.name === "PasswordException" || message.includes("encrypted") || message.includes("password")) return "This PDF is encrypted. Use an authorized password-removal workflow before organizing it.";
-  if (message.includes("invalid pdf") || message.includes("missing pdf")) return "This PDF appears corrupted or incomplete. Try downloading a fresh copy.";
+  if (message.includes("invalid pdf") || message.includes("missing pdf") || message.includes("no pdf header") || message.includes("parse pdf")) return "This PDF appears corrupted or incomplete. Try downloading a fresh copy.";
   return error?.message || "FixThatPDF could not read this PDF. Try a valid, unencrypted file under 50 MB.";
 }
 
@@ -77,9 +79,9 @@ function MergeWorkspace({ tool }) {
     const incoming = Array.from(fileList || []);
     if (!incoming.length) return;
     setError("");
-    if (files.length + incoming.length > PAGE_TOOL_LIMITS.maxFiles) return setError(`Merge no more than ${PAGE_TOOL_LIMITS.maxFiles} PDFs at once.`);
-    if (incoming.some((file) => file.size > PAGE_TOOL_LIMITS.maxFileBytes)) return setError("Each PDF must be under 50 MB.");
-    if (incoming.some((file) => file.type !== "application/pdf" && !file.name.toLowerCase().endsWith(".pdf"))) return setError("Only PDF files can be merged.");
+    if (files.length + incoming.length > PAGE_TOOL_LIMITS.maxFiles) { trackUploadValidationFailure(tool.id, "too_many_files"); return setError(`Merge no more than ${PAGE_TOOL_LIMITS.maxFiles} PDFs at once.`); }
+    if (incoming.some((file) => file.size > PAGE_TOOL_LIMITS.maxFileBytes)) { trackUploadValidationFailure(tool.id, "file_too_large"); return setError("Each PDF must be under 50 MB."); }
+    if (incoming.some((file) => file.type !== "application/pdf" && !file.name.toLowerCase().endsWith(".pdf"))) { trackUploadValidationFailure(tool.id, "wrong_file_type"); return setError("Only PDF files can be merged."); }
     setStatus("reading");
     try {
       const records = [];
@@ -87,10 +89,12 @@ function MergeWorkspace({ tool }) {
         const bytes = new Uint8Array(await file.arrayBuffer());
         const details = await inspectPdfBytes(bytes);
         if (details.pageCount > PAGE_TOOL_LIMITS.maxPages) throw new Error(`${file.name} exceeds the ${PAGE_TOOL_LIMITS.maxPages}-page limit.`);
+        trackToolUpload(tool.id, file, { pageCount: details.pageCount });
         records.push({ id: makeId("merge-file"), name: file.name, size: file.size, bytes, pageCount: details.pageCount });
       }
       setFiles((current) => [...current, ...records]);
     } catch (readError) {
+      trackUploadValidationFailure(tool.id, "invalid_pdf");
       setError(friendlyPdfError(readError));
     } finally {
       setStatus("idle");
@@ -104,11 +108,13 @@ function MergeWorkspace({ tool }) {
 
   const merge = async () => {
     setStatus("working"); setError("");
+    const operation = beginToolOperation(tool.id, { operation: "merge" });
     try {
       const bytes = await mergePdfDocuments(files);
       downloadBytes(bytes, "application/pdf", "merged-realpdf.pdf");
+      operation.succeed({ pageCountBucket: pageCountBucket(files.reduce((sum, file) => sum + file.pageCount, 0)) });
       setStatus("complete");
-    } catch (mergeError) { setError(friendlyPdfError(mergeError)); setStatus("idle"); }
+    } catch (mergeError) { operation.fail("pdf_processing"); setError(friendlyPdfError(mergeError)); setStatus("idle"); }
   };
 
   return <div className="conversion-workspace-grid"><section><PdfDropzone multiple label="Drop PDFs to merge" onFiles={addFiles} disabled={status === "working"} />{error && <div className="conversion-error" role="alert">{error}</div>}{files.length > 0 && <div className="merge-file-list">{files.map((file, index) => <article key={file.id} draggable className={draggedIndex === index ? "is-dragging" : ""} onDragStart={() => setDraggedIndex(index)} onDragOver={(event) => event.preventDefault()} onDrop={() => { if (draggedIndex !== null) move(draggedIndex, index); setDraggedIndex(null); }} onDragEnd={() => setDraggedIndex(null)}><GripVertical size={18} /><span>{index + 1}</span><div><strong>{file.name}</strong><small>{file.pageCount} page{file.pageCount === 1 ? "" : "s"} · {formatBytes(file.size)}</small></div><button type="button" onClick={() => move(index, index - 1)} disabled={!index} aria-label={`Move ${file.name} up`}><ArrowUp size={16} /></button><button type="button" onClick={() => move(index, index + 1)} disabled={index === files.length - 1} aria-label={`Move ${file.name} down`}><ArrowDown size={16} /></button><button type="button" onClick={() => setFiles((current) => current.filter((item) => item.id !== file.id))} aria-label={`Remove ${file.name}`}><Trash2 size={16} /></button></article>)}</div>}</section><aside className="conversion-settings-card"><span>Merge order</span><h2>Combine complete PDFs</h2><p className="page-tool-help">Drag files into order. Pages inside each PDF retain their native text, vectors, dimensions, and rotation.</p><div className="conversion-summary"><Check size={18} /><span>{files.length >= 2 ? `${files.length} PDFs ready · ${files.reduce((sum, file) => sum + file.pageCount, 0)} pages` : "Add at least two PDFs"}</span></div><button className="conversion-primary-action" type="button" disabled={files.length < 2 || status === "working"} onClick={merge}>{status === "working" ? <><LoaderCircle className="is-spinning" size={18} /> Merging...</> : <><Download size={18} /> Download merged PDF</>}</button>{status === "complete" && <ExportSuccessState toolId={tool.id} onDownloadAgain={merge} onStartAnother={() => { setFiles([]); setStatus("idle"); }} relatedRoute="/split-pdf" relatedName="Split PDF" />}</aside></div>;
@@ -128,8 +134,8 @@ function PageNumberWorkspace({ tool }) {
     const nextFile = Array.from(fileList || [])[0];
     if (!nextFile) return;
     setError("");
-    if (nextFile.type !== "application/pdf" && !nextFile.name.toLowerCase().endsWith(".pdf")) return setError("Choose a PDF file.");
-    if (nextFile.size > PAGE_TOOL_LIMITS.maxFileBytes) return setError("PDFs must be under 50 MB.");
+    if (nextFile.type !== "application/pdf" && !nextFile.name.toLowerCase().endsWith(".pdf")) { trackUploadValidationFailure(tool.id, "wrong_file_type"); return setError("Choose a PDF file."); }
+    if (nextFile.size > PAGE_TOOL_LIMITS.maxFileBytes) { trackUploadValidationFailure(tool.id, "file_too_large"); return setError("PDFs must be under 50 MB."); }
     setStatus("reading");
     try {
       const nextBytes = new Uint8Array(await nextFile.arrayBuffer());
@@ -319,21 +325,23 @@ function CompressWorkspace({ tool }) {
     const nextFile = Array.from(fileList || [])[0];
     if (!nextFile) return;
     setError(""); setResultSize(0);
-    if (nextFile.type !== "application/pdf" && !nextFile.name.toLowerCase().endsWith(".pdf")) return setError("Choose a PDF file.");
-    if (nextFile.size > PAGE_TOOL_LIMITS.maxFileBytes) return setError("PDFs must be under 50 MB.");
+    if (nextFile.type !== "application/pdf" && !nextFile.name.toLowerCase().endsWith(".pdf")) { trackUploadValidationFailure(tool.id, "wrong_file_type"); return setError("Choose a PDF file."); }
+    if (nextFile.size > PAGE_TOOL_LIMITS.maxFileBytes) { trackUploadValidationFailure(tool.id, "file_too_large"); return setError("PDFs must be under 50 MB."); }
     setStatus("reading");
     try {
       const bytes = new Uint8Array(await nextFile.arrayBuffer());
       const details = await inspectPdfBytes(bytes);
       if (details.pageCount > PAGE_TOOL_LIMITS.maxPages) throw new Error(`This PDF has ${details.pageCount} pages. The limit is ${PAGE_TOOL_LIMITS.maxPages}.`);
+      trackToolUpload(tool.id, nextFile, { pageCount: details.pageCount });
       setFile(nextFile); setSourceBytes(bytes); setPageCount(details.pageCount);
-    } catch (loadError) { setFile(null); setSourceBytes(null); setPageCount(0); setError(friendlyPdfError(loadError)); }
+    } catch (loadError) { trackUploadValidationFailure(tool.id, "invalid_pdf"); setFile(null); setSourceBytes(null); setPageCount(0); setError(friendlyPdfError(loadError)); }
     finally { setStatus("idle"); }
   };
 
   const compressPdf = async () => {
     if (!sourceBytes || !file) return;
     setStatus("working"); setProgress(0); setError(""); setResultSize(0);
+    const operation = beginToolOperation(tool.id, { operation: "compress", slowAfterMs: 15000 });
     try {
       const config = options[preset];
       const pdfjsLib = await loadPdfRenderer();
@@ -356,8 +364,9 @@ function CompressWorkspace({ tool }) {
       const output = await createCompressedPdfFromJpegs(pages);
       if (output.length >= sourceBytes.length) throw new Error("These settings did not make the PDF smaller. Choose Strong compression or keep the original PDF.");
       downloadBytes(output, "application/pdf", `${file.name.replace(/\.pdf$/i, "") || "document"}-compressed.pdf`);
+      operation.succeed({ result: preset, pageCountBucket: pageCountBucket(pageCount) });
       setResultSize(output.length); setStatus("complete");
-    } catch (compressionError) { setError(friendlyPdfError(compressionError)); setStatus("idle"); }
+    } catch (compressionError) { operation.fail("pdf_processing", { result: preset }); setError(friendlyPdfError(compressionError)); setStatus("idle"); }
   };
 
   return <div className="conversion-workspace-grid"><section><PdfDropzone multiple={false} label="Drop a PDF to compress" onFiles={loadPdf} disabled={status === "reading" || status === "working"} />{status === "reading" && <div className="conversion-progress"><LoaderCircle className="is-spinning" size={18} /> Reading PDF...</div>}{status === "working" && <div className="conversion-progress"><LoaderCircle className="is-spinning" size={18} /> Compressing pages... {progress}%</div>}{error && <div className="conversion-error" role="alert">{error}</div>}{file && <article className="page-number-file-card"><strong>{file.name}</strong><small>{pageCount} page{pageCount === 1 ? "" : "s"} · {formatBytes(file.size)}</small></article>}</section><aside className="conversion-settings-card"><span>Compression settings</span><h2>Make image-heavy PDFs lighter</h2><p className="page-tool-help">This privacy-first workflow runs locally. It creates a smaller visual PDF by flattening pages to JPEG images, so searchable text, links, forms, and layers are not retained.</p><label>Compression level<select value={preset} onChange={(event) => setPreset(event.target.value)}>{Object.entries(options).map(([key, option]) => <option key={key} value={key}>{option.label}</option>)}</select></label><div className="conversion-summary"><Check size={18} /><span>{!file ? "Upload a PDF to continue" : resultSize ? `${formatBytes(file.size)} → ${formatBytes(resultSize)}` : `${pageCount} page${pageCount === 1 ? "" : "s"} ready`}</span></div><button className="conversion-primary-action" type="button" disabled={!file || status === "working" || status === "reading"} onClick={compressPdf}>{status === "working" ? <><LoaderCircle className="is-spinning" size={18} /> Compressing...</> : <><Download size={18} /> Download compressed PDF</>}</button>{status === "complete" && <ExportSuccessState toolId={tool.id} onDownloadAgain={compressPdf} onStartAnother={() => { setFile(null); setSourceBytes(null); setPageCount(0); setResultSize(0); setStatus("idle"); }} relatedRoute="/organize-pdf" relatedName="Organize PDF" />}</aside></div>;
@@ -385,8 +394,8 @@ function SinglePdfWorkspace({ tool }) {
     const nextFile = Array.from(fileList || [])[0];
     if (!nextFile) return;
     setError("");
-    if (nextFile.type !== "application/pdf" && !nextFile.name.toLowerCase().endsWith(".pdf")) return setError("Choose a PDF file.");
-    if (nextFile.size > PAGE_TOOL_LIMITS.maxFileBytes) return setError("PDFs must be under 50 MB.");
+    if (nextFile.type !== "application/pdf" && !nextFile.name.toLowerCase().endsWith(".pdf")) { trackUploadValidationFailure(tool.id, "wrong_file_type"); return setError("Choose a PDF file."); }
+    if (nextFile.size > PAGE_TOOL_LIMITS.maxFileBytes) { trackUploadValidationFailure(tool.id, "file_too_large"); return setError("PDFs must be under 50 MB."); }
     setStatus("reading"); setProgress(0);
     try {
       previewUrlsRef.current.forEach((url) => URL.revokeObjectURL(url)); previewUrlsRef.current = [];
@@ -394,6 +403,7 @@ function SinglePdfWorkspace({ tool }) {
       const pdfjsLib = await loadPdfRenderer();
       const pdf = await pdfjsLib.getDocument({ data: bytes.slice(0) }).promise;
       if (pdf.numPages > PAGE_TOOL_LIMITS.maxPages) throw new Error(`This PDF has ${pdf.numPages} pages. The limit is ${PAGE_TOOL_LIMITS.maxPages}.`);
+      trackToolUpload(tool.id, nextFile, { pageCount: pdf.numPages });
       const pageRecords = [];
       for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber += 1) {
         const page = await pdf.getPage(pageNumber);
@@ -408,7 +418,7 @@ function SinglePdfWorkspace({ tool }) {
       }
       const initialPlan = pageRecords.map((page) => ({ id: makeId("page-plan"), sourceIndex: page.sourceIndex, rotation: 0 }));
       setFile(nextFile); setSourceBytes(bytes); setPages(pageRecords); setPlan(initialPlan); setSelected(new Set(pageRecords.map((page) => page.sourceIndex))); setRanges(pdf.numPages > 1 ? `1-${Math.ceil(pdf.numPages / 2)}, ${Math.ceil(pdf.numPages / 2) + 1}-${pdf.numPages}` : "1"); setHistory([]);
-    } catch (readError) { setError(friendlyPdfError(readError)); setFile(null); setPages([]); setPlan([]); }
+    } catch (readError) { trackUploadValidationFailure(tool.id, "invalid_pdf"); setError(friendlyPdfError(readError)); setFile(null); setPages([]); setPlan([]); }
     finally { setStatus("idle"); }
   };
 
@@ -423,6 +433,7 @@ function SinglePdfWorkspace({ tool }) {
   const exportResult = async () => {
     if (!sourceBytes || !file) return;
     setStatus("working"); setError("");
+    const operation = beginToolOperation(tool.id, { operation: isSplit ? "split" : isExtract ? "extract" : "organize" });
     try {
       const baseName = file.name.replace(/\.pdf$/i, "") || "document";
       if (isSplit) {
@@ -437,8 +448,9 @@ function SinglePdfWorkspace({ tool }) {
       } else {
         downloadBytes(await buildPdfFromPagePlan(sourceBytes, plan, `${tool.name} output`), "application/pdf", `${baseName}-organized.pdf`);
       }
+      operation.succeed({ pageCountBucket: pageCountBucket(pages.length) });
       setStatus("complete");
-    } catch (exportError) { setError(friendlyPdfError(exportError)); setStatus("idle"); }
+    } catch (exportError) { operation.fail("pdf_processing"); setError(friendlyPdfError(exportError)); setStatus("idle"); }
   };
 
   const allSelected = pages.length > 0 && selected.size === pages.length;

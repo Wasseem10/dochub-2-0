@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { fileSizeBucket, pageCountBucket, sanitizeAnalyticsProperties, trackProductEvent } from "../../src/analytics/productAnalytics.js";
+import { clientEnvironment, durationBucket, fileSizeBucket, pageCountBucket, sanitizeAnalyticsProperties, trackProductEvent } from "../../src/analytics/productAnalytics.js";
 
 describe("privacy-safe product analytics", () => {
   it("keeps only anonymous allow-listed properties", () => {
@@ -16,5 +16,13 @@ describe("privacy-safe product analytics", () => {
   it("uses broad size and page buckets", () => {
     expect(fileSizeBucket(2 * 1024 * 1024)).toBe("1_5mb");
     expect(pageCountBucket(72)).toBe("51_100");
+  });
+
+  it("keeps bounded timings and broad client context", () => {
+    expect(durationBucket(900)).toBe("under_1s");
+    expect(durationBucket(8200)).toBe("6_15s");
+    expect(sanitizeAnalyticsProperties({ durationMs: 42.8, deviceClass: "mobile", browserFamily: "safari" })).toEqual({ durationMs: 43, deviceClass: "mobile", browserFamily: "safari" });
+    expect(sanitizeAnalyticsProperties({ durationMs: 99_000_000 }).durationMs).toBe(30 * 60 * 1000);
+    expect(clientEnvironment()).toMatchObject({ deviceClass: "unknown", browserFamily: "unknown" });
   });
 });

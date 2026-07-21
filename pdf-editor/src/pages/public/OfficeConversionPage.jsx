@@ -8,7 +8,7 @@ import Upload from "lucide-react/dist/esm/icons/upload.mjs";
 import { PageMetadata } from "../../components/public/PageMetadata.jsx";
 import { ToolGuideContent } from "../../components/public/ToolGuideContent.jsx";
 import { ROUTE_PATHS } from "../../router/routePaths.js";
-import { trackProductEvent } from "../../analytics/productAnalytics.js";
+import { beginToolOperation, pageCountBucket, trackProductEvent, trackToolUpload, trackUploadValidationFailure } from "../../analytics/productAnalytics.js";
 import { toolSeoSchemas } from "../../tools/toolSeoSchemas.js";
 import {
   createDocxFromPdfPages,
@@ -30,8 +30,10 @@ function downloadBytes(bytes, type, name) {
   anchor.href = url;
   anchor.download = name;
   anchor.click();
+  const toolId = window.location.pathname.split("/").filter(Boolean).at(-1) || "office-conversion";
+  trackProductEvent("result_downloaded", { toolId });
   if (String(name).toLowerCase().endsWith(".pdf")) {
-    trackProductEvent("pdf_downloaded", { toolId: window.location.pathname.split("/").filter(Boolean).at(-1) || "office-conversion" });
+    trackProductEvent("pdf_downloaded", { toolId });
   }
   window.setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
@@ -83,7 +85,7 @@ function collectRenderedTextItems(pageElement) {
 function friendlyPdfError(error) {
   const message = String(error?.message || "").toLowerCase();
   if (error?.name === "PasswordException" || message.includes("password")) return "This PDF is encrypted. Remove its password with an authorized tool, then try again.";
-  if (message.includes("invalid pdf") || message.includes("missing pdf")) return "This PDF appears corrupted or incomplete. Try downloading a fresh copy.";
+  if (message.includes("invalid pdf") || message.includes("missing pdf") || message.includes("no pdf header") || message.includes("parse pdf")) return "This PDF appears corrupted or incomplete. Try downloading a fresh copy.";
   if (message.includes("supports up to")) return error.message;
   return "FixThatPDF could not read this PDF. Try a valid, unencrypted PDF under 20 MB.";
 }
@@ -109,7 +111,7 @@ function ConversionDropzone({ accept, label, hint, onFile, disabled }) {
   );
 }
 
-function PdfToWordWorkspace() {
+function PdfToWordWorkspace({ tool }) {
   const [file, setFile] = useState(null);
   const [pdfDocument, setPdfDocument] = useState(null);
   const [pages, setPages] = useState([]);
@@ -124,7 +126,7 @@ function PdfToWordWorkspace() {
   const loadPdf = async (nextFile) => {
     if (!nextFile) return;
     const validationError = validateOfficeConversionFile(nextFile, "pdf");
-    if (validationError) { setError(validationError); return; }
+    if (validationError) { trackUploadValidationFailure(tool.id, "invalid_pdf"); setError(validationError); return; }
     setStatus("reading");
     setProgress(0);
     setError("");
@@ -134,6 +136,7 @@ function PdfToWordWorkspace() {
       const pdfjsLib = await loadPdfRenderer();
       const documentProxy = await pdfjsLib.getDocument({ data: (await nextFile.arrayBuffer()).slice(0) }).promise;
       if (documentProxy.numPages > OFFICE_CONVERSION_LIMITS.maxPages) throw new Error(`PDF to Word supports up to ${OFFICE_CONVERSION_LIMITS.maxPages} pages.`);
+      trackToolUpload(tool.id, nextFile, { pageCount: documentProxy.numPages });
       const pageRecords = [];
       for (let pageNumber = 1; pageNumber <= documentProxy.numPages; pageNumber += 1) {
         const page = await documentProxy.getPage(pageNumber);
@@ -163,6 +166,7 @@ function PdfToWordWorkspace() {
       setPages(pageRecords);
       setStatus("idle");
     } catch (loadError) {
+      trackUploadValidationFailure(tool.id, "invalid_pdf");
       setFile(null);
       setPdfDocument(null);
       setPages([]);
@@ -181,6 +185,7 @@ function PdfToWordWorkspace() {
     setStatus("converting");
     setProgress(0);
     setError("");
+    const operation = beginToolOperation(tool.id, { operation: `convert_${mode}`, slowAfterMs: 15000 });
     try {
       let conversionPages = pages;
       if (mode === "visual") {
@@ -200,9 +205,11 @@ function PdfToWordWorkspace() {
       const bytes = await createDocxFromPdfPages(conversionPages, { mode, title: file.name.replace(/\.pdf$/i, "") });
       setProgress(100);
       downloadBytes(bytes, "application/vnd.openxmlformats-officedocument.wordprocessingml.document", `${file.name.replace(/\.pdf$/i, "") || "fixthatpdf-document"}.docx`);
+      operation.succeed({ result: mode, pageCountBucket: pageCountBucket(pages.length) });
       setStatus("complete");
       window.setTimeout(() => setStatus("idle"), 1800);
     } catch (conversionError) {
+      operation.fail("conversion_failed", { result: mode });
       setStatus("idle");
       setError(conversionError.message || "The Word document could not be created.");
     }
@@ -234,7 +241,7 @@ function PdfToWordWorkspace() {
   );
 }
 
-function WordToPdfWorkspace() {
+function WordToPdfWorkspace({ tool }) {
   const [file, setFile] = useState(null);
   const [buffer, setBuffer] = useState(null);
   const [status, setStatus] = useState("idle");
@@ -246,15 +253,17 @@ function WordToPdfWorkspace() {
   const loadDocx = async (nextFile) => {
     if (!nextFile) return;
     const validationError = validateOfficeConversionFile(nextFile, "docx");
-    if (validationError) { setError(validationError); return; }
+    if (validationError) { trackUploadValidationFailure(tool.id, "invalid_docx"); setError(validationError); return; }
     setStatus("reading");
     setSearchableWordCount(0);
     setError("");
     try {
       setBuffer(await nextFile.arrayBuffer());
+      trackToolUpload(tool.id, nextFile);
       setFile(nextFile);
       setStatus("idle");
     } catch {
+      trackUploadValidationFailure(tool.id, "invalid_docx");
       setStatus("idle");
       setError("This DOCX file could not be read. Try opening and resaving it in Word or LibreOffice.");
     }
@@ -265,6 +274,7 @@ function WordToPdfWorkspace() {
     setStatus("converting");
     setProgress(4);
     setError("");
+    const operation = beginToolOperation(tool.id, { operation: "convert", slowAfterMs: 15000 });
     const host = renderHostRef.current;
     host.replaceChildren();
     try {
@@ -296,9 +306,11 @@ function WordToPdfWorkspace() {
       setSearchableWordCount(renderedPages.reduce((total, page) => total + page.textItems.length, 0));
       setProgress(100);
       downloadBytes(bytes, "application/pdf", `${file.name.replace(/\.docx$/i, "") || "fixthatpdf-document"}.pdf`);
+      operation.succeed({ pageCountBucket: pageCountBucket(renderedPages.length) });
       setStatus("complete");
       window.setTimeout(() => setStatus("idle"), 1800);
     } catch (conversionError) {
+      operation.fail("conversion_failed");
       setStatus("idle");
       setError(conversionError.message || "The PDF could not be created from this DOCX file.");
     } finally {
@@ -337,7 +349,7 @@ export function OfficeConversionPage({ tool }) {
       <section className="conversion-hero">
         <div><small>Available · runs in your browser</small><h1>{tool.heroHeadline}.</h1><p>{tool.heroSubheadline}</p></div>
       </section>
-      {pdfToWord ? <PdfToWordWorkspace /> : <WordToPdfWorkspace />}
+      {pdfToWord ? <PdfToWordWorkspace tool={tool} /> : <WordToPdfWorkspace tool={tool} />}
       <section className="conversion-privacy-note"><Check size={19} /><div><strong>Private browser processing</strong><p>This conversion runs locally in your browser. FixThatPDF does not upload the file to an Office, OCR, or AI service.</p></div></section>
       <ToolGuideContent tool={tool} />
     </main>

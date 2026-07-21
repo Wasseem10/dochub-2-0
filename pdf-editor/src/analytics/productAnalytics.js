@@ -14,13 +14,14 @@ const ALLOWED_EVENTS = new Set([
   "account_signed_up",
   "account_logged_in",
   "pdf_downloaded",
+  "result_downloaded",
   "task_feedback_submitted",
   "client_error",
   "unhandled_rejection",
   "slow_operation",
 ]);
 
-const ALLOWED_PROPERTIES = new Set(["toolId", "fileSizeBucket", "pageCountBucket", "errorCategory", "result", "authMethod", "route", "operation", "durationBucket", "trafficSource", "referrerDomain", "landingPath"]);
+const ALLOWED_PROPERTIES = new Set(["toolId", "fileSizeBucket", "pageCountBucket", "errorCategory", "result", "authMethod", "route", "operation", "durationBucket", "durationMs", "deviceClass", "browserFamily", "trafficSource", "referrerDomain", "landingPath"]);
 const ANALYTICS_COLLECTION = "productAnalyticsEvents";
 const VISITOR_KEY = "realpdf_analytics_visitor_id";
 const ATTRIBUTION_KEY = "fixthatpdf_session_attribution_v1";
@@ -133,11 +134,37 @@ export function pageCountBucket(count = 0) {
   return "51_100";
 }
 
+export function durationBucket(milliseconds = 0) {
+  if (milliseconds < 1000) return "under_1s";
+  if (milliseconds < 3000) return "1_3s";
+  if (milliseconds < 6000) return "3_6s";
+  if (milliseconds < 15000) return "6_15s";
+  if (milliseconds < 30000) return "15_30s";
+  return "30s_plus";
+}
+
+export function clientEnvironment() {
+  if (typeof window === "undefined" || typeof navigator === "undefined") {
+    return { deviceClass: "unknown", browserFamily: "unknown" };
+  }
+  const userAgent = navigator.userAgent || "";
+  let browserFamily = "other";
+  if (/Edg\//.test(userAgent)) browserFamily = "edge";
+  else if (/Firefox\//.test(userAgent)) browserFamily = "firefox";
+  else if (/Chrome\//.test(userAgent)) browserFamily = "chrome";
+  else if (/Safari\//.test(userAgent)) browserFamily = "safari";
+  return {
+    deviceClass: window.innerWidth <= 820 ? "mobile" : "desktop",
+    browserFamily,
+  };
+}
+
 export function sanitizeAnalyticsProperties(properties = {}) {
   return Object.fromEntries(Object.entries(properties).flatMap(([key, value]) => {
     if (!ALLOWED_PROPERTIES.has(key) || !["string", "number", "boolean"].includes(typeof value)) return [];
     if (typeof value === "string") return [[key, value.slice(0, 160)]];
     if (typeof value === "number" && !Number.isFinite(value)) return [];
+    if (key === "durationMs") return [[key, Math.max(0, Math.min(Math.round(value), 30 * 60 * 1000))]];
     return [[key, value]];
   }));
 }
@@ -151,6 +178,52 @@ export function trackProductEvent(name, properties = {}) {
   }
   if (import.meta.env.DEV) console.info("[FixThatPDF analytics]", event);
   return true;
+}
+
+export function trackToolUpload(toolId, file, { pageCount } = {}) {
+  return trackProductEvent("upload_started", {
+    toolId,
+    fileSizeBucket: fileSizeBucket(file?.size || 0),
+    ...(Number.isFinite(pageCount) ? { pageCountBucket: pageCountBucket(pageCount) } : {}),
+    ...clientEnvironment(),
+  });
+}
+
+export function trackUploadValidationFailure(toolId, errorCategory = "invalid_file") {
+  return trackProductEvent("upload_validation_failed", {
+    toolId,
+    errorCategory,
+    ...clientEnvironment(),
+  });
+}
+
+export function beginToolOperation(toolId, { operation = "export", slowAfterMs = 6000 } = {}) {
+  const startedAt = typeof performance !== "undefined" && performance.now ? performance.now() : Date.now();
+  const environment = clientEnvironment();
+  let completed = false;
+  trackProductEvent("export_started", { toolId, operation, ...environment });
+
+  const finish = (name, properties = {}) => {
+    if (completed) return false;
+    completed = true;
+    const finishedAt = typeof performance !== "undefined" && performance.now ? performance.now() : Date.now();
+    const durationMs = Math.max(0, finishedAt - startedAt);
+    const timing = { durationMs, durationBucket: durationBucket(durationMs) };
+    trackProductEvent(name, { toolId, operation, ...environment, ...timing, ...properties });
+    if (durationMs >= slowAfterMs) {
+      trackProductEvent("slow_operation", { toolId, operation, ...environment, ...timing });
+    }
+    return true;
+  };
+
+  return {
+    succeed(properties = {}) {
+      return finish("export_succeeded", properties);
+    },
+    fail(errorCategory = "processing_error", properties = {}) {
+      return finish("export_failed", { errorCategory, ...properties });
+    },
+  };
 }
 
 export function trackPageView(route = "/") {

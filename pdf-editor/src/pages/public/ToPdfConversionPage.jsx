@@ -8,7 +8,7 @@ import LoaderCircle from "lucide-react/dist/esm/icons/loader-circle.mjs";
 import Presentation from "lucide-react/dist/esm/icons/presentation.mjs";
 import Upload from "lucide-react/dist/esm/icons/upload.mjs";
 import { Link } from "react-router-dom";
-import { trackProductEvent } from "../../analytics/productAnalytics.js";
+import { beginToolOperation, pageCountBucket, trackProductEvent, trackToolUpload, trackUploadValidationFailure } from "../../analytics/productAnalytics.js";
 import { PageMetadata } from "../../components/public/PageMetadata.jsx";
 import { ToolGuideContent } from "../../components/public/ToolGuideContent.jsx";
 import { ROUTE_PATHS } from "../../router/routePaths.js";
@@ -64,6 +64,7 @@ function downloadPdf(bytes, name, toolId) {
   anchor.href = url;
   anchor.download = name;
   anchor.click();
+  trackProductEvent("result_downloaded", { toolId });
   trackProductEvent("pdf_downloaded", { toolId });
   window.setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
@@ -203,7 +204,7 @@ export function ToPdfConversionPage({ tool }) {
 
   const loadFile = async (nextFile) => {
     const validationError = validateToPdfFile(nextFile, mode.kind);
-    if (validationError) { setError(validationError); return; }
+    if (validationError) { trackUploadValidationFailure(tool.id, `invalid_${mode.kind}`); setError(validationError); return; }
     setStatus("reading");
     setError("");
     setPrepared(null);
@@ -219,9 +220,11 @@ export function ToPdfConversionPage({ tool }) {
         setSafeHtml(sanitizeHtmlForRendering(source));
         setPrepared({ sourceLength: source.length });
       }
+      trackToolUpload(tool.id, nextFile);
       setFile(nextFile);
       setStatus("idle");
     } catch (loadError) {
+      trackUploadValidationFailure(tool.id, `invalid_${mode.kind}`);
       setFile(null);
       setPrepared(null);
       setStatus("idle");
@@ -234,25 +237,32 @@ export function ToPdfConversionPage({ tool }) {
     setStatus("converting");
     setProgress(5);
     setError("");
+    const operation = beginToolOperation(tool.id, { operation: "convert", slowAfterMs: 15000 });
     try {
       const baseName = file.name.replace(/\.(xlsx|pptx|html?|xhtml)$/i, "") || "fixthatpdf-document";
       let bytes;
+      let outputPageCount = 1;
       if (mode.kind === "excel") {
         bytes = await createPdfFromWorkbook(prepared, { title: baseName });
+        outputPageCount = prepared.sheets.length;
         setProgress(92);
       } else if (mode.kind === "powerpoint") {
         bytes = await createPdfFromPresentation(prepared, { title: baseName });
+        outputPageCount = prepared.slides.length;
         setProgress(92);
       } else {
         if (!htmlReady) throw new Error("The safe HTML preview is still loading. Try again in a moment.");
         const pages = await renderHtmlPages(iframeRef.current, setProgress);
+        outputPageCount = pages.length;
         bytes = await createPdfFromRenderedDocxPages(pages, { title: baseName });
       }
       setProgress(100);
       downloadPdf(bytes, `${baseName}.pdf`, tool.id);
+      operation.succeed({ pageCountBucket: pageCountBucket(outputPageCount) });
       setStatus("complete");
       window.setTimeout(() => setStatus("idle"), 2200);
     } catch (conversionError) {
+      operation.fail("conversion_failed");
       setStatus("idle");
       setError(conversionError.message || "The PDF could not be created.");
     }

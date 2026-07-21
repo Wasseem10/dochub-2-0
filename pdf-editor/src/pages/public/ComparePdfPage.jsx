@@ -17,7 +17,7 @@ import Upload from "lucide-react/dist/esm/icons/upload.mjs";
 import ZoomIn from "lucide-react/dist/esm/icons/zoom-in.mjs";
 import ZoomOut from "lucide-react/dist/esm/icons/zoom-out.mjs";
 import { Link } from "react-router-dom";
-import { trackProductEvent } from "../../analytics/productAnalytics.js";
+import { beginToolOperation, pageCountBucket, trackProductEvent, trackToolUpload, trackUploadValidationFailure } from "../../analytics/productAnalytics.js";
 import { PageMetadata } from "../../components/public/PageMetadata.jsx";
 import { ToolGuideContent } from "../../components/public/ToolGuideContent.jsx";
 import { ROUTE_PATHS } from "../../router/routePaths.js";
@@ -52,6 +52,7 @@ function downloadPdf(bytes, name, toolId) {
   anchor.href = url;
   anchor.download = name;
   anchor.click();
+  trackProductEvent("result_downloaded", { toolId });
   trackProductEvent("pdf_downloaded", { toolId });
   window.setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
@@ -239,7 +240,7 @@ export function ComparePdfPage({ tool }) {
 
   const loadFile = async (file, setter, previous) => {
     const validationError = validateComparisonPdf(file);
-    if (validationError) { setError(validationError); return; }
+    if (validationError) { trackUploadValidationFailure(tool.id, "invalid_pdf"); setError(validationError); return; }
     setError("");
     setStatus("reading");
     setResults([]);
@@ -251,14 +252,19 @@ export function ComparePdfPage({ tool }) {
         await pdf.destroy?.();
         throw new Error(`Comparison supports up to ${PDF_COMPARISON_LIMITS.maxPages} pages per PDF.`);
       }
+      trackToolUpload(tool.id, file, { pageCount: pdf.numPages });
       await previous?.pdf.destroy?.();
       const record = { file, bytes, pdf };
       if (setter === setFirst) firstRecordRef.current = record; else secondRecordRef.current = record;
       setter(record);
       setStatus("idle");
     } catch (loadError) {
+      trackUploadValidationFailure(tool.id, "invalid_pdf");
       setStatus("idle");
-      setError(loadError.message || "This PDF could not be opened. Encrypted PDFs are not supported.");
+      const message = String(loadError?.message || "").toLowerCase();
+      setError(message.includes("no pdf header") || message.includes("parse pdf") || message.includes("invalid pdf")
+        ? "This PDF appears corrupted or incomplete. Try downloading a fresh copy."
+        : loadError.message || "This PDF could not be opened. Encrypted PDFs are not supported.");
     }
   };
 
@@ -268,6 +274,7 @@ export function ComparePdfPage({ tool }) {
     setProgress(0);
     setError("");
     setResults([]);
+    const operation = beginToolOperation(tool.id, { operation: "compare", slowAfterMs: 15000 });
     try {
       const total = Math.max(first.pdf.numPages, second.pdf.numPages);
       const next = [];
@@ -326,8 +333,10 @@ export function ComparePdfPage({ tool }) {
       setResults(numbered);
       setCurrentPage(firstChange?.pageNumber || 1);
       setSelectedChangeId(firstChange?.id || "");
+      operation.succeed({ pageCountBucket: pageCountBucket(numbered.length), result: firstChange ? "changed" : "unchanged" });
       setStatus("complete");
     } catch (compareError) {
+      operation.fail("comparison_failed");
       setStatus("idle");
       setError(compareError.message || "The PDFs could not be compared.");
     }

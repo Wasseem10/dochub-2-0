@@ -12,6 +12,8 @@ This plan is designed to maximize qualified unpaid traffic and completed PDF tas
 - A stable square favicon, web manifest, responsive WebP homepage images, immutable asset caching, and no homepage preload of PDF.js or Firebase.
 - Privacy-safe first-touch acquisition analytics for page views, organic visits, landing pages, uploads, successful exports, sign-ups, logins, and PDF downloads.
 - A build-blocking SEO audit: `npm run audit:seo`.
+- A Priority 1 product-quality gate covering 21 high-intent tools across simple, complex, scanned, encrypted, malformed, large-document, Android, and iPhone cases: `npm run test:quality`.
+- Owner-only per-tool quality metrics for rejected uploads, attempts, success rate, downloads, median/P95 processing time, and mobile failures.
 
 ## Priority 0: complete after the final name and domain are chosen
 
@@ -24,6 +26,8 @@ This plan is designed to maximize qualified unpaid traffic and completed PDF tas
 7. Update Organization/WebSite markup, email addresses, social profiles, legal pages, and the favicon with the final brand.
 
 ## Priority 1: product quality is the SEO moat
+
+Implementation status: complete for the current 21-tool Priority 1 scope as of July 21, 2026. The gate is intentionally permanent: every tool change must continue to pass the fixture matrix, and production metrics remain the signal for which workflow needs the next hardening pass.
 
 Search traffic will not compound if users return to the results because a conversion is inaccurate. Work through the highest-intent tools in this order:
 

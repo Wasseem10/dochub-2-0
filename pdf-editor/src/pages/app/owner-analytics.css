@@ -62,6 +62,15 @@
 .owner-monitoring-cards small { color: #697386; }
 .owner-monitoring .owner-analytics-row strong { display: flex; gap: 6px; align-items: center; }
 @media (max-width: 720px) { .owner-monitoring-cards { grid-template-columns: 1fr; } }
+.owner-tool-quality { margin-top: 4px; }
+.owner-quality-table { margin-top: 16px; overflow-x: auto; border: 1px solid #efedf4; border-radius: 12px; }
+.owner-quality-row { display: grid; min-width: 920px; grid-template-columns: minmax(130px, 1.4fr) repeat(8, minmax(70px, .75fr)); align-items: center; gap: 10px; min-height: 45px; padding: 0 13px; border-top: 1px solid #f0eff5; color: #676a7d; font-size: 10px; }
+.owner-quality-row:first-child { border-top: 0; }
+.owner-quality-row.is-head { min-height: 35px; background: #f8f7fb; color: #9899a7; font-size: 9px; font-weight: 800; text-transform: uppercase; }
+.owner-quality-row strong { color: #303247; font-size: 11px; text-transform: capitalize; }
+.owner-quality-row .is-healthy { color: #16855c; font-weight: 850; }
+.owner-quality-row .is-warning { color: #c15b1c; font-weight: 850; }
+.owner-quality-row small { color: #a15e50; font-size: 8px; white-space: nowrap; }
 .owner-support-inbox { margin-top: 24px; }
 .owner-support-list { display: grid; gap: 12px; margin-top: 16px; }
 .owner-support-list > section { padding: 15px; border: 1px solid #e3e6ef; border-radius: 12px; background: #fbfcff; }

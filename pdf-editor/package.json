@@ -7,12 +7,14 @@
     "dev": "vite --host 127.0.0.1",
     "build": "node scripts/generate-tool-sitemap.mjs && vite build && node scripts/prerender-public-routes.mjs && node scripts/prepare-sites-build.mjs",
     "audit:seo": "npm run build && node scripts/audit-seo.mjs",
+    "audit:quality": "node scripts/audit-product-quality.mjs",
     "preview": "vite preview --host 127.0.0.1",
     "lint": "eslint .",
     "typecheck": "tsc --project jsconfig.json --noEmit",
     "test": "vitest run",
     "test:e2e": "npm run build && node --test tests/e2e/*.test.mjs",
-    "test:browser": "npm run build && playwright test"
+    "test:browser": "npm run build && playwright test",
+    "test:quality": "npm run build && npm run audit:quality && node scripts/run-priority-one-quality.mjs && node scripts/audit-product-quality.mjs --record-passed"
   },
   "dependencies": {
     "@vitejs/plugin-react": "5.0.4",

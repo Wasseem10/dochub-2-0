@@ -79,7 +79,7 @@ import { collection, deleteDoc, doc, getDocs, setDoc } from "firebase/firestore"
 import { deleteObject, getDownloadURL, ref as storageReference, uploadString } from "firebase/storage";
 import { db, isCloudPersistenceConfigured, storage } from "./firebase";
 import { useAuth } from "./auth/AuthContext.jsx";
-import { fileSizeBucket, pageCountBucket, trackProductEvent } from "./analytics/productAnalytics.js";
+import { beginToolOperation, fileSizeBucket, pageCountBucket, trackProductEvent, trackToolUpload, trackUploadValidationFailure } from "./analytics/productAnalytics.js";
 import { AuthRequiredModal } from "./components/editor/AuthRequiredModal.jsx";
 import { AccountDeletionCard } from "./components/app/AccountDeletionCard.jsx";
 import { BrandWordmark } from "./components/public/BrandWordmark.jsx";
@@ -399,7 +399,7 @@ function readImageFile(file) {
   });
 }
 
-function downloadBlob(blob, name) {
+function downloadBlob(blob, name, toolId = "edit-pdf") {
   const url = URL.createObjectURL(blob);
   const anchor = window.document.createElement("a");
   anchor.href = url;
@@ -407,7 +407,8 @@ function downloadBlob(blob, name) {
   anchor.style.display = "none";
   window.document.body.appendChild(anchor);
   anchor.click();
-  trackProductEvent("pdf_downloaded", { toolId: "edit-pdf" });
+  trackProductEvent("result_downloaded", { toolId });
+  trackProductEvent("pdf_downloaded", { toolId });
   anchor.remove();
   window.setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
@@ -2627,6 +2628,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     setUploadStage({ status: "validating", percent: 8, fileName: file.name });
     const validationError = validatePdfUpload(file);
     if (validationError) {
+      trackUploadValidationFailure(publicTool || "edit-pdf", "invalid_pdf");
       setUploadError(validationError);
       setUploadStage({ status: "error", percent: 0, fileName: file.name });
       return;
@@ -2668,6 +2670,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
 
       const persisted = await upsertDocument(documentRecord);
       if (!persisted) throw new Error("The working copy could not be stored.");
+      trackToolUpload(publicTool || "edit-pdf", file, { pageCount: loadedPages.length });
       setActiveDocumentId(documentRecord.id);
       setPages(loadedPages);
       setPdfBytes(buffer);
@@ -2692,6 +2695,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       navigate(isPublicEditor ? publicEditorDocumentPath(publicTool, documentRecord.id) : editorPath(documentRecord.id), { state: { publicTool } });
       window.setTimeout(() => setUploadStage({ status: "idle", percent: 0, fileName: "" }), 900);
     } catch (error) {
+      trackUploadValidationFailure(publicTool || "edit-pdf", "invalid_pdf");
       setUploadError(getPdfLoadErrorMessage(error));
       setUploadStage({ status: "error", percent: 0, fileName: file.name });
     }
@@ -3808,6 +3812,10 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   const exportPdf = async (options = {}) => {
     const shouldDownload = options?.download !== false;
     const shouldShowResult = options?.showResult !== false;
+    const analyticsToolId = publicTool || "edit-pdf";
+    const operation = shouldDownload && options?.analytics !== false
+      ? beginToolOperation(analyticsToolId, { operation: "export", slowAfterMs: 15000 })
+      : null;
     setIsExporting(true);
     try {
     await saveActiveDocument(true);
@@ -4161,7 +4169,10 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       blob: new Blob([bytes], { type: "application/pdf" }),
       name: fileName.replace(/\.pdf$/i, "") + "-edited.pdf",
     };
-    if (shouldDownload) downloadBlob(exported.blob, exported.name);
+    if (shouldDownload) {
+      downloadBlob(exported.blob, exported.name, analyticsToolId);
+      operation?.succeed({ pageCountBucket: pageCountBucket(pages.length) });
+    }
     setSaved(true);
     setSaveState("saved");
     if (shouldShowResult) showToast(rebuiltPageIndexes.size
@@ -4171,6 +4182,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       : "Exported PDF with the updated page order and edits.");
     return exported;
     } catch (error) {
+      operation?.fail("editor_export_failed");
       console.error("PDF export failed", error);
       showToast("Export failed. Try saving locally, then export again.");
       return null;
@@ -4203,14 +4215,21 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   };
 
   const protectDocument = async (password) => {
-    const exported = await exportPdf({ download: false, showResult: false });
-    if (!exported) throw new Error("The PDF could not be prepared for protection.");
-    const protectedBytes = await protectPdfBytes(exported.bytes, password);
-    const protectedBaseName = exported.name.replace(/\.pdf$/i, "").replace(/-edited$/i, "");
-    const protectedName = `${protectedBaseName}-protected.pdf`;
-    downloadBlob(new Blob([protectedBytes], { type: "application/pdf" }), protectedName);
-    setProtectModalOpen(false);
-    showToast("Protected PDF downloaded. Keep the password somewhere safe.");
+    const operation = beginToolOperation("protect-pdf", { operation: "protect", slowAfterMs: 15000 });
+    try {
+      const exported = await exportPdf({ download: false, showResult: false, analytics: false });
+      if (!exported) throw new Error("The PDF could not be prepared for protection.");
+      const protectedBytes = await protectPdfBytes(exported.bytes, password);
+      const protectedBaseName = exported.name.replace(/\.pdf$/i, "").replace(/-edited$/i, "");
+      const protectedName = `${protectedBaseName}-protected.pdf`;
+      downloadBlob(new Blob([protectedBytes], { type: "application/pdf" }), protectedName, "protect-pdf");
+      operation.succeed({ pageCountBucket: pageCountBucket(pages.length) });
+      setProtectModalOpen(false);
+      showToast("Protected PDF downloaded. Keep the password somewhere safe.");
+    } catch (error) {
+      operation.fail("protect_failed");
+      throw error;
+    }
   };
 
   useEffect(() => {

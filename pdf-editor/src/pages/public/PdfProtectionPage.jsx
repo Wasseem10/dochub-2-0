@@ -8,7 +8,7 @@ import LockKeyholeOpen from "lucide-react/dist/esm/icons/lock-keyhole-open.mjs";
 import ShieldCheck from "lucide-react/dist/esm/icons/shield-check.mjs";
 import Upload from "lucide-react/dist/esm/icons/upload.mjs";
 import { Link } from "react-router-dom";
-import { trackProductEvent } from "../../analytics/productAnalytics.js";
+import { beginToolOperation, trackProductEvent, trackToolUpload, trackUploadValidationFailure } from "../../analytics/productAnalytics.js";
 import { PageMetadata } from "../../components/public/PageMetadata.jsx";
 import { ToolGuideContent } from "../../components/public/ToolGuideContent.jsx";
 import { ROUTE_PATHS } from "../../router/routePaths.js";
@@ -26,6 +26,7 @@ function downloadPdf(bytes, name, toolId) {
   anchor.href = url;
   anchor.download = name;
   anchor.click();
+  trackProductEvent("result_downloaded", { toolId });
   trackProductEvent("pdf_downloaded", { toolId });
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
@@ -44,9 +45,9 @@ export function PdfProtectionPage({ tool }) {
   const choose = async (nextFile) => {
     if (!nextFile) return;
     setError("");
-    if (nextFile.type !== "application/pdf" && !nextFile.name.toLowerCase().endsWith(".pdf")) return setError("Choose a PDF file.");
-    if (!nextFile.size) return setError("This PDF is empty.");
-    if (nextFile.size > FLATTEN_PDF_LIMITS.maxBytes) return setError("Choose a PDF no larger than 25 MB.");
+    if (nextFile.type !== "application/pdf" && !nextFile.name.toLowerCase().endsWith(".pdf")) { trackUploadValidationFailure(tool.id, "wrong_file_type"); return setError("Choose a PDF file."); }
+    if (!nextFile.size) { trackUploadValidationFailure(tool.id, "empty_file"); return setError("This PDF is empty."); }
+    if (nextFile.size > FLATTEN_PDF_LIMITS.maxBytes) { trackUploadValidationFailure(tool.id, "file_too_large"); return setError("Choose a PDF no larger than 25 MB."); }
     setStatus("reading");
     try {
       setBytes(new Uint8Array(await nextFile.arrayBuffer()));
@@ -54,8 +55,9 @@ export function PdfProtectionPage({ tool }) {
       setPassword("");
       setAuthorized(false);
       setStatus("ready");
-      trackProductEvent("upload_started", { toolId: tool.id });
+      trackToolUpload(tool.id, nextFile);
     } catch {
+      trackUploadValidationFailure(tool.id, "invalid_pdf");
       setStatus("idle");
       setError("This PDF could not be read.");
     }
@@ -66,7 +68,7 @@ export function PdfProtectionPage({ tool }) {
     setError("");
     setProgress(0);
     setStatus("working");
-    trackProductEvent("export_started", { toolId: tool.id });
+    const operation = beginToolOperation(tool.id, { operation: isFlatten ? "flatten" : "unlock", slowAfterMs: 15000 });
     try {
       const result = isFlatten
         ? await flattenPdfBytes(bytes, { onProgress: ({ completed, total }) => setProgress(Math.round(completed / total * 100)) })
@@ -75,11 +77,11 @@ export function PdfProtectionPage({ tool }) {
       downloadPdf(result, `${baseName}-${isFlatten ? "flattened" : "unlocked"}.pdf`, tool.id);
       setProgress(100);
       setStatus("complete");
-      trackProductEvent("export_succeeded", { toolId: tool.id });
+      operation.succeed();
     } catch (processingError) {
       setStatus("ready");
       setError(processingError?.message || `This PDF could not be ${isFlatten ? "flattened" : "unlocked"}.`);
-      trackProductEvent("export_failed", { toolId: tool.id, errorCategory: isFlatten ? "flatten_failed" : "unlock_failed" });
+      operation.fail(isFlatten ? "flatten_failed" : "unlock_failed");
     }
   };
 

@@ -12,7 +12,7 @@ import CheckCircle2 from "lucide-react/dist/esm/icons/check-circle-2.mjs";
 import Gauge from "lucide-react/dist/esm/icons/gauge.mjs";
 import LifeBuoy from "lucide-react/dist/esm/icons/life-buoy.mjs";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { analyticsRangeStart, createDailyAnalyticsSeries, filterAnalyticsEvents, groupAnalyticsProperty, summarizeAnalyticsEvents } from "../../analytics/analyticsMetrics.js";
+import { analyticsRangeStart, createDailyAnalyticsSeries, createToolQualityScorecard, filterAnalyticsEvents, groupAnalyticsProperty, summarizeAnalyticsEvents } from "../../analytics/analyticsMetrics.js";
 import { db } from "../../firebase.js";
 import "./owner-analytics.css";
 
@@ -42,6 +42,11 @@ function eventDetail(event) {
   if (event.properties?.authMethod) return event.properties.authMethod === "google" ? "Google" : "Email and password";
   if (event.properties?.toolId) return event.properties.toolId.replaceAll("-", " ");
   return event.actorId ? "Signed-in user" : "Anonymous visitor";
+}
+
+function formatDuration(milliseconds) {
+  if (!Number.isFinite(milliseconds)) return "—";
+  return milliseconds < 1000 ? `${milliseconds} ms` : `${(milliseconds / 1000).toFixed(milliseconds < 10_000 ? 1 : 0)} s`;
 }
 
 export function OwnerAnalyticsPanel() {
@@ -133,6 +138,7 @@ export function OwnerAnalyticsPanel() {
   const recentEvents = filteredEvents.slice(0, 12);
   const trafficSources = useMemo(() => groupAnalyticsProperty(filteredEvents, "trafficSource"), [filteredEvents]);
   const landingPages = useMemo(() => groupAnalyticsProperty(filteredEvents, "landingPath"), [filteredEvents]);
+  const toolQuality = useMemo(() => createToolQualityScorecard(filteredEvents), [filteredEvents]);
   const diagnosticEvents = filteredEvents.filter((event) => ["client_error", "unhandled_rejection", "slow_operation", "export_failed"].includes(event.name)).slice(0, 10);
   const updateSupportStatus = async (requestId, statusValue) => {
     await updateDoc(doc(db, "supportRequests", requestId), { status: statusValue });
@@ -237,6 +243,26 @@ export function OwnerAnalyticsPanel() {
           <div className="owner-analytics-row is-head"><span>Issue</span><span>Category</span><span>Route</span><span>Time</span></div>
           {diagnosticEvents.map((event) => <div className="owner-analytics-row" key={event.id}><strong><AlertTriangle size={14} /> {EVENT_LABELS[event.name]}</strong><span>{event.properties?.errorCategory || event.properties?.durationBucket || "unknown"}</span><span>{event.properties?.route || event.properties?.toolId || event.properties?.operation || "unknown"}</span><time>{formatEventTime(event)}</time></div>)}
         </div> : <div className="owner-analytics-empty"><CheckCircle2 size={24} /><strong>No production issues in this period</strong><p>New privacy-safe client errors and slow operations will appear here.</p></div>}
+      </article>
+
+      <article className="owner-analytics-activity owner-tool-quality">
+        <div className="owner-analytics-section-title"><div><h2>Core tool quality</h2><p>Completion, download conversion, speed, and failures from anonymous production events</p></div><strong><Gauge size={16} /> Priority 1</strong></div>
+        <div className="owner-quality-table" role="table" aria-label="Core tool quality scorecard">
+          <div className="owner-quality-row is-head" role="row"><span>Tool</span><span>Uploads</span><span>Rejected</span><span>Attempts</span><span>Success</span><span>Downloads</span><span>Median</span><span>P95</span><span>Failures</span></div>
+          {toolQuality.map((tool) => (
+            <div className="owner-quality-row" role="row" key={tool.toolId}>
+              <strong>{tool.toolId.replaceAll("-", " ")}</strong>
+              <span>{tool.uploads.toLocaleString()}</span>
+              <span>{tool.validationFailures.toLocaleString()}</span>
+              <span>{tool.attempts.toLocaleString()}</span>
+              <span className={tool.successRate === null ? "" : tool.successRate >= 95 ? "is-healthy" : "is-warning"}>{tool.successRate === null ? "—" : `${tool.successRate}%`}</span>
+              <span>{tool.downloads.toLocaleString()}</span>
+              <span>{formatDuration(tool.medianDurationMs)}</span>
+              <span>{formatDuration(tool.p95DurationMs)}</span>
+              <span>{tool.failures.toLocaleString()} <small>{tool.failedByDevice.mobile ? `(${tool.failedByDevice.mobile} mobile)` : ""}</small></span>
+            </div>
+          ))}
+        </div>
       </article>
 
       <article className="owner-analytics-activity owner-support-inbox">

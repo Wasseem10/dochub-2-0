@@ -7,7 +7,7 @@ import LoaderCircle from "lucide-react/dist/esm/icons/loader-circle.mjs";
 import Presentation from "lucide-react/dist/esm/icons/presentation.mjs";
 import Upload from "lucide-react/dist/esm/icons/upload.mjs";
 import { Link } from "react-router-dom";
-import { trackProductEvent } from "../../analytics/productAnalytics.js";
+import { beginToolOperation, pageCountBucket, trackProductEvent, trackToolUpload, trackUploadValidationFailure } from "../../analytics/productAnalytics.js";
 import { PageMetadata } from "../../components/public/PageMetadata.jsx";
 import { ToolGuideContent } from "../../components/public/ToolGuideContent.jsx";
 import { ROUTE_PATHS } from "../../router/routePaths.js";
@@ -62,7 +62,7 @@ function formatBytes(bytes) {
 function friendlyPdfError(error) {
   const message = String(error?.message || "").toLowerCase();
   if (error?.name === "PasswordException" || message.includes("password")) return "This PDF is encrypted. Remove its password with an authorized tool, then try again.";
-  if (message.includes("invalid pdf") || message.includes("missing pdf")) return "This PDF appears corrupted or incomplete. Try downloading a fresh copy.";
+  if (message.includes("invalid pdf") || message.includes("missing pdf") || message.includes("no pdf header") || message.includes("parse pdf")) return "This PDF appears corrupted or incomplete. Try downloading a fresh copy.";
   if (message.includes("supports up to") || message.includes("no embedded text")) return error.message;
   return error?.message || "FixThatPDF could not convert this PDF.";
 }
@@ -74,7 +74,7 @@ function downloadOutput(data, type, name, toolId) {
   anchor.href = url;
   anchor.download = name;
   anchor.click();
-  trackProductEvent("pdf_downloaded", { toolId });
+  trackProductEvent("result_downloaded", { toolId });
   window.setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
@@ -97,6 +97,7 @@ export function StructuredPdfConversionPage({ tool }) {
   const loadFile = async (nextFile) => {
     const validationError = validateStructuredPdf(nextFile);
     if (validationError) {
+      trackUploadValidationFailure(tool.id, "invalid_pdf");
       setError(validationError);
       setFile(null);
       setPdfDocument(null);
@@ -110,11 +111,13 @@ export function StructuredPdfConversionPage({ tool }) {
       const buffer = await nextFile.arrayBuffer();
       const documentProxy = await pdfjsLib.getDocument({ data: buffer.slice(0) }).promise;
       if (documentProxy.numPages > STRUCTURED_CONVERSION_LIMITS.maxPages) throw new Error(`${mode.format} conversion supports up to ${STRUCTURED_CONVERSION_LIMITS.maxPages} pages.`);
+      trackToolUpload(tool.id, nextFile, { pageCount: documentProxy.numPages });
       setFile(nextFile);
       setPdfDocument(documentProxy);
       setPageCount(documentProxy.numPages);
       setStatus("idle");
     } catch (loadError) {
+      trackUploadValidationFailure(tool.id, "invalid_pdf");
       setFile(null);
       setPdfDocument(null);
       setPageCount(0);
@@ -128,6 +131,7 @@ export function StructuredPdfConversionPage({ tool }) {
     setStatus("converting");
     setProgress(0);
     setError("");
+    const operation = beginToolOperation(tool.id, { operation: "convert", slowAfterMs: 15000 });
     const baseName = file.name.replace(/\.pdf$/i, "") || "fixthatpdf-document";
     try {
       if (tool.id === "pdf-to-excel") {
@@ -173,10 +177,12 @@ export function StructuredPdfConversionPage({ tool }) {
         const pptx = await createPptxFromRenderedPages(renderedPages, { title: baseName });
         downloadOutput(pptx, mode.mimeType, `${baseName}.pptx`, tool.id);
       }
+      operation.succeed({ pageCountBucket: pageCountBucket(pdfDocument.numPages) });
       setProgress(100);
       setStatus("complete");
       window.setTimeout(() => setStatus("idle"), 2200);
     } catch (conversionError) {
+      operation.fail("conversion_failed");
       setStatus("idle");
       setError(friendlyPdfError(conversionError));
     }
