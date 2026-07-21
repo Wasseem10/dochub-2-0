@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { FOOTER_TOOL_GROUPS, getToolMenuGroups, MEGA_MENU_CATEGORY_IDS } from "../../src/tools/toolNavigation.js";
+import { TOOL_CATEGORY_PAGES } from "../../src/tools/toolCategoryPages.js";
 import { TOOL_CATEGORIES, TOOL_REGISTRY, validateToolRegistry } from "../../src/tools/toolRegistry.js";
 
 const requiredFields = [
@@ -36,5 +37,11 @@ describe("FixThatPDF tool registry", () => {
     expect(menuGroups.every(({ tools }) => tools.length > 0 && tools.length <= 2)).toBe(true);
     expect(FOOTER_TOOL_GROUPS).toHaveLength(6);
     expect(FOOTER_TOOL_GROUPS.every(({ tools }) => tools.length > 0 && tools.length <= 5)).toBe(true);
+  });
+
+  it("provides one unique indexable hub for every tool category", () => {
+    expect(TOOL_CATEGORY_PAGES).toHaveLength(TOOL_CATEGORIES.length);
+    expect(new Set(TOOL_CATEGORY_PAGES.map(({ route }) => route)).size).toBe(TOOL_CATEGORY_PAGES.length);
+    expect(TOOL_CATEGORY_PAGES.every(({ seoTitle, metaDescription, guidance }) => seoTitle.includes("FixThatPDF") && metaDescription.length > 80 && guidance.length === 3)).toBe(true);
   });
 });

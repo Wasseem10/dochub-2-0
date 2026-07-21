@@ -7,6 +7,7 @@ import { MarketingHeader } from "../../src/components/public/MarketingHeader.jsx
 import { ComparePdfPage } from "../../src/pages/public/ComparePdfPage.jsx";
 import { DocumentAnalysisPage } from "../../src/pages/public/DocumentAnalysisPage.jsx";
 import { FeaturesPage } from "../../src/pages/public/FeaturesPage.jsx";
+import { ToolCategoryPage } from "../../src/pages/public/ToolCategoryPage.jsx";
 import { ToolDirectoryPage } from "../../src/pages/public/ToolDirectoryPage.jsx";
 import { ImageConversionPage } from "../../src/pages/public/ImageConversionPage.jsx";
 import { OfficeConversionPage } from "../../src/pages/public/OfficeConversionPage.jsx";
@@ -19,6 +20,7 @@ import { StructuredPdfConversionPage } from "../../src/pages/public/StructuredPd
 import { ToPdfConversionPage } from "../../src/pages/public/ToPdfConversionPage.jsx";
 import { EditorToolUploadPage } from "../../src/pages/public/EditorToolUploadPage.jsx";
 import { TemplateBuilderPage } from "../../src/pages/public/TemplateBuilderPage.jsx";
+import { TOOL_CATEGORY_PAGE_BY_ID } from "../../src/tools/toolCategoryPages.js";
 import { TOOL_BY_ID } from "../../src/tools/toolRegistry.js";
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
@@ -66,6 +68,18 @@ describe("public PDF tool platform", () => {
 
     await act(async () => root.findAllByType("button").find((button) => textOf(button) === "Clear filters").props.onClick());
     expect(textOf(root.findByProps({ "aria-live": "polite" }))).toBe("68 tools");
+    await unmount(renderer);
+  });
+
+  it("renders useful category landing pages with working internal links", async () => {
+    const renderer = await render(<ToolCategoryPage categoryPage={TOOL_CATEGORY_PAGE_BY_ID.get("from-pdf")} />);
+    const text = textOf(renderer.root);
+    expect(text).toContain("Move PDF content into the format you need next.");
+    expect(text).toContain("PDF to Word");
+    expect(text).toContain("PDF to Excel");
+    expect(text).toContain("PDF to PowerPoint");
+    expect(text).toContain("Check the result, not just the progress bar.");
+    expect(renderer.root.findAllByType("a").some((link) => link.props.href === "/pdf-to-word")).toBe(true);
     await unmount(renderer);
   });
 

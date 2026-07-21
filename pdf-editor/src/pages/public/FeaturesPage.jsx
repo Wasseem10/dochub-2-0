@@ -8,8 +8,10 @@ import Search from "lucide-react/dist/esm/icons/search.mjs";
 import ShieldCheck from "lucide-react/dist/esm/icons/shield-check.mjs";
 import Sparkles from "lucide-react/dist/esm/icons/sparkles.mjs";
 import { PageMetadata } from "../../components/public/PageMetadata.jsx";
+import { absoluteSiteUrl } from "../../config/site.js";
 import { ROUTE_PATHS } from "../../router/routePaths.js";
 import { ToolIcon } from "../../tools/ToolIcon.jsx";
+import { getToolCategoryPage } from "../../tools/toolCategoryPages.js";
 import { TOOL_CATEGORIES, TOOL_REGISTRY } from "../../tools/toolRegistry.js";
 
 const releasedTools = TOOL_REGISTRY.filter((tool) => tool.status !== "coming-soon");
@@ -60,7 +62,7 @@ export function FeaturesPage() {
         title="All Features | FixThatPDF"
         description={`See all ${releasedTools.length} released FixThatPDF features for editing, organizing, converting, signing, scanning, protecting, and reviewing PDFs.`}
         canonicalUrl={ROUTE_PATHS.features}
-        schemas={[{ "@context": "https://schema.org", "@type": "CollectionPage", name: "FixThatPDF features", url: "https://fixthatpdf.com/features", numberOfItems: releasedTools.length }]}
+        schemas={[{ "@context": "https://schema.org", "@type": "CollectionPage", name: "FixThatPDF features", url: absoluteSiteUrl(ROUTE_PATHS.features), mainEntity: { "@type": "ItemList", numberOfItems: releasedTools.length, itemListElement: releasedTools.map((tool, index) => ({ "@type": "ListItem", position: index + 1, name: tool.name, url: absoluteSiteUrl(tool.route) })) } }]}
       />
 
       <section className="features-hero">
@@ -96,7 +98,7 @@ export function FeaturesPage() {
 
         <div className="features-group-list">
           {featureGroups.map((group) => <section key={group.id} className="features-group">
-            <header><span style={{ background: group.accentColor }}><ToolIcon name={group.icon} size={22} /></span><div><h3>{group.name}</h3><p>{group.description}</p></div><small>{group.tools.length} feature{group.tools.length === 1 ? "" : "s"}</small></header>
+            <header><span style={{ background: group.accentColor }}><ToolIcon name={group.icon} size={22} /></span><div><h3><Link to={getToolCategoryPage(group.id).route}>{group.name}</Link></h3><p>{group.description}</p></div><small>{group.tools.length} feature{group.tools.length === 1 ? "" : "s"}</small></header>
             <div>{group.tools.map((tool) => <Link key={tool.id} to={tool.route} className="features-tool-row"><span style={{ background: tool.accentColor }}><ToolIcon name={tool.icon} size={18} /></span><div><strong>{tool.name}</strong><small>{tool.shortDescription}</small></div><em className={availabilityClass(tool.status)}><CheckCircle2 size={12} /> {tool.availabilityLabel}</em><ArrowRight size={16} /></Link>)}</div>
           </section>)}
           {!featureGroups.length && <div className="features-empty"><Search size={25} /><h3>No features match “{query}”</h3><p>Try a format or task such as Word, OCR, sign, compare, or organize.</p><button type="button" onClick={() => setQuery("")}>Clear search</button></div>}

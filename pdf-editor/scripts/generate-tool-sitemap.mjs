@@ -1,8 +1,10 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { ROUTE_PATHS } from "../src/router/routePaths.js";
+import { TOOL_CATEGORY_PAGES } from "../src/tools/toolCategoryPages.js";
 import { TOOL_REGISTRY, validateToolRegistry } from "../src/tools/toolRegistry.js";
+import { resolveSiteUrl } from "./site-url.mjs";
 
-const siteUrl = (process.env.SITE_URL || process.env.VITE_SITE_URL || "http://localhost:4173").replace(/\/$/, "");
+const siteUrl = resolveSiteUrl();
 const registryErrors = validateToolRegistry();
 
 if (registryErrors.length) {
@@ -11,17 +13,21 @@ if (registryErrors.length) {
 
 const paths = [
   ROUTE_PATHS.home,
+  ROUTE_PATHS.features,
   ROUTE_PATHS.tools,
+  ROUTE_PATHS.support,
   ROUTE_PATHS.privacy,
   ROUTE_PATHS.security,
   ROUTE_PATHS.help,
+  ROUTE_PATHS.dataRetention,
   ROUTE_PATHS.terms,
+  ...TOOL_CATEGORY_PAGES.map(({ route }) => route),
   ...TOOL_REGISTRY.filter(({ status }) => status !== "coming-soon").map(({ route }) => route),
 ];
 
 const uniquePaths = [...new Set(paths)].sort();
 const urls = uniquePaths
-  .map((path) => `  <url><loc>${siteUrl}${path === "/" ? "/" : path}</loc></url>`)
+  .map((path) => `  <url><loc>${siteUrl}${path === "/" ? "/" : path}</loc><changefreq>${path === "/" ? "weekly" : "monthly"}</changefreq></url>`)
   .join("\n");
 const sitemap = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls}\n</urlset>\n`;
 
