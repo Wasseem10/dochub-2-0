@@ -11,6 +11,8 @@ import "./route-shells.css";
 import "./tool-platform.css";
 import "./reference-editor.css";
 import "./release-fixes.css";
+import "./dashboard-premium.css";
+import "./features-page.css";
 import { installProductionMonitoring } from "./monitoring/productionMonitoring.js";
 
 installProductionMonitoring();

@@ -24,6 +24,7 @@ import Copy from "lucide-react/dist/esm/icons/copy.mjs";
 import Download from "lucide-react/dist/esm/icons/download.mjs";
 import EllipsisVertical from "lucide-react/dist/esm/icons/ellipsis-vertical.mjs";
 import Eraser from "lucide-react/dist/esm/icons/eraser.mjs";
+import Filter from "lucide-react/dist/esm/icons/filter.mjs";
 import FilePlus2 from "lucide-react/dist/esm/icons/file-plus-2.mjs";
 import FileText from "lucide-react/dist/esm/icons/file-text.mjs";
 import Grid2X2 from "lucide-react/dist/esm/icons/grid-2x2.mjs";
@@ -5633,6 +5634,7 @@ export function UploadLanding({
     Billing: ROUTE_PATHS.settings,
     Team: ROUTE_PATHS.settings,
     Integrations: ROUTE_PATHS.settings,
+    Features: ROUTE_PATHS.features,
   };
   const setActiveSection = (nextSection) => onNavigate(sectionPaths[nextSection] || ROUTE_PATHS.dashboard);
   const [searchQuery, setSearchQuery] = useState("");
@@ -5642,6 +5644,9 @@ export function UploadLanding({
   const [inviteDrafts, setInviteDrafts] = useState([]);
   const [workspaceNotice, setWorkspaceNotice] = useState("");
   const [openDocumentMenuId, setOpenDocumentMenuId] = useState(null);
+  const [dashboardFilter, setDashboardFilter] = useState("all");
+  const [dashboardSort, setDashboardSort] = useState("recent");
+  const [dashboardView, setDashboardView] = useState("list");
   const userName = currentUser?.name || currentUser?.email || "Local workspace";
   const userInitials = userName
     .split(/\s|@/)
@@ -5667,6 +5672,7 @@ export function UploadLanding({
     { label: "Documents", icon: FileText },
     { label: "Signatures", icon: PenLine },
     { label: "Templates", icon: Grid2X2 },
+    { label: "All features", section: "Features", icon: Sparkles },
     ...(isAnalyticsOwner(currentUser) ? [{ label: "Analytics", icon: ChartNoAxesColumnIncreasing }] : []),
   ];
 
@@ -5705,7 +5711,12 @@ export function UploadLanding({
       : filteredDocuments;
   const recentDashboardRows = [...dashboardDocumentPool]
     .sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0))
-    .slice(0, 5);
+    .slice(0, 3);
+  const dashboardLibraryRows = [...filteredDocuments]
+    .filter((documentRecord) => dashboardFilter !== "favorites" || documentRecord.favorite)
+    .sort((a, b) => dashboardSort === "name"
+      ? a.name.localeCompare(b.name)
+      : new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0));
   const storageUsed = userDocuments.reduce((total, documentRecord) => total + (documentRecord.size || 0), 0);
   const isUploading = uploadStage?.status && !["idle", "complete", "error"].includes(uploadStage.status);
 
@@ -5746,6 +5757,18 @@ export function UploadLanding({
     day: "numeric",
     year: "numeric",
   }).format(new Date(value || nowIso()));
+
+  const formatDashboardRelativeDate = (value) => {
+    const date = new Date(value || nowIso());
+    const today = new Date();
+    const dayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const dateStart = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    const dayDifference = Math.round((dayStart - dateStart) / 86400000);
+    const time = new Intl.DateTimeFormat("en", { hour: "numeric", minute: "2-digit" }).format(date);
+    if (dayDifference === 0) return `Today at ${time}`;
+    if (dayDifference === 1) return `Yesterday at ${time}`;
+    return formatDashboardDate(date);
+  };
 
   const renderDocumentTable = (records, mode = "documents") => (
     records.length ? (
@@ -5843,53 +5866,78 @@ export function UploadLanding({
     )
   );
 
-  const renderRecentDashboardTable = () => (
-    <div className="reference-document-table">
-      <div className="reference-doc-row reference-doc-head">
-        <span>Name</span><span>Owner</span><span>Last opened</span><span>Status</span><span />
-      </div>
-      {recentDashboardRows.length ? recentDashboardRows.map((documentRecord) => {
-        const status = documentRecord.status || "Ready";
-        const statusClass = status.toLowerCase().replace(/[^a-z0-9]+/g, "-");
-        return (
-          <article key={documentRecord.id} className="reference-doc-row">
-            <button type="button" className="reference-doc-name" onClick={() => onOpenDocument(documentRecord)}>
-              <span className="reference-file-icon"><FileText size={20} /></span>
-              <span><strong>{documentRecord.name}</strong><small>{documentRecord.location || "My Documents"}</small></span>
-              <Star size={15} className="reference-row-star" fill={documentRecord.favorite ? "currentColor" : "none"} />
-            </button>
-            <span className="reference-doc-owner"><span>{userInitials}</span> You</span>
-            <span>{formatDashboardDate(documentRecord.updatedAt)}</span>
-            <span><em className={`reference-status is-${statusClass}`}>{status}</em></span>
-            <div className="doc-actions">
-              <div className="doc-menu-wrap">
-                <button type="button" className={`doc-menu-trigger ${openDocumentMenuId === documentRecord.id ? "is-open" : ""}`} title="Document actions" aria-haspopup="menu" aria-expanded={openDocumentMenuId === documentRecord.id} onClick={(event) => {
-                  event.stopPropagation();
-                  setOpenDocumentMenuId((id) => (id === documentRecord.id ? null : documentRecord.id));
-                }}><EllipsisVertical size={18} /></button>
-                {openDocumentMenuId === documentRecord.id && (
-                  <div className="doc-row-menu" role="menu" aria-label={`${documentRecord.name} actions`}>
-                    <button type="button" role="menuitem" onClick={(event) => runDocumentMenuAction(event, () => onOpenDocument(documentRecord))}><FilePlus2 size={18} /> Open</button>
-                    <button type="button" role="menuitem" onClick={(event) => runDocumentMenuAction(event, () => onRenameDocument(documentRecord))}><PenLine size={18} /> Rename</button>
-                    <button type="button" role="menuitem" onClick={(event) => runDocumentMenuAction(event, () => onDownloadDocument(documentRecord))}><Download size={18} /> Download</button>
-                    <button type="button" role="menuitem" onClick={(event) => runDocumentMenuAction(event, () => onDeleteDocument(documentRecord))}><Trash2 size={18} /> Remove</button>
-                  </div>
-                )}
-              </div>
-            </div>
-          </article>
-        );
-      }) : (
-        <div className="reference-dashboard-empty">
-          <FileText size={26} />
-          <strong>{normalizedQuery ? "No matching documents" : suggestionView === "starred" ? "No starred documents" : suggestionView === "shared" ? "No shared documents" : "No documents yet"}</strong>
-          <span>{normalizedQuery ? "Try a different search." : "Upload a PDF and it will appear here."}</span>
-          {!normalizedQuery && suggestionView === "recent" && <button type="button" onClick={onSelectFiles}>Upload PDF</button>}
+  const renderDashboardDocumentMenu = (documentRecord, iconSize = 18) => (
+    <div className="doc-menu-wrap">
+      <button type="button" className={`doc-menu-trigger ${openDocumentMenuId === documentRecord.id ? "is-open" : ""}`} title="Document actions" aria-label={`${documentRecord.name} actions`} aria-haspopup="menu" aria-expanded={openDocumentMenuId === documentRecord.id} onClick={(event) => {
+        event.stopPropagation();
+        setOpenDocumentMenuId((id) => (id === documentRecord.id ? null : documentRecord.id));
+      }}><EllipsisVertical size={iconSize} /></button>
+      {openDocumentMenuId === documentRecord.id && (
+        <div className="doc-row-menu" role="menu" aria-label={`${documentRecord.name} actions`}>
+          <button type="button" role="menuitem" onClick={(event) => runDocumentMenuAction(event, () => onOpenDocument(documentRecord))}><FilePlus2 size={18} /> Open</button>
+          <button type="button" role="menuitem" onClick={(event) => runDocumentMenuAction(event, () => onRenameDocument(documentRecord))}><PenLine size={18} /> Rename</button>
+          <button type="button" role="menuitem" onClick={(event) => runDocumentMenuAction(event, () => onDownloadDocument(documentRecord))}><Download size={18} /> Download</button>
+          <button type="button" role="menuitem" onClick={(event) => runDocumentMenuAction(event, () => onToggleFavorite(documentRecord))}><Star size={18} /> {documentRecord.favorite ? "Unstar" : "Star"}</button>
+          <button type="button" role="menuitem" onClick={(event) => runDocumentMenuAction(event, () => onDeleteDocument(documentRecord))}><Trash2 size={18} /> Remove</button>
         </div>
       )}
-      {recentDashboardRows.length > 0 && <button type="button" className="reference-show-more" onClick={() => setActiveSection("Documents")}>View all documents <ChevronDown size={15} /></button>}
     </div>
   );
+
+  const renderDocumentPreview = (documentRecord) => documentRecord.pages?.[0]?.image ? (
+    <img src={documentRecord.pages[0].image} alt={`First page of ${documentRecord.name}`} />
+  ) : (
+    <span className="dashboard-document-placeholder"><FileText size={36} /><small>{documentRecord.pageCount || documentRecord.pages?.length || 1} page{(documentRecord.pageCount || documentRecord.pages?.length || 1) === 1 ? "" : "s"}</small></span>
+  );
+
+  const renderRecentDashboardCards = () => recentDashboardRows.length ? (
+    <div className="dashboard-recent-grid">
+      {recentDashboardRows.map((documentRecord) => (
+        <article key={documentRecord.id} className="dashboard-recent-card">
+          <button type="button" className="dashboard-recent-preview" onClick={() => onOpenDocument(documentRecord)}>{renderDocumentPreview(documentRecord)}</button>
+          <div className="dashboard-recent-card-footer">
+            <span className="dashboard-pdf-mark"><FileText size={17} /></span>
+            <button type="button" className="dashboard-recent-name" onClick={() => onOpenDocument(documentRecord)}><strong>{documentRecord.name}</strong><small>{formatDashboardRelativeDate(documentRecord.updatedAt)}</small></button>
+            <button type="button" className={`dashboard-favorite-button ${documentRecord.favorite ? "is-favorite" : ""}`} aria-label={documentRecord.favorite ? `Remove ${documentRecord.name} from favorites` : `Add ${documentRecord.name} to favorites`} aria-pressed={!!documentRecord.favorite} onClick={() => onToggleFavorite(documentRecord)}><Star size={17} fill={documentRecord.favorite ? "currentColor" : "none"} /></button>
+            {renderDashboardDocumentMenu(documentRecord)}
+            <button type="button" className="dashboard-open-button" onClick={() => onOpenDocument(documentRecord)}>Open</button>
+          </div>
+        </article>
+      ))}
+    </div>
+  ) : (
+    <div className="dashboard-premium-empty">
+      <span><FileText size={25} /></span>
+      <div><strong>{normalizedQuery ? "No matching recent documents" : "Your recent work will appear here"}</strong><small>{normalizedQuery ? "Try a different search." : "Upload a PDF to start editing."}</small></div>
+      {!normalizedQuery && <button type="button" onClick={onSelectFiles}>Upload PDF</button>}
+    </div>
+  );
+
+  const renderDashboardLibraryList = () => dashboardLibraryRows.length ? (
+    <div className="dashboard-library-table">
+      <div className="dashboard-library-row dashboard-library-head"><span>Name</span><span>Pages</span><span>Size</span><span>Last edited</span><span>Status</span><span /><span /></div>
+      {dashboardLibraryRows.map((documentRecord) => {
+        const status = documentRecord.status || "Edited";
+        return <article key={documentRecord.id} className="dashboard-library-row">
+          <button type="button" className="dashboard-library-name" onClick={() => onOpenDocument(documentRecord)}><span>{renderDocumentPreview(documentRecord)}</span><strong>{documentRecord.name}</strong></button>
+          <span>{documentRecord.pageCount || documentRecord.pages?.length || 1}</span>
+          <span>{documentRecord.size ? formatBytes(documentRecord.size) : "Local"}</span>
+          <span>{formatDashboardRelativeDate(documentRecord.updatedAt)}</span>
+          <span><em>{status}</em></span>
+          <button type="button" className={`dashboard-favorite-button ${documentRecord.favorite ? "is-favorite" : ""}`} aria-label={documentRecord.favorite ? `Remove ${documentRecord.name} from favorites` : `Add ${documentRecord.name} to favorites`} aria-pressed={!!documentRecord.favorite} onClick={() => onToggleFavorite(documentRecord)}><Star size={16} fill={documentRecord.favorite ? "currentColor" : "none"} /></button>
+          {renderDashboardDocumentMenu(documentRecord)}
+        </article>;
+      })}
+    </div>
+  ) : (
+    <div className="dashboard-premium-empty dashboard-library-empty"><span><FileText size={25} /></span><div><strong>{normalizedQuery || dashboardFilter === "favorites" ? "No documents match these filters" : "No documents yet"}</strong><small>{normalizedQuery || dashboardFilter === "favorites" ? "Clear the search or show all documents." : "Upload a PDF and it will appear here."}</small></div>{!normalizedQuery && dashboardFilter === "all" && <button type="button" onClick={onSelectFiles}>Upload PDF</button>}</div>
+  );
+
+  const renderDashboardLibraryGrid = () => dashboardLibraryRows.length ? (
+    <div className="dashboard-library-card-grid">
+      {dashboardLibraryRows.map((documentRecord) => <article key={documentRecord.id} className="dashboard-library-card"><button type="button" onClick={() => onOpenDocument(documentRecord)}>{renderDocumentPreview(documentRecord)}</button><div><strong>{documentRecord.name}</strong><small>{formatDashboardRelativeDate(documentRecord.updatedAt)} · {documentRecord.size ? formatBytes(documentRecord.size) : "Local"}</small><div className="dashboard-library-card-actions"><button type="button" className={`dashboard-favorite-button ${documentRecord.favorite ? "is-favorite" : ""}`} aria-label={documentRecord.favorite ? `Remove ${documentRecord.name} from favorites` : `Add ${documentRecord.name} to favorites`} aria-pressed={!!documentRecord.favorite} onClick={() => onToggleFavorite(documentRecord)}><Star size={16} fill={documentRecord.favorite ? "currentColor" : "none"} /></button>{renderDashboardDocumentMenu(documentRecord)}</div></div></article>)}
+    </div>
+  ) : renderDashboardLibraryList();
 
   const renderTemplateGrid = () => (
     filteredTemplateCards.length ? (
@@ -6055,44 +6103,45 @@ export function UploadLanding({
     }
 
     return (
-      <div className="dashboard-simple-home">
+      <div className="dashboard-premium-home">
         <section
-          className={`dashboard-simple-hero ${isDraggingFile ? "is-dragging" : ""} ${isUploading ? "is-uploading" : ""}`}
+          className={`dashboard-premium-welcome ${isDraggingFile ? "is-dragging" : ""} ${isUploading ? "is-uploading" : ""}`}
           onDragEnter={(event) => { event.preventDefault(); setIsDraggingFile(true); }}
           onDragOver={(event) => { event.preventDefault(); setIsDraggingFile(true); }}
           onDragLeave={(event) => { if (event.currentTarget === event.target) setIsDraggingFile(false); }}
           onDrop={onDropFile}
         >
-          <div>
-            <span>{dashboardGreeting}, {dashboardFirstName}</span>
-            <h1>What would you like to do?</h1>
-            <p>{isDraggingFile ? "Release to open your PDF." : isUploading ? `${uploadStage.status}: ${uploadStage.fileName}` : "Upload a PDF to edit it, or start with a clean page."}</p>
-            {uploadError && <p className="upload-error">{uploadError}</p>}
-          </div>
-          <div className="dashboard-simple-primary-actions">
-            <button type="button" className="is-primary" onClick={onSelectFiles}><Upload size={19} /> Upload PDF</button>
-            <button type="button" onClick={onBlankPage}><FilePlus2 size={19} /> Blank PDF</button>
-          </div>
+          <img src={`${import.meta.env.BASE_URL}dashboard/continue-header-motif.png`} alt="" aria-hidden="true" />
+          <span>{dashboardGreeting}, {dashboardFirstName}</span>
+          <h1>{isDraggingFile ? "Drop your PDF to open it" : "Continue where you left off"}</h1>
+          <p>{isUploading ? `${uploadStage.status}: ${uploadStage.fileName}` : "Open recent work or start a new PDF task."}</p>
+          {uploadError && <p className="upload-error">{uploadError}</p>}
         </section>
 
-        <section className="dashboard-essential-actions" aria-labelledby="dashboard-essential-title">
-          <div className="dashboard-simple-section-head">
-            <div><span>Quick start</span><h2 id="dashboard-essential-title">Choose a task</h2></div>
-            <button type="button" onClick={() => onNavigate(ROUTE_PATHS.tools)}>All PDF tools <ChevronRight size={16} /></button>
-          </div>
-          <div>
-            <button type="button" onClick={onSelectFiles}><span><PenLine size={21} /></span><strong>Edit a PDF</strong><small>Change text, add notes, and export</small><ChevronRight size={17} /></button>
-            <button type="button" onClick={() => setActiveSection("Signatures")}><span><PenLine size={21} /></span><strong>Sign a PDF</strong><small>Add a signature, initials, or date</small><ChevronRight size={17} /></button>
-            <button type="button" onClick={onSelectFiles}><span><Grid2X2 size={21} /></span><strong>Organize pages</strong><small>Reorder, rotate, duplicate, or delete</small><ChevronRight size={17} /></button>
-          </div>
+        <section className="dashboard-recent-work" aria-labelledby="dashboard-recent-title">
+          <header><h2 id="dashboard-recent-title">Recently opened</h2><button type="button" onClick={() => setActiveSection("Documents")}>View all <ChevronRight size={15} /></button></header>
+          {renderRecentDashboardCards()}
         </section>
 
-        <section className="reference-recent-card dashboard-simple-recent">
-          <div className="reference-section-head">
-            <div><span>Workspace</span><h2>Recent documents</h2></div>
-            <button type="button" className="reference-view-all" onClick={() => setActiveSection("Documents")}>View all</button>
-          </div>
-          {renderRecentDashboardTable()}
+        <section className="dashboard-premium-actions" aria-label="Quick PDF tasks">
+          <button type="button" onClick={onSelectFiles}><span><PenLine size={23} /></span><div><strong>Edit a PDF</strong><small>Change text, add notes, and export</small></div><ChevronRight size={17} /></button>
+          <button type="button" onClick={() => setActiveSection("Signatures")}><span><Stamp size={23} /></span><div><strong>Sign a PDF</strong><small>Add a signature, initials, or date</small></div><ChevronRight size={17} /></button>
+          <button type="button" onClick={onSelectFiles}><span><Grid2X2 size={23} /></span><div><strong>Organize pages</strong><small>Reorder, rotate, duplicate, or delete</small></div><ChevronRight size={17} /></button>
+        </section>
+
+        <section className="dashboard-premium-library" aria-labelledby="dashboard-library-title">
+          <header className="dashboard-library-toolbar">
+            <h2 id="dashboard-library-title">All documents</h2>
+            <label className="dashboard-library-search"><Search size={16} /><span className="sr-only">Search documents</span><input type="search" value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} placeholder="Search documents..." /></label>
+            <button type="button" className={dashboardFilter === "favorites" ? "is-active" : ""} aria-pressed={dashboardFilter === "favorites"} onClick={() => setDashboardFilter((value) => value === "favorites" ? "all" : "favorites")}><Filter size={16} /> {dashboardFilter === "favorites" ? "Favorites" : "Filter"}</button>
+            <label className="dashboard-library-sort"><span className="sr-only">Sort documents</span><select value={dashboardSort} onChange={(event) => setDashboardSort(event.target.value)}><option value="recent">Sort: Last edited</option><option value="name">Sort: Name</option></select><ChevronDown size={14} /></label>
+            <div className="dashboard-view-toggle" aria-label="Document view">
+              <button type="button" className={dashboardView === "list" ? "is-active" : ""} aria-label="List view" aria-pressed={dashboardView === "list"} onClick={() => setDashboardView("list")}><List size={18} /></button>
+              <button type="button" className={dashboardView === "grid" ? "is-active" : ""} aria-label="Grid view" aria-pressed={dashboardView === "grid"} onClick={() => setDashboardView("grid")}><Grid2X2 size={17} /></button>
+            </div>
+          </header>
+          {dashboardView === "list" ? renderDashboardLibraryList() : renderDashboardLibraryGrid()}
+          <footer><span>Showing {dashboardLibraryRows.length} of {filteredDocuments.length} document{filteredDocuments.length === 1 ? "" : "s"}</span><button type="button" onClick={() => onNavigate(ROUTE_PATHS.features)}>Explore every FixThatPDF feature <ChevronRight size={15} /></button></footer>
         </section>
       </div>
     );
@@ -6127,6 +6176,7 @@ export function UploadLanding({
           </label>
           <div className="upload-top-actions">
             <button type="button" className="dashboard-top-upload" onClick={onSelectFiles}><Upload size={18} /> Upload PDF</button>
+            {activeSection === "Home" && <button type="button" className="dashboard-top-blank" onClick={onBlankPage}><FilePlus2 size={17} /> Blank PDF</button>}
             <button type="button" className="top-avatar" aria-haspopup="dialog" aria-expanded={openPanel === "account"} onClick={() => setOpenPanel(openPanel === "account" ? null : "account")}><span>{userInitials}</span><i /><strong>{dashboardAccountName}</strong><ChevronDown size={15} /></button>
             {openPanel && (
               <div className={`workspace-popover ${openPanel === "account" ? "account-menu-popover" : ""}`} role={openPanel === "account" ? "dialog" : undefined} aria-label={openPanel === "account" ? "Account menu" : undefined}>

@@ -62,11 +62,13 @@ describe("simplified dashboard navigation", () => {
     });
 
     const text = textOf(renderer.root);
-    expect(text).toContain("What would you like to do?");
+    expect(text).toContain("Continue where you left off");
+    expect(text).toContain("Recently opened");
     expect(text).toContain("Edit a PDF");
     expect(text).toContain("Sign a PDF");
     expect(text).toContain("Organize pages");
-    expect(text).toContain("Recent documents");
+    expect(text).toContain("All documents");
+    expect(text).toContain("All features");
     expect(text).not.toContain("AI Assistant");
     expect(text).not.toContain("Recent Activity");
     expect(text).not.toContain("Total Documents");
