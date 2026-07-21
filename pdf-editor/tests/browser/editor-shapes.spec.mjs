@@ -42,7 +42,7 @@ test("Shapes toolbar draws arrow, line, circle, and rectangle into the exported 
 
   await page.getByRole("button", { name: "Shapes", exact: true }).click();
   const menu = page.getByRole("menu", { name: "Shape tools" });
-  expect(await menu.getByRole("menuitem").allTextContents()).toEqual(["Arrow", "Line", "Circle", "Rectangle"]);
+  expect((await menu.getByRole("menuitem").allTextContents()).map((label) => label.trim())).toEqual(["Arrow", "Line", "Circle", "Rectangle"]);
   await menu.getByRole("menuitem", { name: "Arrow", exact: true }).click();
   await drawShape(page, { x: 0.12, y: 0.14 }, { x: 0.32, y: 0.23 });
 
