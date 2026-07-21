@@ -105,6 +105,7 @@ import { EDITOR_TOOL_MODES, getDefaultToolForMode, getToolsForMode, resolveModeF
 import { annotationPatchFromFrame, framesEqual, getAnnotationFrame, moveFrame, normalizeRotation, nudgeFrame, resizeFrame, rotationFromPointer } from "./tools/editorObjectTransforms.js";
 import { normalizedPointerInRect } from "./tools/editorPointerCoordinates.js";
 import { createTextAnnotation, estimateTextAnnotationSize, normalizeEditorText, shouldDiscardTextAnnotation } from "./tools/editorTextObjects.js";
+import { detectedTextBaseline, resolveDetectedTextStyle, sampleDetectedTextBackground, standardPdfFontVariant } from "./tools/editorDetectedText.js";
 import { canSaveEditorSignature } from "./tools/editorSignature.js";
 import { duplicateEditorPageState, rotateEditorPageRecord } from "./tools/editorPageOrganizer.js";
 import { applyNativePdfFormAnnotation, createEditorExportDocument } from "./tools/pdfEditorPageExport.js";
@@ -446,11 +447,13 @@ function extractDetectedTextItems(textContent, viewport, pageRecord, pageIndex) 
       const top = transform[5] - rawHeight;
       const right = left + rawWidth;
       const bottom = top + rawHeight;
+      const baseline = transform[5];
       const x = clamp(left / viewport.width, 0, 0.98);
       const y = clamp(top / viewport.height, 0, 0.98);
       const w = clamp(rawWidth / viewport.width, 0.012, 0.86);
       const h = clamp((rawHeight * 1.22) / viewport.height, 0.012, 0.16);
       const fontSize = clamp((rawHeight / viewport.height) * pageRecord.height, 6, 42);
+      const textStyle = resolveDetectedTextStyle(textContent.styles, item.fontName);
 
       return {
         id: makeId("detected-text"),
@@ -468,8 +471,11 @@ function extractDetectedTextItems(textContent, viewport, pageRecord, pageIndex) 
         rawHeight,
         rawWidth,
         centerY: top + rawHeight / 2,
+        baseline,
         fontSize,
-        fontFamily: item.fontName || "Helvetica",
+        fontFamily: textStyle.fontFamily,
+        bold: textStyle.bold,
+        italic: textStyle.italic,
         color: colors.black,
         rotation: 0,
         source: "pdf-text-layer",
@@ -517,6 +523,7 @@ function extractDetectedTextItems(textContent, viewport, pageRecord, pageIndex) 
       }, "").replace(/\s+/g, " ").trim();
       const boxHeight = Math.max(bottom - top, avgHeight) * 1.32;
       const boxTop = top - Math.max(0, (boxHeight - (bottom - top)) / 2);
+      const baseline = segment.reduce((total, item) => total + item.baseline, 0) / segment.length;
       const x = clamp(left / viewport.width, 0, 0.98);
       const y = clamp(boxTop / viewport.height, 0, 0.98);
       const w = clamp((right - left) / viewport.width, 0.014, 0.94);
@@ -532,6 +539,7 @@ function extractDetectedTextItems(textContent, viewport, pageRecord, pageIndex) 
           y,
           w: Math.min(w, 0.98 - x),
           h: Math.min(h, 0.98 - y),
+          baselineOffset: clamp((baseline - boxTop) / viewport.height, 0, h),
           fontSize,
           fontFamily: segment[0].fontFamily,
           source: "pdf-text-line",
@@ -601,9 +609,14 @@ async function renderPdfEditorPage(documentProxy, sourcePageIndex, outputPageInd
     isHydrated: true,
     renderStatus: "ready",
   };
+  const detectedItems = extractDetectedTextItems(textContent, textViewport, pageRecord, outputPageIndex)
+    .map((item) => ({
+      ...item,
+      backgroundColor: sampleDetectedTextBackground(context, canvas.width, canvas.height, item),
+    }));
   return {
     pageRecord,
-    detectedItems: extractDetectedTextItems(textContent, textViewport, pageRecord, outputPageIndex),
+    detectedItems,
     detectedFormFields: extractPdfFormAnnotations(pdfAnnotations, textViewport, outputPageIndex, makeId),
   };
 }
@@ -3521,15 +3534,32 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
 
     const helvetica = await pdfDoc.embedFont(StandardFonts.Helvetica);
     const helveticaBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+    const helveticaItalic = await pdfDoc.embedFont(StandardFonts.HelveticaOblique);
+    const helveticaBoldItalic = await pdfDoc.embedFont(StandardFonts.HelveticaBoldOblique);
     const courier = await pdfDoc.embedFont(StandardFonts.Courier);
+    const courierBold = await pdfDoc.embedFont(StandardFonts.CourierBold);
+    const courierItalic = await pdfDoc.embedFont(StandardFonts.CourierOblique);
+    const courierBoldItalic = await pdfDoc.embedFont(StandardFonts.CourierBoldOblique);
     const timesItalic = await pdfDoc.embedFont(StandardFonts.TimesRomanItalic);
     const timesRoman = await pdfDoc.embedFont(StandardFonts.TimesRoman);
-    const pickPdfFont = (fontFamily = "", isBold = false) => {
-      const lowerFont = String(fontFamily).toLowerCase();
-      if (isBold) return helveticaBold;
-      if (lowerFont.includes("courier")) return courier;
-      if (lowerFont.includes("times") || lowerFont.includes("georgia")) return timesRoman;
-      return helvetica;
+    const timesBold = await pdfDoc.embedFont(StandardFonts.TimesRomanBold);
+    const timesBoldItalic = await pdfDoc.embedFont(StandardFonts.TimesRomanBoldItalic);
+    const pdfFonts = {
+      helvetica,
+      helveticaBold,
+      helveticaItalic,
+      helveticaBoldItalic,
+      courier,
+      courierBold,
+      courierItalic,
+      courierBoldItalic,
+      times: timesRoman,
+      timesBold,
+      timesItalic,
+      timesBoldItalic,
+    };
+    const pickPdfFont = (fontFamily = "", isBold = false, isItalic = false) => {
+      return pdfFonts[standardPdfFontVariant(fontFamily, isBold, isItalic)] || helvetica;
     };
 
     for (const item of detectedTextItems.filter((candidate) => candidate.isEdited || candidate.isDeleted)) {
@@ -3543,28 +3573,31 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       const y = height - item.y * height - boxHeight;
       const boxWidth = item.w * width;
       const fontSize = clamp((item.fontSize || 11) * pdfScale, 4, 54);
-      const font = pickPdfFont(item.fontFamily);
+      const font = pickPdfFont(item.fontFamily, item.bold, item.italic);
       const color = hexToRgb(item.color || colors.black);
+      const backgroundColor = hexToRgb(normalizeHexColor(item.backgroundColor) || "#ffffff");
 
       page.drawRectangle({
         x: Math.max(0, x - 1.5),
         y: Math.max(0, y - 1.5),
         width: Math.min(width - x + 1.5, boxWidth + 3),
         height: Math.min(height - y + 1.5, boxHeight + 3),
-        color: rgb(1, 1, 1),
+        color: backgroundColor,
         opacity: 1,
         borderOpacity: 0,
       });
 
       if (!item.isDeleted && String(item.currentText || "").trim()) {
+        const baseline = detectedTextBaseline(item, height, boxHeight, fontSize);
         String(item.currentText || "").split("\n").forEach((line, index) => {
           page.drawText(line, {
             x: x + 1.5,
-            y: y + Math.max(1, boxHeight - fontSize * 0.95) - index * fontSize * 1.18,
+            y: baseline - index * fontSize * 1.18,
             size: fontSize,
             font,
             color,
             opacity: 1,
+            rotate: degrees(Number(item.rotation || 0)),
           });
         });
       }
@@ -4455,6 +4488,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
                       top: `${Math.max(0, item.y * 100 - 0.18)}%`,
                       width: `${Math.min(100, item.w * 100 + 0.5)}%`,
                       height: `${Math.min(100, item.h * 100 + 0.36)}%`,
+                      backgroundColor: item.backgroundColor || "#ffffff",
                     }}
                     aria-hidden="true"
                   />
@@ -4475,6 +4509,9 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
                         color: item.color || colors.black,
                         fontSize: `${Math.max(6, item.fontSize * displayScale)}px`,
                         fontFamily: item.fontFamily || '"PP Agrandir", Inter, Arial, sans-serif',
+                        fontWeight: item.bold ? 700 : 400,
+                        fontStyle: item.italic ? "italic" : "normal",
+                        backgroundColor: item.isEdited || isActive ? item.backgroundColor || "#ffffff" : undefined,
                       }}
                       onPointerDown={(event) => startDetectedTextDrag(event, item)}
                     >
