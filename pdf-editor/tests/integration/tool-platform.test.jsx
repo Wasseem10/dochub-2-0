@@ -10,6 +10,8 @@ import { ImageConversionPage } from "../../src/pages/public/ImageConversionPage.
 import { OfficeConversionPage } from "../../src/pages/public/OfficeConversionPage.jsx";
 import { OcrPdfPage } from "../../src/pages/public/OcrPdfPage.jsx";
 import { PdfPageToolPage } from "../../src/pages/public/PdfPageToolPage.jsx";
+import { PdfProtectionPage } from "../../src/pages/public/PdfProtectionPage.jsx";
+import { ScanPdfPage } from "../../src/pages/public/ScanPdfPage.jsx";
 import { StructuredPdfConversionPage } from "../../src/pages/public/StructuredPdfConversionPage.jsx";
 import { ToPdfConversionPage } from "../../src/pages/public/ToPdfConversionPage.jsx";
 import { EditorToolUploadPage } from "../../src/pages/public/EditorToolUploadPage.jsx";
@@ -167,6 +169,26 @@ describe("public PDF tool platform", () => {
       expect(textOf(renderer.root).includes("Revised document")).toBe(true);
       expect(textOf(renderer.root).includes("Compare PDFs")).toBe(true);
       await unmount(renderer);
+    }
+  });
+
+  it("renders real protection and scanning workspaces", async () => {
+    const unlock = await render(<PdfProtectionPage tool={TOOL_BY_ID.get("unlock-pdf")} />);
+    expect(unlock.root.findAllByType("input").some((input) => input.props.type === "password")).toBe(true);
+    expect(textOf(unlock.root).includes("Unlock and download PDF")).toBe(true);
+    expect(textOf(unlock.root).includes("have permission")).toBe(true);
+    await unmount(unlock);
+
+    const flatten = await render(<PdfProtectionPage tool={TOOL_BY_ID.get("flatten-pdf")} />);
+    expect(textOf(flatten.root).includes("Flatten and download PDF")).toBe(true);
+    expect(textOf(flatten.root).includes("removes interactivity")).toBe(true);
+    await unmount(flatten);
+
+    for (const toolId of ["pdf-scanner", "scan-to-pdf", "image-to-searchable-pdf"]) {
+      const scan = await render(<ScanPdfPage tool={TOOL_BY_ID.get(toolId)} />);
+      expect(scan.root.findAllByType("input").some((input) => input.props.type === "file" && input.props.multiple)).toBe(true);
+      expect(textOf(scan.root).includes("Private browser processing")).toBe(true);
+      await unmount(scan);
     }
   });
 
