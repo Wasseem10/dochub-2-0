@@ -123,6 +123,7 @@
   main.editor-shell .reference-header-actions .reference-done-button > span { display: inline !important; }
 
   main.editor-shell .reference-tool-ribbon {
+    inset: auto !important;
     width: calc(100% - 12px) !important;
     min-width: 0 !important;
     min-height: 70px !important;
