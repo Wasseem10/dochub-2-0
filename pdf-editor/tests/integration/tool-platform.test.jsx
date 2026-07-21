@@ -8,6 +8,7 @@ import { ToolDirectoryPage } from "../../src/pages/public/ToolDirectoryPage.jsx"
 import { ImageConversionPage } from "../../src/pages/public/ImageConversionPage.jsx";
 import { OfficeConversionPage } from "../../src/pages/public/OfficeConversionPage.jsx";
 import { PdfPageToolPage } from "../../src/pages/public/PdfPageToolPage.jsx";
+import { StructuredPdfConversionPage } from "../../src/pages/public/StructuredPdfConversionPage.jsx";
 import { EditorToolUploadPage } from "../../src/pages/public/EditorToolUploadPage.jsx";
 import { ToolLandingPage } from "../../src/pages/public/ToolLandingPage.jsx";
 import { TOOL_BY_ID } from "../../src/tools/toolRegistry.js";
@@ -84,11 +85,11 @@ describe("public PDF tool platform", () => {
     expect(textOf(comment.root).includes("Comment on a PDF online")).toBe(true);
     await unmount(comment);
 
-    const coming = await render(<ToolLandingPage tool={TOOL_BY_ID.get("pdf-to-excel")} />);
+    const coming = await render(<ToolLandingPage tool={TOOL_BY_ID.get("contract-analyzer")} />);
     expect(coming.root.findAllByType("input")).toHaveLength(0);
     expect(coming.root.findAllByType("button")).toHaveLength(0);
     expect(textOf(coming.root).includes("Coming soon")).toBe(true);
-    expect(textOf(coming.root).includes("Table detection and XLSX generation are not implemented.")).toBe(true);
+    expect(textOf(coming.root).includes("Clause extraction is not implemented")).toBe(true);
     await unmount(coming);
   });
 
@@ -116,6 +117,22 @@ describe("public PDF tool platform", () => {
     expect(textOf(toPdf.root).includes("Legacy .doc files are not supported yet.")).toBe(true);
     expect(textOf(toPdf.root).includes("searchable and selectable")).toBe(true);
     await unmount(toPdf);
+  });
+
+  it("renders complete browser workspaces for structured PDF conversions", async () => {
+    const cases = [
+      ["pdf-to-excel", "Extract rows into a real workbook", "Download XLSX"],
+      ["pdf-to-powerpoint", "Preserve every page as a slide", "Download PPTX"],
+      ["pdf-to-html", "Create standalone selectable HTML", "Download HTML"],
+    ];
+
+    for (const [toolId, heading, downloadLabel] of cases) {
+      const renderer = await render(<StructuredPdfConversionPage tool={TOOL_BY_ID.get(toolId)} />);
+      expect(renderer.root.findAllByType("input").some((input) => input.props.type === "file" && input.props.accept.includes("application/pdf"))).toBe(true);
+      expect(textOf(renderer.root).includes(heading)).toBe(true);
+      expect(textOf(renderer.root).includes(downloadLabel)).toBe(true);
+      await unmount(renderer);
+    }
   });
 
   it("renders real merge and page organizer workspaces", async () => {

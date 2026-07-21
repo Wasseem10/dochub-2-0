@@ -18,8 +18,11 @@
   <url><loc>http://localhost:4173/organize-pdf</loc></url>
   <url><loc>http://localhost:4173/pdf-form-filler</loc></url>
   <url><loc>http://localhost:4173/pdf-reader</loc></url>
+  <url><loc>http://localhost:4173/pdf-to-excel</loc></url>
+  <url><loc>http://localhost:4173/pdf-to-html</loc></url>
   <url><loc>http://localhost:4173/pdf-to-jpg</loc></url>
   <url><loc>http://localhost:4173/pdf-to-png</loc></url>
+  <url><loc>http://localhost:4173/pdf-to-powerpoint</loc></url>
   <url><loc>http://localhost:4173/pdf-to-txt</loc></url>
   <url><loc>http://localhost:4173/pdf-to-word</loc></url>
   <url><loc>http://localhost:4173/png-to-pdf</loc></url>
