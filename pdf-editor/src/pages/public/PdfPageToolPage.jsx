@@ -352,7 +352,7 @@ function CompressWorkspace({ tool }) {
         pages.push({ jpegBytes: new Uint8Array(await blob.arrayBuffer()), width: outputViewport.width, height: outputViewport.height });
         setProgress(Math.round((pageNumber / source.numPages) * 100));
       }
-      await source.destroy();
+      await source.destroy?.();
       const output = await createCompressedPdfFromJpegs(pages);
       if (output.length >= sourceBytes.length) throw new Error("These settings did not make the PDF smaller. Choose Strong compression or keep the original PDF.");
       downloadBytes(output, "application/pdf", `${file.name.replace(/\.pdf$/i, "") || "document"}-compressed.pdf`);

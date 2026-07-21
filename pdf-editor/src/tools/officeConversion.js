@@ -218,12 +218,29 @@ export async function createPdfFromRenderedDocxPages(pages, options = {}) {
     const page = pdf.addPage([width, height]);
     page.drawImage(image, { x: 0, y: 0, width, height });
     if (searchableFont) {
-      (renderedPage.textItems || []).forEach((item) => {
-        const text = String(item.text || "").trim();
+      const lines = [];
+      [...(renderedPage.textItems || [])]
+        .filter((item) => String(item.text || "").trim())
+        .sort((left, right) => Number(left.y || 0) - Number(right.y || 0) || Number(left.x || 0) - Number(right.x || 0))
+        .forEach((item) => {
+          const center = Number(item.y || 0) + Number(item.h || 0) / 2;
+          const line = lines.find((candidate) => Math.abs(candidate.center - center) <= Math.max(candidate.height, Number(item.h || 0.018)) * 0.55);
+          if (line) {
+            line.items.push(item);
+            line.height = Math.max(line.height, Number(item.h || 0.018));
+            line.center = (line.center * (line.items.length - 1) + center) / line.items.length;
+          } else {
+            lines.push({ center, height: Number(item.h || 0.018), items: [item] });
+          }
+        });
+      lines.forEach((line) => {
+        const lineItems = line.items.sort((left, right) => Number(left.x || 0) - Number(right.x || 0));
+        const firstItem = lineItems[0];
+        const text = lineItems.map((item) => String(item.text || "").trim()).join(" ");
         if (!text) return;
-        const x = Math.max(0, Math.min(width - 2, Number(item.x || 0) * width));
-        const y = Math.max(0, Math.min(height - 2, height - (Number(item.y || 0) + Number(item.h || 0)) * height));
-        const size = Math.max(4, Math.min(72, Number(item.h || 0.018) * height * 0.82));
+        const x = Math.max(0, Math.min(width - 2, Number(firstItem.x || 0) * width));
+        const y = Math.max(0, Math.min(height - 2, height - (Number(firstItem.y || 0) + line.height) * height));
+        const size = Math.max(4, Math.min(72, line.height * height * 0.82));
         page.drawText(text, { x, y, size, font: searchableFont, color: rgb(0, 0, 0), opacity: 0 });
       });
     }

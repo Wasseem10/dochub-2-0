@@ -42,6 +42,7 @@ describe("high-fidelity PDF page operations", () => {
 
     const split = await splitPdfByRanges(merged, [[0, 1], [2]]);
     expect(split).toHaveLength(2);
+    expect(split.map((part) => part.name)).toEqual(["pages-1-2.pdf", "page-3.pdf"]);
     expect((await PDFDocument.load(split[0].bytes)).getPageCount()).toBe(2);
     expect((await PDFDocument.load(split[1].bytes)).getPages()[0].getWidth()).toBe(310);
   });

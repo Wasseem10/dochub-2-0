@@ -78,7 +78,10 @@ export async function splitPdfByRanges(sourceBytes, rangeGroups) {
   for (let index = 0; index < rangeGroups.length; index += 1) {
     const pageIndices = rangeGroups[index];
     const bytes = await buildPdfFromPagePlan(sourceBytes, pageIndices.map((sourceIndex) => ({ sourceIndex, rotation: 0 })), `Split PDF part ${index + 1}`);
-    outputs.push({ name: `part-${String(index + 1).padStart(2, "0")}.pdf`, bytes });
+    const pageLabel = pageIndices.length === 1
+      ? `page-${pageIndices[0] + 1}`
+      : `pages-${pageIndices[0] + 1}-${pageIndices[pageIndices.length - 1] + 1}`;
+    outputs.push({ name: `${pageLabel}.pdf`, bytes });
   }
   return outputs;
 }

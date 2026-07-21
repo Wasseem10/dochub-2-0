@@ -3934,7 +3934,8 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     const exported = await exportPdf({ download: false, showResult: false });
     if (!exported) throw new Error("The PDF could not be prepared for protection.");
     const protectedBytes = await protectPdfBytes(exported.bytes, password);
-    const protectedName = `${exported.name.replace(/\.pdf$/i, "")}-protected.pdf`;
+    const protectedBaseName = exported.name.replace(/\.pdf$/i, "").replace(/-edited$/i, "");
+    const protectedName = `${protectedBaseName}-protected.pdf`;
     downloadBlob(new Blob([protectedBytes], { type: "application/pdf" }), protectedName);
     setProtectModalOpen(false);
     showToast("Protected PDF downloaded. Keep the password somewhere safe.");
