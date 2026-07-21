@@ -22,7 +22,7 @@ const faqs = [
   ["Is FixThatPDF really free?", "Yes. Supported core tools are free to use with no subscription, checkout, email requirement, or FixThatPDF watermark."],
   ["Do I need an account?", "No. Open, edit, and download supported files as a guest. Create an account only when you want cloud document history."],
   ["Are files processed in my browser?", "Supported editor, page, and image tools process files in your browser. Account-based cloud history uses Firebase and is clearly separate."],
-  ["What is the editor file limit?", "The editor accepts valid, unencrypted PDFs up to 8 MB and 100 pages. Dedicated page and conversion tools may support higher limits shown before upload."],
+  ["What is the editor file limit?", "The editor accepts valid, unencrypted PDFs up to 50 MB and 500 pages. Large documents open progressively, so later pages render as you visit them."],
   ["Can FixThatPDF perfectly rewrite original PDF text?", "Not always. The editor can change detected text overlays and add new content, but original fonts, spacing, and layout may vary. Always review the export."],
   ["Does FixThatPDF add a watermark?", "No. FixThatPDF does not add a watermark to supported exports."],
 ];
@@ -165,7 +165,7 @@ function Dropzone({ choose, dragging, setDragging, isUploading, uploadError, upl
     <h2>{dragging ? "Drop your PDF here" : isUploading ? "Opening your PDF…" : "Drop your PDF here"}</h2>
     <p>or choose a file from your device</p>
     <button type="button" onClick={choose} disabled={isUploading}>Choose a PDF</button>
-    <small>PDF · Up to 8 MB · Maximum 100 pages</small>
+    <small>PDF · Up to 50 MB · Maximum 500 pages</small>
     <div className="freepdf-upload-status" aria-live="polite">{uploadError ? <p role="alert">{uploadError}</p> : isUploading ? <><p>{uploadStage.status}{uploadStage.fileName ? ` · ${uploadStage.fileName}` : ""}</p><div role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow={uploadStage.percent || 0}><span style={{ width: `${uploadStage.percent || 0}%` }} /></div></> : null}</div>
     <Link to={ROUTE_PATHS.privacy}><LockKeyhole size={13} /> Your file stays private</Link>
   </section>;
