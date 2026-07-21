@@ -7,6 +7,133 @@ export const PDF_COMPARISON_LIMITS = Object.freeze({
   tileSize: 28,
 });
 
+function mergeRegionPair(first, second) {
+  return {
+    left: Math.min(first.left, second.left),
+    top: Math.min(first.top, second.top),
+    right: Math.max(first.right, second.right),
+    bottom: Math.max(first.bottom, second.bottom),
+    tileCount: first.tileCount + second.tileCount,
+    peakRatio: Math.max(first.peakRatio, second.peakRatio),
+  };
+}
+
+function regionGap(first, second, tileSize) {
+  const horizontal = Math.max(0, first.left - second.right, second.left - first.right);
+  const vertical = Math.max(0, first.top - second.bottom, second.top - first.bottom);
+  const merged = mergeRegionPair(first, second);
+  const mergedArea = (merged.right - merged.left) * (merged.bottom - merged.top);
+  const firstArea = (first.right - first.left) * (first.bottom - first.top);
+  const secondArea = (second.right - second.left) * (second.bottom - second.top);
+  const emptyAreaPenalty = Math.max(0, mergedArea - firstArea - secondArea) / Math.max(1, tileSize * tileSize);
+  return horizontal / tileSize + vertical / tileSize + emptyAreaPenalty * 0.12;
+}
+
+function limitRegions(regions, limit, tileSize) {
+  const limited = [...regions];
+  while (limited.length > limit) {
+    let best = null;
+    for (let firstIndex = 0; firstIndex < limited.length; firstIndex += 1) {
+      for (let secondIndex = firstIndex + 1; secondIndex < limited.length; secondIndex += 1) {
+        const gap = regionGap(limited[firstIndex], limited[secondIndex], tileSize);
+        if (!best || gap < best.gap) best = { firstIndex, secondIndex, gap };
+      }
+    }
+    if (!best) break;
+    const merged = mergeRegionPair(limited[best.firstIndex], limited[best.secondIndex]);
+    limited.splice(best.secondIndex, 1);
+    limited.splice(best.firstIndex, 1, merged);
+  }
+  return limited;
+}
+
+function groupChangedTiles(changedTiles, rows, width, height, tileSize, options) {
+  if (!changedTiles.length) return [];
+  const strongRatio = options.strongRatio ?? Math.max(0.12, (options.minimumRatio ?? 0.035) * 3);
+  const maxRegions = options.maxRegions ?? 24;
+  const padding = options.regionPadding ?? Math.max(3, Math.round(tileSize * 0.18));
+  const tileByPosition = new Map(changedTiles.map((tile) => [`${tile.row}:${tile.column}`, tile]));
+  const retained = changedTiles.filter((tile) => {
+    if (tile.ratio >= strongRatio) return true;
+    for (let rowOffset = -1; rowOffset <= 1; rowOffset += 1) {
+      for (let columnOffset = -1; columnOffset <= 1; columnOffset += 1) {
+        if (!rowOffset && !columnOffset) continue;
+        if (tileByPosition.has(`${tile.row + rowOffset}:${tile.column + columnOffset}`)) return true;
+      }
+    }
+    return false;
+  });
+  const retainedByRow = new Map();
+  retained.forEach((tile) => {
+    const rowTiles = retainedByRow.get(tile.row) || [];
+    rowTiles.push(tile);
+    retainedByRow.set(tile.row, rowTiles);
+  });
+
+  const regions = [];
+  for (let row = 0; row < rows; row += 1) {
+    const rowTiles = (retainedByRow.get(row) || []).sort((first, second) => first.column - second.column);
+    const runs = [];
+    for (const tile of rowTiles) {
+      const previous = runs[runs.length - 1];
+      if (previous && tile.column === previous.lastColumn + 1) {
+        previous.lastColumn = tile.column;
+        previous.tileCount += 1;
+        previous.peakRatio = Math.max(previous.peakRatio, tile.ratio);
+      } else {
+        runs.push({ firstColumn: tile.column, lastColumn: tile.column, tileCount: 1, peakRatio: tile.ratio });
+      }
+    }
+
+    for (const run of runs) {
+      const runLeft = run.firstColumn * tileSize;
+      const runRight = Math.min(width, (run.lastColumn + 1) * tileSize);
+      const runWidth = runRight - runLeft;
+      let bestRegion = null;
+      let bestOverlap = 0;
+      for (const region of regions) {
+        if (region.lastRow !== row - 1) continue;
+        const overlap = Math.max(0, Math.min(region.right, runRight) - Math.max(region.left, runLeft));
+        const overlapRatio = overlap / Math.max(1, Math.min(region.right - region.left, runWidth));
+        const unionWidth = Math.max(region.right, runRight) - Math.min(region.left, runLeft);
+        if (overlapRatio >= 0.5 && unionWidth <= Math.max(region.right - region.left, runWidth) * 1.65 && overlapRatio > bestOverlap) {
+          bestRegion = region;
+          bestOverlap = overlapRatio;
+        }
+      }
+      if (bestRegion) {
+        bestRegion.left = Math.min(bestRegion.left, runLeft);
+        bestRegion.right = Math.max(bestRegion.right, runRight);
+        bestRegion.bottom = Math.min(height, (row + 1) * tileSize);
+        bestRegion.lastRow = row;
+        bestRegion.tileCount += run.tileCount;
+        bestRegion.peakRatio = Math.max(bestRegion.peakRatio, run.peakRatio);
+      } else {
+        regions.push({
+          left: runLeft,
+          top: row * tileSize,
+          right: runRight,
+          bottom: Math.min(height, (row + 1) * tileSize),
+          lastRow: row,
+          tileCount: run.tileCount,
+          peakRatio: run.peakRatio,
+        });
+      }
+    }
+  }
+
+  const meaningful = regions.filter((region) => region.tileCount > 1 || region.peakRatio >= strongRatio);
+  return limitRegions(meaningful, maxRegions, tileSize)
+    .map((region) => {
+      const left = Math.max(0, region.left - padding);
+      const top = Math.max(0, region.top - padding);
+      const right = Math.min(width, region.right + padding);
+      const bottom = Math.min(height, region.bottom + padding);
+      return { x: left / width, y: top / height, width: (right - left) / width, height: (bottom - top) / height };
+    })
+    .sort((first, second) => first.y - second.y || first.x - second.x);
+}
+
 export function validateComparisonPdf(file) {
   if (!file) return "Choose a PDF file.";
   if (!file.size) return "This PDF is empty.";
@@ -19,7 +146,8 @@ export function compareRgbaImages(first, second, width, height, options = {}) {
   const tileSize = options.tileSize || PDF_COMPARISON_LIMITS.tileSize;
   const threshold = options.threshold ?? 24;
   const minimumRatio = options.minimumRatio ?? 0.035;
-  const rects = [];
+  const rows = Math.ceil(height / tileSize);
+  const changedTiles = [];
   let changedSamples = 0;
   let samples = 0;
   for (let top = 0; top < height; top += tileSize) {
@@ -36,10 +164,12 @@ export function compareRgbaImages(first, second, width, height, options = {}) {
           tileSamples += 1; samples += 1;
         }
       }
-      if (tileSamples && tileChanged / tileSamples >= minimumRatio) rects.push({ x: left / width, y: top / height, width: (right - left) / width, height: (bottom - top) / height });
+      const ratio = tileSamples ? tileChanged / tileSamples : 0;
+      if (ratio >= minimumRatio) changedTiles.push({ row: Math.floor(top / tileSize), column: Math.floor(left / tileSize), ratio });
     }
   }
   const changedRatio = samples ? changedSamples / samples : 0;
+  const rects = groupChangedTiles(changedTiles, rows, width, height, tileSize, { ...options, minimumRatio });
   return { rects, changedRatio, similarity: Math.max(0, Math.round((1 - changedRatio) * 1000) / 10) };
 }
 

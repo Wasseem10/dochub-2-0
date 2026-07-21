@@ -22,8 +22,12 @@ test("compares two PDFs and downloads a marked report", async ({ page }) => {
   await inputs.nth(1).setInputFiles({ name: "revised.pdf", mimeType: "application/pdf", buffer: await comparisonPdf("Approved", "48000") });
   await expect(page.getByText("Both PDFs are ready")).toBeVisible();
   await page.getByRole("button", { name: "Compare PDFs" }).click();
-  await expect(page.getByRole("heading", { name: "1 of 1 pages changed" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "1 of 1 page changed" })).toBeVisible();
   await expect(page.getByText(/similar · \+/)).toBeVisible();
+  await expect(page.getByText(/visual regions?/)).toBeVisible();
+  const regions = await page.locator(".comparison-change-region").count();
+  expect(regions).toBeGreaterThan(0);
+  expect(regions).toBeLessThanOrEqual(12);
   const pending = page.waitForEvent("download");
   await page.getByRole("button", { name: "Download report PDF" }).click();
   const download = await pending;
