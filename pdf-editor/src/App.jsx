@@ -1,4 +1,5 @@
 import { forwardRef, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import Mail from "lucide-react/dist/esm/icons/mail.mjs";
 import LogOut from "lucide-react/dist/esm/icons/log-out.mjs";
 import ChevronRight from "lucide-react/dist/esm/icons/chevron-right.mjs";
@@ -1343,6 +1344,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   const imageInputRef = useRef(null);
   const moreMenuRef = useRef(null);
   const zoomMenuRef = useRef(null);
+  const shapeMenuRef = useRef(null);
   const canvasColumnRef = useRef(null);
   const publicDocumentRecoveryRef = useRef(new Set());
   const trackedDocumentOpenRef = useRef(new Set());
@@ -1394,6 +1396,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
   const [isZoomMenuOpen, setIsZoomMenuOpen] = useState(false);
   const [isShapeMenuOpen, setIsShapeMenuOpen] = useState(false);
+  const [shapeMenuPosition, setShapeMenuPosition] = useState({ top: 0, left: 0 });
   const [isManagePagesOpen, setIsManagePagesOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isCommentsOpen, setIsCommentsOpen] = useState(false);
@@ -2102,6 +2105,25 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       window.removeEventListener("keydown", onKeyDown);
     };
   }, [isZoomMenuOpen]);
+
+  useEffect(() => {
+    if (!isShapeMenuOpen) return undefined;
+
+    const closeShapeMenu = (event) => {
+      if (event?.type === "keydown" && event.key !== "Escape") return;
+      if (event?.type === "pointerdown" && (shapeMenuRef.current?.contains(event.target) || event.target?.closest?.(".reference-shape-menu"))) return;
+      setIsShapeMenuOpen(false);
+    };
+
+    window.addEventListener("pointerdown", closeShapeMenu);
+    window.addEventListener("keydown", closeShapeMenu);
+    window.addEventListener("resize", closeShapeMenu);
+    return () => {
+      window.removeEventListener("pointerdown", closeShapeMenu);
+      window.removeEventListener("keydown", closeShapeMenu);
+      window.removeEventListener("resize", closeShapeMenu);
+    };
+  }, [isShapeMenuOpen]);
 
   const selectPdfFile = () => {
     fileInputRef.current?.click();
@@ -3740,6 +3762,9 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     if (nextTool === "stamp") showToast("Click the page to place an Approved stamp.");
     if (nextTool === "link") showToast("Click the page, then enter the link address.");
     if (nextTool === "checkbox") showToast("Click the exact spot where you want the checkmark.");
+    if (["arrow", "line", "circle", "rectangle"].includes(nextTool)) {
+      showToast(`Drag on the page to draw a ${nextTool === "circle" ? "circle" : nextTool}.`);
+    }
     setTool(nextTool);
   };
 
@@ -3998,22 +4023,42 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
           </div>
 
           <div className="reference-markup-tools">
-            <div className="reference-shape-tool">
-              <button type="button" className={`reference-toolbar-button ${["arrow", "line", "rectangle", "circle"].includes(tool) ? "is-active" : ""}`} aria-pressed={["arrow", "line", "rectangle", "circle"].includes(tool)} onClick={() => activateReferenceTool("arrow")}>
-                <Send size={23} /><span>Arrow</span>
+            <div className="reference-shape-tool" ref={shapeMenuRef}>
+              <button
+                type="button"
+                className={`reference-toolbar-button ${["arrow", "line", "rectangle", "circle"].includes(tool) || isShapeMenuOpen ? "is-active" : ""}`}
+                aria-label="Shapes"
+                aria-haspopup="menu"
+                aria-expanded={isShapeMenuOpen}
+                onClick={() => {
+                  if (isShapeMenuOpen) {
+                    setIsShapeMenuOpen(false);
+                    return;
+                  }
+                  const rect = shapeMenuRef.current?.getBoundingClientRect();
+                  setShapeMenuPosition({
+                    top: (rect?.bottom || 172) + 6,
+                    left: clamp(rect?.left || 8, 8, Math.max(8, window.innerWidth - 158)),
+                  });
+                  setIsMoreMenuOpen(false);
+                  setIsZoomMenuOpen(false);
+                  setIsShapeMenuOpen(true);
+                }}
+              >
+                <RectangleHorizontal size={23} /><span className="reference-shape-label">Shapes <ChevronDown size={11} /></span>
               </button>
-              <button type="button" className="reference-shape-menu-trigger" aria-label="More shape tools" aria-haspopup="menu" aria-expanded={isShapeMenuOpen} onClick={() => setIsShapeMenuOpen((value) => !value)}><ChevronDown size={14} /></button>
-              {isShapeMenuOpen && (
-                <div className="reference-shape-menu" role="menu" aria-label="Shape tools">
+              {isShapeMenuOpen && createPortal(
+                <div className="reference-shape-menu" role="menu" aria-label="Shape tools" style={{ top: shapeMenuPosition.top, left: shapeMenuPosition.left }}>
                   {[
                     { id: "arrow", label: "Arrow", icon: Send },
                     { id: "line", label: "Line", icon: Minus },
+                    { id: "circle", label: "Circle", icon: Circle },
                     { id: "rectangle", label: "Rectangle", icon: RectangleHorizontal },
-                    { id: "circle", label: "Ellipse", icon: Circle },
                   ].map(({ id, label, icon: Icon }) => (
-                    <button key={id} type="button" role="menuitem" onClick={() => activateReferenceTool(id)}><Icon size={18} /> {label}</button>
+                    <button key={id} type="button" role="menuitem" className={tool === id ? "is-selected" : ""} onClick={() => activateReferenceTool(id)}><Icon size={17} /> {label}</button>
                   ))}
-                </div>
+                </div>,
+                document.body,
               )}
             </div>
             {referencePrimaryTools.slice(3, 5).map(({ id, label, icon: Icon }) => (

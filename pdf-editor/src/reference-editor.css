@@ -180,11 +180,12 @@ main.editor-shell .reference-secondary-tools { margin-left: auto; padding-left: 
 main.editor-shell .reference-secondary-tools .reference-toolbar-button:last-child { width: 78px !important; white-space: normal !important; }
 main.editor-shell .reference-secondary-tools .reference-toolbar-button:last-child span { max-width: 60px; line-height: 1.15; text-align: center; }
 main.editor-shell .reference-shape-tool { position: relative; display: flex; width: 76px; flex: 0 0 76px; }
-main.editor-shell .reference-shape-tool > .reference-toolbar-button { width: 62px !important; min-width: 62px !important; padding-right: 2px !important; }
-main.editor-shell .reference-shape-menu-trigger { width: 18px; height: 76px; padding: 42px 0 0; border: 0; background: transparent; color: #4b5565; cursor: pointer; }
-main.editor-shell .reference-shape-menu { position: fixed; top: 178px; z-index: 90; display: grid; width: 170px; padding: 7px; border: 1px solid #d6deea; border-radius: 9px; background: #fff; box-shadow: 0 16px 40px rgba(29, 43, 65, .18); }
-main.editor-shell .reference-shape-menu button { display: flex; height: 38px; align-items: center; gap: 9px; padding: 0 10px; border: 0; border-radius: 6px; background: transparent; color: #2c3545; font: inherit; font-size: 13px; text-align: left; cursor: pointer; }
-main.editor-shell .reference-shape-menu button:hover { background: #edf3fc; color: var(--reference-blue-dark); }
+main.editor-shell .reference-shape-tool > .reference-toolbar-button { width: 76px !important; min-width: 76px !important; }
+main.editor-shell .reference-shape-label { display: inline-flex; align-items: center; gap: 2px; }
+.reference-shape-menu { position: fixed; z-index: 900; display: grid; width: 150px; overflow: hidden; padding: 5px; border: 1px solid #d6dbe3; border-radius: 9px; background: #fff; box-shadow: 0 14px 34px rgba(29, 43, 65, .16); font-family: "PP Agrandir", Inter, Arial, sans-serif; }
+.reference-shape-menu button { display: flex; height: 42px; align-items: center; gap: 9px; padding: 0 10px; border: 0; border-radius: 6px; background: transparent; color: #555d69; font: inherit; font-size: 13px; font-weight: 500; text-align: left; cursor: pointer; }
+.reference-shape-menu button:hover,
+.reference-shape-menu button.is-selected { background: #edf3fc; color: #1d43d7; }
 
 main.editor-shell > .tool-settings,
 main.editor-shell > .text-format-settings {
@@ -389,7 +390,7 @@ main.editor-shell .comment-editor { position: absolute; top: calc(100% + 10px); 
 @media (min-width: 1800px) {
   main.editor-shell .reference-toolbar-button { min-width: 108px !important; }
   main.editor-shell .reference-shape-tool { width: 108px; flex-basis: 108px; }
-  main.editor-shell .reference-shape-tool > .reference-toolbar-button { width: 90px !important; min-width: 90px !important; }
+  main.editor-shell .reference-shape-tool > .reference-toolbar-button { width: 108px !important; min-width: 108px !important; }
   main.editor-shell .reference-secondary-tools .reference-toolbar-button:last-child { width: 108px !important; }
 }
 
