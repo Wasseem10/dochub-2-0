@@ -13,7 +13,7 @@ const pageContent = {
       ["Support requests", "If you contact support, FixThatPDF stores the name, reply email, category, message, account ID if signed in, and submission time in Firebase. Only the site owner can read the support inbox. Do not submit passwords or confidential PDF contents."],
       ["Service providers", <span key="providers">Vercel hosts the public web application, and Google Firebase provides optional authentication, Firestore, and Storage. Review the providers’ current policies at <a href="https://vercel.com/legal/privacy-notice" target="_blank" rel="noreferrer">Vercel Privacy</a> and <a href="https://firebase.google.com/support/privacy/" target="_blank" rel="noreferrer">Firebase Privacy and Security</a>.</span>],
       ["Deletion and your choices", "Guest documents can be removed by clearing this site's browser storage. Signed-in users can delete saved documents individually or permanently delete their account and associated document records, cloud payloads, account-linked analytics events, and account-linked support requests from Settings. Anonymous analytics cannot always be linked back to a person."],
-      ["Current limitations", "Encrypted PDFs are not accepted by supported browser tools. The editor is limited to 8 MB and 100 pages. Browser memory, storage capacity, and device performance can affect larger or complex documents."],
+      ["Current limitations", "Encrypted PDFs are not accepted by supported browser tools. The editor supports up to 50 MB and 500 pages with progressive page rendering. Browser memory, storage capacity, and device performance can still affect complex documents."],
     ],
   },
   [ROUTE_PATHS.security]: {
@@ -27,7 +27,7 @@ const pageContent = {
   [ROUTE_PATHS.help]: {
     intro: "Quick guidance for completing a supported PDF task without an account.",
     sections: [
-      ["Open a PDF", "Choose a valid, unencrypted PDF. The editor accepts files up to 8 MB and 100 pages. Dedicated page and conversion tools show their own higher limits."],
+      ["Open a PDF", "Choose a valid, unencrypted PDF. The editor accepts files up to 50 MB and 500 pages, opening large documents progressively."],
       ["Make and verify changes", "Use the focused controls for your tool. Original embedded text is not guaranteed to retain the exact font, spacing, or content stream, so review every changed page."],
       ["Download", "Use the editor or tool's download action. FixThatPDF does not add a watermark and does not require signup before a supported download."],
       ["If a file fails", "Try a fresh copy of a corrupted file, remove encryption with an authorized tool, use a smaller PDF, or switch to the dedicated page/conversion tool when it has a higher documented limit."],

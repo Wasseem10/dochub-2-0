@@ -34,6 +34,7 @@ import ImageIcon from "lucide-react/dist/esm/icons/image.mjs";
 import Inbox from "lucide-react/dist/esm/icons/inbox.mjs";
 import Info from "lucide-react/dist/esm/icons/info.mjs";
 import List from "lucide-react/dist/esm/icons/list.mjs";
+import LoaderCircle from "lucide-react/dist/esm/icons/loader-circle.mjs";
 import MessageSquare from "lucide-react/dist/esm/icons/message-square.mjs";
 import MousePointer2 from "lucide-react/dist/esm/icons/mouse-pointer-2.mjs";
 import Paintbrush from "lucide-react/dist/esm/icons/paintbrush.mjs";
@@ -94,7 +95,7 @@ import { claimGuestDocument, editorActionNeedsAccount, GUEST_OWNER_ID, recoverDo
 import { clearEditorSession, loadEditorSession, saveEditorSession } from "./tools/editorSessionStore.js";
 import { loadLocalDocuments, saveLocalDocuments } from "./tools/localDocumentStore.js";
 import { extractPdfFormAnnotations } from "./tools/pdfFormFields.js";
-import { getPdfLoadErrorMessage, validatePdfUpload } from "./tools/pdfUploadValidation.js";
+import { getPdfLoadErrorMessage, MAX_PDF_EDITOR_PAGES, validatePdfUpload } from "./tools/pdfUploadValidation.js";
 import { drawFlattenedInputAnnotation } from "./tools/pdfEditorAnnotationExport.js";
 import { attachPdfCommentAnnotation } from "./tools/pdfCommentAnnotations.js";
 import { addPdfLinkAnnotation } from "./editor/pdfLinkAnnotation.mjs";
@@ -106,7 +107,7 @@ import { normalizedPointerInRect } from "./tools/editorPointerCoordinates.js";
 import { createTextAnnotation, estimateTextAnnotationSize, normalizeEditorText, shouldDiscardTextAnnotation } from "./tools/editorTextObjects.js";
 import { canSaveEditorSignature } from "./tools/editorSignature.js";
 import { duplicateEditorPageState, rotateEditorPageRecord } from "./tools/editorPageOrganizer.js";
-import { appendEditorPages } from "./tools/pdfEditorPageExport.js";
+import { applyNativePdfFormAnnotation, createEditorExportDocument } from "./tools/pdfEditorPageExport.js";
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
   "pdfjs-dist/build/pdf.worker.mjs",
@@ -293,8 +294,9 @@ function mergeDocumentsByUpdatedAt(localDocuments, cloudDocuments) {
 async function uploadDocumentRecordToCloud(userId, documentRecord) {
   if (!isCloudPersistenceConfigured || !userId || !documentRecord?.id) return;
   const payloadPath = cloudDocumentPayloadPath(userId, documentRecord.id);
+  const compactRecord = compactDocumentRecordForStorage(documentRecord);
   const payload = JSON.stringify({
-    ...documentRecord,
+    ...compactRecord,
     cloudBacked: true,
     cloudPayloadPath: payloadPath,
   });
@@ -351,6 +353,17 @@ function arrayBufferToDataUrl(buffer) {
 async function dataUrlToArrayBuffer(dataUrl) {
   const response = await fetch(dataUrl);
   return response.arrayBuffer();
+}
+
+function compactDocumentRecordForStorage(documentRecord) {
+  return {
+    ...documentRecord,
+    pages: (documentRecord.pages || []).map((page) => (
+      page.source === "pdf" && !Number(page.rotation || 0)
+        ? { ...page, image: "", isHydrated: false, renderStatus: "pending" }
+        : page
+    )),
+  };
 }
 
 async function embedDataUrlImage(pdfDoc, dataUrl) {
@@ -542,6 +555,59 @@ function extractDetectedTextItems(textContent, viewport, pageRecord, pageIndex) 
   return mergedItems;
 }
 
+function pendingPdfPageRecord(index) {
+  return {
+    id: makeId("page"),
+    number: index + 1,
+    originalIndex: index,
+    width: BASE_PAGE_WIDTH,
+    height: BASE_PAGE_HEIGHT,
+    image: "",
+    text: "",
+    source: "pdf",
+    isHydrated: false,
+    renderStatus: "pending",
+  };
+}
+
+async function renderPdfEditorPage(documentProxy, sourcePageIndex, outputPageIndex = sourcePageIndex) {
+  const page = await documentProxy.getPage(sourcePageIndex + 1);
+  const [textContent, pdfAnnotations] = await Promise.all([
+    page.getTextContent(),
+    page.getAnnotations({ intent: "display" }),
+  ]);
+  const pageText = textContent.items.map((item) => item.str).join(" ").replace(/\s+/g, " ").trim();
+  const textViewport = page.getViewport({ scale: 1 });
+  const viewport = page.getViewport({ scale: 1.35 });
+  const canvas = window.document.createElement("canvas");
+  const context = canvas.getContext("2d", { alpha: false });
+  canvas.width = Math.ceil(viewport.width);
+  canvas.height = Math.ceil(viewport.height);
+  context.fillStyle = "#ffffff";
+  context.fillRect(0, 0, canvas.width, canvas.height);
+  await page.render({ canvasContext: context, viewport, background: "#ffffff" }).promise;
+  const displayWidth = BASE_PAGE_WIDTH;
+  const displayHeight = Math.round(BASE_PAGE_WIDTH * (viewport.height / viewport.width));
+  const pageRecord = {
+    id: makeId("page"),
+    number: outputPageIndex + 1,
+    originalIndex: sourcePageIndex,
+    width: displayWidth,
+    height: displayHeight,
+    image: canvas.toDataURL("image/png"),
+    text: pageText,
+    source: "pdf",
+    hasDetectedText: pageText.length > 0,
+    isHydrated: true,
+    renderStatus: "ready",
+  };
+  return {
+    pageRecord,
+    detectedItems: extractDetectedTextItems(textContent, textViewport, pageRecord, outputPageIndex),
+    detectedFormFields: extractPdfFormAnnotations(pdfAnnotations, textViewport, outputPageIndex, makeId),
+  };
+}
+
 function samplePages() {
   return [
     { id: "sample-1", number: 1, width: BASE_PAGE_WIDTH, height: BASE_PAGE_HEIGHT, source: "sample" },
@@ -692,6 +758,15 @@ function SampleDocument({ pageIndex }) {
 
 function BlankDocument() {
   return <div className="blank-doc" aria-label="Blank PDF page" />;
+}
+
+function PdfPageLoading({ pageNumber, compact = false }) {
+  return (
+    <div className={`pdf-page-loading ${compact ? "is-compact" : ""}`} role="status" aria-label={`Loading PDF page ${pageNumber}`}>
+      <LoaderCircle size={compact ? 16 : 28} />
+      {!compact && <><strong>Loading page {pageNumber}</strong><span>Large documents render pages as you open them.</span></>}
+    </div>
+  );
 }
 
 const EditableTextContent = forwardRef(function EditableTextContent({
@@ -1339,6 +1414,10 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   const storageOwnerId = resolveEditorStorageOwnerId(isPublicEditor, currentUser);
   const fileInputRef = useRef(null);
   const sourceFileRef = useRef(null);
+  const pdfDocumentRef = useRef(null);
+  const pdfHydrationTokenRef = useRef(0);
+  const pdfPageHydrationTasksRef = useRef(new Map());
+  const pagesRef = useRef([]);
   const authHandoffStartedRef = useRef(false);
   const appendFileInputRef = useRef(null);
   const imageInputRef = useRef(null);
@@ -1422,6 +1501,45 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     whiteoutOpacity: 1,
   });
 
+  const hydratePdfPageAt = useCallback(async (targetIndex) => {
+    const documentProxy = pdfDocumentRef.current;
+    const token = pdfHydrationTokenRef.current;
+    const pageRecord = pagesRef.current[targetIndex];
+    if (!documentProxy || !pageRecord || pageRecord.source !== "pdf" || pageRecord.image) return;
+    if (pdfPageHydrationTasksRef.current.has(targetIndex)) return pdfPageHydrationTasksRef.current.get(targetIndex);
+
+    const sourcePageIndex = Number.isInteger(pageRecord.originalIndex) ? pageRecord.originalIndex : targetIndex;
+    if (sourcePageIndex < 0 || sourcePageIndex >= documentProxy.numPages) return;
+
+    const task = (async () => {
+      setPages((items) => items.map((page, index) => (
+        index === targetIndex ? { ...page, renderStatus: "loading" } : page
+      )));
+      const rendered = await renderPdfEditorPage(documentProxy, sourcePageIndex, targetIndex);
+      if (token !== pdfHydrationTokenRef.current) return;
+      setPages((items) => items.map((page, index) => (
+        index === targetIndex ? { ...page, ...rendered.pageRecord, id: page.id || rendered.pageRecord.id } : page
+      )));
+      setDetectedTextItems((items) => [
+        ...items.filter((item) => item.pageNumber !== targetIndex),
+        ...rendered.detectedItems,
+      ]);
+      setAnnotations((items) => [
+        ...items.filter((item) => !(item.page === targetIndex && item.source === "pdf-form")),
+        ...rendered.detectedFormFields,
+      ]);
+    })().catch(() => {
+      if (token !== pdfHydrationTokenRef.current) return;
+      setPages((items) => items.map((page, index) => (
+        index === targetIndex ? { ...page, renderStatus: "error" } : page
+      )));
+    }).finally(() => {
+      pdfPageHydrationTasksRef.current.delete(targetIndex);
+    });
+    pdfPageHydrationTasksRef.current.set(targetIndex, task);
+    return task;
+  }, []);
+
   const selected = useMemo(() => annotations.find((annotation) => annotation.id === selectedId), [annotations, selectedId]);
   const selectedDetectedText = useMemo(() => detectedTextItems.find((item) => item.id === selectedDetectedTextId), [detectedTextItems, selectedDetectedTextId]);
   const activeDocument = useMemo(() => documents.find((document) => document.id === activeDocumentId), [documents, activeDocumentId]);
@@ -1438,6 +1556,25 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   const zoomOptions = useMemo(() => (
     Array.from(new Set([...ZOOM_PRESETS, zoom])).sort((a, b) => a - b)
   ), [zoom]);
+
+  useEffect(() => {
+    pagesRef.current = pages;
+  }, [pages]);
+
+  useEffect(() => {
+    if (editorRouteState !== "ready" || currentPage?.source !== "pdf") return undefined;
+    void hydratePdfPageAt(pageIndex);
+    const prefetch = () => {
+      void hydratePdfPageAt(pageIndex - 1);
+      void hydratePdfPageAt(pageIndex + 1);
+    };
+    if (typeof window.requestIdleCallback === "function") {
+      const idleId = window.requestIdleCallback(prefetch, { timeout: 900 });
+      return () => window.cancelIdleCallback(idleId);
+    }
+    const timer = window.setTimeout(prefetch, 120);
+    return () => window.clearTimeout(timer);
+  }, [currentPage?.source, editorRouteState, hydratePdfPageAt, pageIndex]);
 
   useEffect(() => {
     if (typeof window === "undefined") return undefined;
@@ -1693,7 +1830,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     const previousDocuments = documents;
     setDocuments(nextDocuments);
     try {
-      await saveLocalDocuments(storageOwnerId, nextDocuments);
+      await saveLocalDocuments(storageOwnerId, nextDocuments.map(compactDocumentRecordForStorage));
       if (currentUser?.uid && !isPublicEditor) syncDocumentsToCloud(previousDocuments, nextDocuments);
       return true;
     } catch {
@@ -2211,51 +2348,51 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     onUpload({ target: { files, value: "" } });
   };
 
-  const parsePdfFile = async (file, { startPercent = 18, endPercent = 80, stagePrefix = "Rendering page" } = {}) => {
+  const parsePdfFile = async (file, { startPercent = 18, endPercent = 80, stagePrefix = "Rendering page", progressive = true } = {}) => {
     const buffer = await file.arrayBuffer();
     const document = await pdfjsLib.getDocument({ data: buffer.slice(0) }).promise;
-    const loadedPages = [];
-    const detectedItems = [];
-    const detectedFormFields = [];
-
-    for (let index = 1; index <= document.numPages; index += 1) {
-      setUploadStage({
-        status: `${stagePrefix} ${index} of ${document.numPages}`,
-        percent: Math.round(startPercent + (index / document.numPages) * (endPercent - startPercent)),
-        fileName: file.name,
-      });
-      const page = await document.getPage(index);
-      const textContent = await page.getTextContent();
-      const pdfAnnotations = await page.getAnnotations({ intent: "display" });
-      const pageText = textContent.items.map((item) => item.str).join(" ").replace(/\s+/g, " ").trim();
-      const textViewport = page.getViewport({ scale: 1 });
-      const viewport = page.getViewport({ scale: 1.35 });
-      const canvas = window.document.createElement("canvas");
-      const context = canvas.getContext("2d");
-      canvas.width = viewport.width;
-      canvas.height = viewport.height;
-      await page.render({ canvasContext: context, viewport }).promise;
-      const displayWidth = BASE_PAGE_WIDTH;
-      const displayHeight = Math.round(BASE_PAGE_WIDTH * (viewport.height / viewport.width));
-      const pageRecord = {
-        id: makeId("page"),
-        number: index,
-        originalIndex: index - 1,
-        width: displayWidth,
-        height: displayHeight,
-        image: canvas.toDataURL("image/png"),
-        text: pageText,
-        source: "pdf",
-      };
-      detectedItems.push(...extractDetectedTextItems(textContent, textViewport, pageRecord, index - 1));
-      detectedFormFields.push(...extractPdfFormAnnotations(pdfAnnotations, textViewport, index - 1, makeId));
-      loadedPages.push({
-        ...pageRecord,
-        hasDetectedText: pageText.length > 0,
-      });
+    if (document.numPages > MAX_PDF_EDITOR_PAGES) {
+      await document.destroy?.();
+      throw new Error(`The editor supports up to ${MAX_PDF_EDITOR_PAGES} pages per PDF.`);
     }
-
-    return { buffer, loadedPages, detectedItems, detectedFormFields };
+    if (!progressive) {
+      const loadedPages = [];
+      const detectedItems = [];
+      const detectedFormFields = [];
+      for (let pageIndex = 0; pageIndex < document.numPages; pageIndex += 1) {
+        setUploadStage({
+          status: `${stagePrefix} ${pageIndex + 1} of ${document.numPages}`,
+          percent: Math.round(startPercent + ((pageIndex + 1) / document.numPages) * (endPercent - startPercent)),
+          fileName: file.name,
+        });
+        const rendered = await renderPdfEditorPage(document, pageIndex);
+        loadedPages.push(rendered.pageRecord);
+        detectedItems.push(...rendered.detectedItems);
+        detectedFormFields.push(...rendered.detectedFormFields);
+      }
+      await document.destroy?.();
+      return { buffer, documentProxy: null, loadedPages, detectedItems, detectedFormFields };
+    }
+    setUploadStage({
+      status: `${stagePrefix} 1 of ${document.numPages}`,
+      percent: Math.round(startPercent + (endPercent - startPercent) * 0.7),
+      fileName: file.name,
+    });
+    const firstPage = await renderPdfEditorPage(document, 0);
+    const loadedPages = Array.from({ length: document.numPages }, (_, index) => pendingPdfPageRecord(index));
+    loadedPages[0] = firstPage.pageRecord;
+    setUploadStage({
+      status: `Preparing ${document.numPages}-page workspace`,
+      percent: endPercent,
+      fileName: file.name,
+    });
+    return {
+      buffer,
+      documentProxy: document,
+      loadedPages,
+      detectedItems: firstPage.detectedItems,
+      detectedFormFields: firstPage.detectedFormFields,
+    };
   };
 
   const loadPdfFile = async (file) => {
@@ -2272,11 +2409,16 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       setUploadError("");
       sourceFileRef.current = file;
       setUploadStage({ status: "reading", percent: 18, fileName: file.name });
-      const { buffer, loadedPages, detectedItems, detectedFormFields } = await parsePdfFile(file, {
+      const { buffer, documentProxy, loadedPages, detectedItems, detectedFormFields } = await parsePdfFile(file, {
         startPercent: 24,
         endPercent: 80,
         stagePrefix: "Rendering page",
       });
+
+      try { await pdfDocumentRef.current?.destroy?.(); } catch { /* Replace the active PDF even if cleanup fails. */ }
+      pdfHydrationTokenRef.current += 1;
+      pdfDocumentRef.current = documentProxy;
+      pdfPageHydrationTasksRef.current.clear();
 
       setUploadStage({ status: "Saving workspace copy", percent: 88, fileName: file.name });
       const stamp = nowIso();
@@ -2351,6 +2493,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
         startPercent: 24,
         endPercent: 82,
         stagePrefix: "Rendering append page",
+        progressive: false,
       });
       const pageOffset = pages.length;
       const appendedPages = loadedPages.map((page, index) => ({
@@ -2610,6 +2753,12 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       originalIndex: page.source === "pdf" && page.originalIndex == null ? index : page.originalIndex,
     }));
     const sourceBytes = documentRecord.pdfDataUrl ? await dataUrlToArrayBuffer(documentRecord.pdfDataUrl) : null;
+    try { await pdfDocumentRef.current?.destroy?.(); } catch { /* Continue reopening the saved PDF. */ }
+    pdfHydrationTokenRef.current += 1;
+    pdfPageHydrationTasksRef.current.clear();
+    pdfDocumentRef.current = sourceBytes
+      ? await pdfjsLib.getDocument({ data: sourceBytes.slice(0) }).promise
+      : null;
     setActiveDocumentId(documentRecord.id);
     setPages(documentPages);
     setAnnotations(documentRecord.annotations || []);
@@ -2743,6 +2892,10 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
 
   const onPagePointerDown = (event) => {
     event.currentTarget.focus({ preventScroll: true });
+    if (currentPage?.source === "pdf" && !currentPage.image) {
+      showToast(currentPage.renderStatus === "error" ? "This page could not be rendered. Try opening the PDF again." : "This page is still loading.");
+      return;
+    }
     lastPagePointRef.current = pointerToNormalized(event, event.currentTarget);
     if (!["text", "highlight", "textHighlight", "draw", "signature", "initials", "checkbox", "field", "date", "whiteout", "rectangle", "circle", "line", "arrow", "comment", "stamp", "link", "image"].includes(tool)) {
       const selectedAnnotation = annotations.find((item) => item.id === selectedId);
@@ -3360,10 +3513,11 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     setIsExporting(true);
     try {
     await saveActiveDocument(true);
-    const pdfDoc = await PDFDocument.create();
-    const sourcePdf = pdfBytes ? await PDFDocument.load(pdfBytes) : null;
-
-    await appendEditorPages({ pdfDoc, sourcePdf, pages, embedDataUrlImage });
+    const { pdfDoc, nativeSourcePreserved } = await createEditorExportDocument({
+      pdfBytes,
+      pages,
+      embedDataUrlImage,
+    });
 
     const helvetica = await pdfDoc.embedFont(StandardFonts.Helvetica);
     const helveticaBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
@@ -3421,6 +3575,10 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       if (!page) continue;
       const { width, height } = page.getSize();
       const color = hexToRgb(annotation.color || colors.black);
+
+      if (nativeSourcePreserved && applyNativePdfFormAnnotation(pdfDoc, annotation)) {
+        continue;
+      }
 
       if (await drawFlattenedInputAnnotation({ pdfDoc, page, annotation, helvetica, timesItalic, pickPdfFont, embedDataUrlImage })) {
         continue;
@@ -3609,6 +3767,9 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       }
     }
 
+    if (nativeSourcePreserved) {
+      try { pdfDoc.getForm().updateFieldAppearances(helvetica); } catch { /* PDFs without compatible AcroForm fields need no update. */ }
+    }
     const bytes = await pdfDoc.save();
     const exported = {
       bytes,
@@ -3618,7 +3779,9 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     if (shouldDownload) downloadBlob(exported.blob, exported.name);
     setSaved(true);
     setSaveState("saved");
-    if (shouldShowResult) showToast("Exported PDF with current edits.");
+    if (shouldShowResult) showToast(nativeSourcePreserved
+      ? "Exported edits while preserving the original PDF structure."
+      : "Exported PDF with the updated page order and edits.");
     return exported;
     } catch {
       showToast("Export failed. Try saving locally, then export again.");
@@ -4225,7 +4388,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
               >
                 <div className="thumbnail-preview" style={{ "--thumbnail-aspect": `${page.width || BASE_PAGE_WIDTH} / ${page.height || BASE_PAGE_HEIGHT}` }}>
                   <div className="thumb-page">
-                    {page.image ? <img src={page.image} alt={`Page ${index + 1}`} /> : page.source === "blank" ? <BlankDocument /> : <SampleDocument pageIndex={index} />}
+                    {page.image ? <img src={page.image} alt={`Page ${index + 1}`} /> : page.source === "pdf" ? <PdfPageLoading pageNumber={index + 1} compact /> : page.source === "blank" ? <BlankDocument /> : <SampleDocument pageIndex={index} />}
                   </div>
                 </div>
                 <span className="thumbnail-label">{index + 1}</span>
@@ -4269,8 +4432,8 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
               onPointerMove={onPagePointerMove}
               onPointerUp={onPagePointerUp}
             >
-              {currentPage.image ? <img className="pdf-image" src={currentPage.image} alt={`PDF page ${pageIndex + 1}`} /> : currentPage.source === "blank" ? <BlankDocument /> : <SampleDocument pageIndex={pageIndex} />}
-              {currentPage.source === "pdf" && !pageDetectedTextItems.length && !currentPage.text?.trim() && (
+              {currentPage.image ? <img className="pdf-image" src={currentPage.image} alt={`PDF page ${pageIndex + 1}`} /> : currentPage.source === "pdf" ? <PdfPageLoading pageNumber={pageIndex + 1} /> : currentPage.source === "blank" ? <BlankDocument /> : <SampleDocument pageIndex={pageIndex} />}
+              {currentPage.source === "pdf" && currentPage.isHydrated !== false && !pageDetectedTextItems.length && !currentPage.text?.trim() && (
                 <div className="ocr-state">
                   <ScanText size={16} />
                   Scanned page detected. OCR is not enabled in this browser build yet.

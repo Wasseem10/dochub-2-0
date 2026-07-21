@@ -104,7 +104,7 @@ export function EditorToolUploadPage({ toolId, fileInputRef, onUpload, onDropFil
               </button>
             )}
             <p className={uploadError ? "is-error" : ""} role={uploadError ? "alert" : undefined} aria-live="polite">
-              {uploadError || (isUploading ? `${uploadStage.status}${uploadStage.fileName ? ` - ${uploadStage.fileName}` : ""}` : "PDF documents up to 8 MB")}
+              {uploadError || (isUploading ? `${uploadStage.status}${uploadStage.fileName ? ` - ${uploadStage.fileName}` : ""}` : "PDF documents up to 50 MB and 500 pages")}
             </p>
             {isUploading && <div className="editor-tool-upload-progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow={uploadStage.percent || 0}><span style={{ width: `${uploadStage.percent || 0}%` }} /></div>}
           </div>
