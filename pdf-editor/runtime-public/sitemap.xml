@@ -6,9 +6,11 @@
   <url><loc>http://localhost:4173/add-page-numbers</loc></url>
   <url><loc>http://localhost:4173/annotate-pdf</loc></url>
   <url><loc>http://localhost:4173/comment-on-pdf</loc></url>
+  <url><loc>http://localhost:4173/compare-pdf</loc></url>
   <url><loc>http://localhost:4173/compress-pdf</loc></url>
   <url><loc>http://localhost:4173/crop-pdf</loc></url>
   <url><loc>http://localhost:4173/delete-pdf-pages</loc></url>
+  <url><loc>http://localhost:4173/document-version-comparison</loc></url>
   <url><loc>http://localhost:4173/edit-pdf</loc></url>
   <url><loc>http://localhost:4173/excel-to-pdf</loc></url>
   <url><loc>http://localhost:4173/extract-pdf-pages</loc></url>
