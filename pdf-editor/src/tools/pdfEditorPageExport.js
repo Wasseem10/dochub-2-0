@@ -15,15 +15,73 @@ export function canPreserveNativePdfDocument(sourcePdf, pages) {
   ));
 }
 
-export async function createEditorExportDocument({ pdfBytes, pages, embedDataUrlImage }) {
+function copyPdfMetadata(sourcePdf, outputPdf) {
+  if (!sourcePdf || !outputPdf) return;
+  const values = [
+    ["getTitle", "setTitle"],
+    ["getAuthor", "setAuthor"],
+    ["getSubject", "setSubject"],
+    ["getCreator", "setCreator"],
+    ["getProducer", "setProducer"],
+    ["getCreationDate", "setCreationDate"],
+    ["getModificationDate", "setModificationDate"],
+  ];
+  values.forEach(([getter, setter]) => {
+    try {
+      const value = sourcePdf[getter]?.();
+      if (value !== undefined && value !== null && value !== "") outputPdf[setter]?.(value);
+    } catch {
+      // Malformed metadata must not prevent a valid page export.
+    }
+  });
+}
+
+async function addRasterizedPage({ pdfDoc, pageRecord, replacement, embedDataUrlImage, index = null }) {
+  const width = Number(replacement?.pdfWidth) || 612;
+  const height = Number(replacement?.pdfHeight)
+    || Math.round(width * ((pageRecord?.height || 984) / (pageRecord?.width || 760)));
+  const page = index === null ? pdfDoc.addPage([width, height]) : pdfDoc.insertPage(index, [width, height]);
+  const imageDataUrl = replacement?.image || pageRecord?.image;
+  if (!imageDataUrl) return page;
+  const image = await embedDataUrlImage(pdfDoc, imageDataUrl);
+  if (image) page.drawImage(image, { x: 0, y: 0, width, height });
+  return page;
+}
+
+async function replaceNativePages({ pdfDoc, pages, rebuiltPages, embedDataUrlImage }) {
+  const rebuiltPageIndexes = new Set();
+  const indexes = Array.from(rebuiltPages.keys()).sort((a, b) => a - b);
+  for (const index of indexes) {
+    if (index < 0 || index >= pdfDoc.getPageCount()) continue;
+    await addRasterizedPage({
+      pdfDoc,
+      pageRecord: pages[index],
+      replacement: rebuiltPages.get(index),
+      embedDataUrlImage,
+      index,
+    });
+    pdfDoc.removePage(index + 1);
+    rebuiltPageIndexes.add(index);
+  }
+  return rebuiltPageIndexes;
+}
+
+export async function createEditorExportDocument({ pdfBytes, pages, embedDataUrlImage, rebuiltPages = new Map() }) {
   const sourcePdf = pdfBytes ? await PDFDocument.load(pdfBytes) : null;
   if (canPreserveNativePdfDocument(sourcePdf, pages)) {
-    return { pdfDoc: sourcePdf, nativeSourcePreserved: true };
+    const rebuiltPageIndexes = await replaceNativePages({
+      pdfDoc: sourcePdf,
+      pages,
+      rebuiltPages,
+      embedDataUrlImage,
+    });
+    return { pdfDoc: sourcePdf, nativeSourcePreserved: true, rebuiltPageIndexes };
   }
 
   const pdfDoc = await PDFDocument.create();
-  await appendEditorPages({ pdfDoc, sourcePdf, pages, embedDataUrlImage });
-  return { pdfDoc, nativeSourcePreserved: false };
+  copyPdfMetadata(sourcePdf, pdfDoc);
+  await appendEditorPages({ pdfDoc, sourcePdf, pages, embedDataUrlImage, rebuiltPages });
+  return { pdfDoc, nativeSourcePreserved: false, rebuiltPageIndexes: new Set(rebuiltPages.keys()) };
 }
 
 export function applyNativePdfFormAnnotation(pdfDoc, annotation) {
@@ -42,8 +100,18 @@ export function applyNativePdfFormAnnotation(pdfDoc, annotation) {
   return false;
 }
 
-export async function appendEditorPages({ pdfDoc, sourcePdf, pages, embedDataUrlImage }) {
-  for (const pageRecord of pages) {
+export async function appendEditorPages({ pdfDoc, sourcePdf, pages, embedDataUrlImage, rebuiltPages = new Map() }) {
+  for (let outputIndex = 0; outputIndex < pages.length; outputIndex += 1) {
+    const pageRecord = pages[outputIndex];
+    if (rebuiltPages.has(outputIndex)) {
+      await addRasterizedPage({
+        pdfDoc,
+        pageRecord,
+        replacement: rebuiltPages.get(outputIndex),
+        embedDataUrlImage,
+      });
+      continue;
+    }
     if (sourcePdf && pageRecord.source === "pdf" && Number.isInteger(pageRecord.originalIndex)) {
       const [copiedPage] = await pdfDoc.copyPages(sourcePdf, [pageRecord.originalIndex]);
       const sourceRotation = copiedPage.getRotation()?.angle || 0;

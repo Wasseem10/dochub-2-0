@@ -46,5 +46,7 @@ test("existing PDF text keeps its detected style, baseline, and page background 
 
   const rendered = await pdfjsLib.getDocument({ data: outputBytes.slice(0), disableWorker: true, verbosity: 0 }).promise;
   const text = await (await rendered.getPage(1)).getTextContent();
-  expect(text.items.map((item) => item.str).join(" ")).toContain("Updated quarterly total");
+  const extractedText = text.items.map((item) => item.str).join(" ");
+  expect(extractedText).toContain("Updated quarterly total");
+  expect(extractedText).not.toContain("Original quarterly total");
 });
