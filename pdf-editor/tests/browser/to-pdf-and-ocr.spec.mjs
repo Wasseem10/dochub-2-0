@@ -47,8 +47,14 @@ test("OCR recognizes a scanned page and downloads a searchable PDF", async ({ pa
   const source = await PDFDocument.create();
   const font = await source.embedFont(StandardFonts.HelveticaBold);
   source.addPage([612, 792]).drawText("SCANNED INVOICE 42000", { x: 70, y: 600, size: 34, font });
+  await page.goto(appPath("/ocr-pdf"));
+  await expect(page.getByLabel("Document language")).toHaveValue("eng");
+  await expect(page.getByLabel("Scan cleanup")).toHaveValue("auto");
+  await expect(page.getByLabel("Page orientation")).toHaveValue("auto");
   const result = await downloadConversion(page, "/ocr-pdf", { name: "scan.pdf", mimeType: "application/pdf", buffer: Buffer.from(await source.save()) }, "Run OCR and download PDF");
   expect(result.download.suggestedFilename()).toBe("scan-searchable.pdf");
+  await expect(page.getByText(/confidence/)).toBeVisible();
+  await result.download.saveAs(testInfo.outputPath("ocr-searchable.pdf"));
   const documentProxy = await pdfjsLib.getDocument({ data: result.bytes.slice(0), disableWorker: true, verbosity: 0 }).promise;
   const text = (await (await documentProxy.getPage(1)).getTextContent()).items.map((item) => item.str).join(" ");
   expect(text).toContain("SCANNED");
