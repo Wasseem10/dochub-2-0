@@ -50,7 +50,7 @@ export async function drawFlattenedInputAnnotation({
   }
 
   if (annotation.type === "text") {
-    const font = pickPdfFont(annotation.fontFamily, annotation.bold);
+    const font = pickPdfFont(annotation.fontFamily, annotation.bold, annotation.italic);
     String(annotation.content || "").split("\n").forEach((line, index) => {
       const textWidth = font.widthOfTextAtSize(line, annotation.fontSize);
       const boxWidth = annotation.w * width;
