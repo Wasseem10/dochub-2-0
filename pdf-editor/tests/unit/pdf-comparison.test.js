@@ -33,7 +33,7 @@ describe("PDF comparison", () => {
     expect(visual.rects[0].width).toBeGreaterThan(0.7);
   });
 
-  it("filters isolated low-confidence pixel noise and limits visual clutter", () => {
+  it("filters sub-threshold pixel noise, preserves small edits, and limits visual clutter", () => {
     const width = 64;
     const height = 64;
     const first = new Uint8ClampedArray(width * height * 4).fill(255);
@@ -41,7 +41,15 @@ describe("PDF comparison", () => {
     noisy[0] = 0;
     noisy[1] = 0;
     noisy[2] = 0;
-    expect(compareRgbaImages(first, noisy, width, height, { tileSize: 8, minimumRatio: 0.03 }).rects).toHaveLength(0);
+    expect(compareRgbaImages(first, noisy, width, height, { tileSize: 16, minimumRatio: 0.03 }).rects).toHaveLength(0);
+
+    noisy[4] = 0;
+    noisy[5] = 0;
+    noisy[6] = 0;
+    noisy[8] = 0;
+    noisy[9] = 0;
+    noisy[10] = 0;
+    expect(compareRgbaImages(first, noisy, width, height, { tileSize: 16, minimumRatio: 0.03 }).rects).toHaveLength(1);
 
     const changed = new Uint8ClampedArray(first);
     for (let top = 0; top < height; top += 16) {

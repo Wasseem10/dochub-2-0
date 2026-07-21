@@ -49,22 +49,10 @@ function limitRegions(regions, limit, tileSize) {
 
 function groupChangedTiles(changedTiles, rows, width, height, tileSize, options) {
   if (!changedTiles.length) return [];
-  const strongRatio = options.strongRatio ?? Math.max(0.12, (options.minimumRatio ?? 0.035) * 3);
   const maxRegions = options.maxRegions ?? 24;
   const padding = options.regionPadding ?? Math.max(3, Math.round(tileSize * 0.18));
-  const tileByPosition = new Map(changedTiles.map((tile) => [`${tile.row}:${tile.column}`, tile]));
-  const retained = changedTiles.filter((tile) => {
-    if (tile.ratio >= strongRatio) return true;
-    for (let rowOffset = -1; rowOffset <= 1; rowOffset += 1) {
-      for (let columnOffset = -1; columnOffset <= 1; columnOffset += 1) {
-        if (!rowOffset && !columnOffset) continue;
-        if (tileByPosition.has(`${tile.row + rowOffset}:${tile.column + columnOffset}`)) return true;
-      }
-    }
-    return false;
-  });
   const retainedByRow = new Map();
-  retained.forEach((tile) => {
+  changedTiles.forEach((tile) => {
     const rowTiles = retainedByRow.get(tile.row) || [];
     rowTiles.push(tile);
     retainedByRow.set(tile.row, rowTiles);
@@ -122,8 +110,7 @@ function groupChangedTiles(changedTiles, rows, width, height, tileSize, options)
     }
   }
 
-  const meaningful = regions.filter((region) => region.tileCount > 1 || region.peakRatio >= strongRatio);
-  return limitRegions(meaningful, maxRegions, tileSize)
+  return limitRegions(regions, maxRegions, tileSize)
     .map((region) => {
       const left = Math.max(0, region.left - padding);
       const top = Math.max(0, region.top - padding);
@@ -145,7 +132,7 @@ export function validateComparisonPdf(file) {
 export function compareRgbaImages(first, second, width, height, options = {}) {
   const tileSize = options.tileSize || PDF_COMPARISON_LIMITS.tileSize;
   const threshold = options.threshold ?? 24;
-  const minimumRatio = options.minimumRatio ?? 0.035;
+  const minimumRatio = options.minimumRatio ?? 0.015;
   const rows = Math.ceil(height / tileSize);
   const changedTiles = [];
   let changedSamples = 0;
