@@ -168,6 +168,16 @@ describe("public PDF tool platform", () => {
     }
   });
 
+  it("uses real Office output names and workflow-specific conversion guidance", () => {
+    expect(TOOL_BY_ID.get("pdf-to-excel").steps.join(" ")).toContain("XLSX");
+    expect(TOOL_BY_ID.get("pdf-to-powerpoint").steps.join(" ")).toContain("PPTX");
+    expect(TOOL_BY_ID.get("excel-to-pdf").steps.join(" ")).toContain("XLSX");
+    expect(TOOL_BY_ID.get("pdf-to-excel").useCases).toContain("Moving PDF tables into a workbook");
+    expect(TOOL_BY_ID.get("pdf-to-powerpoint").useCases).toContain("Presenting a finished PDF as slides");
+    expect(TOOL_BY_ID.get("pdf-to-html").useCases).toContain("Publishing selectable PDF text on the web");
+    expect(TOOL_BY_ID.get("excel-to-pdf").useCases).not.toContain("Exporting PDF pages as images");
+  });
+
   it("renders real Excel, PowerPoint, HTML, and OCR workspaces", async () => {
     const cases = [
       ["excel-to-pdf", ".xlsx", "Turn every worksheet into readable PDF pages"],

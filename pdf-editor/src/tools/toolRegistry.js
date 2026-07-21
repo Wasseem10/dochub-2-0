@@ -216,6 +216,12 @@ function formatType(type) {
     "text/html": "HTML",
     "application/json": "JSON",
     "text/csv": "CSV",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "DOCX",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": "XLSX",
+    "application/vnd.openxmlformats-officedocument.presentationml.presentation": "PPTX",
+    "application/vnd.oasis.opendocument.text": "ODT",
+    "application/vnd.oasis.opendocument.presentation": "ODP",
+    "application/vnd.oasis.opendocument.spreadsheet": "ODS",
   };
   return known[type] || type.split(/[./+-]/).pop()?.toUpperCase() || type.toUpperCase();
 }
@@ -265,7 +271,14 @@ function buildBaseTool([slug, name, shortDescription, category, icon, status, su
     heroSubheadline: shortDescription,
     benefits: [content.benefit, `Inputs: ${inputLabel}.`, `Outputs: ${outputLabel}.`],
     steps: defaultSteps,
-    useCases: content.uses,
+    useCases: ({
+      "pdf-to-excel": ["Moving PDF tables into a workbook", "Reviewing invoice or statement rows", "Reusing structured values in Excel"],
+      "pdf-to-powerpoint": ["Presenting a finished PDF as slides", "Sharing reports in presentation order", "Keeping each PDF page visually intact"],
+      "pdf-to-html": ["Publishing selectable PDF text on the web", "Creating a standalone browser-readable copy", "Reusing positioned PDF content in HTML"],
+      "excel-to-pdf": ["Sharing worksheets without Excel", "Creating fixed-layout table reports", "Archiving stored spreadsheet values"],
+      "powerpoint-to-pdf": ["Sending slides in a fixed format", "Archiving a presentation", "Sharing slides without PowerPoint"],
+      "html-to-pdf": ["Saving a local webpage as a PDF", "Creating a searchable offline copy", "Turning reviewed HTML into fixed pages"],
+    })[slug] || content.uses,
     faqEntries: [
       { question: `What does ${name} do?`, answer: shortDescription },
       { question: `Is ${name} available in FixThatPDF today?`, answer: `${availabilityLabel}. ${currentLimitations}` },

@@ -35,8 +35,12 @@ export function ToolDirectoryPage() {
         <h1>Find the right PDF tool.<br />Know exactly what works.</h1>
         <p>Browse every FixThatPDF workflow in one place. Available editor tools open the real workflow; unfinished tools are clearly marked and never pretend to process a file.</p>
         <div className="tools-search-row">
-          <label className="tools-search"><Search size={21} /><span className="sr-only">Search PDF tools</span><input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search 68 PDF tools" /></label>
-          <strong aria-live="polite">{visibleTools.length} tool{visibleTools.length === 1 ? "" : "s"}</strong>
+          <label className="tools-search">
+            <Search size={21} />
+            <span className="sr-only">Search PDF tools</span>
+            <input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder={`Search ${TOOL_REGISTRY.length} PDF tools`} />
+            <strong aria-live="polite">{visibleTools.length} tool{visibleTools.length === 1 ? "" : "s"}</strong>
+          </label>
         </div>
       </section>
 
