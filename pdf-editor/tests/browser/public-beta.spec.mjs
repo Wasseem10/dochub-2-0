@@ -37,6 +37,50 @@ test("public-beta routes render without horizontal overflow", async ({ page }) =
   }
 });
 
+test("tool guides stay centered and readable on wide screens", async ({ page }) => {
+  const routes = ["/pdf-to-word", "/pdf-to-excel", "/excel-to-pdf", "/ocr-pdf", "/merge-pdf"];
+
+  await page.setViewportSize({ width: 2048, height: 1152 });
+  for (const route of routes) {
+    await page.goto(appPath(route));
+    const guide = page.locator(".tool-guide-content");
+    await expect(guide).toBeVisible();
+    const layout = await guide.evaluate((element) => {
+      const rect = element.getBoundingClientRect();
+      return {
+        width: rect.width,
+        left: rect.left,
+        rightGap: window.innerWidth - rect.right,
+      };
+    });
+    expect(layout.width).toBeLessThanOrEqual(1180.5);
+    expect(Math.abs(layout.left - layout.rightGap)).toBeLessThanOrEqual(1);
+  }
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  for (const route of routes) {
+    await page.goto(appPath(route));
+    const guide = page.locator(".tool-guide-content");
+    await expect(guide).toBeVisible();
+    const layout = await guide.evaluate((element) => {
+      const rect = element.getBoundingClientRect();
+      const firstCard = element.querySelector(".tool-guide-grid > article");
+      const cardRect = firstCard?.getBoundingClientRect();
+      return {
+        width: rect.width,
+        left: rect.left,
+        rightGap: window.innerWidth - rect.right,
+        cardWidth: cardRect?.width ?? 0,
+        scrollWidth: document.documentElement.scrollWidth,
+      };
+    });
+    expect(layout.width).toBeLessThanOrEqual(360.5);
+    expect(Math.abs(layout.left - layout.rightGap)).toBeLessThanOrEqual(1);
+    expect(layout.cardWidth).toBeLessThanOrEqual(layout.width);
+    expect(layout.scrollWidth).toBeLessThanOrEqual(390);
+  }
+});
+
 test("real PDF matrix loads mixed page sizes, rotation, text, and forms", async ({ page }) => {
   const bytes = await regressionPdf();
   await page.goto(appPath("/redact-pdf"));
