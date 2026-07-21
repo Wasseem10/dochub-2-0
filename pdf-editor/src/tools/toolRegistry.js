@@ -1,4 +1,5 @@
 import { absoluteSiteUrl } from "../config/site.js";
+import { HIGH_INTENT_TOOL_CONTENT } from "./highIntentToolContent.js";
 
 /** @typedef {"available" | "beta" | "partial" | "coming-soon"} ToolStatus */
 /** @typedef {[string, string, string, string, string, ToolStatus, string[], string[], string]} ToolDefinition */
@@ -31,6 +32,9 @@ import { absoluteSiteUrl } from "../config/site.js";
  * @property {string[]} steps
  * @property {string[]} useCases
  * @property {FaqEntry[]} faqEntries
+ * @property {string} privacySummary
+ * @property {string[]} verificationChecklist
+ * @property {FaqEntry[]} troubleshooting
  * @property {string[]} relatedTools
  * @property {string} canonicalUrl
  * @property {string} schemaType
@@ -229,6 +233,7 @@ function buildBaseTool([slug, name, shortDescription, category, icon, status, su
   const inputLabel = supportedInputTypes.length ? supportedInputTypes.map(formatType).join(", ") : "No upload today";
   const outputLabel = supportedOutputTypes.length ? supportedOutputTypes.map(formatType).join(", ") : "No generated output today";
   const availabilityLabel = status === "available" ? "Available" : status === "beta" ? "Beta" : status === "partial" ? "Available with limitations" : "Coming soon";
+  const highIntentContent = /** @type {Record<string, Partial<ToolRecord>>} */ (HIGH_INTENT_TOOL_CONTENT)[slug] || {};
 
   return {
     id: slug,
@@ -261,6 +266,13 @@ function buildBaseTool([slug, name, shortDescription, category, icon, status, su
       { question: `Is ${name} available in FixThatPDF today?`, answer: `${availabilityLabel}. ${currentLimitations}` },
       { question: `What should I verify after using ${name}?`, answer: isUsable ? "Open the exported PDF, check every changed page, and confirm that text, images, signatures, and page order look correct before sharing it." : "No file is processed today. Use the related available editor workflows shown on this page, and return when this tool is implemented." },
     ],
+    privacySummary: isUsable ? "Choosing a file starts the supported FixThatPDF workflow. Review the page-specific privacy note before processing sensitive documents." : "This page does not accept or process a file today.",
+    verificationChecklist: ["Open the downloaded result in a standard PDF reader.", "Review every page affected by the operation.", "Keep the source file until the result has been verified."],
+    troubleshooting: [
+      { question: `Why might ${name} reject a file?`, answer: `The file must match the supported input format and current limits shown on this page. Encrypted PDFs are not accepted unless the workflow specifically removes a known password.` },
+      { question: "What should I do if the result looks wrong?", answer: "Keep the source file, try a simpler supported document, and do not distribute the result until every affected page has been reviewed." },
+    ],
+    ...highIntentContent,
     relatedTools: /** @type {string[]} */ ([]),
     canonicalUrl: absoluteSiteUrl(route),
     schemaType: isUsable ? "SoftwareApplication" : "WebPage",

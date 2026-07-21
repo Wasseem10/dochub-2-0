@@ -19,7 +19,9 @@ import ZoomOut from "lucide-react/dist/esm/icons/zoom-out.mjs";
 import { Link } from "react-router-dom";
 import { trackProductEvent } from "../../analytics/productAnalytics.js";
 import { PageMetadata } from "../../components/public/PageMetadata.jsx";
+import { ToolGuideContent } from "../../components/public/ToolGuideContent.jsx";
 import { ROUTE_PATHS } from "../../router/routePaths.js";
+import { toolSeoSchemas } from "../../tools/toolSeoSchemas.js";
 import {
   comparePositionedWords,
   compareRgbaImages,
@@ -353,7 +355,7 @@ export function ComparePdfPage({ tool }) {
 
   return (
     <main className={`image-conversion-page comparison-page ${results.length ? "has-results" : ""}`}>
-      <PageMetadata title={tool.seoTitle} description={tool.metaDescription} canonicalUrl={tool.canonicalUrl} />
+      <PageMetadata title={tool.seoTitle} description={tool.metaDescription} canonicalUrl={tool.canonicalUrl} schemas={toolSeoSchemas(tool)} />
       <nav className="tool-breadcrumbs" aria-label="Breadcrumb"><Link to={ROUTE_PATHS.tools}>PDF tools</Link><span>/</span><span aria-current="page">{tool.name}</span></nav>
       <section className="conversion-hero"><div><small>Available · private browser comparison</small><h1>{tool.id === "document-version-comparison" ? "Compare document versions." : "Compare two PDFs."}</h1><p>Review exact additions, deletions, replacements, moved text, and visual changes side by side.</p></div></section>
       <section className="comparison-upload-grid">
@@ -413,6 +415,7 @@ export function ComparePdfPage({ tool }) {
       )}
 
       <section className="conversion-privacy-note"><Check size={19} /><div><strong>Private, reviewable comparison</strong><p>Both PDFs are rendered and compared locally. Text is matched word by word, while image-only pages use focused visual regions.</p></div></section>
+      <ToolGuideContent tool={tool} />
     </main>
   );
 }

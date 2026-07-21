@@ -6,8 +6,10 @@ import FileText from "lucide-react/dist/esm/icons/file-text.mjs";
 import LoaderCircle from "lucide-react/dist/esm/icons/loader-circle.mjs";
 import Upload from "lucide-react/dist/esm/icons/upload.mjs";
 import { PageMetadata } from "../../components/public/PageMetadata.jsx";
+import { ToolGuideContent } from "../../components/public/ToolGuideContent.jsx";
 import { ROUTE_PATHS } from "../../router/routePaths.js";
 import { trackProductEvent } from "../../analytics/productAnalytics.js";
+import { toolSeoSchemas } from "../../tools/toolSeoSchemas.js";
 import {
   createDocxFromPdfPages,
   createPdfFromRenderedDocxPages,
@@ -328,16 +330,16 @@ function WordToPdfWorkspace() {
 
 export function OfficeConversionPage({ tool }) {
   const pdfToWord = tool.id === "pdf-to-word";
-  const schema = { "@context": "https://schema.org", "@type": "SoftwareApplication", name: tool.name, applicationCategory: "BusinessApplication", operatingSystem: "Web", url: tool.canonicalUrl, offers: { "@type": "Offer", price: "0", priceCurrency: "USD" } };
   return (
     <main className="image-conversion-page office-conversion-page">
-      <PageMetadata title={tool.seoTitle} description={tool.metaDescription} canonicalUrl={tool.canonicalUrl} schemas={[schema]} />
+      <PageMetadata title={tool.seoTitle} description={tool.metaDescription} canonicalUrl={tool.canonicalUrl} schemas={toolSeoSchemas(tool)} />
       <nav className="tool-breadcrumbs" aria-label="Breadcrumb"><Link to={ROUTE_PATHS.tools}>PDF tools</Link><span>/</span><span aria-current="page">{tool.name}</span></nav>
       <section className="conversion-hero">
-        <div><small>Available · runs in your browser</small><h1>{tool.name} online.</h1><p>{tool.shortDescription} Free to use and ready in seconds.</p></div>
+        <div><small>Available · runs in your browser</small><h1>{tool.heroHeadline}.</h1><p>{tool.heroSubheadline}</p></div>
       </section>
       {pdfToWord ? <PdfToWordWorkspace /> : <WordToPdfWorkspace />}
       <section className="conversion-privacy-note"><Check size={19} /><div><strong>Private browser processing</strong><p>This conversion runs locally in your browser. FixThatPDF does not upload the file to an Office, OCR, or AI service.</p></div></section>
+      <ToolGuideContent tool={tool} />
     </main>
   );
 }

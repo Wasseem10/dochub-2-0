@@ -369,6 +369,48 @@
 .tool-final-cta > span { display: grid; width: 62px; height: 62px; place-items: center; border-radius: 19px; }
 .tool-final-cta p { max-width: 650px; margin: 18px 0 25px; color: var(--public-body); line-height: 1.55; }
 
+.tool-guide-content { display: grid; width: min(1180px, calc(100% - 48px)); gap: 28px; margin: 82px auto 0; color: var(--public-ink); }
+.image-conversion-page > .tool-guide-content { width: 100%; }
+.tool-guide-intro { max-width: 790px; }
+.tool-guide-intro h2 { margin: 13px 0 0; font-size: clamp(34px, 4vw, 50px); letter-spacing: -.05em; line-height: 1; }
+.tool-guide-intro p { margin: 18px 0 0; color: var(--public-body); font-size: 17px; line-height: 1.65; }
+.tool-guide-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.tool-guide-grid > article { padding: 29px; border: 1px solid var(--public-line); border-radius: 24px; background: #fff; }
+.tool-guide-grid h3, .tool-guide-use-cases h3, .tool-guide-answers h3, .tool-guide-related h3 { margin: 8px 0 0; font-size: 25px; letter-spacing: -.025em; }
+.tool-guide-grid ol, .tool-guide-grid ul { display: grid; gap: 12px; margin: 22px 0 0; padding: 0; list-style: none; }
+.tool-guide-grid li { display: grid; grid-template-columns: auto 1fr; align-items: start; gap: 11px; color: var(--public-body); line-height: 1.5; }
+.tool-guide-grid li > span:first-child, .tool-guide-steps li > span { display: grid; width: 30px; height: 30px; place-items: center; border-radius: 50%; background: #e4f7eb; color: #056244; font-size: 12px; font-weight: 850; }
+.tool-guide-grid li > svg { margin-top: 4px; color: #078454; }
+.tool-guide-grid li p { margin: 4px 0 0; }
+.tool-guide-trust-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.tool-guide-trust-grid > article { display: grid; grid-template-columns: auto 1fr; gap: 16px; padding: 26px; border: 1px solid; border-radius: 22px; }
+.tool-guide-trust-grid .is-private { border-color: #b9e1ca; background: #effaf3; color: #075d3e; }
+.tool-guide-trust-grid .is-limit { border-color: #ead99b; background: #fff9e6; color: #624f1a; }
+.tool-guide-trust-grid small { font-size: 11px; font-weight: 850; letter-spacing: .07em; text-transform: uppercase; }
+.tool-guide-trust-grid h3 { margin: 4px 0 0; color: var(--public-ink); font-size: 21px; }
+.tool-guide-trust-grid p { margin: 8px 0 0; line-height: 1.55; }
+.tool-guide-use-cases { padding-top: 18px; }
+.tool-guide-use-cases > div { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-top: 20px; }
+.tool-guide-use-cases article { padding: 23px; border: 1px solid var(--public-line); border-radius: 21px; background: #fff; }
+.tool-guide-use-cases article > span { display: grid; width: 42px; height: 42px; place-items: center; border-radius: 13px; }
+.tool-guide-use-cases strong { display: block; margin-top: 17px; }
+.tool-guide-use-cases p { margin: 7px 0 0; color: var(--public-muted); font-size: 13px; line-height: 1.5; }
+.tool-guide-answers { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; padding-top: 18px; }
+.tool-guide-answers > section { padding: 27px; border: 1px solid var(--public-line); border-radius: 24px; background: #fff; }
+.tool-guide-answers header { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 11px; }
+.tool-guide-answers header > svg { color: #056244; }
+.tool-guide-answers header small { color: var(--public-muted); font-size: 11px; font-weight: 850; letter-spacing: .07em; text-transform: uppercase; }
+.tool-guide-answers header h3 { margin-top: 2px; }
+.tool-guide-answers section > div { display: grid; gap: 8px; margin-top: 20px; }
+.tool-guide-answers details { padding: 16px; border-radius: 14px; background: #f5f9f7; }
+.tool-guide-answers summary { font-weight: 780; cursor: pointer; }
+.tool-guide-answers details p { margin: 11px 0 0; color: var(--public-body); line-height: 1.55; }
+.tool-guide-related { padding: 18px 0 8px; }
+.tool-guide-related > div { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 13px; margin-top: 20px; }
+.tool-guide-related a { display: grid; grid-template-columns: auto 1fr; gap: 12px; padding: 19px; border: 1px solid var(--public-line); border-radius: 18px; background: #fff; color: var(--public-ink); text-decoration: none; }
+.tool-guide-related a > span { display: grid; width: 42px; height: 42px; place-items: center; border-radius: 12px; }
+.tool-guide-related a small { display: block; margin-top: 5px; color: var(--public-muted); line-height: 1.4; }
+
 .marketing-header :focus-visible,
 .marketing-footer :focus-visible,
 .tools-directory :focus-visible,
@@ -417,6 +459,11 @@
   .tool-use-cases > div, .related-tools > div { grid-template-columns: 1fr; }
   .tool-faq { grid-template-columns: 1fr; gap: 26px; }
   .tool-limitations { padding: 22px; }
+  .tool-guide-content { width: min(100% - 30px, 1180px); margin-top: 58px; }
+  .image-conversion-page > .tool-guide-content { width: 100%; }
+  .tool-guide-grid, .tool-guide-trust-grid, .tool-guide-answers { grid-template-columns: 1fr; }
+  .tool-guide-use-cases > div, .tool-guide-related > div { grid-template-columns: 1fr; }
+  .tool-guide-grid > article, .tool-guide-answers > section { padding: 22px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
