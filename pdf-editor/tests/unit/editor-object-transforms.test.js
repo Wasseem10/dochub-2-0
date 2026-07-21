@@ -47,4 +47,25 @@ describe("shared editor object transforms", () => {
     expect(nudgeFrame(frame, "ArrowUp", 0.01).y).toBeCloseTo(0.24, 8);
     expect(nudgeFrame({ ...frame, x: 0 }, "ArrowLeft", 0.02).x).toBe(0);
   });
+
+  it("moves and resizes stored line endpoints with their selection frame", () => {
+    const arrow = {
+      type: "arrow",
+      x: 0.1,
+      y: 0.2,
+      w: 0.4,
+      h: 0.3,
+      startX: 0.48,
+      startY: 0.47,
+      endX: 0.12,
+      endY: 0.23,
+    };
+    const origin = getAnnotationFrame(arrow);
+    const moved = moveFrame(origin, 0.1, 0.05);
+    const patch = annotationPatchFromFrame(arrow, moved, origin);
+    expect(patch.startX).toBeCloseTo(0.58, 8);
+    expect(patch.startY).toBeCloseTo(0.52, 8);
+    expect(patch.endX).toBeCloseTo(0.22, 8);
+    expect(patch.endY).toBeCloseTo(0.28, 8);
+  });
 });

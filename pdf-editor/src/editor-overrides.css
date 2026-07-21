@@ -3191,6 +3191,29 @@ main.editor-shell .page-surface,
   filter: drop-shadow(0 1px 0 rgba(255, 255, 255, 0.5));
 }
 
+main.editor-shell .line-endpoint-control,
+.editor-shell .line-endpoint-control {
+  position: absolute !important;
+  z-index: 38 !important;
+  width: 14px !important;
+  height: 14px !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  padding: 0 !important;
+  border: 2px solid #2851eb !important;
+  border-radius: 999px !important;
+  background: #ffffff !important;
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.25) !important;
+  cursor: crosshair !important;
+  transform: translate(-50%, -50%) rotate(var(--annotation-counter-rotation, 0deg)) !important;
+}
+
+main.editor-shell .line-endpoint-control.line-end-control,
+.editor-shell .line-endpoint-control.line-end-control {
+  background: #2851eb !important;
+  box-shadow: 0 0 0 3px rgba(40, 81, 235, 0.16), 0 1px 4px rgba(15, 23, 42, 0.25) !important;
+}
+
 .inspector,
 .signature-modal,
 .share-modal,

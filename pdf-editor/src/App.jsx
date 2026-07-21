@@ -105,6 +105,7 @@ import { centeredAnnotationBounds } from "./editor/annotationPlacement.mjs";
 import { protectPdfBytes } from "./tools/protectPdf.js";
 import { EDITOR_TOOL_MODES, getDefaultToolForMode, getToolsForMode, resolveModeForTool } from "./tools/editorToolModes.js";
 import { annotationPatchFromFrame, framesEqual, getAnnotationFrame, moveFrame, normalizeRotation, nudgeFrame, resizeFrame, rotationFromPointer } from "./tools/editorObjectTransforms.js";
+import { circleFrameFromDrag, directedLineFrameFromPoints, directedLineSvgGeometry, ensureDirectedLineLength, getDirectedLineEndpoints, normalizeCircleFrame, resizeCircleFrame } from "./tools/editorShapeGeometry.js";
 import { normalizedPointerInRect } from "./tools/editorPointerCoordinates.js";
 import { createTextAnnotation, estimateTextAnnotationSize, normalizeEditorText, shouldDiscardTextAnnotation } from "./tools/editorTextObjects.js";
 import { detectedTextBaseline, resolveDetectedTextStyle, sampleDetectedTextBackground, standardPdfFontVariant } from "./tools/editorDetectedText.js";
@@ -437,6 +438,46 @@ function rotatePdfPoint(point, center, rotation = 0) {
     x: center.x + dx * cosine - dy * sine,
     y: center.y + dx * sine + dy * cosine,
   };
+}
+
+function rotateEditorPoint(point, frame, pageWidth, pageHeight, rotation = 0) {
+  const width = Math.max(1, Number(pageWidth) || BASE_PAGE_WIDTH);
+  const height = Math.max(1, Number(pageHeight) || BASE_PAGE_HEIGHT);
+  const center = { x: (frame.x + frame.w / 2) * width, y: (frame.y + frame.h / 2) * height };
+  const rotated = rotatePdfPoint({ x: point.x * width, y: point.y * height }, center, rotation);
+  return { x: clamp(rotated.x / width, 0, 1), y: clamp(rotated.y / height, 0, 1) };
+}
+
+function DirectedLineSvg({ annotation, frame, pageWidth = BASE_PAGE_WIDTH, pageHeight = BASE_PAGE_HEIGHT }) {
+  const geometry = directedLineSvgGeometry(annotation, frame, pageWidth, pageHeight);
+  const strokeWidth = Math.max(1, annotation.strokeWidth || 3);
+  return (
+    <svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+      <line
+        x1={geometry.start.x}
+        y1={geometry.start.y}
+        x2={geometry.end.x}
+        y2={geometry.end.y}
+        stroke={annotation.color}
+        strokeWidth={strokeWidth}
+        vectorEffect="non-scaling-stroke"
+        strokeLinecap="round"
+        opacity={annotation.opacity}
+      />
+      {annotation.type === "arrow" && (
+        <polyline
+          points={geometry.arrowPoints}
+          fill="none"
+          stroke={annotation.color}
+          strokeWidth={strokeWidth}
+          vectorEffect="non-scaling-stroke"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          opacity={annotation.opacity}
+        />
+      )}
+    </svg>
+  );
 }
 
 function extractDetectedTextItems(textContent, viewport, pageRecord, pageIndex) {
@@ -1154,7 +1195,7 @@ function Annotation({ annotation, selected, zoom, onSelect, onDrag, onResize, on
   );
 }
 
-function EditorSelectionControls({ onDelete, onMoveStart, onResizeStart, onRotate, onRotateStart }) {
+function EditorSelectionControls({ onDelete, onMoveStart, onResizeStart, onRotate, onRotateStart, showResizeHandles = true }) {
   return (
     <>
       <div className="annotation-mini-menu annotation-controls" onPointerDown={(event) => event.stopPropagation()}>
@@ -1164,29 +1205,38 @@ function EditorSelectionControls({ onDelete, onMoveStart, onResizeStart, onRotat
       </div>
       <span className="rotation-stem" aria-hidden="true" />
       <button type="button" className="rotation-handle" title="Rotate object" aria-label="Rotate object" onPointerDown={onRotateStart} />
-      {["nw", "n", "ne", "e", "se", "s", "sw", "w"].map((handle) => (
+      {showResizeHandles && ["nw", "n", "ne", "e", "se", "s", "sw", "w"].map((handle) => (
         <button key={handle} type="button" className={`resize-control resize-${handle}`} aria-label={`Resize object ${handle}`} onPointerDown={(event) => onResizeStart(event, handle)} />
       ))}
     </>
   );
 }
 
-function ProfessionalAnnotation({ annotation, selected, zoom, activeTool, onSelect, onCommit, onUpdate, onDelete }) {
+function ProfessionalAnnotation({ annotation, selected, zoom, activeTool, pageWidth = BASE_PAGE_WIDTH, pageHeight = BASE_PAGE_HEIGHT, onSelect, onCommit, onUpdate, onDelete }) {
   const textContentRef = useRef(null);
   const textMeasureCanvasRef = useRef(null);
   const textWasFocusedRef = useRef(false);
   const textDraftRef = useRef(annotation.content || "");
-  const gestureFrameRef = useRef(getAnnotationFrame(annotation));
-  const [liveFrame, setLiveFrame] = useState(() => getAnnotationFrame(annotation));
+  const lineGestureRef = useRef(null);
+  const [liveLineAnnotation, setLiveLineAnnotation] = useState(null);
+  const initialFrame = () => annotation.type === "circle"
+    ? normalizeCircleFrame(getAnnotationFrame(annotation), pageWidth, pageHeight)
+    : getAnnotationFrame(annotation);
+  const gestureFrameRef = useRef(initialFrame());
+  const [liveFrame, setLiveFrame] = useState(initialFrame);
   const displayScale = (zoom / 100) * EDITOR_PAGE_SCALE;
   const textDisplayScale = displayScale * TEXT_SCREEN_SCALE;
 
   useEffect(() => {
-    const nextFrame = getAnnotationFrame(annotation);
+    const nextFrame = annotation.type === "circle"
+      ? normalizeCircleFrame(getAnnotationFrame(annotation), pageWidth, pageHeight)
+      : getAnnotationFrame(annotation);
     gestureFrameRef.current = nextFrame;
     setLiveFrame(nextFrame);
     textDraftRef.current = annotation.content || "";
-  }, [annotation]);
+    lineGestureRef.current = null;
+    setLiveLineAnnotation(null);
+  }, [annotation, pageHeight, pageWidth]);
 
   useEffect(() => {
     if (annotation.type !== "text") return undefined;
@@ -1222,7 +1272,9 @@ function ProfessionalAnnotation({ annotation, selected, zoom, activeTool, onSele
     event.currentTarget.setPointerCapture?.(event.pointerId);
     const pageRect = event.currentTarget.closest(".page-surface")?.getBoundingClientRect();
     if (!pageRect?.width || !pageRect?.height) return;
-    const originFrame = getAnnotationFrame(annotation);
+    const originFrame = annotation.type === "circle"
+      ? normalizeCircleFrame(getAnnotationFrame(annotation), pageRect.width, pageRect.height)
+      : getAnnotationFrame(annotation);
     const origin = { clientX: event.clientX, clientY: event.clientY };
     const initialPointerRotation = rotationFromPointer(originFrame, pageRect, event.clientX, event.clientY);
     const rotationOffset = normalizeRotation(originFrame.rotation - initialPointerRotation);
@@ -1233,7 +1285,9 @@ function ProfessionalAnnotation({ annotation, selected, zoom, activeTool, onSele
       const deltaX = (moveEvent.clientX - origin.clientX) / pageRect.width;
       const deltaY = (moveEvent.clientY - origin.clientY) / pageRect.height;
       const nextFrame = kind === "resize"
-        ? resizeFrame(originFrame, handle, deltaX, deltaY, annotation.type === "text" ? { minWidth: 0.16, minHeight: 0.05 } : undefined)
+        ? annotation.type === "circle"
+          ? resizeCircleFrame(originFrame, handle, deltaX, deltaY, pageRect.width, pageRect.height)
+          : resizeFrame(originFrame, handle, deltaX, deltaY, annotation.type === "text" ? { minWidth: 0.16, minHeight: 0.05 } : undefined)
         : kind === "rotate"
           ? { ...originFrame, rotation: rotationFromPointer(originFrame, pageRect, moveEvent.clientX, moveEvent.clientY, rotationOffset) }
           : moveFrame(originFrame, deltaX, deltaY);
@@ -1264,6 +1318,73 @@ function ProfessionalAnnotation({ annotation, selected, zoom, activeTool, onSele
   const resizeStart = (event, handle) => beginFrameGesture(event, "resize", handle);
   const rotateStart = (event) => beginFrameGesture(event, "rotate");
   const rotateStep = () => onCommit(annotation.id, { rotation: normalizeRotation((annotation.rotation || 0) + 15) });
+  const beginLineEndpointGesture = (event, endpointName) => {
+    event.stopPropagation();
+    event.preventDefault();
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+    const pageRect = event.currentTarget.closest(".page-surface")?.getBoundingClientRect();
+    if (!pageRect?.width || !pageRect?.height) return;
+    const originFrame = getAnnotationFrame(annotation);
+    const storedEndpoints = getDirectedLineEndpoints(annotation, originFrame);
+    const rotation = Number(annotation.rotation || 0);
+    const visualEndpoints = rotation
+      ? {
+        start: rotateEditorPoint(storedEndpoints.start, originFrame, pageRect.width, pageRect.height, rotation),
+        end: rotateEditorPoint(storedEndpoints.end, originFrame, pageRect.width, pageRect.height, rotation),
+      }
+      : storedEndpoints;
+    let nextAnnotation = {
+      ...annotation,
+      ...directedLineFrameFromPoints(visualEndpoints.start, visualEndpoints.end, pageRect.width, pageRect.height),
+      rotation: 0,
+    };
+    lineGestureRef.current = nextAnnotation;
+    setLiveLineAnnotation(nextAnnotation);
+    setLiveFrame(getAnnotationFrame(nextAnnotation));
+    onSelect(annotation.id);
+
+    const move = (moveEvent) => {
+      const pointer = {
+        x: clamp((moveEvent.clientX - pageRect.left) / pageRect.width, 0, 1),
+        y: clamp((moveEvent.clientY - pageRect.top) / pageRect.height, 0, 1),
+      };
+      const endpoints = getDirectedLineEndpoints(nextAnnotation, nextAnnotation);
+      const start = endpointName === "start" ? pointer : endpoints.start;
+      const end = endpointName === "end" ? pointer : endpoints.end;
+      nextAnnotation = {
+        ...nextAnnotation,
+        ...directedLineFrameFromPoints(start, end, pageRect.width, pageRect.height),
+        rotation: 0,
+      };
+      lineGestureRef.current = nextAnnotation;
+      gestureFrameRef.current = getAnnotationFrame(nextAnnotation);
+      setLiveLineAnnotation(nextAnnotation);
+      setLiveFrame(gestureFrameRef.current);
+    };
+    const up = () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+      window.removeEventListener("pointercancel", up);
+      const committed = lineGestureRef.current;
+      if (committed) {
+        onCommit(annotation.id, {
+          x: committed.x,
+          y: committed.y,
+          w: committed.w,
+          h: committed.h,
+          startX: committed.startX,
+          startY: committed.startY,
+          endX: committed.endX,
+          endY: committed.endY,
+          rotation: 0,
+        });
+      }
+      lineGestureRef.current = null;
+    };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+    window.addEventListener("pointercancel", up);
+  };
   const commonStyle = {
     left: `${liveFrame.x * 100}%`,
     top: `${liveFrame.y * 100}%`,
@@ -1357,10 +1478,42 @@ function ProfessionalAnnotation({ annotation, selected, zoom, activeTool, onSele
   }
 
   if (annotation.type === "line" || annotation.type === "arrow") {
+    const liveAnnotation = liveLineAnnotation || {
+      ...annotation,
+      ...annotationPatchFromFrame(annotation, liveFrame, getAnnotationFrame(annotation)),
+    };
+    const lineGeometry = directedLineSvgGeometry(liveAnnotation, liveFrame, pageWidth, pageHeight);
     return (
       <div className={`annotation line-box ${annotation.type === "arrow" ? "arrow-line" : ""} ${selected ? "is-selected" : ""}`} style={commonStyle} onPointerDown={dragStart}>
-        <svg viewBox="0 0 100 100" preserveAspectRatio="none"><line x1="0" y1="0" x2="100" y2="100" stroke={annotation.color} strokeWidth={Math.max(1, annotation.strokeWidth || 3)} vectorEffect="non-scaling-stroke" strokeLinecap="round" opacity={annotation.opacity} />{annotation.type === "arrow" && <polyline points="78,100 100,100 100,78" fill="none" stroke={annotation.color} strokeWidth={Math.max(1, annotation.strokeWidth || 3)} vectorEffect="non-scaling-stroke" strokeLinecap="round" strokeLinejoin="round" opacity={annotation.opacity} />}</svg>
-        {controls}
+        <DirectedLineSvg annotation={liveAnnotation} frame={liveFrame} pageWidth={pageWidth} pageHeight={pageHeight} />
+        {selected && (
+          <>
+            <EditorSelectionControls
+              onDelete={() => onDelete(annotation.id)}
+              onMoveStart={dragStart}
+              onResizeStart={resizeStart}
+              onRotate={rotateStep}
+              onRotateStart={rotateStart}
+              showResizeHandles={false}
+            />
+            <button
+              type="button"
+              className="line-endpoint-control line-start-control"
+              style={{ left: `${lineGeometry.start.x}%`, top: `${lineGeometry.start.y}%` }}
+              aria-label={annotation.type === "arrow" ? "Move arrow tail" : "Move line start"}
+              title={annotation.type === "arrow" ? "Move arrow tail" : "Move line start"}
+              onPointerDown={(event) => beginLineEndpointGesture(event, "start")}
+            />
+            <button
+              type="button"
+              className="line-endpoint-control line-end-control"
+              style={{ left: `${lineGeometry.end.x}%`, top: `${lineGeometry.end.y}%` }}
+              aria-label={annotation.type === "arrow" ? "Move arrow tip" : "Move line end"}
+              title={annotation.type === "arrow" ? "Move arrow tip" : "Move line end"}
+              onPointerDown={(event) => beginLineEndpointGesture(event, "end")}
+            />
+          </>
+        )}
       </div>
     );
   }
@@ -3182,11 +3335,15 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     }
 
     const id = makeId(tool);
+    const drawingSurface = event.currentTarget.querySelector(".annotation-layer") || event.currentTarget;
+    const drawingRect = drawingSurface.getBoundingClientRect();
     setDraft({
       id,
       type: tool,
       page: pageIndex,
       start: point,
+      surfaceWidth: drawingRect.width,
+      surfaceHeight: drawingRect.height,
       ...(tool === "draw"
         ? { color: toolSettings.drawColor, strokeWidth: toolSettings.drawStroke, opacity: 1, points: [point] }
         : {
@@ -3197,6 +3354,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
           color: tool === "whiteout" ? "#ffffff" : tool === "highlight" ? toolSettings.highlightColor : toolSettings.shapeColor,
           strokeWidth: toolSettings.shapeStroke,
           opacity: tool === "whiteout" ? toolSettings.whiteoutOpacity : toolSettings.highlightOpacity,
+          ...(["circle", "line", "arrow"].includes(tool) ? { startX: point.x, startY: point.y, endX: point.x, endY: point.y } : {}),
         }),
     });
   };
@@ -3208,6 +3366,18 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
 
     if (draft.type === "draw") {
       setDraft((current) => ({ ...current, points: [...current.points, point] }));
+      return;
+    }
+
+    if (draft.type === "circle") {
+      const frame = circleFrameFromDrag(draft.start, point, draft.surfaceWidth, draft.surfaceHeight);
+      setDraft((current) => ({ ...current, ...frame, endX: point.x, endY: point.y }));
+      return;
+    }
+
+    if (draft.type === "line" || draft.type === "arrow") {
+      const frame = directedLineFrameFromPoints(draft.start, point, draft.surfaceWidth, draft.surfaceHeight);
+      setDraft((current) => ({ ...current, ...frame }));
       return;
     }
 
@@ -3224,19 +3394,44 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
 
   const onPagePointerUp = () => {
     if (!draft) return;
-    const finalized = draft.type === "draw"
-      ? { id: draft.id, type: "draw", page: pageIndex, points: draft.points, color: draft.color, strokeWidth: draft.strokeWidth, opacity: draft.opacity }
+    let shapeDraft = draft;
+    if (draft.type === "circle") {
+      shapeDraft = {
+        ...draft,
+        ...circleFrameFromDrag(draft.start, { x: draft.endX, y: draft.endY }, draft.surfaceWidth, draft.surfaceHeight, 28),
+      };
+    }
+    if (draft.type === "line" || draft.type === "arrow") {
+      const directed = ensureDirectedLineLength(
+        { x: draft.startX, y: draft.startY },
+        { x: draft.endX, y: draft.endY },
+        draft.surfaceWidth,
+        draft.surfaceHeight,
+      );
+      shapeDraft = {
+        ...draft,
+        ...directedLineFrameFromPoints(directed.start, directed.end, draft.surfaceWidth, draft.surfaceHeight),
+      };
+    }
+    const finalized = shapeDraft.type === "draw"
+      ? { id: shapeDraft.id, type: "draw", page: pageIndex, points: shapeDraft.points, color: shapeDraft.color, strokeWidth: shapeDraft.strokeWidth, opacity: shapeDraft.opacity }
       : {
-        id: draft.id,
-        type: draft.type,
+        id: shapeDraft.id,
+        type: shapeDraft.type,
         page: pageIndex,
-        x: draft.x,
-        y: draft.y,
-        w: Math.max(draft.w, draft.type === "line" || draft.type === "arrow" ? 0.08 : 0.035),
-        h: Math.max(draft.h, draft.type === "line" || draft.type === "arrow" ? 0.025 : 0.018),
-        color: draft.color,
-        strokeWidth: draft.strokeWidth,
-        opacity: draft.type === "rectangle" || draft.type === "circle" || draft.type === "line" || draft.type === "arrow" ? 1 : draft.opacity,
+        x: shapeDraft.x,
+        y: shapeDraft.y,
+        w: Math.max(shapeDraft.w, shapeDraft.type === "rectangle" ? 0.035 : 0.001),
+        h: Math.max(shapeDraft.h, shapeDraft.type === "rectangle" ? 0.018 : 0.001),
+        color: shapeDraft.color,
+        strokeWidth: shapeDraft.strokeWidth,
+        opacity: shapeDraft.type === "rectangle" || shapeDraft.type === "circle" || shapeDraft.type === "line" || shapeDraft.type === "arrow" ? 1 : shapeDraft.opacity,
+        ...(["line", "arrow"].includes(shapeDraft.type) ? {
+          startX: shapeDraft.startX,
+          startY: shapeDraft.startY,
+          endX: shapeDraft.endX,
+          endY: shapeDraft.endY,
+        } : {}),
       };
     commitAnnotations([...annotations, finalized]);
     setDraft(null);
@@ -3272,7 +3467,9 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       return;
     }
     if (!selected || selected.type === "draw") return;
-    addAnnotation({ ...selected, id: makeId(selected.type), x: clamp(selected.x + 0.025, 0, 0.86), y: clamp(selected.y + 0.025, 0, 0.94) });
+    const originFrame = getAnnotationFrame(selected);
+    const nextFrame = moveFrame(originFrame, 0.025, 0.025);
+    addAnnotation({ ...selected, id: makeId(selected.type), ...annotationPatchFromFrame(selected, nextFrame, originFrame) });
   };
 
   const copySelected = () => {
@@ -3316,8 +3513,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
         ...value,
         id: makeId(value.type),
         page: pageIndex,
-        x: clamp((value.x || 0) + 0.025, 0, Math.max(0, 1 - (value.w || 0.1))),
-        y: clamp((value.y || 0) + 0.025, 0, Math.max(0, 1 - (value.h || 0.05))),
+        ...annotationPatchFromFrame(value, moveFrame(getAnnotationFrame(value), 0.025, 0.025), getAnnotationFrame(value)),
       };
     addAnnotation(pasted);
     editorClipboardRef.current = { kind: "annotation", value: pasted };
@@ -3353,7 +3549,9 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       showToast("Freehand drawings cannot be aligned yet.");
       return;
     }
-    updateAnnotation(selected.id, { x: clamp((1 - (selected.w || 0.1)) / 2, 0, 0.95), y: clamp(selected.y, 0, 0.96) });
+    const originFrame = getAnnotationFrame(selected);
+    const nextFrame = { ...originFrame, x: clamp((1 - originFrame.w) / 2, 0, 0.95) };
+    updateAnnotation(selected.id, annotationPatchFromFrame(selected, nextFrame, originFrame));
     showToast("Aligned to page center.");
   };
 
@@ -3787,11 +3985,12 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       }
 
       if (annotation.type === "circle") {
+        const circleFrame = normalizeCircleFrame(getAnnotationFrame(annotation), width, height);
         page.drawEllipse({
-          x: annotation.x * width + (annotation.w * width) / 2,
-          y: height - annotation.y * height - (annotation.h * height) / 2,
-          xScale: (annotation.w * width) / 2,
-          yScale: (annotation.h * height) / 2,
+          x: circleFrame.x * width + (circleFrame.w * width) / 2,
+          y: height - circleFrame.y * height - (circleFrame.h * height) / 2,
+          xScale: (circleFrame.w * width) / 2,
+          yScale: (circleFrame.h * height) / 2,
           borderColor: color,
           borderWidth: annotation.strokeWidth || 2,
           opacity: annotation.opacity,
@@ -3799,9 +3998,10 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       }
 
       if (annotation.type === "line" || annotation.type === "arrow") {
+        const endpoints = getDirectedLineEndpoints(annotation, annotation);
         const center = { x: (annotation.x + annotation.w / 2) * width, y: height - (annotation.y + annotation.h / 2) * height };
-        const start = rotatePdfPoint({ x: annotation.x * width, y: height - annotation.y * height }, center, annotation.rotation);
-        const end = rotatePdfPoint({ x: (annotation.x + annotation.w) * width, y: height - (annotation.y + annotation.h) * height }, center, annotation.rotation);
+        const start = rotatePdfPoint({ x: endpoints.start.x * width, y: height - endpoints.start.y * height }, center, annotation.rotation);
+        const end = rotatePdfPoint({ x: endpoints.end.x * width, y: height - endpoints.end.y * height }, center, annotation.rotation);
         page.drawLine({
           start,
           end,
@@ -3810,9 +4010,18 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
           opacity: annotation.opacity,
         });
         if (annotation.type === "arrow") {
-          const head = Math.max(10, (annotation.strokeWidth || 3) * 4);
-          page.drawLine({ start: end, end: { x: end.x - head, y: end.y }, thickness: annotation.strokeWidth || 3, color, opacity: annotation.opacity });
-          page.drawLine({ start: end, end: { x: end.x, y: end.y + head }, thickness: annotation.strokeWidth || 3, color, opacity: annotation.opacity });
+          const dx = end.x - start.x;
+          const dy = end.y - start.y;
+          const length = Math.max(0.001, Math.hypot(dx, dy));
+          const unitX = dx / length;
+          const unitY = dy / length;
+          const headLength = Math.min(Math.max(11, (annotation.strokeWidth || 3) * 4.2), length * 0.42);
+          const halfHeadWidth = headLength * 0.58;
+          const base = { x: end.x - unitX * headLength, y: end.y - unitY * headLength };
+          const wingOne = { x: base.x - unitY * halfHeadWidth, y: base.y + unitX * halfHeadWidth };
+          const wingTwo = { x: base.x + unitY * halfHeadWidth, y: base.y - unitX * halfHeadWidth };
+          page.drawLine({ start: end, end: wingOne, thickness: annotation.strokeWidth || 3, color, opacity: annotation.opacity });
+          page.drawLine({ start: end, end: wingTwo, thickness: annotation.strokeWidth || 3, color, opacity: annotation.opacity });
         }
       }
 
@@ -4698,6 +4907,8 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
                     selected={annotation.id === selectedId}
                     zoom={zoom}
                     activeTool={tool}
+                    pageWidth={currentPage?.width || BASE_PAGE_WIDTH}
+                    pageHeight={currentPage?.height || BASE_PAGE_HEIGHT}
                     onSelect={setSelectedId}
                     onCommit={updateAnnotation}
                     onUpdate={updateAnnotation}
@@ -4730,10 +4941,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
                 )}
                 {draft && draft.page === pageIndex && (draft.type === "line" || draft.type === "arrow") && (
                   <div className={`annotation line-box ${draft.type === "arrow" ? "arrow-line" : ""} drafting`} style={{ left: `${draft.x * 100}%`, top: `${draft.y * 100}%`, width: `${draft.w * 100}%`, height: `${draft.h * 100}%` }}>
-                    <svg viewBox="0 0 100 100" preserveAspectRatio="none">
-                      <line x1="0" y1="0" x2="100" y2="100" stroke={draft.color} strokeWidth={Math.max(1, draft.strokeWidth || 3)} strokeLinecap="round" />
-                      {draft.type === "arrow" && <polyline points="78,100 100,100 100,78" fill="none" stroke={draft.color} strokeWidth={Math.max(1, draft.strokeWidth || 3)} strokeLinecap="round" strokeLinejoin="round" />}
-                    </svg>
+                    <DirectedLineSvg annotation={draft} frame={draft} pageWidth={draft.surfaceWidth} pageHeight={draft.surfaceHeight} />
                   </div>
                 )}
               </div>

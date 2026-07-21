@@ -94,13 +94,28 @@ export function rotationFromPointer(frame, pageRect, clientX, clientY, offset = 
 
 export function annotationPatchFromFrame(annotation, nextFrame, previousFrame = getAnnotationFrame(annotation)) {
   if (annotation?.type !== "draw") {
-    return {
+    const patch = {
       x: nextFrame.x,
       y: nextFrame.y,
       w: nextFrame.w,
       h: nextFrame.h,
       rotation: normalizeRotation(nextFrame.rotation),
     };
+    if (["line", "arrow"].includes(annotation?.type) && [annotation.startX, annotation.startY, annotation.endX, annotation.endY].every((value) => Number.isFinite(Number(value)))) {
+      const previousWidth = Math.max(previousFrame.w, 0.0001);
+      const previousHeight = Math.max(previousFrame.h, 0.0001);
+      const transformPoint = (x, y) => ({
+        x: nextFrame.x + ((Number(x) - previousFrame.x) / previousWidth) * nextFrame.w,
+        y: nextFrame.y + ((Number(y) - previousFrame.y) / previousHeight) * nextFrame.h,
+      });
+      const start = transformPoint(annotation.startX, annotation.startY);
+      const end = transformPoint(annotation.endX, annotation.endY);
+      patch.startX = start.x;
+      patch.startY = start.y;
+      patch.endX = end.x;
+      patch.endY = end.y;
+    }
+    return patch;
   }
 
   const previousWidth = Math.max(previousFrame.w, 0.0001);
