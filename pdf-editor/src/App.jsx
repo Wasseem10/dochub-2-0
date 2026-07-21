@@ -3173,7 +3173,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     }
 
     if (["draw", "highlight", "whiteout", "rectangle", "circle", "line", "arrow"].includes(tool)) {
-      event.currentTarget.setPointerCapture(event.pointerId);
+      event.currentTarget.setPointerCapture?.(event.pointerId);
     }
 
     if (tool === "text") {
@@ -4429,7 +4429,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
         </div>
         <div className="reference-header-actions" aria-label="Document actions">
           <button type="button" onClick={() => window.print()}><Printer size={23} /><span>Print</span></button>
-          <button type="button" onClick={exportPdf} disabled={isExporting}><Download size={23} /><span>{isExporting ? "Preparing…" : "Download"}</span></button>
+          <button type="button" aria-label={isExporting ? "Preparing PDF" : "Download"} onClick={exportPdf} disabled={isExporting}><Download size={23} /><span>{isExporting ? "Preparing…" : "Download"}</span></button>
           <button type="button" className="reference-done-button" onClick={finishEditing}><span>Done</span></button>
         </div>
       </header>
@@ -4820,6 +4820,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
               onPointerDown={onPagePointerDown}
               onPointerMove={onPagePointerMove}
               onPointerUp={onPagePointerUp}
+              onPointerCancel={onPagePointerUp}
             >
               {currentPage.image ? <img className="pdf-image" src={currentPage.image} alt={`PDF page ${pageIndex + 1}`} /> : currentPage.source === "pdf" ? <PdfPageLoading pageNumber={pageIndex + 1} /> : currentPage.source === "blank" ? <BlankDocument /> : <SampleDocument pageIndex={pageIndex} />}
               {currentPage.source === "pdf" && currentPage.isHydrated !== false && !pageDetectedTextItems.length && !currentPage.text?.trim() && (
