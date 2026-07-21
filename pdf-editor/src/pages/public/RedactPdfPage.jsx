@@ -14,6 +14,7 @@ import * as pdfjsLib from "pdfjs-dist";
 import "pdfjs-dist/build/pdf.worker.mjs";
 import { trackProductEvent } from "../../analytics/productAnalytics.js";
 import { PageMetadata } from "../../components/public/PageMetadata.jsx";
+import { ToolGuideContent } from "../../components/public/ToolGuideContent.jsx";
 import { ROUTE_PATHS } from "../../router/routePaths.js";
 import { applyPermanentRedactions, PERMANENT_REDACTION_LIMITS } from "../../tools/permanentRedaction.js";
 import { isUsableRedaction, normalizeRedactionRect, redactionsForPage } from "../../tools/permanentRedactionGeometry.js";
@@ -174,5 +175,6 @@ export function RedactPdfPage({ tool }) {
     </section>}
     {error && !file && <div className="redact-error" role="alert">{error}</div>}
     <section className="redact-disclosure"><h2>What “permanent” means here</h2><p>FixThatPDF does not place a removable shape over the original PDF. It renders each page to pixels, burns in every black box, and creates a new PDF without copying source content streams or metadata. This is safer for redaction but removes selectable text, forms, links, layers, and accessibility tags from the downloaded copy.</p></section>
+    <ToolGuideContent tool={tool} />
   </main>;
 }

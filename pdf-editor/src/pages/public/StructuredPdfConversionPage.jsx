@@ -9,6 +9,7 @@ import Upload from "lucide-react/dist/esm/icons/upload.mjs";
 import { Link } from "react-router-dom";
 import { trackProductEvent } from "../../analytics/productAnalytics.js";
 import { PageMetadata } from "../../components/public/PageMetadata.jsx";
+import { ToolGuideContent } from "../../components/public/ToolGuideContent.jsx";
 import { ROUTE_PATHS } from "../../router/routePaths.js";
 import {
   createPptxFromRenderedPages,
@@ -205,6 +206,7 @@ export function StructuredPdfConversionPage({ tool }) {
         </aside>
       </div>
       <section className="conversion-privacy-note"><Check size={19} /><div><strong>Private browser processing</strong><p>The source PDF stays in your browser during conversion. Review complex tables, fonts, and layouts after downloading.</p></div></section>
+      <ToolGuideContent tool={tool} />
     </main>
   );
 }

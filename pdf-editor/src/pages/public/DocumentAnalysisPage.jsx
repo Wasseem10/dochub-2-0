@@ -15,6 +15,7 @@ import Upload from "lucide-react/dist/esm/icons/upload.mjs";
 import { Link } from "react-router-dom";
 import { trackProductEvent } from "../../analytics/productAnalytics.js";
 import { PageMetadata } from "../../components/public/PageMetadata.jsx";
+import { ToolGuideContent } from "../../components/public/ToolGuideContent.jsx";
 import { ROUTE_PATHS } from "../../router/routePaths.js";
 import {
   analysisReportText,
@@ -175,5 +176,6 @@ export function DocumentAnalysisPage({ tool }) {
       </section></div>}
     {status === "reading" && <div className="analysis-reading"><LoaderCircle className="is-spinning" size={18} /> Extracting document text… {progress}%</div>}{error && !file && <div className="conversion-error" role="alert">{error}</div>}
     <section className="analysis-disclosure"><h2>What “AI” means in this private workflow</h2><p>FixThatPDF uses deterministic local document intelligence for retrieval, extractive summaries, field detection, questions, contract organization, and resume structure. It returns source text and page citations instead of sending your PDF to a generative model. Translation is separate and uses a compatible browser's on-device Translator model. Always review results against the PDF.</p></section>
+    <ToolGuideContent tool={tool} />
   </main>;
 }

@@ -234,6 +234,11 @@ function buildBaseTool([slug, name, shortDescription, category, icon, status, su
   const outputLabel = supportedOutputTypes.length ? supportedOutputTypes.map(formatType).join(", ") : "No generated output today";
   const availabilityLabel = status === "available" ? "Available" : status === "beta" ? "Beta" : status === "partial" ? "Available with limitations" : "Coming soon";
   const highIntentContent = /** @type {Record<string, Partial<ToolRecord>>} */ (HIGH_INTENT_TOOL_CONTENT)[slug] || {};
+  const defaultSteps = isDedicatedConverter
+    ? [`Choose a supported ${inputLabel} file that meets the limits shown on this page.`, `Review the available settings, then run ${name}.`, `Open the downloaded ${outputLabel} result and compare important content with the source file.`]
+    : isDedicatedPageTool
+      ? ["Choose a valid, unencrypted PDF that meets the limits shown on this page.", `Review the selected pages and settings, then run ${name}.`, "Open the downloaded PDF and verify every affected page before sharing it."]
+      : content.steps.map((step, index) => index === 0 ? step.replace(/the source|a document|the document or versions|a PDF you are authorized to modify|a document in a secure analysis workspace|the PDF/i, name) : step);
 
   return {
     id: slug,
@@ -259,15 +264,15 @@ function buildBaseTool([slug, name, shortDescription, category, icon, status, su
     heroHeadline: `${name}, with honest limits`,
     heroSubheadline: shortDescription,
     benefits: [content.benefit, `Inputs: ${inputLabel}.`, `Outputs: ${outputLabel}.`],
-    steps: content.steps.map((step, index) => index === 0 ? step.replace(/the source|a document|the document or versions|a PDF you are authorized to modify|a document in a secure analysis workspace|the PDF/i, name) : step),
+    steps: defaultSteps,
     useCases: content.uses,
     faqEntries: [
       { question: `What does ${name} do?`, answer: shortDescription },
       { question: `Is ${name} available in FixThatPDF today?`, answer: `${availabilityLabel}. ${currentLimitations}` },
-      { question: `What should I verify after using ${name}?`, answer: isUsable ? "Open the exported PDF, check every changed page, and confirm that text, images, signatures, and page order look correct before sharing it." : "No file is processed today. Use the related available editor workflows shown on this page, and return when this tool is implemented." },
+      { question: `What should I verify after using ${name}?`, answer: isUsable ? `Open the downloaded ${outputLabel} result, compare important content with the source, and do not share it until the output has been reviewed.` : "No file is processed today. Use the related available editor workflows shown on this page, and return when this tool is implemented." },
     ],
     privacySummary: isUsable ? "Choosing a file starts the supported FixThatPDF workflow. Review the page-specific privacy note before processing sensitive documents." : "This page does not accept or process a file today.",
-    verificationChecklist: ["Open the downloaded result in a standard PDF reader.", "Review every page affected by the operation.", "Keep the source file until the result has been verified."],
+    verificationChecklist: [`Open the downloaded ${outputLabel} result in a compatible application.`, "Compare important text, images, formatting, and page order with the source.", "Keep the source file until the result has been verified."],
     troubleshooting: [
       { question: `Why might ${name} reject a file?`, answer: `The file must match the supported input format and current limits shown on this page. Encrypted PDFs are not accepted unless the workflow specifically removes a known password.` },
       { question: "What should I do if the result looks wrong?", answer: "Keep the source file, try a simpler supported document, and do not distribute the result until every affected page has been reviewed." },

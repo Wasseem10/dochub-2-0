@@ -9,6 +9,7 @@ import "pdfjs-dist/build/pdf.worker.mjs";
 import { Link } from "react-router-dom";
 import { trackProductEvent } from "../../analytics/productAnalytics.js";
 import { PageMetadata } from "../../components/public/PageMetadata.jsx";
+import { ToolGuideContent } from "../../components/public/ToolGuideContent.jsx";
 import { ROUTE_PATHS } from "../../router/routePaths.js";
 import { createPdfFromPlainText, extractPlainTextFromPdf, validateTextConversionFile } from "../../tools/textConversion.js";
 
@@ -84,6 +85,7 @@ export function TextConversionPage({ tool }) {
         </aside>
       </div>
       <section className="conversion-privacy-note"><Check size={19} /><div><strong>Private browser processing</strong><p>The file stays in your browser during this conversion.</p></div></section>
+      <ToolGuideContent tool={tool} />
     </main>
   );
 }

@@ -17,11 +17,24 @@ async function downloadConversion(page, route, file, button = "Download PDF") {
   return { download, bytes: new Uint8Array(await readFile(await download.path())) };
 }
 
+async function searchablePdfText(bytes) {
+  const documentProxy = await pdfjsLib.getDocument({ data: bytes.slice(0), disableWorker: true, verbosity: 0 }).promise;
+  const pages = [];
+  for (let pageNumber = 1; pageNumber <= documentProxy.numPages; pageNumber += 1) {
+    pages.push((await (await documentProxy.getPage(pageNumber)).getTextContent()).items.map((item) => item.str).join(" ").replace(/\s+/g, " ").trim());
+  }
+  await documentProxy.destroy?.();
+  return pages;
+}
+
 test("Excel, PowerPoint, and HTML each produce a valid PDF download", async ({ page }) => {
   const xlsx = createXlsxFromPdfPages([{ name: "Revenue", rows: [["Quarter", "Total"], ["Q1", "42000"]] }]);
   const excel = await downloadConversion(page, "/excel-to-pdf", { name: "revenue.xlsx", mimeType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", buffer: Buffer.from(xlsx) });
   expect(excel.download.suggestedFilename()).toBe("revenue.pdf");
   expect((await PDFDocument.load(excel.bytes)).getPageCount()).toBe(1);
+  const [excelText] = await searchablePdfText(excel.bytes);
+  expect(excelText).toContain("Quarter Total");
+  expect(excelText).toContain("Q1 42000");
 
   const pptx = new PptxGenJS();
   pptx.addSlide().addText("Public launch", { x: 1, y: 1, w: 5, h: 1, fontSize: 28, bold: true });
@@ -30,13 +43,16 @@ test("Excel, PowerPoint, and HTML each produce a valid PDF download", async ({ p
   const powerpoint = await downloadConversion(page, "/powerpoint-to-pdf", { name: "launch.pptx", mimeType: "application/vnd.openxmlformats-officedocument.presentationml.presentation", buffer: Buffer.from(pptxBytes) });
   expect(powerpoint.download.suggestedFilename()).toBe("launch.pdf");
   expect((await PDFDocument.load(powerpoint.bytes)).getPageCount()).toBe(2);
+  expect(await searchablePdfText(powerpoint.bytes)).toEqual([
+    expect.stringContaining("Public launch"),
+    expect.stringContaining("Production ready"),
+  ]);
 
   const html = Buffer.from("<!doctype html><html><body><h1>Local invoice</h1><p>Total: $42,000</p><script>document.body.innerHTML='unsafe'</script></body></html>");
   const htmlResult = await downloadConversion(page, "/html-to-pdf", { name: "invoice.html", mimeType: "text/html", buffer: html });
   expect(htmlResult.download.suggestedFilename()).toBe("invoice.pdf");
   expect((await PDFDocument.load(htmlResult.bytes)).getPageCount()).toBe(1);
-  const renderedHtmlPdf = await pdfjsLib.getDocument({ data: htmlResult.bytes.slice(0), disableWorker: true, verbosity: 0 }).promise;
-  const htmlText = (await (await renderedHtmlPdf.getPage(1)).getTextContent()).items.map((item) => item.str).join(" ");
+  const [htmlText] = await searchablePdfText(htmlResult.bytes);
   expect(htmlText).toContain("Local");
   expect(htmlText).toContain("42,000");
 });

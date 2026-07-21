@@ -10,6 +10,7 @@ import Upload from "lucide-react/dist/esm/icons/upload.mjs";
 import { Link } from "react-router-dom";
 import { trackProductEvent } from "../../analytics/productAnalytics.js";
 import { PageMetadata } from "../../components/public/PageMetadata.jsx";
+import { ToolGuideContent } from "../../components/public/ToolGuideContent.jsx";
 import { ROUTE_PATHS } from "../../router/routePaths.js";
 import { createPdfFromRenderedDocxPages } from "../../tools/officeConversion.js";
 import {
@@ -286,6 +287,7 @@ export function ToPdfConversionPage({ tool }) {
         </aside>
       </div>
       <section className="conversion-privacy-note"><Check size={19} /><div><strong>Private browser processing</strong><p>The source file stays in your browser. Review complex formulas, slide effects, fonts, and page breaks after downloading.</p></div></section>
+      <ToolGuideContent tool={tool} />
     </main>
   );
 }
