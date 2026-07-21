@@ -10,6 +10,7 @@ import Upload from "lucide-react/dist/esm/icons/upload.mjs";
 import { Link } from "react-router-dom";
 import { trackProductEvent } from "../../analytics/productAnalytics.js";
 import { PageMetadata } from "../../components/public/PageMetadata.jsx";
+import { ToolGuideContent } from "../../components/public/ToolGuideContent.jsx";
 import { ROUTE_PATHS } from "../../router/routePaths.js";
 import { flattenPdfBytes, FLATTEN_PDF_LIMITS } from "../../tools/flattenPdf.js";
 import { unlockPdfBytes } from "../../tools/protectPdf.js";
@@ -102,5 +103,6 @@ export function PdfProtectionPage({ tool }) {
       {status === "complete" && <p className="conversion-success">Your new PDF was downloaded. Open it once to verify it.</p>}
     </aside></div>
     <section className="conversion-privacy-note"><ShieldCheck size={19} /><div><strong>Your PDF and password stay on this device</strong><p>FixThatPDF performs this operation in your browser. Passwords and document contents are never included in analytics.</p></div></section>
+    <ToolGuideContent tool={tool} />
   </main>;
 }

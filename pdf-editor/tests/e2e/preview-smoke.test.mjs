@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
+import { readFile } from "node:fs/promises";
 import { after, before, test } from "node:test";
 
 const port = 4183;
@@ -97,6 +98,20 @@ for (const path of directRoutes) {
     const html = await response.text();
     assert.equal(response.status, 200);
     assert.match(html, /<title>[^<]*FixThatPDF<\/title>/);
-    assert.match(html, /<div id="root"><\/div>/);
+    assert.match(html, /<div id="root">/);
+  });
+}
+
+for (const [path, expectedHeading] of [
+  ["/pdf-to-excel", "PDF to Excel"],
+  ["/powerpoint-to-pdf", "PowerPoint to PDF"],
+  ["/redact-pdf", "Redact PDF"],
+]) {
+  test(`prerendered ${path} contains useful content before JavaScript runs`, async () => {
+    const html = await readFile(`dist${path}.html`, "utf8");
+    assert.match(html, new RegExp(`<h1>[^<]*${expectedHeading}`, "i"));
+    assert.match(html, /<h2>How to use/);
+    assert.match(html, /Privacy and current limits/);
+    assert.match(html, /application\/ld\+json/);
   });
 }

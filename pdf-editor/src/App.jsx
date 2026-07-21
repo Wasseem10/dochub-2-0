@@ -1467,6 +1467,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   const mobileFitDocumentRef = useRef("");
   const lastPagePointRef = useRef({ x: 0.52, y: 0.28 });
   const editorClipboardRef = useRef(null);
+  const detectedTextEditHistoryRef = useRef(new Map());
   const [documents, setDocuments] = useState([]);
   const [documentCatalogReady, setDocumentCatalogReady] = useState(!isCloudPersistenceConfigured);
   const [editorRouteState, setEditorRouteState] = useState("idle");
@@ -1557,14 +1558,14 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       setPages((items) => items.map((page, index) => (
         index === targetIndex ? { ...page, ...rendered.pageRecord, id: page.id || rendered.pageRecord.id } : page
       )));
-      setDetectedTextItems((items) => [
-        ...items.filter((item) => item.pageNumber !== targetIndex),
-        ...rendered.detectedItems,
-      ]);
-      setAnnotations((items) => [
-        ...items.filter((item) => !(item.page === targetIndex && item.source === "pdf-form")),
-        ...rendered.detectedFormFields,
-      ]);
+      setDetectedTextItems((items) => {
+        const savedPageItems = items.filter((item) => item.pageNumber === targetIndex);
+        return savedPageItems.length ? items : [...items, ...rendered.detectedItems];
+      });
+      setAnnotations((items) => {
+        const savedFormFields = items.filter((item) => item.page === targetIndex && item.source === "pdf-form");
+        return savedFormFields.length ? items : [...items, ...rendered.detectedFormFields];
+      });
     })().catch(() => {
       if (token !== pdfHydrationTokenRef.current) return;
       setPages((items) => items.map((page, index) => (
@@ -2093,6 +2094,24 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     markUnsaved();
   };
 
+  const beginDetectedTextEdit = (id) => {
+    if (!id || detectedTextEditHistoryRef.current.has(id)) return;
+    detectedTextEditHistoryRef.current.set(id, getHistorySnapshot());
+  };
+
+  const finishDetectedTextEdit = (id) => {
+    const snapshot = detectedTextEditHistoryRef.current.get(id);
+    if (!snapshot) return;
+    detectedTextEditHistoryRef.current.delete(id);
+    const before = snapshot.detectedTextItems?.find((item) => item.id === id);
+    const after = detectedTextItems.find((item) => item.id === id);
+    const changed = before && after && ["currentText", "x", "y", "w", "h", "fontSize", "color"]
+      .some((key) => before[key] !== after[key]);
+    if (!changed) return;
+    setUndoStack((stack) => [...stack.slice(-24), snapshot]);
+    setRedoStack([]);
+  };
+
   const updateAnnotation = (id, patch) => {
     const current = annotations.find((item) => item.id === id);
     if (!current) return;
@@ -2102,7 +2121,11 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   };
 
   const updateDetectedTextItem = (id, patch) => {
-    setDetectedTextItems((items) => items.map((item) => (
+    const current = detectedTextItems.find((item) => item.id === id);
+    if (!current || !Object.entries(patch).some(([key, value]) => current[key] !== value)) return;
+    const pendingSnapshot = detectedTextEditHistoryRef.current.get(id);
+    detectedTextEditHistoryRef.current.delete(id);
+    const next = detectedTextItems.map((item) => (
       item.id === id
         ? {
           ...item,
@@ -2111,8 +2134,15 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
           updatedAt: nowIso(),
         }
         : item
-    )));
-    markUnsaved();
+    ));
+    if (pendingSnapshot) {
+      setUndoStack((stack) => [...stack.slice(-24), pendingSnapshot]);
+      setRedoStack([]);
+      setDetectedTextItems(next);
+      markUnsaved();
+    } else {
+      commitDetectedTextItems(next);
+    }
   };
 
   const deleteDetectedTextItem = (id) => {
@@ -3346,6 +3376,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   };
 
   const updateDetectedTextContent = (id, element) => {
+    beginDetectedTextEdit(id);
     const pageRect = element.closest(".page-surface")?.getBoundingClientRect();
     const text = element.innerText;
     const patch = { currentText: text || " ", isEdited: true };
@@ -3353,7 +3384,12 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       patch.w = clamp((element.scrollWidth + 18) / pageRect.width, 0.02, 0.92);
       patch.h = clamp((element.scrollHeight + 10) / pageRect.height, 0.018, 0.32);
     }
-    updateDetectedTextItem(id, patch);
+    setDetectedTextItems((items) => items.map((item) => (
+      item.id === id
+        ? { ...item, ...patch, isEdited: true, updatedAt: nowIso() }
+        : item
+    )));
+    markUnsaved();
   };
 
   const startDetectedTextDrag = (event, item) => {
@@ -3386,11 +3422,16 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     event.currentTarget.setPointerCapture?.(event.pointerId);
     const pageRect = event.currentTarget.closest(".page-surface").getBoundingClientRect();
     const origin = { clientX: event.clientX, clientY: event.clientY, x: item.x, y: item.y };
-    pushHistorySnapshot();
+    let historyRecorded = false;
     setSelectedDetectedTextId(item.id);
     setSelectedId(null);
     setTool("editText");
     const move = (moveEvent) => {
+      if (Math.abs(moveEvent.clientX - origin.clientX) < 1 && Math.abs(moveEvent.clientY - origin.clientY) < 1) return;
+      if (!historyRecorded) {
+        historyRecorded = true;
+        pushHistorySnapshot();
+      }
       setDetectedTextItems((items) => items.map((candidate) => (
         candidate.id === item.id
           ? {
@@ -3416,8 +3457,13 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     event.stopPropagation();
     const pageRect = event.currentTarget.closest(".page-surface").getBoundingClientRect();
     const origin = { clientX: event.clientX, clientY: event.clientY, w: item.w, h: item.h };
-    pushHistorySnapshot();
+    let historyRecorded = false;
     const move = (moveEvent) => {
+      if (Math.abs(moveEvent.clientX - origin.clientX) < 1 && Math.abs(moveEvent.clientY - origin.clientY) < 1) return;
+      if (!historyRecorded) {
+        historyRecorded = true;
+        pushHistorySnapshot();
+      }
       setDetectedTextItems((items) => items.map((candidate) => (
         candidate.id === item.id
           ? {
@@ -4622,16 +4668,19 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
                             return;
                           }
                           event.stopPropagation();
+                          beginDetectedTextEdit(item.id);
                           setSelectedDetectedTextId(item.id);
                           setSelectedId(null);
                           setTool("editText");
                         }}
                         onFocus={() => {
+                          beginDetectedTextEdit(item.id);
                           setSelectedDetectedTextId(item.id);
                           setSelectedId(null);
                           setTool("editText");
                         }}
                         onChange={(element) => updateDetectedTextContent(item.id, element)}
+                        onBlur={() => finishDetectedTextEdit(item.id)}
                       />
                       {isActive && <span className="resize-handle" onPointerDown={(event) => startDetectedTextResize(event, item)} />}
                     </div>

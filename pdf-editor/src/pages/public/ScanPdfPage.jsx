@@ -14,6 +14,7 @@ import Upload from "lucide-react/dist/esm/icons/upload.mjs";
 import { Link } from "react-router-dom";
 import { trackProductEvent } from "../../analytics/productAnalytics.js";
 import { PageMetadata } from "../../components/public/PageMetadata.jsx";
+import { ToolGuideContent } from "../../components/public/ToolGuideContent.jsx";
 import { ROUTE_PATHS } from "../../router/routePaths.js";
 import { createPdfFromImages } from "../../tools/imageConversion.js";
 import { createSearchablePdfFromOcrPages, flattenOcrWords } from "../../tools/ocrPdf.js";
@@ -185,5 +186,6 @@ export function ScanPdfPage({ tool }) {
       <button className="conversion-primary-action" type="button" disabled={!pages.length || status === "working"} onClick={createPdf}>{status === "working" ? <><LoaderCircle className="is-spinning" size={18} /> Processing…</> : <><Download size={18} /> {isSearchable ? "Run OCR and download PDF" : "Create and download PDF"}</>}</button>{status === "complete" && <p className="conversion-success">Your scanned PDF was downloaded.</p>}
     </aside></div>
     <section className="conversion-privacy-note"><ShieldCheck size={19} /><div><strong>Private browser processing</strong><p>Photos, recognized text, and PDF output stay on this device. Review OCR results and page orientation before relying on the document.</p></div></section>
+    <ToolGuideContent tool={tool} />
   </main>;
 }

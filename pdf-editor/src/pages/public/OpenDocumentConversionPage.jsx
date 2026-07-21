@@ -11,6 +11,7 @@ import Upload from "lucide-react/dist/esm/icons/upload.mjs";
 import { Link } from "react-router-dom";
 import { trackProductEvent } from "../../analytics/productAnalytics.js";
 import { PageMetadata } from "../../components/public/PageMetadata.jsx";
+import { ToolGuideContent } from "../../components/public/ToolGuideContent.jsx";
 import { ROUTE_PATHS } from "../../router/routePaths.js";
 import { convertOpenDocumentToPdf, validateOpenDocumentFile } from "../../tools/openDocumentConversion.js";
 
@@ -89,5 +90,6 @@ export function OpenDocumentConversionPage({ tool }) {
     </div>{status === "reading" && <div className="conversion-progress"><LoaderCircle className="is-spinning" size={18} /> Reading the {mode.label} file…</div>}{error && <div className="conversion-error" role="alert">{error}</div>}{file && <div className="office-file-card"><header><ModeIcon size={20} /><div><strong>{file.name}</strong><small>{formatBytes(file.size)} · ready for conversion</small></div></header></div>}</section>
     <aside className="conversion-settings-card"><span>PDF output</span><ModeIcon size={25} /><h2>{mode.heading}</h2><div className="office-mode-note"><strong>What this converter preserves</strong><p>{mode.detail}</p></div><div className="conversion-summary"><Check size={18} /><span>{file ? `${file.name} is ready` : `Add a ${mode.extension} file to continue`}</span></div>{status === "converting" && <><div className="conversion-progress-bar"><i style={{ width: `${progress}%` }} /></div><p className="ocr-status">Converting locally… {progress}%</p></>}<button className="conversion-primary-action" type="button" disabled={!file || !bytes || status === "reading" || status === "converting"} onClick={convert}>{status === "converting" ? <><LoaderCircle className="is-spinning" size={18} /> Converting…</> : <><Download size={18} /> Download PDF</>}</button>{status === "complete" && <p className="conversion-success">Your PDF was downloaded.</p>}</aside></div>
     <section className="conversion-privacy-note"><Check size={19} /><div><strong>Private browser processing</strong><p>The source file stays on this device. Open the downloaded PDF and review complex layout, typography, formulas, and archive order.</p></div></section>
+    <ToolGuideContent tool={tool} />
   </main>;
 }

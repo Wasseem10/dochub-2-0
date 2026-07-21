@@ -3,14 +3,10 @@ import Check from "lucide-react/dist/esm/icons/check.mjs";
 import CircleHelp from "lucide-react/dist/esm/icons/circle-help.mjs";
 import Info from "lucide-react/dist/esm/icons/info.mjs";
 import ShieldCheck from "lucide-react/dist/esm/icons/shield-check.mjs";
-import { HIGH_INTENT_TOOL_IDS } from "../../tools/highIntentToolContent.js";
 import { ToolIcon } from "../../tools/ToolIcon.jsx";
 import { getRelatedTools } from "../../tools/toolRegistry.js";
 
-const highIntentIds = new Set(HIGH_INTENT_TOOL_IDS);
-
 export function ToolGuideContent({ tool }) {
-  if (!highIntentIds.has(tool.id)) return null;
   const relatedTools = getRelatedTools(tool);
 
   return (

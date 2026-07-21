@@ -10,6 +10,7 @@ import LoaderCircle from "lucide-react/dist/esm/icons/loader-circle.mjs";
 import Trash2 from "lucide-react/dist/esm/icons/trash-2.mjs";
 import Upload from "lucide-react/dist/esm/icons/upload.mjs";
 import { PageMetadata } from "../../components/public/PageMetadata.jsx";
+import { ToolGuideContent } from "../../components/public/ToolGuideContent.jsx";
 import { ROUTE_PATHS } from "../../router/routePaths.js";
 import { createPdfFromImages, createStoredZip, IMAGE_CONVERSION_LIMITS, isSupportedImageType } from "../../tools/imageConversion.js";
 import { absoluteSiteUrl } from "../../config/site.js";
@@ -347,6 +348,7 @@ export function ImageConversionPage({ tool }) {
       </section>
       {imagesToPdf ? <ImagesToPdfWorkspace tool={tool} /> : <PdfToImagesWorkspace tool={tool} />}
       <section className="conversion-privacy-note"><Check size={19} /><div><strong>Private browser processing</strong><p>This conversion runs locally in your browser. FixThatPDF does not send these files to an Office, OCR, or AI service.</p></div></section>
+      <ToolGuideContent tool={tool} />
     </main>
   );
 }

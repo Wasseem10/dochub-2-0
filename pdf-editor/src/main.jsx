@@ -18,7 +18,10 @@ import { installProductionMonitoring } from "./monitoring/productionMonitoring.j
 
 installProductionMonitoring();
 
-createRoot(document.getElementById("root")).render(
+const rootElement = document.getElementById("root");
+rootElement.replaceChildren();
+
+createRoot(rootElement).render(
   <React.StrictMode>
     <AppRouter />
   </React.StrictMode>,
