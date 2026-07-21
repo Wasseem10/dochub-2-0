@@ -14,6 +14,18 @@ export function toolSeoSchemas(tool) {
         { "@type": "ListItem", position: 2, name: tool.name, item: absoluteSiteUrl(tool.route) },
       ],
     },
+    {
+      "@context": "https://schema.org",
+      "@type": "HowTo",
+      name: `How to use ${tool.name}`,
+      step: tool.steps.map((step, index) => ({
+        "@type": "HowToStep",
+        position: index + 1,
+        name: `Step ${index + 1}`,
+        text: step,
+        url: absoluteSiteUrl(tool.route),
+      })),
+    },
   ];
 
   if (highIntentIds.has(tool.id)) {
@@ -25,19 +37,6 @@ export function toolSeoSchemas(tool) {
         name: entry.question,
         acceptedAnswer: { "@type": "Answer", text: entry.answer },
       })),
-    });
-  }
-
-  if (tool.schemaType === "SoftwareApplication") {
-    schemas.push({
-      "@context": "https://schema.org",
-      "@type": "SoftwareApplication",
-      name: tool.name,
-      applicationCategory: "BusinessApplication",
-      operatingSystem: "Web",
-      description: tool.metaDescription,
-      url: absoluteSiteUrl(tool.route),
-      offers: { "@type": "Offer", price: "0", priceCurrency: "USD", availability: "https://schema.org/InStock" },
     });
   }
 

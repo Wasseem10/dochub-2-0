@@ -16,6 +16,7 @@ import { trackProductEvent } from "../../analytics/productAnalytics.js";
 import { PageMetadata } from "../../components/public/PageMetadata.jsx";
 import { ToolGuideContent } from "../../components/public/ToolGuideContent.jsx";
 import { ROUTE_PATHS } from "../../router/routePaths.js";
+import { toolSeoSchemas } from "../../tools/toolSeoSchemas.js";
 import { createPdfFromImages } from "../../tools/imageConversion.js";
 import { createSearchablePdfFromOcrPages, flattenOcrWords } from "../../tools/ocrPdf.js";
 import { moveScanPage, nextScanRotation, SCAN_PDF_LIMITS, validateScanFiles } from "../../tools/scanPdf.js";
@@ -173,7 +174,7 @@ export function ScanPdfPage({ tool }) {
   };
 
   return <main className="image-conversion-page office-conversion-page scan-pdf-page">
-    <PageMetadata title={tool.seoTitle} description={tool.metaDescription} canonicalUrl={tool.canonicalUrl} />
+      <PageMetadata title={tool.seoTitle} description={tool.metaDescription} canonicalUrl={tool.canonicalUrl} schemas={toolSeoSchemas(tool)} />
     <nav className="tool-breadcrumbs" aria-label="Breadcrumb"><Link to={ROUTE_PATHS.tools}>PDF tools</Link><span>/</span><span aria-current="page">{tool.name}</span></nav>
     <section className="conversion-hero"><div><small>Available · runs in your browser</small><h1>{isCamera ? "Scan paper pages into one PDF." : isSearchable ? "Turn page images into a searchable PDF." : "Build a clean PDF from scanned pages."}</h1><p>{isCamera ? "Use your camera or existing page photos, put them in order, clean them up, and download one PDF." : isSearchable ? "Recognize English text in ordered JPG and PNG pages, then add an invisible text layer for search and copy." : "Add JPG and PNG page images, rotate and reorder them, apply scan cleanup, and download one PDF."}</p></div></section>
     {isCamera && <section className="scan-camera-card"><div className="scan-video-shell"><video ref={videoRef} muted playsInline />{!cameraOn && <span><Camera size={30} /><strong>Camera preview</strong><small>Use the rear camera for clearer paper scans.</small></span>}</div><div><button type="button" onClick={cameraOn ? capture : startCamera}>{cameraOn ? <><Camera size={18} /> Capture page</> : <><Camera size={18} /> Start camera</>}</button>{cameraOn && <button className="scan-camera-secondary" type="button" onClick={stopCamera}>Stop camera</button>}<p>Camera capture requires browser permission and HTTPS. You can always upload existing photos instead.</p></div></section>}

@@ -12,6 +12,7 @@ import { trackProductEvent } from "../../analytics/productAnalytics.js";
 import { PageMetadata } from "../../components/public/PageMetadata.jsx";
 import { ToolGuideContent } from "../../components/public/ToolGuideContent.jsx";
 import { ROUTE_PATHS } from "../../router/routePaths.js";
+import { toolSeoSchemas } from "../../tools/toolSeoSchemas.js";
 import { createPdfFromRenderedDocxPages } from "../../tools/officeConversion.js";
 import {
   createPdfFromPresentation,
@@ -264,7 +265,7 @@ export function ToPdfConversionPage({ tool }) {
 
   return (
     <main className="image-conversion-page office-conversion-page to-pdf-conversion-page">
-      <PageMetadata title={tool.seoTitle} description={tool.metaDescription} canonicalUrl={tool.canonicalUrl} />
+      <PageMetadata title={tool.seoTitle} description={tool.metaDescription} canonicalUrl={tool.canonicalUrl} schemas={toolSeoSchemas(tool)} />
       <nav className="tool-breadcrumbs" aria-label="Breadcrumb"><Link to={ROUTE_PATHS.tools}>PDF tools</Link><span>/</span><span aria-current="page">{tool.name}</span></nav>
       <section className="conversion-hero"><div><small>Available · runs in your browser</small><h1>{tool.name} online.</h1><p>{tool.shortDescription} No conversion-server upload required.</p></div></section>
       <div className="conversion-workspace-grid">

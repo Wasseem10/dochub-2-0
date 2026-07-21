@@ -4,5 +4,7 @@ Disallow: /app/
 Disallow: /login
 Disallow: /signup
 Disallow: /forgot-password
+Disallow: /share/
+Disallow: /sign/
 
 Sitemap: https://dochub-2-0.vercel.app/sitemap.xml

@@ -12,6 +12,7 @@ import { trackProductEvent } from "../../analytics/productAnalytics.js";
 import { PageMetadata } from "../../components/public/PageMetadata.jsx";
 import { ToolGuideContent } from "../../components/public/ToolGuideContent.jsx";
 import { ROUTE_PATHS } from "../../router/routePaths.js";
+import { toolSeoSchemas } from "../../tools/toolSeoSchemas.js";
 import { flattenPdfBytes, FLATTEN_PDF_LIMITS } from "../../tools/flattenPdf.js";
 import { unlockPdfBytes } from "../../tools/protectPdf.js";
 
@@ -85,7 +86,7 @@ export function PdfProtectionPage({ tool }) {
   const Icon = isFlatten ? Layers : LockKeyholeOpen;
   const actionText = isFlatten ? "Flatten and download PDF" : "Unlock and download PDF";
   return <main className="image-conversion-page office-conversion-page protection-tool-page">
-    <PageMetadata title={tool.seoTitle} description={tool.metaDescription} canonicalUrl={tool.canonicalUrl} />
+    <PageMetadata title={tool.seoTitle} description={tool.metaDescription} canonicalUrl={tool.canonicalUrl} schemas={toolSeoSchemas(tool)} />
     <nav className="tool-breadcrumbs" aria-label="Breadcrumb"><Link to={ROUTE_PATHS.tools}>PDF tools</Link><span>/</span><span aria-current="page">{tool.name}</span></nav>
     <section className="conversion-hero"><div><small>Available · private browser processing</small><h1>{isFlatten ? "Flatten every PDF page into a final copy." : "Remove a PDF password you already know."}</h1><p>{isFlatten ? "Rebuild page appearances into a clean PDF without forms, links, layers, embedded files, or editable source content." : "Enter the current open password and download an unencrypted copy. Use this only for a document you are authorized to modify."}</p></div></section>
     <div className="conversion-workspace-grid"><section>

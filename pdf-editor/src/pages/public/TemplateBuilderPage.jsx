@@ -13,6 +13,7 @@ import { trackProductEvent } from "../../analytics/productAnalytics.js";
 import { PageMetadata } from "../../components/public/PageMetadata.jsx";
 import { ToolGuideContent } from "../../components/public/ToolGuideContent.jsx";
 import { ROUTE_PATHS } from "../../router/routePaths.js";
+import { toolSeoSchemas } from "../../tools/toolSeoSchemas.js";
 import {
   calculateInvoiceTotals,
   createTemplatePdf,
@@ -138,7 +139,7 @@ export function TemplateBuilderPage({ tool }) {
   const accentCss = `rgb(${accent.map((channel) => Math.round(channel * 255)).join(" ")})`;
 
   return <main className="template-builder-page">
-    <PageMetadata title={tool.seoTitle} description={tool.metaDescription} canonicalUrl={tool.canonicalUrl} />
+    <PageMetadata title={tool.seoTitle} description={tool.metaDescription} canonicalUrl={tool.canonicalUrl} schemas={toolSeoSchemas(tool)} />
     <nav className="tool-breadcrumbs" aria-label="Breadcrumb"><Link to={ROUTE_PATHS.tools}>PDF tools</Link><span>/</span><span aria-current="page">{tool.name}</span></nav>
     <section className="template-builder-hero"><div><span><Sparkles size={15} /> Available · editable PDF template</span><h1>{definition.title}</h1><p>{definition.description}</p></div><aside><ShieldCheck size={22} /><strong>Private browser draft</strong><small>Fields stay on this device and are never added to analytics.</small></aside></section>
     <section className="template-builder-workspace">

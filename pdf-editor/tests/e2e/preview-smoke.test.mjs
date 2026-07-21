@@ -111,7 +111,7 @@ for (const [path, expectedHeading] of [
     const html = await readFile(`dist${path}.html`, "utf8");
     assert.match(html, new RegExp(`<h1>[^<]*${expectedHeading}`, "i"));
     assert.match(html, /<h2>How to use/);
-    assert.match(html, /Privacy and current limits/);
+    assert.match(html, /Privacy, supported files, and limits/);
     assert.match(html, /application\/ld\+json/);
   });
 }

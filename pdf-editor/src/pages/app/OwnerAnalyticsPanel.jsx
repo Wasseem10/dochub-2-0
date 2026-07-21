@@ -12,7 +12,7 @@ import CheckCircle2 from "lucide-react/dist/esm/icons/check-circle-2.mjs";
 import Gauge from "lucide-react/dist/esm/icons/gauge.mjs";
 import LifeBuoy from "lucide-react/dist/esm/icons/life-buoy.mjs";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { analyticsRangeStart, createDailyAnalyticsSeries, filterAnalyticsEvents, summarizeAnalyticsEvents } from "../../analytics/analyticsMetrics.js";
+import { analyticsRangeStart, createDailyAnalyticsSeries, filterAnalyticsEvents, groupAnalyticsProperty, summarizeAnalyticsEvents } from "../../analytics/analyticsMetrics.js";
 import { db } from "../../firebase.js";
 import "./owner-analytics.css";
 
@@ -20,6 +20,7 @@ const EVENT_LABELS = Object.freeze({
   account_signed_up: "Account created",
   account_logged_in: "Successful login",
   homepage_viewed: "Homepage viewed",
+  page_viewed: "Public page viewed",
   upload_started: "PDF upload started",
   document_opened: "PDF opened",
   pdf_downloaded: "PDF downloaded",
@@ -85,6 +86,7 @@ export function OwnerAnalyticsPanel() {
         countEvent("unhandled_rejection"),
         countEvent("export_failed"),
         countEvent("slow_operation"),
+        countEvent("page_viewed"),
       ]).catch(() => null);
       const [snapshot, supportSnapshot, countValues] = await Promise.all([
         getDocs(eventQuery),
@@ -94,7 +96,7 @@ export function OwnerAnalyticsPanel() {
       setEvents(snapshot.docs.map((eventDocument) => ({ id: eventDocument.id, ...eventDocument.data() })));
       setSupportRequests(supportSnapshot.docs.map((requestDocument) => ({ id: requestDocument.id, ...requestDocument.data() })));
       if (countValues) {
-        const [signups, logins, googleSignups, googleLogins, uploads, downloads, clientErrors, unhandledRejections, failedExports, slowOperations] = countValues;
+        const [signups, logins, googleSignups, googleLogins, uploads, downloads, clientErrors, unhandledRejections, failedExports, slowOperations, pageViews] = countValues;
         setServerCounts({
           signups,
           logins,
@@ -104,6 +106,7 @@ export function OwnerAnalyticsPanel() {
           clientErrors: clientErrors + unhandledRejections,
           failedExports,
           slowOperations,
+          pageViews,
           conversionRate: uploads ? Math.round((downloads / uploads) * 100) : 0,
         });
       } else {
@@ -128,6 +131,8 @@ export function OwnerAnalyticsPanel() {
   const dailySeries = useMemo(() => createDailyAnalyticsSeries(filteredEvents, range === "7d" ? 7 : 14), [filteredEvents, range]);
   const maxDailyEvents = Math.max(1, ...dailySeries.map((day) => day.events));
   const recentEvents = filteredEvents.slice(0, 12);
+  const trafficSources = useMemo(() => groupAnalyticsProperty(filteredEvents, "trafficSource"), [filteredEvents]);
+  const landingPages = useMemo(() => groupAnalyticsProperty(filteredEvents, "landingPath"), [filteredEvents]);
   const diagnosticEvents = filteredEvents.filter((event) => ["client_error", "unhandled_rejection", "slow_operation", "export_failed"].includes(event.name)).slice(0, 10);
   const updateSupportStatus = async (requestId, statusValue) => {
     await updateDoc(doc(db, "supportRequests", requestId), { status: statusValue });
@@ -145,6 +150,7 @@ export function OwnerAnalyticsPanel() {
     { label: "Documents opened", value: displayedMetrics.uploads, detail: "PDFs opened in the editor", icon: FileText, tone: "blue" },
     { label: "PDFs downloaded", value: displayedMetrics.downloads, detail: `${displayedMetrics.conversionRate}% of opened documents`, icon: Download, tone: "green" },
     { label: "Recent active users", value: displayedMetrics.activeUsers, detail: "Unique users in the loaded activity feed", icon: Users, tone: "purple" },
+    { label: "Organic page views", value: displayedMetrics.organicVisits, detail: `${displayedMetrics.organicRate}% of measured public page views`, icon: Gauge, tone: "green" },
   ];
 
   return (
@@ -206,6 +212,17 @@ export function OwnerAnalyticsPanel() {
             <div><dt>PDF downloads</dt><dd>{displayedMetrics.downloads.toLocaleString()}</dd></div>
             <div><dt>Download conversion</dt><dd>{displayedMetrics.conversionRate}%</dd></div>
           </dl>
+        </article>
+      </div>
+
+      <div className="owner-acquisition-grid">
+        <article className="owner-analytics-activity">
+          <div className="owner-analytics-section-title"><div><h2>Traffic acquisition</h2><p>Privacy-safe first-touch source for this browser session</p></div><strong>{displayedMetrics.pageViews.toLocaleString()} page views</strong></div>
+          <div className="owner-acquisition-list">{trafficSources.length ? trafficSources.map((item) => <div key={item.label}><span>{item.label.replaceAll("_", " ")}</span><strong>{item.value.toLocaleString()}</strong></div>) : <p>No public page views recorded yet.</p>}</div>
+        </article>
+        <article className="owner-analytics-activity">
+          <div className="owner-analytics-section-title"><div><h2>Top landing pages</h2><p>The first public route visitors entered</p></div></div>
+          <div className="owner-acquisition-list">{landingPages.length ? landingPages.map((item) => <div key={item.label}><span>{item.label}</span><strong>{item.value.toLocaleString()}</strong></div>) : <p>No landing-page data recorded yet.</p>}</div>
         </article>
       </div>
 

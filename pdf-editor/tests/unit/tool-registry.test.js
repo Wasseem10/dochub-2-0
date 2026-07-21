@@ -68,7 +68,7 @@ describe("FixThatPDF tool registry", () => {
   });
 
   it("only emits FAQ structured data where the complete FAQ is visible", () => {
-    expect(toolSeoSchemas(TOOL_REGISTRY.find(({ id }) => id === "pdf-to-word")).map((schema) => schema["@type"])).toEqual(["BreadcrumbList", "FAQPage", "SoftwareApplication"]);
-    expect(toolSeoSchemas(TOOL_REGISTRY.find(({ id }) => id === "rotate-pdf")).map((schema) => schema["@type"])).toEqual(["BreadcrumbList", "SoftwareApplication"]);
+    expect(toolSeoSchemas(TOOL_REGISTRY.find(({ id }) => id === "pdf-to-word")).map((schema) => schema["@type"])).toEqual(["BreadcrumbList", "HowTo", "FAQPage"]);
+    expect(toolSeoSchemas(TOOL_REGISTRY.find(({ id }) => id === "rotate-pdf")).map((schema) => schema["@type"])).toEqual(["BreadcrumbList", "HowTo"]);
   });
 });

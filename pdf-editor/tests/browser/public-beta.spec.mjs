@@ -59,6 +59,20 @@ test("landing Tools menu exposes every released FixThatPDF workflow", async ({ p
   await expect(toolsButton).toBeFocused();
 });
 
+test("the lightweight homepage hands a selected PDF to the full editor", async ({ page }) => {
+  const pdf = await PDFDocument.create();
+  const font = await pdf.embedFont(StandardFonts.Helvetica);
+  const firstPage = pdf.addPage([612, 792]);
+  firstPage.drawText("LANDING HANDOFF", { x: 72, y: 650, size: 18, font });
+
+  await page.goto(appPath("/"));
+  await page.locator('input[type="file"]').first().setInputFiles({ name: "landing-handoff.pdf", mimeType: "application/pdf", buffer: Buffer.from(await pdf.save()) });
+
+  await expect(page).toHaveURL(/\/edit-pdf\?tool=edit-pdf&document=/);
+  await expect(page.locator(".detected-text-item").first()).toContainText("LANDING HANDOFF");
+  await expect(page.getByRole("button", { name: "Download", exact: true })).toBeVisible();
+});
+
 test("tool guides stay centered and readable on wide screens", async ({ page }) => {
   const routes = ["/pdf-to-word", "/pdf-to-excel", "/excel-to-pdf", "/ocr-pdf", "/merge-pdf"];
 

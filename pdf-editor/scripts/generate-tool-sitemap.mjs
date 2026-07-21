@@ -27,11 +27,11 @@ const paths = [
 
 const uniquePaths = [...new Set(paths)].sort();
 const urls = uniquePaths
-  .map((path) => `  <url><loc>${siteUrl}${path === "/" ? "/" : path}</loc><changefreq>${path === "/" ? "weekly" : "monthly"}</changefreq></url>`)
+  .map((path) => `  <url><loc>${siteUrl}${path === "/" ? "/" : path}</loc></url>`)
   .join("\n");
 const sitemap = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls}\n</urlset>\n`;
 
 await mkdir("runtime-public", { recursive: true });
 await writeFile("runtime-public/sitemap.xml", sitemap, "utf8");
-await writeFile("runtime-public/robots.txt", `User-agent: *\nAllow: /\nDisallow: /app/\nDisallow: /login\nDisallow: /signup\nDisallow: /forgot-password\n\nSitemap: ${siteUrl}/sitemap.xml\n`, "utf8");
+await writeFile("runtime-public/robots.txt", `User-agent: *\nAllow: /\nDisallow: /app/\nDisallow: /login\nDisallow: /signup\nDisallow: /forgot-password\nDisallow: /share/\nDisallow: /sign/\n\nSitemap: ${siteUrl}/sitemap.xml\n`, "utf8");
 console.log(`Generated sitemap.xml with ${uniquePaths.length} public routes.`);

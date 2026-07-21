@@ -6,16 +6,15 @@ import { PublicLayout } from "../layouts/PublicLayout.jsx";
 import { NotFoundPage } from "../pages/errors/NotFoundPage.jsx";
 import { PublicPlaceholderPage } from "../pages/public/PublicPlaceholderPage.jsx";
 import { FeaturesPage } from "../pages/public/FeaturesPage.jsx";
+import { LandingRoute } from "../pages/public/LandingRoute.jsx";
 import { ToolDirectoryPage } from "../pages/public/ToolDirectoryPage.jsx";
 import { ToolCategoryPage } from "../pages/public/ToolCategoryPage.jsx";
-import { SecureSharePage } from "../pages/public/SecureSharePage.jsx";
-import { SupportPage } from "../pages/public/SupportPage.jsx";
 import { ToolLandingPage } from "../pages/public/ToolLandingPage.jsx";
 import { WorkflowUnavailablePage } from "../pages/public/WorkflowUnavailablePage.jsx";
 import { TOOL_REGISTRY } from "../tools/toolRegistry.js";
 import { TOOL_CATEGORY_PAGES } from "../tools/toolCategoryPages.js";
 import { getEditorToolPreset } from "../tools/editorToolPresets.js";
-import { LazyAppContent, LazyAuthRouteProvider, LazyGuestAppRoute, LazyPublicAppRoute } from "./LazyAppRoute.jsx";
+import { LazyAppContent, LazyAuthRouteProvider, LazyGuestAppRoute } from "./LazyAppRoute.jsx";
 import { OwnerRoute } from "./OwnerRoute.jsx";
 import { ProtectedRoute } from "./ProtectedRoute.jsx";
 import { PublicOnlyRoute } from "./PublicOnlyRoute.jsx";
@@ -34,6 +33,8 @@ const LazyPdfPageToolPage = lazyNamed(() => import("../pages/public/PdfPageToolP
 const LazyPdfProtectionPage = lazyNamed(() => import("../pages/public/PdfProtectionPage.jsx"), "PdfProtectionPage");
 const LazyRedactPdfPage = lazyNamed(() => import("../pages/public/RedactPdfPage.jsx"), "RedactPdfPage");
 const LazyScanPdfPage = lazyNamed(() => import("../pages/public/ScanPdfPage.jsx"), "ScanPdfPage");
+const LazySecureSharePage = lazyNamed(() => import("../pages/public/SecureSharePage.jsx"), "SecureSharePage");
+const LazySupportPage = lazyNamed(() => import("../pages/public/SupportPage.jsx"), "SupportPage");
 const LazyStructuredPdfConversionPage = lazyNamed(() => import("../pages/public/StructuredPdfConversionPage.jsx"), "StructuredPdfConversionPage");
 const LazyTemplateBuilderPage = lazyNamed(() => import("../pages/public/TemplateBuilderPage.jsx"), "TemplateBuilderPage");
 const LazyTextConversionPage = lazyNamed(() => import("../pages/public/TextConversionPage.jsx"), "TextConversionPage");
@@ -117,12 +118,12 @@ export const appRouteObjects = [
       {
         element: <PublicLayout />,
         children: [
-          { path: ROUTE_PATHS.home, element: <LazyPublicAppRoute view="landing" /> },
+          { path: ROUTE_PATHS.home, element: <LandingRoute /> },
           { path: ROUTE_PATHS.editPdf, element: <PublicEditorRoute /> },
           { path: ROUTE_PATHS.features, element: <FeaturesPage /> },
           { path: ROUTE_PATHS.tools, element: <ToolDirectoryPage /> },
-          { path: ROUTE_PATHS.support, element: <SupportPage /> },
-          { path: ROUTE_PATHS.sharePattern, element: <SecureSharePage /> },
+          { path: ROUTE_PATHS.support, element: <PublicToolBoundary><LazySupportPage /></PublicToolBoundary> },
+          { path: ROUTE_PATHS.sharePattern, element: <PublicToolBoundary><LazySecureSharePage /></PublicToolBoundary> },
           ...toolCategoryRouteObjects,
           ...publicPlaceholderRouteObjects,
           ...toolRouteObjects,

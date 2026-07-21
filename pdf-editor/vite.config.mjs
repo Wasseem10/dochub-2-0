@@ -30,6 +30,10 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks(id) {
+          // Keep Vite's tiny dynamic-import helper out of the first large lazy
+          // dependency chunk. Otherwise Rollup can place it inside PDF.js,
+          // forcing the marketing homepage to download the entire PDF renderer.
+          if (id.includes("vite/preload-helper")) return "preload-helper";
           if (!id.includes("node_modules")) return undefined;
           if (id.includes("pdfjs-dist")) return "pdfjs";
           if (id.includes("pdf-lib") || id.includes("@pdf-lib")) return "pdf-tools";

@@ -135,7 +135,8 @@
 .freepdf-no-signup svg { color: var(--fp-blue); }
 
 .freepdf-product-stage { position: relative; min-height: 560px; overflow: hidden; border-radius: 30px; background: #8bbcfb; box-shadow: 0 30px 80px rgba(41, 80, 204, .18); }
-.freepdf-product-stage > img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.freepdf-product-stage > picture { position: absolute; inset: 0; display: block; }
+.freepdf-product-stage > picture > img { display: block; width: 100%; height: 100%; object-fit: cover; }
 .freepdf-dropzone { position: absolute; top: 46%; left: 50%; display: flex; align-items: center; justify-content: center; flex-direction: column; width: min(720px, calc(100% - 72px)); min-height: 400px; padding: 46px; border: 2px dashed #aeb8dc; border-radius: 22px; background: rgba(255, 255, 255, .99); box-shadow: 0 26px 70px rgba(20, 38, 100, .28); text-align: center; transform: translate(-50%, -50%); transition: border-color .2s ease, box-shadow .2s ease, transform .2s ease; }
 .freepdf-dropzone.is-dragging { border-color: var(--fp-blue); box-shadow: 0 28px 70px rgba(20, 38, 100, .3); transform: translate(-50%, calc(-50% - 5px)); }
 .freepdf-dropzone.has-error { border-color: #d03d4c; }
@@ -251,7 +252,7 @@
   .freepdf-hero-copy { margin-bottom: 22px; }
   .freepdf-hero h1 { font-size: clamp(50px, 12vw, 70px); }
   .freepdf-product-stage { min-height: 470px; }
-  .freepdf-product-stage > img { object-position: center; }
+  .freepdf-product-stage > picture > img { object-position: center; }
   .freepdf-dropzone { width: min(540px, calc(100% - 48px)); min-height: 360px; padding: 34px; }
   .freepdf-task-lane,
   .freepdf-task-lane.is-reversed { grid-template-columns: 1fr; min-height: 0; padding: 32px; }
@@ -281,7 +282,7 @@
   .freepdf-primary-button { width: 100%; max-width: 330px; }
   .freepdf-no-signup { font-size: 11px; }
   .freepdf-product-stage { min-height: 430px; border-radius: 22px; }
-  .freepdf-product-stage > img { opacity: .75; object-position: center; }
+  .freepdf-product-stage > picture > img { opacity: .75; object-position: center; }
   .freepdf-dropzone { width: calc(100% - 24px); min-height: 340px; padding: 28px 18px; border-radius: 17px; }
   .freepdf-upload-icon { width: 52px; height: 52px; margin-bottom: 16px; }
   .freepdf-dropzone h2 { font-size: 22px; }

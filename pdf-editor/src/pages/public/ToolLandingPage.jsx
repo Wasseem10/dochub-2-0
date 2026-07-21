@@ -3,9 +3,9 @@ import ArrowRight from "lucide-react/dist/esm/icons/arrow-right.mjs";
 import Check from "lucide-react/dist/esm/icons/check.mjs";
 import Info from "lucide-react/dist/esm/icons/info.mjs";
 import { PageMetadata } from "../../components/public/PageMetadata.jsx";
-import { absoluteSiteUrl } from "../../config/site.js";
 import { publicEditorPath, ROUTE_PATHS } from "../../router/routePaths.js";
 import { ToolIcon } from "../../tools/ToolIcon.jsx";
+import { toolSeoSchemas } from "../../tools/toolSeoSchemas.js";
 import { getRelatedTools } from "../../tools/toolRegistry.js";
 
 function formatType(type) {
@@ -43,10 +43,7 @@ export function ToolLandingPage({ tool }) {
   const relatedTools = getRelatedTools(tool);
   const isUsable = tool.status !== "coming-soon";
   const editorHref = publicEditorPath(tool.id);
-  const breadcrumbSchema = { "@context": "https://schema.org", "@type": "BreadcrumbList", itemListElement: [{ "@type": "ListItem", position: 1, name: "PDF tools", item: absoluteSiteUrl(ROUTE_PATHS.tools) }, { "@type": "ListItem", position: 2, name: tool.name, item: absoluteSiteUrl(tool.route) }] };
-  const faqSchema = { "@context": "https://schema.org", "@type": "FAQPage", mainEntity: tool.faqEntries.map((entry) => ({ "@type": "Question", name: entry.question, acceptedAnswer: { "@type": "Answer", text: entry.answer } })) };
-  const schemas = [breadcrumbSchema, faqSchema];
-  if (tool.schemaType === "SoftwareApplication") schemas.push({ "@context": "https://schema.org", "@type": "SoftwareApplication", name: tool.name, applicationCategory: "BusinessApplication", operatingSystem: "Web", description: tool.metaDescription, url: absoluteSiteUrl(tool.route), offers: { "@type": "Offer", price: "0", priceCurrency: "USD", availability: "https://schema.org/InStock" } });
+  const schemas = toolSeoSchemas(tool);
 
   return (
     <main className={`tool-landing tool-category-${tool.category}`}>

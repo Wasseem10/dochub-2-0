@@ -27,7 +27,10 @@ service cloud.firestore {
           "authMethod",
           "route",
           "operation",
-          "durationBucket"
+          "durationBucket",
+          "trafficSource",
+          "referrerDomain",
+          "landingPath"
         ])
         && (!("toolId" in properties) || (properties.toolId is string && properties.toolId.size() <= 80))
         && (!("fileSizeBucket" in properties) || (properties.fileSizeBucket is string && properties.fileSizeBucket.size() <= 40))
@@ -37,7 +40,10 @@ service cloud.firestore {
         && (!("authMethod" in properties) || properties.authMethod in ["email", "google"])
         && (!("route" in properties) || (properties.route is string && properties.route.size() <= 160))
         && (!("operation" in properties) || (properties.operation is string && properties.operation.size() <= 80))
-        && (!("durationBucket" in properties) || (properties.durationBucket is string && properties.durationBucket.size() <= 40));
+        && (!("durationBucket" in properties) || (properties.durationBucket is string && properties.durationBucket.size() <= 40))
+        && (!("trafficSource" in properties) || properties.trafficSource in ["organic", "referral", "social", "email", "paid", "campaign", "direct"])
+        && (!("referrerDomain" in properties) || (properties.referrerDomain is string && properties.referrerDomain.size() <= 120))
+        && (!("landingPath" in properties) || (properties.landingPath is string && properties.landingPath.size() <= 160));
     }
 
     match /users/{userId}/documents/{documentId} {
@@ -147,6 +153,7 @@ service cloud.firestore {
         ])
         && request.resource.data.name in [
           "homepage_viewed",
+          "page_viewed",
           "tool_opened",
           "upload_started",
           "upload_validation_failed",

@@ -1,5 +1,6 @@
 const ALLOWED_EVENTS = new Set([
   "homepage_viewed",
+  "page_viewed",
   "tool_opened",
   "upload_started",
   "upload_validation_failed",
@@ -19,10 +20,54 @@ const ALLOWED_EVENTS = new Set([
   "slow_operation",
 ]);
 
-const ALLOWED_PROPERTIES = new Set(["toolId", "fileSizeBucket", "pageCountBucket", "errorCategory", "result", "authMethod", "route", "operation", "durationBucket"]);
+const ALLOWED_PROPERTIES = new Set(["toolId", "fileSizeBucket", "pageCountBucket", "errorCategory", "result", "authMethod", "route", "operation", "durationBucket", "trafficSource", "referrerDomain", "landingPath"]);
 const ANALYTICS_COLLECTION = "productAnalyticsEvents";
 const VISITOR_KEY = "realpdf_analytics_visitor_id";
+const ATTRIBUTION_KEY = "fixthatpdf_session_attribution_v1";
+const PAGE_VIEWS_KEY = "fixthatpdf_session_page_views_v1";
 const ANALYTICS_RETENTION_DAYS = 400;
+const memoryPageViews = new Set();
+
+function safeHostname(value) {
+  try {
+    return new URL(value).hostname.toLowerCase().replace(/^www\./, "").slice(0, 120);
+  } catch {
+    return "";
+  }
+}
+
+function classifyTrafficSource(referrerDomain, searchParams) {
+  const medium = (searchParams.get("utm_medium") || "").toLowerCase();
+  if (/(^|_)(cpc|ppc|paid|display|affiliate)(_|$)/.test(medium)) return "paid";
+  if (/(^|_)(email|newsletter)(_|$)/.test(medium)) return "email";
+  if (/(^|_)(social|social-network)(_|$)/.test(medium)) return "social";
+  if (/(^|_)(organic|search)(_|$)/.test(medium)) return "organic";
+  if (searchParams.has("utm_source")) return "campaign";
+  if (!referrerDomain) return "direct";
+  if (/(^|\.)(google|bing|yahoo|duckduckgo|ecosia|baidu|yandex|brave)\./.test(referrerDomain)) return "organic";
+  if (/(^|\.)(facebook|instagram|linkedin|tiktok|twitter|x|reddit|youtube|pinterest)\./.test(referrerDomain)) return "social";
+  return "referral";
+}
+
+export function currentTrafficAttribution() {
+  if (typeof window === "undefined") return { trafficSource: "direct", referrerDomain: "", landingPath: "/" };
+  try {
+    const stored = JSON.parse(window.sessionStorage.getItem(ATTRIBUTION_KEY) || "null");
+    if (stored?.trafficSource && stored?.landingPath) return stored;
+  } catch {
+    // Storage can be unavailable; calculate a privacy-safe attribution in memory.
+  }
+  const referrerDomain = safeHostname(document.referrer);
+  const ownDomain = safeHostname(window.location.origin);
+  const externalReferrer = referrerDomain && referrerDomain !== ownDomain ? referrerDomain : "";
+  const attribution = {
+    trafficSource: classifyTrafficSource(externalReferrer, new URLSearchParams(window.location.search)),
+    referrerDomain: externalReferrer,
+    landingPath: (window.location.pathname || "/").slice(0, 160),
+  };
+  try { window.sessionStorage.setItem(ATTRIBUTION_KEY, JSON.stringify(attribution)); } catch { /* Keep attribution in this event only. */ }
+  return attribution;
+}
 
 function visitorId() {
   try {
@@ -89,5 +134,23 @@ export function trackProductEvent(name, properties = {}) {
     void persistProductEvent(event);
   }
   if (import.meta.env.DEV) console.info("[FixThatPDF analytics]", event);
+  return true;
+}
+
+export function trackPageView(route = "/") {
+  if (typeof window === "undefined") return false;
+  const normalizedRoute = String(route || "/").split("?")[0].slice(0, 160);
+  try {
+    const viewed = new Set(JSON.parse(window.sessionStorage.getItem(PAGE_VIEWS_KEY) || "[]"));
+    if (viewed.has(normalizedRoute)) return false;
+    viewed.add(normalizedRoute);
+    window.sessionStorage.setItem(PAGE_VIEWS_KEY, JSON.stringify([...viewed].slice(-100)));
+  } catch {
+    if (memoryPageViews.has(normalizedRoute)) return false;
+    memoryPageViews.add(normalizedRoute);
+  }
+  const properties = { route: normalizedRoute, ...currentTrafficAttribution() };
+  trackProductEvent("page_viewed", properties);
+  if (normalizedRoute === "/") trackProductEvent("homepage_viewed", properties);
   return true;
 }

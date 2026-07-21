@@ -98,6 +98,7 @@ import { loadLocalDocuments, saveLocalDocuments } from "./tools/localDocumentSto
 import { planCloudDocumentSync, runWithConcurrency } from "./tools/cloudDocumentSync.js";
 import { extractPdfFormAnnotations } from "./tools/pdfFormFields.js";
 import { getPdfLoadErrorMessage, MAX_PDF_EDITOR_PAGES, validatePdfUpload } from "./tools/pdfUploadValidation.js";
+import { takePendingPdfFile } from "./tools/pendingPdfFile.js";
 import { drawFlattenedInputAnnotation } from "./tools/pdfEditorAnnotationExport.js";
 import { attachPdfCommentAnnotation } from "./tools/pdfCommentAnnotations.js";
 import { addPdfLinkAnnotation } from "./editor/pdfLinkAnnotation.mjs";
@@ -1618,6 +1619,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   const canvasColumnRef = useRef(null);
   const publicDocumentRecoveryRef = useRef(new Set());
   const trackedDocumentOpenRef = useRef(new Set());
+  const pendingLandingFileConsumedRef = useRef(false);
   const mobileFitDocumentRef = useRef("");
   const lastPagePointRef = useRef({ x: 0.52, y: 0.28 });
   const editorClipboardRef = useRef(null);
@@ -2699,6 +2701,16 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     await loadPdfFile(event.target.files?.[0]);
     event.target.value = "";
   };
+
+  useEffect(() => {
+    if (view !== "tool-upload" || !location.state?.pendingLandingFile || pendingLandingFileConsumedRef.current) return;
+    const pendingFile = takePendingPdfFile();
+    if (!pendingFile) return;
+    pendingLandingFileConsumedRef.current = true;
+    void loadPdfFile(pendingFile);
+    // The pending file is an in-memory, one-time handoff from the lightweight homepage.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.key, location.state?.pendingLandingFile, view]);
 
   const mergeAndAppendPdfFile = async (file) => {
     if (!file) return;

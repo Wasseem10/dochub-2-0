@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite --host 127.0.0.1",
     "build": "node scripts/generate-tool-sitemap.mjs && vite build && node scripts/prerender-public-routes.mjs && node scripts/prepare-sites-build.mjs",
+    "audit:seo": "npm run build && node scripts/audit-seo.mjs",
     "preview": "vite preview --host 127.0.0.1",
     "lint": "eslint .",
     "typecheck": "tsc --project jsconfig.json --noEmit",

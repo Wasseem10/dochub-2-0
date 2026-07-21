@@ -38,6 +38,8 @@ export function summarizeAnalyticsEvents(events) {
   const clientErrors = events.filter((event) => ["client_error", "unhandled_rejection"].includes(event.name)).length;
   const failedExports = count("export_failed");
   const slowOperations = count("slow_operation");
+  const pageViews = count("page_viewed");
+  const organicVisits = events.filter((event) => event.name === "page_viewed" && event.properties?.trafficSource === "organic").length;
 
   return {
     signups,
@@ -49,8 +51,24 @@ export function summarizeAnalyticsEvents(events) {
     clientErrors,
     failedExports,
     slowOperations,
+    pageViews,
+    organicVisits,
+    organicRate: pageViews ? Math.round((organicVisits / pageViews) * 100) : 0,
     conversionRate: uploads ? Math.round((downloads / uploads) * 100) : 0,
   };
+}
+
+export function groupAnalyticsProperty(events, property, { eventName = "page_viewed", limit = 6 } = {}) {
+  const counts = new Map();
+  for (const event of events) {
+    if (eventName && event.name !== eventName) continue;
+    const value = String(event.properties?.[property] || "unknown").slice(0, 160);
+    counts.set(value, (counts.get(value) || 0) + 1);
+  }
+  return [...counts.entries()]
+    .map(([label, value]) => ({ label, value }))
+    .sort((a, b) => b.value - a.value || a.label.localeCompare(b.label))
+    .slice(0, limit);
 }
 
 export function createDailyAnalyticsSeries(events, days = 14, now = new Date()) {

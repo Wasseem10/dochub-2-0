@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { analyticsRangeStart, createDailyAnalyticsSeries, filterAnalyticsEvents, summarizeAnalyticsEvents } from "../../src/analytics/analyticsMetrics.js";
+import { analyticsRangeStart, createDailyAnalyticsSeries, filterAnalyticsEvents, groupAnalyticsProperty, summarizeAnalyticsEvents } from "../../src/analytics/analyticsMetrics.js";
 
 const now = new Date("2026-07-20T12:00:00.000Z");
 
@@ -13,6 +13,8 @@ describe("owner analytics metrics", () => {
     { name: "client_error", visitorId: "visitor-2", clientOccurredAt: "2026-07-20T10:06:00.000Z", properties: { errorCategory: "pdf_processing" } },
     { name: "export_failed", visitorId: "visitor-2", clientOccurredAt: "2026-07-20T10:07:00.000Z", properties: {} },
     { name: "slow_operation", visitorId: "visitor-2", clientOccurredAt: "2026-07-20T10:08:00.000Z", properties: { durationBucket: "3_6s" } },
+    { name: "page_viewed", visitorId: "visitor-2", clientOccurredAt: "2026-07-20T10:09:00.000Z", properties: { trafficSource: "organic", landingPath: "/edit-pdf" } },
+    { name: "page_viewed", visitorId: "visitor-3", clientOccurredAt: "2026-07-20T10:10:00.000Z", properties: { trafficSource: "direct", landingPath: "/" } },
   ];
 
   it("summarizes account, user, upload, and download usage", () => {
@@ -22,21 +24,29 @@ describe("owner analytics metrics", () => {
       googleAuth: 2,
       uploads: 1,
       downloads: 1,
-      activeUsers: 3,
+      activeUsers: 4,
       conversionRate: 100,
       clientErrors: 1,
       failedExports: 1,
       slowOperations: 1,
+      pageViews: 2,
+      organicVisits: 1,
+      organicRate: 50,
     });
+  });
+
+  it("groups acquisition sources and landing pages", () => {
+    expect(groupAnalyticsProperty(events, "trafficSource")).toEqual([{ label: "direct", value: 1 }, { label: "organic", value: 1 }]);
+    expect(groupAnalyticsProperty(events, "landingPath")).toEqual([{ label: "/", value: 1 }, { label: "/edit-pdf", value: 1 }]);
   });
 
   it("filters ranges and produces daily activity", () => {
     expect(analyticsRangeStart("30d", now)).toBe("2026-06-20T12:00:00.000Z");
     expect(analyticsRangeStart("all", now)).toBeNull();
     const recent = filterAnalyticsEvents(events, "30d", now);
-    expect(recent).toHaveLength(7);
+    expect(recent).toHaveLength(9);
     const series = createDailyAnalyticsSeries(recent, 2, now);
-    expect(series.map((day) => day.events)).toEqual([2, 5]);
-    expect(series.map((day) => day.users)).toEqual([1, 2]);
+    expect(series.map((day) => day.events)).toEqual([2, 7]);
+    expect(series.map((day) => day.users)).toEqual([1, 3]);
   });
 });

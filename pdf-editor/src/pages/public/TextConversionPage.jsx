@@ -11,6 +11,7 @@ import { trackProductEvent } from "../../analytics/productAnalytics.js";
 import { PageMetadata } from "../../components/public/PageMetadata.jsx";
 import { ToolGuideContent } from "../../components/public/ToolGuideContent.jsx";
 import { ROUTE_PATHS } from "../../router/routePaths.js";
+import { toolSeoSchemas } from "../../tools/toolSeoSchemas.js";
 import { createPdfFromPlainText, extractPlainTextFromPdf, validateTextConversionFile } from "../../tools/textConversion.js";
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = new URL("pdfjs-dist/build/pdf.worker.mjs", import.meta.url).toString();
@@ -66,7 +67,7 @@ export function TextConversionPage({ tool }) {
   const accept = pdfToText ? "application/pdf,.pdf" : "text/plain,.txt";
   return (
     <main className="image-conversion-page office-conversion-page">
-      <PageMetadata title={tool.seoTitle} description={tool.metaDescription} canonicalUrl={tool.canonicalUrl} />
+      <PageMetadata title={tool.seoTitle} description={tool.metaDescription} canonicalUrl={tool.canonicalUrl} schemas={toolSeoSchemas(tool)} />
       <nav className="tool-breadcrumbs" aria-label="Breadcrumb"><Link to={ROUTE_PATHS.tools}>PDF tools</Link><span>/</span><span aria-current="page">{tool.name}</span></nav>
       <section className="conversion-hero"><div><small>Available · runs in your browser</small><h1>{tool.name} online.</h1><p>{tool.shortDescription} No upload to a conversion server.</p></div></section>
       <div className="conversion-workspace-grid">

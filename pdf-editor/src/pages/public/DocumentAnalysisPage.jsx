@@ -17,6 +17,7 @@ import { trackProductEvent } from "../../analytics/productAnalytics.js";
 import { PageMetadata } from "../../components/public/PageMetadata.jsx";
 import { ToolGuideContent } from "../../components/public/ToolGuideContent.jsx";
 import { ROUTE_PATHS } from "../../router/routePaths.js";
+import { toolSeoSchemas } from "../../tools/toolSeoSchemas.js";
 import {
   analysisReportText,
   analyzeContract,
@@ -162,7 +163,7 @@ export function DocumentAnalysisPage({ tool }) {
   };
 
   return <main className="document-analysis-page">
-    <PageMetadata title={tool.seoTitle} description={tool.metaDescription} canonicalUrl={tool.canonicalUrl} />
+    <PageMetadata title={tool.seoTitle} description={tool.metaDescription} canonicalUrl={tool.canonicalUrl} schemas={toolSeoSchemas(tool)} />
     <nav className="tool-breadcrumbs" aria-label="Breadcrumb"><Link to={ROUTE_PATHS.tools}>PDF tools</Link><span>/</span><span aria-current="page">{tool.name}</span></nav>
     <section className="analysis-hero"><div><span><Sparkles size={15} /> {tool.id === "translate-pdf" ? "Beta · browser model required" : "Available · private browser analysis"}</span><h1>{tool.name}, grounded in your document.</h1><p>{tool.shortDescription} Every extracted result stays tied to source pages for review.</p></div><aside><ShieldCheck size={22} /><strong>No document text enters analytics</strong><small>Analysis runs in this tab and is not saved.</small></aside></section>
     {!file ? <section className="analysis-upload" onDragOver={(event) => event.preventDefault()} onDrop={(event) => { event.preventDefault(); void choose(event.dataTransfer.files?.[0]); }}><input ref={inputRef} type="file" accept="application/pdf,.pdf" onChange={(event) => { void choose(event.target.files?.[0]); event.target.value = ""; }} /><span><Upload size={27} /></span><h2>Choose a text-based PDF</h2><p>Valid, unencrypted PDFs up to 20 MB and 100 pages. Image-only scans need OCR first.</p><button type="button" onClick={() => inputRef.current?.click()}>Choose a PDF</button></section> : <div className="analysis-workspace"><aside className="analysis-source-card"><FileText size={24} /><h2>{file.name}</h2><p>{formatBytes(file.size)} · {pages.length} page{pages.length === 1 ? "" : "s"}</p><ul><li><Check size={15} /> {fullText.length.toLocaleString()} extracted characters</li><li><Check size={15} /> Source page citations retained</li><li><Check size={15} /> No document-content logging</li></ul><button type="button" onClick={() => inputRef.current?.click()}><Upload size={16} /> Replace PDF</button><input ref={inputRef} type="file" accept="application/pdf,.pdf" onChange={(event) => { void choose(event.target.files?.[0]); event.target.value = ""; }} /></aside>

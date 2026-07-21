@@ -100,6 +100,16 @@ const releasedToolsByCategory = new Map(TOOL_CATEGORIES.map((category) => [
   TOOL_REGISTRY.filter((tool) => tool.category === category.id && tool.status !== "coming-soon"),
 ]));
 
+function HomepageImage({ fileName, alt, width, height, sizes, eager = false }) {
+  const baseName = fileName.replace(/\.png$/, "");
+  return (
+    <picture>
+      <source type="image/webp" srcSet={`${asset(`${baseName}-640.webp`)} 640w, ${asset(`${baseName}-1200.webp`)} 1200w`} sizes={sizes} />
+      <img src={asset(fileName)} alt={alt} width={width} height={height} loading={eager ? "eager" : "lazy"} decoding="async" fetchPriority={eager ? "high" : "auto"} />
+    </picture>
+  );
+}
+
 function Brand() {
   return <Link className="freepdf-brand" to={ROUTE_PATHS.home} aria-label="FixThatPDF home"><BrandWordmark /></Link>;
 }
@@ -224,7 +234,7 @@ export function LatticePdfLanding({ fileInputRef, onUpload, onSelectFiles, onDro
   }, []);
 
   return <main className="freepdf-page">
-    <PageMetadata title="Every PDF Task in One Place | FixThatPDF" description="Edit, sign, fill, merge, split, organize, and convert PDFs without subscriptions, watermarks, or forced signup." canonicalUrl="/" schemas={[{ "@context": "https://schema.org", "@type": "WebSite", name: "FixThatPDF", alternateName: "Fix That PDF", url: absoluteSiteUrl("/") }]} />
+    <PageMetadata title="Every PDF Task in One Place | FixThatPDF" description="Edit, sign, fill, merge, split, organize, and convert PDFs without subscriptions, watermarks, or forced signup." canonicalUrl="/" schemas={[{ "@context": "https://schema.org", "@type": "WebSite", "@id": `${absoluteSiteUrl("/")}#website`, name: "FixThatPDF", alternateName: "Fix That PDF", url: absoluteSiteUrl("/"), inLanguage: "en-US" }, { "@context": "https://schema.org", "@type": "Organization", "@id": `${absoluteSiteUrl("/")}#organization`, name: "FixThatPDF", url: absoluteSiteUrl("/"), logo: absoluteSiteUrl("/icon.svg") }]} />
     <input ref={inputRef} className="hidden-input" type="file" accept="application/pdf,.pdf" onChange={onUpload} />
     <SiteHeader onChoose={choose} />
 
@@ -238,7 +248,7 @@ export function LatticePdfLanding({ fileInputRef, onUpload, onSelectFiles, onDro
       </div>
 
       <div className="freepdf-product-stage">
-        <img src={asset("hero-product-stage.png")} alt="" aria-hidden="true" decoding="async" fetchPriority="high" />
+        <HomepageImage fileName="hero-product-stage.png" alt="FixThatPDF browser workspace for editing, organizing, signing, and converting PDF documents" width="1821" height="864" sizes="(max-width: 720px) 100vw, 1240px" eager />
         <Dropzone choose={choose} dragging={dragging} setDragging={setDragging} isUploading={isUploading} uploadError={uploadError} uploadStage={uploadStage} onDropFiles={onDropFiles} onUpload={onUpload} />
       </div>
     </section>
@@ -254,7 +264,7 @@ export function LatticePdfLanding({ fileInputRef, onUpload, onSelectFiles, onDro
       <div className="freepdf-section-heading freepdf-task-heading"><span>One home for every PDF</span><h2 id="task-lanes-title">From first edit to final export.</h2><p>FixThatPDF keeps the work simple, visual, and close at hand.</p></div>
       <div className="freepdf-task-lanes">{taskLanes.map((lane, index) => <article className={`freepdf-task-lane ${index % 2 ? "is-reversed" : ""}`} key={lane.eyebrow}>
         <div className="freepdf-task-copy"><span>{lane.eyebrow}</span><h3>{lane.title}</h3><p>{lane.copy}</p><Link to={lane.route}>{lane.cta} <ArrowRight size={17} /></Link></div>
-        <Link className="freepdf-task-visual" to={lane.route} aria-label={lane.cta}><img src={asset(lane.image)} alt={lane.imageAlt} loading="lazy" decoding="async" /></Link>
+        <Link className="freepdf-task-visual" to={lane.route} aria-label={lane.cta}><HomepageImage fileName={lane.image} alt={lane.imageAlt} width="1536" height="1024" sizes="(max-width: 760px) 100vw, 560px" /></Link>
       </article>)}</div>
     </section>
 
