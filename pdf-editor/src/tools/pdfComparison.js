@@ -7,6 +7,183 @@ export const PDF_COMPARISON_LIMITS = Object.freeze({
   tileSize: 28,
 });
 
+const WORD_PATTERN = /[\p{L}\p{N}]+(?:[’'._@:/+-][\p{L}\p{N}]+)*/gu;
+
+function clamp01(value) {
+  return Math.max(0, Math.min(1, Number(value) || 0));
+}
+
+function normalizedWord(value) {
+  return String(value || "").normalize("NFKC").toLocaleLowerCase();
+}
+
+export function extractPositionedWords(textContent, viewport) {
+  const words = [];
+  for (const item of textContent?.items || []) {
+    const source = String(item?.str || "");
+    const matches = [...source.matchAll(WORD_PATTERN)];
+    if (!matches.length) continue;
+    const transform = item.transform || [];
+    const [originX, originY] = viewport.convertToViewportPoint(Number(transform[4] || 0), Number(transform[5] || 0));
+    const itemWidth = Math.max(1, Math.abs(Number(item.width || 0)));
+    const fontHeight = Math.max(4, Math.abs(Number(item.height || Math.hypot(Number(transform[2] || 0), Number(transform[3] || 0)) || 8)));
+    for (const match of matches) {
+      const startRatio = (match.index || 0) / Math.max(1, source.length);
+      const widthRatio = match[0].length / Math.max(1, source.length);
+      words.push({
+        text: match[0],
+        normalized: normalizedWord(match[0]),
+        x: clamp01((originX + itemWidth * startRatio) / viewport.width),
+        y: clamp01((originY - fontHeight * 1.05) / viewport.height),
+        width: Math.max(0.002, Math.min(1, itemWidth * widthRatio / viewport.width)),
+        height: Math.max(0.004, Math.min(1, fontHeight * 1.25 / viewport.height)),
+      });
+    }
+  }
+  return words;
+}
+
+function buildWordOperations(firstWords, secondWords) {
+  const firstLength = firstWords.length;
+  const secondLength = secondWords.length;
+  const columns = secondLength + 1;
+  const cellCount = (firstLength + 1) * columns;
+
+  if (cellCount > 6_000_000) {
+    const operations = [];
+    let prefix = 0;
+    while (prefix < firstLength && prefix < secondLength && firstWords[prefix].normalized === secondWords[prefix].normalized) {
+      operations.push({ type: "equal", first: firstWords[prefix], second: secondWords[prefix] });
+      prefix += 1;
+    }
+    let firstSuffix = firstLength - 1;
+    let secondSuffix = secondLength - 1;
+    const suffix = [];
+    while (firstSuffix >= prefix && secondSuffix >= prefix && firstWords[firstSuffix].normalized === secondWords[secondSuffix].normalized) {
+      suffix.unshift({ type: "equal", first: firstWords[firstSuffix], second: secondWords[secondSuffix] });
+      firstSuffix -= 1;
+      secondSuffix -= 1;
+    }
+    for (let index = prefix; index <= firstSuffix; index += 1) operations.push({ type: "delete", first: firstWords[index] });
+    for (let index = prefix; index <= secondSuffix; index += 1) operations.push({ type: "insert", second: secondWords[index] });
+    return [...operations, ...suffix];
+  }
+
+  const matrix = new Uint16Array(cellCount);
+  for (let firstIndex = firstLength - 1; firstIndex >= 0; firstIndex -= 1) {
+    const row = firstIndex * columns;
+    const nextRow = (firstIndex + 1) * columns;
+    for (let secondIndex = secondLength - 1; secondIndex >= 0; secondIndex -= 1) {
+      matrix[row + secondIndex] = firstWords[firstIndex].normalized === secondWords[secondIndex].normalized
+        ? matrix[nextRow + secondIndex + 1] + 1
+        : Math.max(matrix[nextRow + secondIndex], matrix[row + secondIndex + 1]);
+    }
+  }
+
+  const operations = [];
+  let firstIndex = 0;
+  let secondIndex = 0;
+  while (firstIndex < firstLength || secondIndex < secondLength) {
+    if (firstIndex < firstLength && secondIndex < secondLength && firstWords[firstIndex].normalized === secondWords[secondIndex].normalized) {
+      operations.push({ type: "equal", first: firstWords[firstIndex], second: secondWords[secondIndex] });
+      firstIndex += 1;
+      secondIndex += 1;
+    } else if (secondIndex >= secondLength || (firstIndex < firstLength && matrix[(firstIndex + 1) * columns + secondIndex] >= matrix[firstIndex * columns + secondIndex + 1])) {
+      operations.push({ type: "delete", first: firstWords[firstIndex] });
+      firstIndex += 1;
+    } else {
+      operations.push({ type: "insert", second: secondWords[secondIndex] });
+      secondIndex += 1;
+    }
+  }
+  return operations;
+}
+
+function rectsForWords(words) {
+  if (!words.length) return [];
+  const sorted = [...words].sort((first, second) => first.y - second.y || first.x - second.x);
+  const lines = [];
+  for (const word of sorted) {
+    const centerY = word.y + word.height / 2;
+    const line = lines.find((candidate) => Math.abs(candidate.centerY - centerY) <= Math.max(candidate.height, word.height) * 0.7);
+    if (!line) {
+      lines.push({ x: word.x, y: word.y, right: word.x + word.width, bottom: word.y + word.height, centerY, height: word.height });
+      continue;
+    }
+    line.x = Math.min(line.x, word.x);
+    line.y = Math.min(line.y, word.y);
+    line.right = Math.max(line.right, word.x + word.width);
+    line.bottom = Math.max(line.bottom, word.y + word.height);
+    line.centerY = (line.y + line.bottom) / 2;
+    line.height = line.bottom - line.y;
+  }
+  return lines.map((line) => ({
+    x: clamp01(line.x - 0.003),
+    y: clamp01(line.y - 0.002),
+    width: Math.min(1 - clamp01(line.x - 0.003), line.right - line.x + 0.006),
+    height: Math.min(1 - clamp01(line.y - 0.002), line.bottom - line.y + 0.004),
+  }));
+}
+
+function changeText(words) {
+  return words.map((word) => word.text).join(" ");
+}
+
+function buildWordChanges(operations, pageNumber) {
+  const changes = [];
+  let operationIndex = 0;
+  while (operationIndex < operations.length) {
+    if (operations[operationIndex].type === "equal") {
+      operationIndex += 1;
+      continue;
+    }
+    const removedWords = [];
+    const addedWords = [];
+    while (operationIndex < operations.length) {
+      const operation = operations[operationIndex];
+      if (operation.type === "delete") removedWords.push(operation.first);
+      if (operation.type === "insert") addedWords.push(operation.second);
+      operationIndex += 1;
+      if (operationIndex >= operations.length || operations[operationIndex].type === "equal") break;
+    }
+    const type = removedWords.length && addedWords.length ? "replaced" : removedWords.length ? "deleted" : "inserted";
+    changes.push({
+      id: `page-${pageNumber}-change-${changes.length + 1}`,
+      pageNumber,
+      type,
+      removedWords,
+      addedWords,
+      removedText: changeText(removedWords),
+      addedText: changeText(addedWords),
+      removedRects: rectsForWords(removedWords),
+      addedRects: rectsForWords(addedWords),
+    });
+  }
+
+  const consumed = new Set();
+  for (let index = 0; index < changes.length; index += 1) {
+    const change = changes[index];
+    if (change.type !== "deleted" || change.removedWords.length < 2) continue;
+    const key = change.removedWords.map((word) => word.normalized).join(" ");
+    const movedIndex = changes.findIndex((candidate, candidateIndex) => candidateIndex > index && candidate.type === "inserted" && candidate.addedWords.map((word) => word.normalized).join(" ") === key);
+    if (movedIndex < 0) continue;
+    const moved = changes[movedIndex];
+    change.type = "moved";
+    change.addedWords = moved.addedWords;
+    change.addedText = moved.addedText;
+    change.addedRects = moved.addedRects;
+    consumed.add(movedIndex);
+  }
+  return changes.filter((_, index) => !consumed.has(index)).map((change, index) => ({ ...change, id: `page-${pageNumber}-change-${index + 1}` }));
+}
+
+export function comparePositionedWords(firstWords = [], secondWords = [], { pageNumber = 1 } = {}) {
+  const changes = buildWordChanges(buildWordOperations(firstWords, secondWords), pageNumber);
+  const added = changes.reduce((total, change) => total + (change.type === "moved" ? 0 : change.addedWords.length), 0);
+  const removed = changes.reduce((total, change) => total + (change.type === "moved" ? 0 : change.removedWords.length), 0);
+  return { changes, added, removed, changed: changes.length };
+}
+
 function mergeRegionPair(first, second) {
   return {
     left: Math.min(first.left, second.left),
@@ -186,8 +363,9 @@ export async function createComparisonPdfReport(pages, { firstName = "Original.p
   for (const result of pages) {
     const page = pdf.addPage([reportWidth, reportHeight]);
     page.drawText(`Comparison page ${result.pageNumber}`, { x: 34, y: 617, size: 17, font: bold, color: rgb(0.08, 0.12, 0.22) });
-    page.drawText(`${result.statusLabel} · ${result.similarity.toFixed(1)}% visually similar · +${result.textAdded} / -${result.textRemoved} words`, { x: 34, y: 596, size: 9.5, font: regular, color: rgb(0.35, 0.4, 0.5) });
-    const slots = [{ bytes: result.firstPng, x: 34, name: firstName }, { bytes: result.secondPng, x: 512, name: secondName }];
+    const changeCount = result.changes?.length || result.rects?.length || 0;
+    page.drawText(`${result.statusLabel} · ${result.similarity.toFixed(1)}% visually similar · ${changeCount} ${changeCount === 1 ? "change" : "changes"} · +${result.textAdded} / -${result.textRemoved} words`, { x: 34, y: 596, size: 9.5, font: regular, color: rgb(0.35, 0.4, 0.5) });
+    const slots = [{ bytes: result.firstPng, x: 34, name: firstName, side: "original" }, { bytes: result.secondPng, x: 512, name: secondName, side: "revised" }];
     for (const slot of slots) {
       page.drawText(safeText(slot.name).slice(0, 70), { x: slot.x, y: 570, size: 9, font: bold, color: rgb(0.12, 0.18, 0.3) });
       const frame = { x: slot.x, y: 38, width: 454, height: 518 };
@@ -203,8 +381,18 @@ export async function createComparisonPdfReport(pages, { firstName = "Original.p
       const imageX = frame.x + (frame.width - width) / 2;
       const imageY = frame.y + (frame.height - height) / 2;
       page.drawImage(image, { x: imageX, y: imageY, width, height });
-      for (const rect of result.rects || []) {
-        page.drawRectangle({ x: imageX + rect.x * width, y: imageY + (1 - rect.y - rect.height) * height, width: rect.width * width, height: rect.height * height, borderColor: rgb(0.9, 0.08, 0.12), borderWidth: 1.2, opacity: 0.12, color: rgb(1, 0.75, 0.76) });
+      const changeRects = (result.changes || []).flatMap((change) => {
+        const rects = slot.side === "original" ? change.removedRects : change.addedRects;
+        return (rects || []).map((rect) => ({ rect, type: change.type }));
+      });
+      const markedRects = changeRects.length
+        ? changeRects
+        : (result.rects || []).map((rect) => ({ rect, type: "visual" }));
+      for (const { rect, type } of markedRects) {
+        const isOriginal = slot.side === "original";
+        const borderColor = type === "moved" ? rgb(0.08, 0.48, 0.42) : isOriginal ? rgb(0.83, 0.17, 0.2) : rgb(0.12, 0.38, 0.72);
+        const fillColor = type === "moved" ? rgb(0.72, 0.93, 0.86) : isOriginal ? rgb(1, 0.77, 0.79) : rgb(0.73, 0.86, 0.98);
+        page.drawRectangle({ x: imageX + rect.x * width, y: imageY + (1 - rect.y - rect.height) * height, width: rect.width * width, height: rect.height * height, borderColor, borderWidth: 0.8, opacity: 0.22, color: fillColor });
       }
     }
   }
