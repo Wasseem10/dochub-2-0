@@ -5,6 +5,8 @@ import Lock from "lucide-react/dist/esm/icons/lock.mjs";
 import Upload from "lucide-react/dist/esm/icons/upload.mjs";
 import Zap from "lucide-react/dist/esm/icons/zap.mjs";
 import { PageMetadata } from "../../components/public/PageMetadata.jsx";
+import { ToolGuideContent } from "../../components/public/ToolGuideContent.jsx";
+import { toolSeoSchemas } from "../../tools/toolSeoSchemas.js";
 import { TOOL_BY_ID } from "../../tools/toolRegistry.js";
 
 const UPLOAD_COPY = Object.freeze({
@@ -50,7 +52,7 @@ export function EditorToolUploadPage({ toolId, fileInputRef, onUpload, onDropFil
 
   return (
     <main className="editor-tool-upload-page">
-      <PageMetadata title={tool.seoTitle} description={tool.metaDescription} canonicalUrl={tool.canonicalUrl} schemas={[]} />
+      <PageMetadata title={tool.seoTitle} description={tool.metaDescription} canonicalUrl={tool.canonicalUrl} schemas={toolSeoSchemas(tool)} />
       <input ref={fileInputRef} className="sr-only" type="file" accept="application/pdf,.pdf" onChange={onUpload} />
       <section className="editor-tool-upload-hero">
         <div className="editor-tool-heading">
@@ -116,6 +118,7 @@ export function EditorToolUploadPage({ toolId, fileInputRef, onUpload, onDropFil
           <span><FileText size={16} /> No login required to download</span>
         </div>
       </section>
+      <ToolGuideContent tool={tool} />
     </main>
   );
 }

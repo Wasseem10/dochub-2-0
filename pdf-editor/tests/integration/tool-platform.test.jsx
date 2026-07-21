@@ -100,11 +100,14 @@ describe("public PDF tool platform", () => {
     expect(textOf(editor.root).includes("Upload from your device")).toBe(true);
     expect(textOf(editor.root).includes("No account required to edit")).toBe(true);
     expect(textOf(editor.root).includes("No login required to download")).toBe(true);
+    expect(textOf(editor.root).includes("How to use Sign PDF safely")).toBe(true);
+    expect(textOf(editor.root).includes("Is this a digital certificate signature?")).toBe(true);
     expect(editor.root.findAllByProps({ role: "button" })).toHaveLength(1);
     await unmount(editor);
 
     const protect = await render(<EditorToolUploadPage toolId="protect-pdf" fileInputRef={{ current: null }} onUpload={() => {}} onDropFiles={() => {}} uploadError="" uploadStage={{ status: "idle" }} />);
     expect(textOf(protect.root).includes("Protect a PDF with a password")).toBe(true);
+    expect(textOf(protect.root).includes("AES-256 encryption")).toBe(true);
     expect(protect.root.findAllByType("input").some((input) => input.props.type === "file")).toBe(true);
     await unmount(protect);
   });
@@ -138,12 +141,14 @@ describe("public PDF tool platform", () => {
     expect(toWord.root.findAllByType("input").some((input) => input.props.type === "file" && input.props.accept.includes("application/pdf"))).toBe(true);
     expect(toWord.root.findAllByType("option").map((option) => textOf(option))).toEqual(["Editable text", "Visual fidelity"]);
     expect(textOf(toWord.root).includes("page breaks, indentation, vertical spacing")).toBe(true);
+    expect(textOf(toWord.root).includes("Why is scanned text missing?")).toBe(true);
     await unmount(toWord);
 
     const toPdf = await render(<OfficeConversionPage tool={TOOL_BY_ID.get("word-to-pdf")} />);
     expect(toPdf.root.findAllByType("input").some((input) => input.props.type === "file" && input.props.accept.includes(".docx"))).toBe(true);
     expect(textOf(toPdf.root).includes("Legacy .doc files are not supported yet.")).toBe(true);
     expect(textOf(toPdf.root).includes("searchable and selectable")).toBe(true);
+    expect(textOf(toPdf.root).includes("Why is my .doc file rejected?")).toBe(true);
     await unmount(toPdf);
   });
 
@@ -181,6 +186,7 @@ describe("public PDF tool platform", () => {
     expect(ocr.root.findAllByType("input").some((input) => input.props.accept.includes("application/pdf"))).toBe(true);
     expect(textOf(ocr.root).includes("Run OCR and download PDF")).toBe(true);
     expect(textOf(ocr.root).includes("processes your document locally")).toBe(true);
+    expect(textOf(ocr.root).includes("Review low-confidence names, dates, and numbers")).toBe(true);
     await unmount(ocr);
   });
 
@@ -191,6 +197,7 @@ describe("public PDF tool platform", () => {
       expect(textOf(renderer.root).includes("Original document")).toBe(true);
       expect(textOf(renderer.root).includes("Revised document")).toBe(true);
       expect(textOf(renderer.root).includes("Compare PDFs")).toBe(true);
+      if (toolId === "compare-pdf") expect(textOf(renderer.root).includes("Is this the same as Word Track Changes?")).toBe(true);
       await unmount(renderer);
     }
   });
@@ -250,7 +257,13 @@ describe("public PDF tool platform", () => {
     const merge = await render(<PdfPageToolPage tool={TOOL_BY_ID.get("merge-pdf")} />);
     expect(merge.root.findAllByType("input").some((input) => input.props.type === "file" && input.props.multiple)).toBe(true);
     expect(textOf(merge.root).includes("Combine complete PDFs")).toBe(true);
+    expect(textOf(merge.root).includes("Why is the merged file large?")).toBe(true);
     await unmount(merge);
+
+    const split = await render(<PdfPageToolPage tool={TOOL_BY_ID.get("split-pdf")} />);
+    expect(textOf(split.root).includes("Create separate PDFs")).toBe(true);
+    expect(textOf(split.root).includes("What range format should I use?")).toBe(true);
+    await unmount(split);
 
     const organize = await render(<PdfPageToolPage tool={TOOL_BY_ID.get("organize-pdf")} />);
     expect(organize.root.findAllByType("input").some((input) => input.props.type === "file" && !input.props.multiple)).toBe(true);
@@ -277,6 +290,7 @@ describe("public PDF tool platform", () => {
     const compress = await render(<PdfPageToolPage tool={TOOL_BY_ID.get("compress-pdf")} />);
     expect(textOf(compress.root).includes("Make image-heavy PDFs lighter")).toBe(true);
     expect(textOf(compress.root).includes("Download compressed PDF")).toBe(true);
+    expect(textOf(compress.root).includes("Why can’t I select text afterward?")).toBe(true);
     await unmount(compress);
   });
 

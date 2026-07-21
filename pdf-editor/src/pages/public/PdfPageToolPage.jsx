@@ -14,15 +14,16 @@ import Trash2 from "lucide-react/dist/esm/icons/trash-2.mjs";
 import Undo2 from "lucide-react/dist/esm/icons/undo-2.mjs";
 import Upload from "lucide-react/dist/esm/icons/upload.mjs";
 import { PageMetadata } from "../../components/public/PageMetadata.jsx";
+import { ToolGuideContent } from "../../components/public/ToolGuideContent.jsx";
 import { ROUTE_PATHS } from "../../router/routePaths.js";
 import { createStoredZip } from "../../tools/imageConversion.js";
 import { createCompressedPdfFromJpegs } from "../../tools/pdfCompression.js";
 import { cropPdfPages } from "../../tools/pdfCrop.js";
 import { addPageNumbersToPdf, buildPdfFromPagePlan, extractPdfPages, inspectPdfBytes, mergePdfDocuments, PAGE_TOOL_LIMITS, parsePageRanges, splitPdfByRanges } from "../../tools/pdfPageOperations.js";
 import { addWatermarkToPdf } from "../../tools/pdfWatermark.js";
-import { absoluteSiteUrl } from "../../config/site.js";
 import { ExportSuccessState } from "../../components/public/ExportSuccessState.jsx";
 import { trackProductEvent } from "../../analytics/productAnalytics.js";
+import { toolSeoSchemas } from "../../tools/toolSeoSchemas.js";
 
 async function loadPdfRenderer() {
   const pdfjsLib = await import("pdfjs-dist");
@@ -450,6 +451,5 @@ export function PdfPageToolPage({ tool }) {
   const isWatermark = tool.id === "watermark-pdf";
   const isCrop = tool.id === "crop-pdf";
   const isCompress = tool.id === "compress-pdf";
-  const schema = { "@context": "https://schema.org", "@type": "SoftwareApplication", name: tool.name, applicationCategory: "BusinessApplication", operatingSystem: "Web", url: absoluteSiteUrl(tool.canonicalUrl), offers: { "@type": "Offer", price: "0", priceCurrency: "USD" } };
-  return <main className="image-conversion-page pdf-page-tool-page"><PageMetadata title={tool.seoTitle} description={tool.metaDescription} canonicalUrl={tool.canonicalUrl} schemas={[schema]} /><nav className="tool-breadcrumbs" aria-label="Breadcrumb"><Link to={ROUTE_PATHS.tools}>PDF tools</Link><span>/</span><span aria-current="page">{tool.name}</span></nav><section className="conversion-hero"><div><small>Available now · runs in your browser</small><h1>{tool.name} online.</h1><p>{tool.shortDescription} Free to use and ready in seconds.</p></div></section>{isCompress ? <CompressWorkspace tool={tool} /> : isCrop ? <CropWorkspace tool={tool} /> : isWatermark ? <WatermarkWorkspace tool={tool} /> : isPageNumbers ? <PageNumberWorkspace tool={tool} /> : isMerge ? <MergeWorkspace tool={tool} /> : <SinglePdfWorkspace tool={tool} />}<section className="conversion-privacy-note"><Check size={19} /><div><strong>High-fidelity browser processing</strong><p>FixThatPDF keeps original PDF pages intact and adds only the changes you request. Processing stays on this device.</p></div></section></main>;
+  return <main className="image-conversion-page pdf-page-tool-page"><PageMetadata title={tool.seoTitle} description={tool.metaDescription} canonicalUrl={tool.canonicalUrl} schemas={toolSeoSchemas(tool)} /><nav className="tool-breadcrumbs" aria-label="Breadcrumb"><Link to={ROUTE_PATHS.tools}>PDF tools</Link><span>/</span><span aria-current="page">{tool.name}</span></nav><section className="conversion-hero"><div><small>Available now · runs in your browser</small><h1>{tool.heroHeadline}.</h1><p>{tool.heroSubheadline}</p></div></section>{isCompress ? <CompressWorkspace tool={tool} /> : isCrop ? <CropWorkspace tool={tool} /> : isWatermark ? <WatermarkWorkspace tool={tool} /> : isPageNumbers ? <PageNumberWorkspace tool={tool} /> : isMerge ? <MergeWorkspace tool={tool} /> : <SinglePdfWorkspace tool={tool} />}<section className="conversion-privacy-note"><Check size={19} /><div><strong>Private browser processing</strong><p>{tool.privacySummary}</p></div></section><ToolGuideContent tool={tool} /></main>;
 }

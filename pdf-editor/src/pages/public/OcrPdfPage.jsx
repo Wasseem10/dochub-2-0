@@ -7,7 +7,9 @@ import Upload from "lucide-react/dist/esm/icons/upload.mjs";
 import { Link } from "react-router-dom";
 import { trackProductEvent } from "../../analytics/productAnalytics.js";
 import { PageMetadata } from "../../components/public/PageMetadata.jsx";
+import { ToolGuideContent } from "../../components/public/ToolGuideContent.jsx";
 import { ROUTE_PATHS } from "../../router/routePaths.js";
+import { toolSeoSchemas } from "../../tools/toolSeoSchemas.js";
 import {
   createSearchablePdfFromOcrPages,
   enhanceOcrImageData,
@@ -162,7 +164,7 @@ export function OcrPdfPage({ tool }) {
 
   const choose = (files) => loadFile(Array.from(files || [])[0]);
   return <main className="image-conversion-page office-conversion-page ocr-pdf-page">
-    <PageMetadata title={tool.seoTitle} description={tool.metaDescription} canonicalUrl={tool.canonicalUrl} />
+    <PageMetadata title={tool.seoTitle} description={tool.metaDescription} canonicalUrl={tool.canonicalUrl} schemas={toolSeoSchemas(tool)} />
     <nav className="tool-breadcrumbs" aria-label="Breadcrumb"><Link to={ROUTE_PATHS.tools}>PDF tools</Link><span>/</span><span aria-current="page">{tool.name}</span></nav>
     <section className="conversion-hero"><div><small>Available · runs in your browser</small><h1>Make scanned PDFs searchable.</h1><p>Clean up scans, correct page orientation, recognize six languages, and download searchable PDF and text files.</p></div></section>
     <div className="conversion-workspace-grid"><section>
@@ -186,5 +188,6 @@ export function OcrPdfPage({ tool }) {
       {status === "complete" && result && <div className={`ocr-quality-result ${result.confidence.averageConfidence < 75 ? "needs-review" : ""}`} role="status"><strong>{result.confidence.rating} · {result.confidence.averageConfidence}% confidence</strong><span>{result.confidence.wordCount} words recognized · {result.confidence.lowConfidenceWords} need review</span></div>}
     </aside></div>
     <section className="conversion-privacy-note"><Check size={19} /><div><strong>Private browser processing</strong><p>Pages are recognized on this device. Check important names and numbers because OCR accuracy depends on scan quality.</p></div></section>
+    <ToolGuideContent tool={tool} />
   </main>;
 }
