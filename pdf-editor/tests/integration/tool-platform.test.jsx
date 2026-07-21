@@ -4,6 +4,7 @@ import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it } from "vitest";
 import { MarketingFooter } from "../../src/components/public/MarketingFooter.jsx";
 import { MarketingHeader } from "../../src/components/public/MarketingHeader.jsx";
+import { ComparePdfPage } from "../../src/pages/public/ComparePdfPage.jsx";
 import { ToolDirectoryPage } from "../../src/pages/public/ToolDirectoryPage.jsx";
 import { ImageConversionPage } from "../../src/pages/public/ImageConversionPage.jsx";
 import { OfficeConversionPage } from "../../src/pages/public/OfficeConversionPage.jsx";
@@ -156,6 +157,17 @@ describe("public PDF tool platform", () => {
     expect(textOf(ocr.root).includes("Run OCR and download PDF")).toBe(true);
     expect(textOf(ocr.root).includes("processes your document locally")).toBe(true);
     await unmount(ocr);
+  });
+
+  it("renders two-document comparison workspaces", async () => {
+    for (const toolId of ["compare-pdf", "document-version-comparison"]) {
+      const renderer = await render(<ComparePdfPage tool={TOOL_BY_ID.get(toolId)} />);
+      expect(renderer.root.findAllByType("input").filter((input) => input.props.type === "file")).toHaveLength(2);
+      expect(textOf(renderer.root).includes("Original document")).toBe(true);
+      expect(textOf(renderer.root).includes("Revised document")).toBe(true);
+      expect(textOf(renderer.root).includes("Compare PDFs")).toBe(true);
+      await unmount(renderer);
+    }
   });
 
   it("renders real merge and page organizer workspaces", async () => {
