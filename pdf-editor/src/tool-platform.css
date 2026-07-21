@@ -371,7 +371,6 @@
 .tool-final-cta p { max-width: 650px; margin: 18px 0 25px; color: var(--public-body); line-height: 1.55; }
 
 .tool-guide-content { display: grid; width: min(1180px, calc(100% - 48px)); gap: 28px; margin: 82px auto 0; color: var(--public-ink); }
-.image-conversion-page > .tool-guide-content { width: 100%; }
 .tool-guide-intro { max-width: 790px; }
 .tool-guide-intro h2 { margin: 13px 0 0; font-size: clamp(34px, 4vw, 50px); letter-spacing: -.05em; line-height: 1; }
 .tool-guide-intro p { margin: 18px 0 0; color: var(--public-body); font-size: 17px; line-height: 1.65; }
@@ -461,7 +460,6 @@
   .tool-faq { grid-template-columns: 1fr; gap: 26px; }
   .tool-limitations { padding: 22px; }
   .tool-guide-content { width: min(100% - 30px, 1180px); margin-top: 58px; }
-  .image-conversion-page > .tool-guide-content { width: 100%; }
   .tool-guide-grid, .tool-guide-trust-grid, .tool-guide-answers { grid-template-columns: 1fr; }
   .tool-guide-use-cases > div, .tool-guide-related > div { grid-template-columns: 1fr; }
   .tool-guide-grid > article, .tool-guide-answers > section { padding: 22px; }
