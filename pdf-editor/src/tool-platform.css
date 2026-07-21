@@ -694,6 +694,11 @@
 .office-mode-note strong { color: #23483b; font-size: 13px; }
 .office-mode-note p { margin: 5px 0 0; color: var(--public-muted); font-size: 12px; line-height: 1.45; }
 .docx-render-host { position: fixed; top: 0; left: -20000px; z-index: -1; width: max-content; min-width: 816px; background: #fff; pointer-events: none; }
+.safe-html-render-host { position: fixed; top: 0; left: -20000px; z-index: -1; width: 816px; background: #fff; pointer-events: none; }
+.safe-html-render-host iframe { display: block; width: 816px; min-height: 1056px; border: 0; background: #fff; }
+.conversion-secondary-action { display: inline-flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 43px; margin-top: 10px; border: 1px solid #cbd7d1; border-radius: 12px; background: #fff; color: #23483b; font: inherit; font-size: 13px; font-weight: 760; cursor: pointer; }
+.conversion-secondary-action:hover { border-color: #77aa92; background: #f5fbf8; }
+.ocr-status { margin: 9px 0 0; color: var(--public-muted); font-size: 12px; line-height: 1.4; }
 .is-spinning { animation: conversion-spin .8s linear infinite; }
 @keyframes conversion-spin { to { transform: rotate(360deg); } }
 

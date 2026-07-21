@@ -20,9 +20,9 @@ describe("FixThatPDF tool registry", () => {
   it("truthfully exposes released editor and conversion workflows", () => {
     const counts = Object.groupBy(TOOL_REGISTRY, (tool) => tool.status);
     expect(counts.partial || []).toHaveLength(0);
-    expect(counts.available).toHaveLength(36);
+    expect(counts.available).toHaveLength(40);
     expect(counts.beta || []).toHaveLength(0);
-    expect(counts["coming-soon"]).toHaveLength(32);
+    expect(counts["coming-soon"]).toHaveLength(28);
     expect(TOOL_REGISTRY.find((tool) => tool.id === "redact-pdf")).toMatchObject({ status: "available", workflowType: "page-tool", opensEditor: false });
     expect(TOOL_REGISTRY.filter((tool) => tool.workflowType === "converter").every((tool) => tool.uploadEnabled && !tool.opensEditor && tool.status === "available")).toBe(true);
     expect(TOOL_REGISTRY.filter((tool) => tool.workflowType === "page-tool").every((tool) => tool.uploadEnabled && !tool.opensEditor && tool.status === "available")).toBe(true);

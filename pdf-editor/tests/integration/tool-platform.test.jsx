@@ -7,8 +7,10 @@ import { MarketingHeader } from "../../src/components/public/MarketingHeader.jsx
 import { ToolDirectoryPage } from "../../src/pages/public/ToolDirectoryPage.jsx";
 import { ImageConversionPage } from "../../src/pages/public/ImageConversionPage.jsx";
 import { OfficeConversionPage } from "../../src/pages/public/OfficeConversionPage.jsx";
+import { OcrPdfPage } from "../../src/pages/public/OcrPdfPage.jsx";
 import { PdfPageToolPage } from "../../src/pages/public/PdfPageToolPage.jsx";
 import { StructuredPdfConversionPage } from "../../src/pages/public/StructuredPdfConversionPage.jsx";
+import { ToPdfConversionPage } from "../../src/pages/public/ToPdfConversionPage.jsx";
 import { EditorToolUploadPage } from "../../src/pages/public/EditorToolUploadPage.jsx";
 import { ToolLandingPage } from "../../src/pages/public/ToolLandingPage.jsx";
 import { TOOL_BY_ID } from "../../src/tools/toolRegistry.js";
@@ -133,6 +135,27 @@ describe("public PDF tool platform", () => {
       expect(textOf(renderer.root).includes(downloadLabel)).toBe(true);
       await unmount(renderer);
     }
+  });
+
+  it("renders real Excel, PowerPoint, HTML, and OCR workspaces", async () => {
+    const cases = [
+      ["excel-to-pdf", ".xlsx", "Turn every worksheet into readable PDF pages"],
+      ["powerpoint-to-pdf", ".pptx", "Keep your slides in presentation order"],
+      ["html-to-pdf", ".html", "Render safe HTML into searchable PDF pages"],
+    ];
+    for (const [toolId, extension, heading] of cases) {
+      const renderer = await render(<ToPdfConversionPage tool={TOOL_BY_ID.get(toolId)} />);
+      expect(renderer.root.findAllByType("input").some((input) => input.props.type === "file" && input.props.accept.includes(extension))).toBe(true);
+      expect(textOf(renderer.root).includes(heading)).toBe(true);
+      expect(textOf(renderer.root).includes("Download PDF")).toBe(true);
+      await unmount(renderer);
+    }
+
+    const ocr = await render(<OcrPdfPage tool={TOOL_BY_ID.get("ocr-pdf")} />);
+    expect(ocr.root.findAllByType("input").some((input) => input.props.accept.includes("application/pdf"))).toBe(true);
+    expect(textOf(ocr.root).includes("Run OCR and download PDF")).toBe(true);
+    expect(textOf(ocr.root).includes("processes your document locally")).toBe(true);
+    await unmount(ocr);
   });
 
   it("renders real merge and page organizer workspaces", async () => {

@@ -10,11 +10,14 @@
   <url><loc>http://localhost:4173/crop-pdf</loc></url>
   <url><loc>http://localhost:4173/delete-pdf-pages</loc></url>
   <url><loc>http://localhost:4173/edit-pdf</loc></url>
+  <url><loc>http://localhost:4173/excel-to-pdf</loc></url>
   <url><loc>http://localhost:4173/extract-pdf-pages</loc></url>
   <url><loc>http://localhost:4173/fill-pdf</loc></url>
   <url><loc>http://localhost:4173/help</loc></url>
+  <url><loc>http://localhost:4173/html-to-pdf</loc></url>
   <url><loc>http://localhost:4173/jpg-to-pdf</loc></url>
   <url><loc>http://localhost:4173/merge-pdf</loc></url>
+  <url><loc>http://localhost:4173/ocr-pdf</loc></url>
   <url><loc>http://localhost:4173/organize-pdf</loc></url>
   <url><loc>http://localhost:4173/pdf-form-filler</loc></url>
   <url><loc>http://localhost:4173/pdf-reader</loc></url>
@@ -26,6 +29,7 @@
   <url><loc>http://localhost:4173/pdf-to-txt</loc></url>
   <url><loc>http://localhost:4173/pdf-to-word</loc></url>
   <url><loc>http://localhost:4173/png-to-pdf</loc></url>
+  <url><loc>http://localhost:4173/powerpoint-to-pdf</loc></url>
   <url><loc>http://localhost:4173/privacy</loc></url>
   <url><loc>http://localhost:4173/protect-pdf</loc></url>
   <url><loc>http://localhost:4173/redact-pdf</loc></url>
