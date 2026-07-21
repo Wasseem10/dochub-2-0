@@ -13,6 +13,7 @@ import "./reference-editor.css";
 import "./release-fixes.css";
 import "./dashboard-premium.css";
 import "./features-page.css";
+import "./seo-category.css";
 import { installProductionMonitoring } from "./monitoring/productionMonitoring.js";
 
 installProductionMonitoring();

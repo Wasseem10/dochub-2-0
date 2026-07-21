@@ -2,7 +2,9 @@ import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import Search from "lucide-react/dist/esm/icons/search.mjs";
 import { PageMetadata } from "../../components/public/PageMetadata.jsx";
+import { absoluteSiteUrl } from "../../config/site.js";
 import { ToolIcon } from "../../tools/ToolIcon.jsx";
+import { getToolCategoryPage } from "../../tools/toolCategoryPages.js";
 import { TOOL_CATEGORIES, TOOL_REGISTRY } from "../../tools/toolRegistry.js";
 
 function statusClass(status) {
@@ -26,7 +28,7 @@ export function ToolDirectoryPage() {
         title="All PDF Tools | FixThatPDF"
         description="Browse 68 FixThatPDF tools for editing, organizing, converting, signing, protecting, scanning, reviewing, and understanding PDFs—with accurate availability labels."
         canonicalUrl="/tools"
-        schemas={[{ "@context": "https://schema.org", "@type": "CollectionPage", name: "FixThatPDF PDF tools", url: "https://fixthatpdf.com/tools", numberOfItems: TOOL_REGISTRY.length }]}
+        schemas={[{ "@context": "https://schema.org", "@type": "CollectionPage", name: "FixThatPDF PDF tools", url: absoluteSiteUrl("/tools"), mainEntity: { "@type": "ItemList", numberOfItems: TOOL_REGISTRY.length, itemListElement: TOOL_REGISTRY.map((tool, index) => ({ "@type": "ListItem", position: index + 1, name: tool.name, url: absoluteSiteUrl(tool.route) })) } }]}
       />
       <section className="tools-directory-hero">
         <span className="public-eyebrow">Complete PDF toolkit</span>
@@ -46,7 +48,7 @@ export function ToolDirectoryPage() {
       <div className="tools-category-list">
         {visibleGroups.map((group) => (
           <section key={group.id} id={`category-${group.id}`} className="tools-category-section">
-            <header><span style={{ background: group.accentColor }}><ToolIcon name={group.icon} size={25} /></span><div><h2>{group.name}</h2><p>{group.description}</p></div><small>{group.tools.length} tool{group.tools.length === 1 ? "" : "s"}</small></header>
+            <header><span style={{ background: group.accentColor }}><ToolIcon name={group.icon} size={25} /></span><div><h2><Link to={getToolCategoryPage(group.id).route}>{group.name}</Link></h2><p>{group.description}</p></div><small>{group.tools.length} tool{group.tools.length === 1 ? "" : "s"}</small></header>
             <div className="tool-card-grid">{group.tools.map((tool) => <Link key={tool.id} className="tool-directory-card" to={tool.route}><span className="tool-card-icon" style={{ background: tool.accentColor }}><ToolIcon name={tool.icon} size={23} /></span><span className={`tool-status ${statusClass(tool.status)}`}>{tool.availabilityLabel}</span><h3>{tool.name}</h3><p>{tool.shortDescription}</p><strong>View tool <span aria-hidden="true">→</span></strong></Link>)}</div>
           </section>
         ))}

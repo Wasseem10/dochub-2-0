@@ -8,6 +8,7 @@ import { ComparePdfPage } from "../pages/public/ComparePdfPage.jsx";
 import { DocumentAnalysisPage } from "../pages/public/DocumentAnalysisPage.jsx";
 import { FeaturesPage } from "../pages/public/FeaturesPage.jsx";
 import { ToolDirectoryPage } from "../pages/public/ToolDirectoryPage.jsx";
+import { ToolCategoryPage } from "../pages/public/ToolCategoryPage.jsx";
 import { ImageConversionPage } from "../pages/public/ImageConversionPage.jsx";
 import { OfficeConversionPage } from "../pages/public/OfficeConversionPage.jsx";
 import { OcrPdfPage } from "../pages/public/OcrPdfPage.jsx";
@@ -25,6 +26,7 @@ import { TextConversionPage } from "../pages/public/TextConversionPage.jsx";
 import { ToPdfConversionPage } from "../pages/public/ToPdfConversionPage.jsx";
 import { WorkflowUnavailablePage } from "../pages/public/WorkflowUnavailablePage.jsx";
 import { TOOL_REGISTRY } from "../tools/toolRegistry.js";
+import { TOOL_CATEGORY_PAGES } from "../tools/toolCategoryPages.js";
 import { getEditorToolPreset } from "../tools/editorToolPresets.js";
 import { LazyAppContent, LazyAuthRouteProvider, LazyGuestAppRoute, LazyPublicAppRoute } from "./LazyAppRoute.jsx";
 import { OwnerRoute } from "./OwnerRoute.jsx";
@@ -89,6 +91,11 @@ const toolRouteObjects = TOOL_REGISTRY
         : <ToolLandingPage tool={tool} />,
   }));
 
+const toolCategoryRouteObjects = TOOL_CATEGORY_PAGES.map((categoryPage) => ({
+  path: categoryPage.route,
+  element: <ToolCategoryPage categoryPage={categoryPage} />,
+}));
+
 const appScreenRouteObjects = Object.entries(APP_ROUTE_SECTIONS).map(([path, appSection]) => ({
   path,
   element: <LazyAppContent view="dashboard" appSection={appSection} />,
@@ -109,6 +116,7 @@ export const appRouteObjects = [
           { path: ROUTE_PATHS.tools, element: <ToolDirectoryPage /> },
           { path: ROUTE_PATHS.support, element: <SupportPage /> },
           { path: ROUTE_PATHS.sharePattern, element: <SecureSharePage /> },
+          ...toolCategoryRouteObjects,
           ...publicPlaceholderRouteObjects,
           ...toolRouteObjects,
         ],
