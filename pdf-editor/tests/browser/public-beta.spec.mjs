@@ -37,6 +37,28 @@ test("public-beta routes render without horizontal overflow", async ({ page }) =
   }
 });
 
+test("landing Tools menu exposes every released FixThatPDF workflow", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name.includes("android") || testInfo.project.name.includes("iphone"), "Desktop mega-menu is replaced by the compact mobile navigation.");
+  await page.goto(appPath("/"));
+  const toolsButton = page.getByRole("button", { name: "Tools", exact: true });
+  await expect(toolsButton).toBeVisible();
+  await expect(toolsButton.locator("svg").first()).toBeVisible();
+  await toolsButton.click();
+
+  const menu = page.getByRole("region", { name: "FixThatPDF tools" });
+  await expect(menu).toBeVisible();
+  await expect(menu.locator(".freepdf-tool-menu-link")).toHaveCount(68);
+  await expect(menu.getByRole("heading", { name: "Edit and view", exact: true })).toBeVisible();
+  await expect(menu.getByRole("heading", { name: "Convert from PDF", exact: true })).toBeVisible();
+  await expect(menu.getByRole("heading", { name: "Convert to PDF", exact: true })).toBeVisible();
+  await expect(menu.getByRole("heading", { name: "OCR and scan", exact: true })).toBeVisible();
+  await expect(menu.getByRole("link", { name: "PDF to Excel", exact: true })).toHaveAttribute("href", /\/pdf-to-excel$/);
+
+  await page.keyboard.press("Escape");
+  await expect(menu).toBeHidden();
+  await expect(toolsButton).toBeFocused();
+});
+
 test("tool guides stay centered and readable on wide screens", async ({ page }) => {
   const routes = ["/pdf-to-word", "/pdf-to-excel", "/excel-to-pdf", "/ocr-pdf", "/merge-pdf"];
 

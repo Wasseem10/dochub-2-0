@@ -5,6 +5,7 @@ import Check from "lucide-react/dist/esm/icons/check.mjs";
 import ChevronDown from "lucide-react/dist/esm/icons/chevron-down.mjs";
 import Clock3 from "lucide-react/dist/esm/icons/clock-3.mjs";
 import FileText from "lucide-react/dist/esm/icons/file-text.mjs";
+import Grid3X3 from "lucide-react/dist/esm/icons/grid-3x3.mjs";
 import LockKeyhole from "lucide-react/dist/esm/icons/lock-keyhole.mjs";
 import Menu from "lucide-react/dist/esm/icons/menu.mjs";
 import ShieldCheck from "lucide-react/dist/esm/icons/shield-check.mjs";
@@ -15,7 +16,7 @@ import { PageMetadata } from "./components/public/PageMetadata.jsx";
 import { absoluteSiteUrl } from "./config/site.js";
 import { ROUTE_PATHS } from "./router/routePaths.js";
 import { ToolIcon } from "./tools/ToolIcon.jsx";
-import { POPULAR_TOOLS, TOOL_BY_ROUTE } from "./tools/toolRegistry.js";
+import { POPULAR_TOOLS, TOOL_CATEGORIES, TOOL_REGISTRY } from "./tools/toolRegistry.js";
 
 const asset = (fileName) => `${import.meta.env.BASE_URL}homepage/${fileName}`;
 
@@ -85,6 +86,20 @@ const footerToolGroups = [
   },
 ];
 
+const toolsMenuColumns = [
+  ["compress", "ai"],
+  ["organize", "templates"],
+  ["edit-view", "compare-review"],
+  ["from-pdf"],
+  ["to-pdf"],
+  ["sign", "protect", "ocr-scan"],
+];
+
+const releasedToolsByCategory = new Map(TOOL_CATEGORIES.map((category) => [
+  category.id,
+  TOOL_REGISTRY.filter((tool) => tool.category === category.id && tool.status !== "coming-soon"),
+]));
+
 function Brand() {
   return <Link className="freepdf-brand" to={ROUTE_PATHS.home} aria-label="FixThatPDF home"><BrandWordmark /></Link>;
 }
@@ -124,7 +139,7 @@ function SiteHeader({ onChoose }) {
   }, [open]);
 
   const links = [
-    ["All tools", ROUTE_PATHS.tools],
+    ["Tools", ROUTE_PATHS.tools],
     ["Edit", ROUTE_PATHS.editPdf],
     ["Organize", "/organize-pdf"],
     ["Sign", ROUTE_PATHS.signPdf],
@@ -135,7 +150,7 @@ function SiteHeader({ onChoose }) {
     <div className="freepdf-header">
       <Brand />
       <nav className="freepdf-desktop-nav" aria-label="Primary navigation">
-        <button ref={toolsButtonRef} type="button" className={`freepdf-tools-trigger ${toolsOpen ? "is-open" : ""}`} aria-expanded={toolsOpen} aria-controls="freepdf-tools-menu" onClick={() => { setToolsOpen((value) => !value); setOpen(false); }}>All tools <ChevronDown size={15} /></button>
+        <button ref={toolsButtonRef} type="button" className={`freepdf-tools-trigger ${toolsOpen ? "is-open" : ""}`} aria-expanded={toolsOpen} aria-haspopup="true" aria-controls="freepdf-tools-menu" onClick={() => { setToolsOpen((value) => !value); setOpen(false); }}><Grid3X3 className="freepdf-tools-grid-icon" size={18} /> <span>Tools</span> <ChevronDown className="freepdf-tools-chevron" size={14} /></button>
         {links.slice(1).map(([label, href]) => <Link key={label} to={href} onClick={() => setToolsOpen(false)}>{label}</Link>)}
       </nav>
       <div className="freepdf-header-actions">
@@ -145,17 +160,25 @@ function SiteHeader({ onChoose }) {
       </div>
       {open && <nav className="freepdf-mobile-nav" aria-label="Mobile navigation">{links.map(([label, href], index) => <Link ref={index === 0 ? firstLinkRef : undefined} key={label} to={href} onClick={() => setOpen(false)}>{label}</Link>)}<Link to={ROUTE_PATHS.login} onClick={() => setOpen(false)}>Log in</Link><button type="button" onClick={() => { setOpen(false); onChoose(); }}>Choose a PDF</button></nav>}
     </div>
-    {toolsOpen && <div ref={toolsMenuRef} className="freepdf-tools-mega" id="freepdf-tools-menu">
+    {toolsOpen && <div ref={toolsMenuRef} className="freepdf-tools-mega" id="freepdf-tools-menu" role="region" aria-label="FixThatPDF tools">
       <div className="freepdf-tools-mega-grid">
-        {footerToolGroups.map((group) => <section key={group.title}>
-          <h2>{group.title}</h2>
-          {group.links.map(([label, route], index) => {
-            const tool = TOOL_BY_ROUTE.get(route);
-            return <Link className={index < 2 ? "is-featured" : ""} key={label} to={route} onClick={() => setToolsOpen(false)}><strong>{label}</strong>{index < 2 && tool?.shortDescription ? <span>{tool.shortDescription}</span> : null}</Link>;
+        {toolsMenuColumns.map((categoryIds, columnIndex) => <div className="freepdf-tools-menu-column" key={columnIndex}>
+          {categoryIds.map((categoryId) => {
+            const category = TOOL_CATEGORIES.find((item) => item.id === categoryId);
+            const tools = releasedToolsByCategory.get(categoryId) || [];
+            if (!category || !tools.length) return null;
+            return <section key={category.id} aria-labelledby={`tools-menu-${category.id}`}>
+              <h2 id={`tools-menu-${category.id}`}>{category.name}</h2>
+              <div className="freepdf-tools-menu-list">
+                {tools.map((tool) => <Link className="freepdf-tool-menu-link" key={tool.id} to={tool.route} onClick={() => setToolsOpen(false)} title={tool.shortDescription}>
+                  <span className="freepdf-tool-menu-icon" style={{ backgroundColor: tool.accentColor }}><ToolIcon name={tool.icon} size={15} /></span>
+                  <span>{tool.name}</span>
+                </Link>)}
+              </div>
+            </section>;
           })}
-        </section>)}
+        </div>)}
       </div>
-      <Link className="freepdf-tools-mega-all" to={ROUTE_PATHS.tools} onClick={() => setToolsOpen(false)}><span><strong>All PDF tools</strong><small>Browse every tool with clear availability and limits.</small></span><span>View all tools <ArrowRight size={16} /></span></Link>
     </div>}
   </header>;
 }

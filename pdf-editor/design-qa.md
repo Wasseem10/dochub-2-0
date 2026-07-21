@@ -1,59 +1,45 @@
-# Dashboard redesign design QA
+# Landing Tools Mega-Menu Design QA
 
-- Source visual truth: `/Users/wasseemdabbas/.codex/generated_images/019f7d99-682c-7551-8036-1bae63d2a1df/exec-cb1bd668-6a5f-49c1-b2ba-eda00919907f.png`
-- Implementation screenshot: `/tmp/fixthatpdf-dashboard-implemented.png`
-- Full-view comparison: `/tmp/fixthatpdf-dashboard-qa-comparison.png`
-- Focused comparison: `/tmp/fixthatpdf-dashboard-qa-focused.png`
-- Mobile dashboard screenshot: `/tmp/fixthatpdf-dashboard-mobile.png`
-- Features page screenshots: `/tmp/fixthatpdf-features-page.png`, `/tmp/fixthatpdf-features-mobile.png`
-- Desktop viewport: `1440 × 1024`
-- Mobile viewport: `390 × 844`
-- State: local dashboard with four saved documents; dashboard list view; features page default catalog state
+- Source visual truth: `/var/folders/y5/5nxfxhk97_9fmsmdf8tqj81r0000gn/T/TemporaryItems/NSIRD_screencaptureui_UyD8S9/Screenshot 2026-07-21 at 4.48.26 PM.png`
+- Implementation screenshot: `/tmp/dochub-design-qa/landing-tools-menu-final.png`
+- Combined comparison evidence: `/tmp/dochub-design-qa/landing-tools-menu-comparison.png`
+- Viewport: 1814 × 638
+- State: FixThatPDF landing page with the desktop Tools menu open
+- Primary interactions tested: open Tools, expose all released tool links, close with Escape, and return focus to the Tools trigger
+- Browser console errors: none
 
 ## Full-view comparison evidence
 
-The implementation preserves the selected design's primary hierarchy and proportions: compact blue welcome band, three recently opened documents, one segmented three-task bar, and a grouped all-documents library. The navigation, top actions, document controls, and library toolbar align with the same desktop composition. The implementation adds the requested All features navigation item while maintaining the original sidebar rhythm.
+The combined comparison shows the source and implementation at their native 1814 × 638 viewport width. The implementation preserves the source pattern: a Tools trigger with a grid icon and active underline, a full-width white menu, six category columns, compact colored icons, short tool labels, and a clean lower edge that fits the viewport. FixThatPDF intentionally retains its existing wordmark, navigation, brand colors, and real product categories.
 
-The implementation uses real saved-document state. QA documents are blank local PDFs, so their preview content and names intentionally differ from the sample resume, form, strategy, and invoice content pictured in the source. Uploaded documents use their actual first-page images through the same preview component.
+## Focused region comparison evidence
 
-## Focused comparison evidence
-
-The focused comparison covers the welcome header, recent-work cards, task bar, and library toolbar/rows at matched scale. Card radii, paper-preview framing, action placement, section gaps, and blue surface treatments closely follow the source. No additional focused crop was necessary because all small toolbar and row controls remain legible in the focused evidence.
+A separate crop was not needed because the reference and implementation are both menu-only captures at native viewport width. Header controls, category headings, icon treatments, item typography, column spacing, and the lower menu boundary remain readable in the combined comparison.
 
 ## Required fidelity surfaces
 
-- Fonts and typography: Funnel Display headings and DM Sans interface text match the existing FixThatPDF system and the selected mock. Hierarchy, weight, wrapping, and truncation are consistent at desktop and mobile sizes.
-- Spacing and layout rhythm: Desktop section order, margins, three-column recent grid, segmented task bar, and grouped library match the source. Mobile collapses cleanly to one-column recent cards and stacked tasks without horizontal overflow.
-- Colors and visual tokens: The implementation uses FixThatPDF blue `#2851eb`, powder blue, white, cool gray, and navy. Semantic status and favorite states remain distinguishable with accessible contrast.
-- Image quality and asset fidelity: The header uses a dedicated generated paper-motif PNG, not CSS or placeholder art. Real document first-page images are rendered when available; documents without page imagery use the existing Lucide file icon fallback.
-- Copy and content: Dashboard labels match the selected design. The feature directory is generated from the production tool registry so feature names, descriptions, availability, routes, and counts stay accurate.
-
-## Comparison history
-
-1. Initial populated capture found a P1 broken welcome-header image because the asset was placed in `public/` while Vite uses `runtime-public/`.
-   - Fix: moved the generated asset to `runtime-public/dashboard/continue-header-motif.png`, rendered it as a real image element, and restarted the preview.
-   - Post-fix evidence: `/tmp/fixthatpdf-dashboard-implemented.png` shows the full paper motif with no broken-image indicator.
-2. Initial empty-state capture did not match the source's populated document state.
-   - Fix: created four local documents through the working Blank PDF flow and recaptured the dashboard.
-   - Post-fix evidence: recent cards and four library rows are visible in the final desktop capture.
-3. Mobile verification found no hidden primary actions or horizontal overflow. The long document library continues vertically as intended.
-
-## Interactions verified
-
-- Create a blank PDF and return to the dashboard.
-- Open recent-document cards and library rows.
-- Toggle list/grid views.
-- Favorite a document and filter to favorites.
-- Search the public feature catalog and reduce it to matching workflows.
-- Open the public Features route from navigation.
+- Fonts and typography: The implementation uses the product's existing DM Sans family. Compact 11px category headings and 12px tool labels reproduce the source density without introducing a new font dependency. Long real tool names truncate rather than collide with adjacent columns.
+- Spacing and layout rhythm: Six equal columns, 31px tool rows, restrained section gaps, and a 540px menu height reproduce the reference structure. The final menu has no internal scrolling at the comparison viewport and no horizontal page overflow.
+- Colors and visual tokens: The active control uses FixThatPDF blue. Tool icons use the existing category accent colors so the menu feels native to FixThatPDF while retaining the reference's color-coded scanning pattern.
+- Image quality and asset fidelity: The reference contains only standard UI icons. The implementation uses the established ToolIcon/Lucide system; no placeholder graphics, emoji, CSS drawings, or generated raster assets are used.
+- Copy and content: All 68 links come from the current released FixThatPDF tool registry. No competitor-only tool names or unavailable FixThatPDF routes were copied from the reference.
 
 ## Findings
 
-No actionable P0, P1, or P2 design mismatches remain.
+- No remaining P0, P1, or P2 issues.
+- Intentional difference: the implementation includes more rows because the user requested every currently released FixThatPDF tool, while the reference shows a smaller competitor tool set.
+- Intentional difference: the existing FixThatPDF wordmark and primary navigation remain in place rather than copying the competitor's header.
+
+## Comparison history
+
+1. Initial implementation evidence: `/tmp/dochub-design-qa/landing-tools-menu.png`.
+   - P2: the redundant “Browse all tools” strip extended below the 638px reference viewport and made the menu internally scrollable.
+   - Fix: removed the redundant strip and retained direct access to all 68 tools inside the menu. The full directory remains available through the mobile Tools link and existing site navigation/footer.
+2. Post-fix evidence: `/tmp/dochub-design-qa/landing-tools-menu-final.png`.
+   - The menu now measures 540px high, its content height equals its client height, the lower edge is visible, all 68 links are present, and horizontal overflow is 0px.
 
 ## Follow-up polish
 
-- P3: Real uploaded PDF thumbnails will make the recent-work cards visually richer than the blank-document QA state.
-- P3: User-specific names and timestamps naturally differ from the static reference mock.
+- P3: A future iteration could add optional keyboard arrow-key movement between menu groups; current tab navigation, focus visibility, Escape handling, and link activation already work.
 
 final result: passed

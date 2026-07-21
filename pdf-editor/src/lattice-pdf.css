@@ -90,11 +90,14 @@
 .freepdf-tools-trigger,
 .freepdf-desktop-nav a,
 .freepdf-header-actions > a { color: #424653; font-size: 13px; font-weight: 700; text-decoration: none; }
-.freepdf-tools-trigger { display: inline-flex; align-items: center; gap: 5px; min-height: 38px; padding: 0 12px; border: 1px solid transparent; border-radius: 10px; background: transparent; font-family: inherit; cursor: pointer; }
-.freepdf-tools-trigger svg { transition: transform .18s ease; }
-.freepdf-tools-trigger.is-open { border-color: #c9d4ff; background: var(--fp-powder); color: var(--fp-blue); box-shadow: 0 0 0 3px rgba(40, 81, 235, .12); }
+.freepdf-tools-trigger { position: relative; display: inline-flex; align-items: center; gap: 6px; min-height: 38px; padding: 0 4px; border: 0; border-radius: 0; background: transparent; font-family: inherit; cursor: pointer; }
+.freepdf-tools-grid-icon { color: var(--fp-blue); }
+.freepdf-tools-chevron { transition: transform .18s ease; }
+.freepdf-tools-trigger::after { position: absolute; right: 0; bottom: -16px; left: 0; height: 2px; background: var(--fp-blue); content: ""; opacity: 0; transform: scaleX(.5); transition: opacity .18s ease, transform .18s ease; }
+.freepdf-tools-trigger.is-open { color: var(--fp-blue); }
+.freepdf-tools-trigger.is-open::after { opacity: 1; transform: scaleX(1); }
 .freepdf-page .freepdf-tools-trigger:focus-visible { outline-color: #aebcff; }
-.freepdf-tools-trigger.is-open svg { transform: rotate(180deg); }
+.freepdf-tools-trigger.is-open .freepdf-tools-chevron { transform: rotate(180deg); }
 .freepdf-tools-trigger:hover,
 .freepdf-desktop-nav a:hover,
 .freepdf-header-actions > a:hover { color: var(--fp-blue); }
@@ -108,23 +111,17 @@
 .freepdf-mobile-nav a { display: flex; align-items: center; min-height: 44px; padding: 0 13px; border-radius: 9px; color: var(--fp-ink); font-weight: 700; text-decoration: none; }
 .freepdf-mobile-nav a:hover { background: var(--fp-powder); color: var(--fp-blue); }
 
-.freepdf-tools-mega { position: absolute; top: 100%; left: 0; z-index: 29; width: 100%; padding: 28px 0 22px; border-top: 1px solid var(--fp-line); border-bottom: 1px solid var(--fp-line); background: #ffffff; box-shadow: 0 28px 65px rgba(24, 35, 78, .14); }
-.freepdf-tools-mega-grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: clamp(22px, 2.6vw, 42px); width: min(1240px, calc(100% - 48px)); margin: 0 auto; }
-.freepdf-tools-mega section { display: flex; align-items: flex-start; flex-direction: column; }
-.freepdf-tools-mega h2 { margin: 0 0 15px; color: #7b808e; font-family: "DM Sans", sans-serif; font-size: 11px; font-weight: 800; letter-spacing: .09em; text-transform: uppercase; }
-.freepdf-tools-mega section > a { display: block; width: 100%; margin: 0 0 11px; color: var(--fp-ink); text-decoration: none; }
-.freepdf-tools-mega section > a strong { display: block; font-size: 14px; font-weight: 750; letter-spacing: -.015em; line-height: 1.25; }
-.freepdf-tools-mega section > a span { display: block; margin-top: 4px; color: #747987; font-size: 11px; line-height: 1.35; }
-.freepdf-tools-mega section > a:not(.is-featured) { margin-bottom: 9px; color: #4f5564; }
-.freepdf-tools-mega section > a:not(.is-featured) strong { font-size: 12px; font-weight: 650; }
-.freepdf-tools-mega section > a:hover strong { color: var(--fp-blue); }
-.freepdf-tools-mega-all { display: flex; align-items: center; justify-content: space-between; gap: 28px; width: min(1240px, calc(100% - 48px)); min-height: 62px; margin: 11px auto 0; padding: 11px 16px 11px 18px; border: 1px solid #dce3ff; border-radius: 14px; background: var(--fp-powder); color: var(--fp-ink); text-decoration: none; }
-.freepdf-tools-mega-all > span:first-child { display: grid; gap: 2px; }
-.freepdf-tools-mega-all strong { font-size: 14px; }
-.freepdf-tools-mega-all small { color: #6e7380; font-size: 11px; }
-.freepdf-tools-mega-all > span:last-child { display: inline-flex; align-items: center; gap: 7px; flex: 0 0 auto; color: var(--fp-blue); font-size: 12px; font-weight: 800; }
-.freepdf-tools-mega-all:hover { border-color: #b9c7fb; background: #edf2ff; }
-
+.freepdf-tools-mega { position: absolute; top: 100%; left: 0; z-index: 29; width: 100%; max-height: calc(100vh - 68px); overflow-y: auto; padding: 19px 0 15px; border-top: 1px solid var(--fp-line); border-bottom: 1px solid var(--fp-line); background: #ffffff; box-shadow: 0 24px 55px rgba(24, 35, 78, .14); overscroll-behavior: contain; }
+.freepdf-tools-mega-grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: clamp(18px, 2.1vw, 32px); width: min(1480px, calc(100% - 48px)); margin: 0 auto; }
+.freepdf-tools-menu-column { display: flex; align-items: stretch; flex-direction: column; gap: 16px; min-width: 0; }
+.freepdf-tools-mega section { min-width: 0; }
+.freepdf-tools-mega h2 { margin: 0 0 7px; color: #777c88; font-family: "DM Sans", sans-serif; font-size: 11px; font-weight: 600; letter-spacing: 0; text-transform: none; }
+.freepdf-tools-menu-list { display: grid; gap: 1px; }
+.freepdf-tool-menu-link { display: grid; grid-template-columns: 27px minmax(0, 1fr); gap: 8px; align-items: center; min-height: 31px; padding: 2px 5px; border-radius: 7px; color: #272a33; font-size: 12px; font-weight: 600; line-height: 1.2; text-decoration: none; }
+.freepdf-tool-menu-link:hover { background: #f4f7ff; color: var(--fp-blue); }
+.freepdf-tool-menu-link > span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.freepdf-tool-menu-icon { display: grid; width: 25px; height: 25px; place-items: center; border-radius: 6px; color: #17213b; }
+.freepdf-tool-menu-link:hover .freepdf-tool-menu-icon { color: var(--fp-blue); transform: translateY(-1px); }
 .freepdf-hero { width: min(1240px, calc(100% - 48px)); margin: 0 auto; padding: 32px 0 0; }
 .freepdf-hero-copy { display: flex; align-items: center; flex-direction: column; max-width: 880px; margin: 0 auto 18px; text-align: center; }
 .freepdf-eyebrow { position: relative; display: inline-block; margin-bottom: 10px; color: var(--fp-blue); font-family: "Caveat", cursive; font-size: 24px; font-weight: 600; line-height: 1; text-decoration: underline; text-decoration-color: var(--fp-orange); text-decoration-thickness: 3px; text-underline-offset: 7px; transform: rotate(-2deg); }
