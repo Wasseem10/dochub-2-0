@@ -9,6 +9,7 @@ import { ToolDirectoryPage } from "../pages/public/ToolDirectoryPage.jsx";
 import { ImageConversionPage } from "../pages/public/ImageConversionPage.jsx";
 import { OfficeConversionPage } from "../pages/public/OfficeConversionPage.jsx";
 import { OcrPdfPage } from "../pages/public/OcrPdfPage.jsx";
+import { OpenDocumentConversionPage } from "../pages/public/OpenDocumentConversionPage.jsx";
 import { PdfPageToolPage } from "../pages/public/PdfPageToolPage.jsx";
 import { PdfProtectionPage } from "../pages/public/PdfProtectionPage.jsx";
 import { RedactPdfPage } from "../pages/public/RedactPdfPage.jsx";
@@ -58,6 +59,8 @@ const toolRouteObjects = TOOL_REGISTRY
         ? <PdfProtectionPage tool={tool} />
       : ["pdf-scanner", "scan-to-pdf", "image-to-searchable-pdf"].includes(tool.id)
         ? <ScanPdfPage tool={tool} />
+      : ["rtf-to-pdf", "odt-to-pdf", "odp-to-pdf", "ods-to-pdf", "epub-to-pdf", "zip-to-pdf"].includes(tool.id)
+        ? <OpenDocumentConversionPage tool={tool} />
       : ["compare-pdf", "document-version-comparison"].includes(tool.id)
         ? <ComparePdfPage tool={tool} />
       : tool.id === "ocr-pdf"
