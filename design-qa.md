@@ -62,3 +62,48 @@ The focused side-by-side input compares the supplied menu and the implementation
 - Full automated test suite: 49 files and 155 tests passed.
 
 final result: passed
+
+## Compare PDFs word-level review
+
+- Source visual truth: `/var/folders/y5/5nxfxhk97_9fmsmdf8tqj81r0000gn/T/TemporaryItems/NSIRD_screencaptureui_DUl53X/Screenshot 2026-07-20 at 11.40.35 PM.png`
+- Implementation screenshot: `/tmp/dochub-tools-batch.iVnjih/repo/pdf-editor/tmp/comparison-design-qa.png`
+- Viewport: 1600 × 1000 implementation; source content normalized from the supplied 2560 × 1440 browser screenshot
+- State: one-page resume revisions compared, first inserted change selected, side-by-side mode, all five change filters enabled
+
+### Full-view comparison evidence
+
+The implementation now matches the reference's core composition: two synchronized document panes, a slim center change map, a persistent right-side change rail, compact page and zoom controls, red original-document highlights, blue revised-document highlights, and previous/next change navigation. The FixThatPDF header and blue brand controls remain intentionally product-specific.
+
+### Focused-region comparison evidence
+
+The right rail and PDF text regions were readable in the same paired comparison input. Unlike the previous full-page red boxes, highlights now hug the actual changed words and lines. Change cards show numbered inserted/replaced entries with separate old and new text treatments, closely matching the reference's review pattern. No separate crop was needed because both the full PDF pages and the readable change rail are visible at 1600 × 1000.
+
+### Findings and comparison history
+
+1. Initial product state: P1 - broad shared red regions did not identify additions versus deletions and made the comparison difficult to review.
+   Fix: extract positioned PDF words, align their sequences, and emit side-specific inserted, deleted, replaced, and moved-text rectangles.
+   Post-fix evidence: implementation capture shows precise red/blue word highlights and 12 individually reviewable change cards.
+2. First implementation capture: P2 - upload cards consumed the first viewport after comparison, leaving too little room for the review workspace.
+   Fix: collapse the setup surfaces after comparison, retain a visible Compare new files action, and align the result below the sticky public header.
+   Post-fix evidence: the final capture gives the documents and change rail the full working viewport, matching the reference's density.
+3. Remaining P3: the reference includes print, share, select-text, and fullscreen utilities outside the requested compare workflow. These were intentionally omitted to preserve FixThatPDF's current feature scope.
+
+### Required fidelity surfaces
+
+- Fonts and typography: passed - compact DM Sans application chrome with readable document previews and 10-13px review controls mirrors the reference hierarchy.
+- Spacing and layout rhythm: passed - balanced document columns, 14px center map, 316px change rail, aligned toolbars, and consistent card spacing.
+- Colors and visual tokens: passed - red removal, blue addition, teal moved-text, purple visual-change, white toolbars, and cool gray review canvas are semantically consistent and accessible.
+- Image quality and asset fidelity: passed - PDFs render from real page canvases; no placeholder imagery, CSS-drawn icons, or raster substitutions were used.
+- Copy and content: passed - labels clearly name Side by side, Scroll lock, Previous change, Next change, filters, page position, and report download.
+
+### Interaction and verification
+
+- Two real PDFs uploaded and produced 12 word-level changes, 14 original highlights, and 15 revised highlights.
+- Next change changed the selected card and corresponding PDF highlight.
+- The filter menu exposed five working change-type filters; disabling Inserted reduced the visible list from 12 to 9.
+- Scroll lock toggled successfully.
+- The marked report PDF rendered cleanly with distinct red and blue side-specific regions.
+- Browser console errors checked: none.
+- Full automated suite: 49 files and 162 tests passed.
+
+final result: passed

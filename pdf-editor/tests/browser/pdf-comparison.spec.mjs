@@ -15,7 +15,7 @@ async function comparisonPdf(label, total) {
   return Buffer.from(await pdf.save());
 }
 
-test("compares two PDFs and downloads a marked report", async ({ page }) => {
+test("compares two PDFs word by word and downloads a marked report", async ({ page }) => {
   await page.goto(appPath("/compare-pdf"));
   const inputs = page.locator('input[type="file"]');
   await inputs.nth(0).setInputFiles({ name: "original.pdf", mimeType: "application/pdf", buffer: await comparisonPdf("Draft", "42000") });
@@ -23,11 +23,14 @@ test("compares two PDFs and downloads a marked report", async ({ page }) => {
   await expect(page.getByText("Both PDFs are ready")).toBeVisible();
   await page.getByRole("button", { name: "Compare PDFs" }).click();
   await expect(page.getByRole("heading", { name: "1 of 1 page changed" })).toBeVisible();
-  await expect(page.getByText(/similar · \+/)).toBeVisible();
-  await expect(page.getByText(/visual regions?/)).toBeVisible();
-  const regions = await page.locator(".comparison-change-region").count();
-  expect(regions).toBeGreaterThan(0);
-  expect(regions).toBeLessThanOrEqual(12);
+  await expect(page.getByText(/reviewable changes? found/)).toBeVisible();
+  await expect(page.getByRole("button", { name: /1\. Replaced/ })).toBeVisible();
+  const originalHighlights = await page.locator(".comparison-word-change.is-original").count();
+  const revisedHighlights = await page.locator(".comparison-word-change.is-revised").count();
+  expect(originalHighlights).toBeGreaterThan(0);
+  expect(revisedHighlights).toBeGreaterThan(0);
+  await page.getByRole("button", { name: "Next change", exact: true }).first().click();
+  await expect(page.locator(".comparison-change-card.is-selected")).toBeVisible();
   const pending = page.waitForEvent("download");
   await page.getByRole("button", { name: "Download report PDF" }).click();
   const download = await pending;
