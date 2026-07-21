@@ -31,7 +31,9 @@ async function drawShape(page, startRatio, endRatio) {
     bubbles: true,
   };
   await surface.dispatchEvent("pointerdown", start);
+  await page.waitForTimeout(50);
   await surface.dispatchEvent("pointermove", end);
+  await page.waitForTimeout(50);
   await surface.dispatchEvent("pointerup", { ...end, buttons: 0 });
 }
 
