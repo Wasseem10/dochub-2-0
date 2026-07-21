@@ -5,6 +5,7 @@ import { PublicLayout } from "../layouts/PublicLayout.jsx";
 import { NotFoundPage } from "../pages/errors/NotFoundPage.jsx";
 import { PublicPlaceholderPage } from "../pages/public/PublicPlaceholderPage.jsx";
 import { ComparePdfPage } from "../pages/public/ComparePdfPage.jsx";
+import { DocumentAnalysisPage } from "../pages/public/DocumentAnalysisPage.jsx";
 import { ToolDirectoryPage } from "../pages/public/ToolDirectoryPage.jsx";
 import { ImageConversionPage } from "../pages/public/ImageConversionPage.jsx";
 import { OfficeConversionPage } from "../pages/public/OfficeConversionPage.jsx";
@@ -61,6 +62,8 @@ const toolRouteObjects = TOOL_REGISTRY
         ? <ScanPdfPage tool={tool} />
       : ["rtf-to-pdf", "odt-to-pdf", "odp-to-pdf", "ods-to-pdf", "epub-to-pdf", "zip-to-pdf"].includes(tool.id)
         ? <OpenDocumentConversionPage tool={tool} />
+      : ["ai-pdf", "chat-with-pdf", "summarize-pdf", "translate-pdf", "extract-data-from-pdf", "ask-pdf", "ai-question-generator", "contract-analyzer", "resume-analyzer"].includes(tool.id)
+        ? <DocumentAnalysisPage tool={tool} />
       : ["compare-pdf", "document-version-comparison"].includes(tool.id)
         ? <ComparePdfPage tool={tool} />
       : tool.id === "ocr-pdf"
