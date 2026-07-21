@@ -14,27 +14,10 @@ async function chooseShape(page, name) {
 async function drawShape(page, startRatio, endRatio) {
   const surface = page.locator(".page-surface");
   const box = await surface.boundingBox();
-  const start = {
-    pointerId: 9,
-    pointerType: "mouse",
-    clientX: box.x + box.width * startRatio.x,
-    clientY: box.y + box.height * startRatio.y,
-    buttons: 1,
-    bubbles: true,
-  };
-  const end = {
-    pointerId: 9,
-    pointerType: "mouse",
-    clientX: box.x + box.width * endRatio.x,
-    clientY: box.y + box.height * endRatio.y,
-    buttons: 1,
-    bubbles: true,
-  };
-  await surface.dispatchEvent("pointerdown", start);
-  await page.waitForTimeout(50);
-  await surface.dispatchEvent("pointermove", end);
-  await page.waitForTimeout(50);
-  await surface.dispatchEvent("pointerup", { ...end, buttons: 0 });
+  await page.mouse.move(box.x + box.width * startRatio.x, box.y + box.height * startRatio.y);
+  await page.mouse.down();
+  await page.mouse.move(box.x + box.width * endRatio.x, box.y + box.height * endRatio.y, { steps: 4 });
+  await page.mouse.up();
 }
 
 test("Shapes toolbar draws arrow, line, circle, and rectangle into the exported PDF", async ({ page }) => {
@@ -47,19 +30,18 @@ test("Shapes toolbar draws arrow, line, circle, and rectangle into the exported 
   expect((await menu.getByRole("menuitem").allTextContents()).map((label) => label.trim())).toEqual(["Arrow", "Line", "Circle", "Rectangle"]);
   await menu.getByRole("menuitem", { name: "Arrow", exact: true }).click();
   await drawShape(page, { x: 0.12, y: 0.14 }, { x: 0.32, y: 0.23 });
+  await expect(page.locator(".annotation.line-box.arrow-line:not(.drafting)")).toHaveCount(1);
 
   await chooseShape(page, "Line");
   await drawShape(page, { x: 0.48, y: 0.14 }, { x: 0.72, y: 0.23 });
+  await expect(page.locator(".annotation.line-box:not(.arrow-line):not(.drafting)")).toHaveCount(1);
 
   await chooseShape(page, "Circle");
   await drawShape(page, { x: 0.12, y: 0.36 }, { x: 0.32, y: 0.52 });
+  await expect(page.locator(".annotation.shape.circle:not(.drafting)")).toHaveCount(1);
 
   await chooseShape(page, "Rectangle");
   await drawShape(page, { x: 0.48, y: 0.36 }, { x: 0.72, y: 0.52 });
-
-  await expect(page.locator(".annotation.line-box.arrow-line:not(.drafting)")).toHaveCount(1);
-  await expect(page.locator(".annotation.line-box:not(.arrow-line):not(.drafting)")).toHaveCount(1);
-  await expect(page.locator(".annotation.shape.circle:not(.drafting)")).toHaveCount(1);
   await expect(page.locator(".annotation.shape.rectangle:not(.drafting)")).toHaveCount(1);
 
   const pending = page.waitForEvent("download");
