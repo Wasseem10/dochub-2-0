@@ -198,6 +198,7 @@ function Dropzone({ choose, dragging, setDragging, isUploading, uploadError, upl
     <span className="freepdf-upload-icon"><Upload size={26} /></span>
     <h2>{dragging ? "Drop your PDF here" : isUploading ? "Opening your PDF…" : "Drop your PDF here"}</h2>
     <p>or choose a file from your device</p>
+    <img className="freepdf-drop-file-art" src={asset("hero-pdf-document-v1.png")} alt="" width="270" height="360" decoding="async" />
     <button type="button" onClick={choose} disabled={isUploading}>Choose a PDF</button>
     <small>PDF · Up to 50 MB · Maximum 500 pages</small>
     <div className="freepdf-upload-status" aria-live="polite">{uploadError ? <p role="alert">{uploadError}</p> : isUploading ? <><p>{uploadStage.status}{uploadStage.fileName ? ` · ${uploadStage.fileName}` : ""}</p><div role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow={uploadStage.percent || 0}><span style={{ width: `${uploadStage.percent || 0}%` }} /></div></> : null}</div>
@@ -255,25 +256,25 @@ export function LatticePdfLanding({ fileInputRef, onUpload, onSelectFiles, onDro
     <SiteHeader onChoose={choose} />
 
     <section className="freepdf-hero">
-      <div className="freepdf-hero-copy">
-        <span className="freepdf-eyebrow">More than just editing</span>
-        <h1>Every PDF task,<br />finally in one place.</h1>
-        <p>Edit, sign, organize, and convert your PDFs without subscriptions, watermarks, or a maze of different apps.</p>
-        <button type="button" className="freepdf-primary-button" onClick={choose}><Upload size={18} /> Choose a PDF</button>
-        <p className="freepdf-no-signup"><Check size={15} /> No signup. No watermark. No surprises.</p>
-      </div>
+      <div className="freepdf-hero-backdrop" aria-hidden="true"><HomepageImage fileName="hero-open-horizon-v1.png" alt="" width="1661" height="947" sizes="100vw" eager /></div>
+      <div className="freepdf-hero-layout">
+        <div className="freepdf-hero-copy">
+          <span className="freepdf-eyebrow">More than just editing</span>
+          <h1>Every PDF task,<br />finally in one place.</h1>
+          <p>Edit, sign, organize, and convert your PDFs without subscriptions, watermarks, or a maze of different apps.</p>
+          <button type="button" className="freepdf-primary-button" onClick={choose}><Upload size={19} /> Choose a PDF</button>
+          <span className="freepdf-drop-hint">or drop a file here</span>
+          <section className="freepdf-trust-strip" aria-label="FixThatPDF promises">
+            <div><LockKeyhole size={22} /><span><strong>Private by design</strong>Your file stays private</span></div>
+            <div><ShieldCheck size={22} /><span><strong>No watermark</strong>Clean results, always</span></div>
+            <div><Clock3 size={22} /><span><strong>Start right away</strong>No account needed</span></div>
+          </section>
+        </div>
 
-      <div className="freepdf-product-stage">
-        <HomepageImage fileName="hero-product-stage.png" alt="FixThatPDF browser workspace for editing, organizing, signing, and converting PDF documents" width="1821" height="864" sizes="(max-width: 720px) 100vw, 1240px" eager />
-        <Dropzone choose={choose} dragging={dragging} setDragging={setDragging} isUploading={isUploading} uploadError={uploadError} uploadStage={uploadStage} onDropFiles={onDropFiles} onUpload={onUpload} />
+        <div className="freepdf-product-stage">
+          <Dropzone choose={choose} dragging={dragging} setDragging={setDragging} isUploading={isUploading} uploadError={uploadError} uploadStage={uploadStage} onDropFiles={onDropFiles} onUpload={onUpload} />
+        </div>
       </div>
-    </section>
-
-    <section className="freepdf-trust-strip" aria-label="FixThatPDF promises">
-      <div><LockKeyhole size={21} /><span><strong>Private by design</strong>Browser processing where supported</span></div>
-      <div><ShieldCheck size={21} /><span><strong>No watermark</strong>Your finished file stays yours</span></div>
-      <div><FileText size={21} /><span><strong>All the essentials</strong>Edit, organize, sign, and convert</span></div>
-      <div><Clock3 size={21} /><span><strong>Start right away</strong>No account needed for core tools</span></div>
     </section>
 
     <section className="freepdf-task-section" aria-labelledby="task-lanes-title">

@@ -1,42 +1,41 @@
-# Landing Header Design QA
+# Open Horizon Hero Design QA
 
-- Source visual truth: `/var/folders/y5/5nxfxhk97_9fmsmdf8tqj81r0000gn/T/TemporaryItems/NSIRD_screencaptureui_HHSLAq/Screenshot 2026-07-21 at 10.51.56 PM.png`
-- Implementation screenshot: `/tmp/fixthatpdf-header-aligned-playwright.png`
-- Combined comparison evidence: `/tmp/fixthatpdf-header-alignment-comparison.png`
-- Desktop viewport: 1584 × 178
+- Source visual truth: `/Users/wasseemdabbas/.codex/generated_images/019f7d99-682c-7551-8036-1bae63d2a1df/exec-d9249e38-30a1-4cae-a267-a1e545721678.png`
+- Desktop implementation screenshot: `/tmp/fixthatpdf-open-horizon-pass3.png`
+- Mobile implementation screenshot: `/tmp/fixthatpdf-open-horizon-mobile.png`
+- Full comparison evidence: `/tmp/fixthatpdf-open-horizon-comparison.png`
+- Focused comparison evidence: `/tmp/fixthatpdf-open-horizon-focused.png`
+- Desktop viewport: 1440 × 1024
+- Tablet viewport: 768 × 1024
 - Mobile viewport: 390 × 844
-- State: landing-page header at rest; Tools menu open and closed
-- Primary interactions tested: Tools opens by click, closes with Escape, and returns focus to its trigger; mobile navigation opens, closes with Escape, and returns focus to its trigger
+- State: landing hero at rest; desktop Tools menu and mobile navigation exercised
 - Browser console errors: none
 
 ## Full-view comparison evidence
 
-The combined comparison places the supplied header directly above the rendered FixThatPDF header. It shows the requested correction without changing the hero or header information architecture: Tools, Edit, Organize, Sign, and Convert now use the same height and vertical centerline.
+The source and implementation were normalized to the same 1440 × 1024 frame and placed side by side. The implementation preserves the selected direction: white FixThatPDF header, airy blue-white horizon, left-aligned two-line promise, primary upload action, three trust points, and a large functional upload workspace on the right.
 
 ## Focused region comparison evidence
 
-The source and implementation are both captured at 1584 × 178 so the navigation baseline, header border, button height, and beginning of the hero can be compared without scaling. Browser geometry confirms each of the five desktop navigation controls has `top: 15px`, `height: 38px`, and a `34px` vertical center.
+The focused comparison crops both designs to the complete hero region. It confirms the selected visual hierarchy and proportions without the page below affecting judgment. The coded hero uses original generated background and PDF-document assets instead of CSS artwork or placeholder boxes.
 
 ## Required fidelity surfaces
 
-- Fonts and typography: The existing product typefaces, weights, and label sizes are unchanged. A consistent unit line-height prevents the Tools label from drifting below adjacent links.
-- Spacing and layout rhythm: All five center navigation items use a shared 38px inline-flex control with centered content, 11px horizontal padding, 10px corner radius, and a compact 4px group gap.
-- Colors and visual tokens: Existing FixThatPDF white, cobalt, and slate tokens are retained. The only additions are a restrained pale-blue hover surface and a subtle header shadow.
-- Copy and content: No navigation labels, routes, hero copy, or calls to action were changed.
-- Accessibility and behavior: The Tools trigger keeps its button semantics and expanded state. Escape closes both desktop and mobile menus and returns keyboard focus to the relevant trigger.
-- Responsive behavior: At 390px the desktop navigation remains hidden, the mobile navigation toggle remains visible, and the document width equals the viewport width with no horizontal overflow.
+- Fonts and typography: The existing DM Sans and Caveat product typefaces are retained. The headline is a stable two-line lockup at desktop size, with matching medium weight, tight display tracking, and a readable 1.01 line height.
+- Spacing and layout: The 1280px desktop grid uses a 590px copy column, 48px gap, and 642px upload workspace. Browser geometry measured the final upload panel at 642 × 520 and confirmed the hero ends at 899px, closely matching the selected direction.
+- Colors and tokens: The existing cobalt action color is preserved while the hero adopts the selected white, powder-blue, and distant-horizon palette. Text contrast remains strong on the generated image.
+- Image quality: The responsive hero background is served as 640px and 1200px WebP sources with a PNG fallback. The PDF illustration is a transparent PNG sized for the panel without scaling halos or masking artifacts.
+- Copy and content: The approved homepage promise is preserved. Upload guidance is concise, and the trust points reinforce privacy, watermark-free output, and immediate use.
+- Icons: Existing Lucide upload, lock, shield, clock, grid, and navigation icons remain aligned to the product icon system. The decorative document artwork is an image asset, not custom SVG or CSS art.
+- States and interactions: The real PDF input and drag-and-drop target remain connected. Tools opens on click, closes on Escape, and restores focus to the trigger. Mobile navigation opens, focuses its first link, and closes on Escape.
+- Accessibility: The primary actions remain semantic buttons with visible focus styling. The upload region keeps its accessible label, decorative imagery has empty alt text, and the page has no horizontal overflow.
+- Responsiveness: At 768px and 390px the hero stacks cleanly, the CTA becomes full-width on mobile, the upload panel remains usable, and `scrollWidth` equals `innerWidth`.
 
-## Findings
+## Findings and comparison history
 
-- No remaining P0, P1, or P2 issues.
-- The original mismatch was caused by the desktop navigation flex container stretching link items while the Tools button centered its own contents.
-- Scope remained limited to the landing header navigation CSS; the hero and all page sections are unchanged.
-
-## Comparison history
-
-1. Initial reference inspection found one P2 alignment issue: Tools used centered button content while adjacent links stretched in the navigation row and rendered on a different baseline.
-2. The navigation row was changed to center its children, and every desktop navigation item now shares the same inline-flex geometry.
-3. Post-fix evidence confirms equal `15px` top positions, `38px` heights, and `34px` vertical centers across all five items, plus working desktop and mobile menu interactions with zero console errors.
+1. Initial coded pass had one P2 typography/layout issue: the headline wrapped to three lines and the copy/upload columns drifted from the source. The desktop grid was widened to 1280px, the copy column was fixed at 590px, and the display size was tuned to keep the intended two-line lockup.
+2. The second pass had one P2 vertical-rhythm issue: the upload panel and hero ending sat about 35–40px above the source, compressing the CTA and trust-point spacing. Desktop hero height, panel offset, and section margins were adjusted to match the selected frame.
+3. Final desktop, tablet, and mobile passes show no remaining P0, P1, or P2 issues. Navigation interactions work, the console has no errors, and all tested viewports have zero horizontal overflow.
 
 ## Follow-up polish
 
