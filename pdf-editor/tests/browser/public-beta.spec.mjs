@@ -116,7 +116,7 @@ test("tool guides stay centered and readable on wide screens", async ({ page }) 
     expect(layout.width).toBeLessThanOrEqual(360.5);
     expect(Math.abs(layout.left - layout.rightGap)).toBeLessThanOrEqual(1);
     expect(layout.cardWidth).toBeLessThanOrEqual(layout.width);
-    expect(layout.scrollWidth).toBeLessThanOrEqual(390);
+    expect(layout.scrollWidth, `${route} should not overflow the 390px viewport`).toBeLessThanOrEqual(390);
   }
 });
 

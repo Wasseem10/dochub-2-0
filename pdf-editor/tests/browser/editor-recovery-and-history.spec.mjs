@@ -40,7 +40,7 @@ test("existing-text edits undo, redo, autosave, survive reload, and export", asy
   await detected.click();
   const content = detected.locator(".detected-text-content");
   await content.fill("UPDATED ACCOUNT TOTAL 42000");
-  await expect(page.getByText("Unsaved changes").first()).toBeVisible();
+  await expect(page.locator(".reference-save-state")).toContainText("Unsaved changes");
   await page.getByRole("button", { name: "Download", exact: true }).focus();
 
   const undo = page.getByRole("button", { name: "Undo", exact: true });
@@ -52,8 +52,8 @@ test("existing-text edits undo, redo, autosave, survive reload, and export", asy
   await redo.click();
   await expect(page.locator(".detected-text-item").filter({ hasText: "UPDATED ACCOUNT TOTAL 42000" })).toBeVisible();
 
-  await expect(page.getByText("Unsaved changes").first()).toBeVisible();
-  await expect(page.getByText("Saved in this browser").first()).toBeVisible({ timeout: 5_000 });
+  await expect(page.locator(".reference-save-state")).toContainText("Unsaved changes");
+  await expect(page.locator(".reference-save-state")).toContainText("Saved in this browser", { timeout: 5_000 });
   const editorUrl = page.url();
   await page.reload();
   await expect(page).toHaveURL(editorUrl);

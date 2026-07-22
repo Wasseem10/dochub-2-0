@@ -199,7 +199,7 @@
 .marketing-footer-tools a { color: var(--public-body); font-size: 13px; line-height: 1.35; text-decoration: none; }
 .marketing-footer-tools a:hover { color: var(--public-green); }
 .marketing-footer-bottom { display: flex; justify-content: space-between; gap: 24px; padding-top: 24px; border-top: 1px solid var(--public-line); color: var(--public-muted); font-size: 13px; }
-.marketing-footer-bottom nav { display: flex; gap: 18px; }
+.marketing-footer-bottom nav { display: flex; flex-wrap: wrap; gap: 18px; }
 .marketing-footer-bottom a { color: inherit; text-decoration: none; }
 
 .public-eyebrow {
