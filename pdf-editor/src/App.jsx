@@ -114,7 +114,7 @@ import { canSaveEditorSignature } from "./tools/editorSignature.js";
 import { duplicateEditorPageState, rotateEditorPageRecord } from "./tools/editorPageOrganizer.js";
 import { applyNativePdfFormAnnotation, createEditorExportDocument } from "./tools/pdfEditorPageExport.js";
 import { sanitizeReplacedPdfBytes } from "./tools/pdfExportSanitizer.js";
-import { closePdfPrintTarget, createPdfPrintTarget, sendPdfToPrint } from "./tools/pdfPrint.js";
+import { closePdfPrintTarget, createPdfPrintTarget, renderPdfDocumentForPrint } from "./tools/pdfPrint.js";
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
   "pdfjs-dist/build/pdf.worker.mjs",
@@ -4277,8 +4277,15 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       closePdfPrintTarget(printTarget);
       return;
     }
-    sendPdfToPrint(printTarget, exported.blob);
-    showToast("Your edited PDF is opening in the print preview.");
+    try {
+      const printableDocument = await pdfjsLib.getDocument({ data: exported.bytes.slice(0) }).promise;
+      await renderPdfDocumentForPrint(printTarget, printableDocument);
+      showToast("The PDF was sent to your printer dialog.");
+    } catch (error) {
+      closePdfPrintTarget(printTarget);
+      console.error("PDF print preparation failed", error);
+      showToast("Print preparation failed. Download the PDF and try again.");
+    }
   };
 
   const retryPdfPage = (targetIndex) => {
