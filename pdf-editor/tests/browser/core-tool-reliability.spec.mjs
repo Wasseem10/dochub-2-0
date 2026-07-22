@@ -29,6 +29,18 @@ async function imageHeavyPdf() {
   return Buffer.from(await document.save({ useObjectStreams: false }));
 }
 
+async function structuredPdf() {
+  const document = await PDFDocument.create();
+  const font = await document.embedFont(StandardFonts.Helvetica);
+  const page = document.addPage([612, 792]);
+  page.drawText("SEARCHABLE INVOICE 42000", { x: 72, y: 700, size: 20, font });
+  for (let index = 0; index < 80; index += 1) page.drawText(`Structured row ${index + 1}`, { x: 72, y: 670 - index * 7, size: 6, font });
+  const field = document.getForm().createTextField("invoice.customer");
+  field.setText("Acme Incorporated");
+  field.addToPage(page, { x: 72, y: 80, width: 220, height: 28 });
+  return Buffer.from(await document.save({ useObjectStreams: false }));
+}
+
 async function downloadBytes(page, buttonName) {
   const pending = page.waitForEvent("download");
   await page.getByRole("button", { name: buttonName }).click();
@@ -65,11 +77,27 @@ test("compression creates a smaller valid visual PDF", async ({ page }, testInfo
   await page.goto(appPath("/compress-pdf"));
   await page.locator('input[type="file"]').setInputFiles({ name: "image-heavy.pdf", mimeType: "application/pdf", buffer: source });
   await expect(page.getByText("1 page ready")).toBeVisible();
-  await page.getByLabel("Compression level").selectOption("strong");
+  await page.getByLabel("Compression level").selectOption("maximum");
   const compressed = await downloadBytes(page, "Download compressed PDF");
   expect(compressed.download.suggestedFilename()).toBe("image-heavy-compressed.pdf");
   expect(compressed.bytes.length).toBeLessThan(source.length);
   expect((await PDFDocument.load(compressed.bytes)).getPageCount()).toBe(1);
+});
+
+test("balanced compression preserves searchable text and form fields", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "desktop-chromium", "Structure-preserving compression is validated once in Chromium.");
+  test.setTimeout(90_000);
+  const source = await structuredPdf();
+  await page.goto(appPath("/compress-pdf"));
+  await page.locator('input[type="file"]').setInputFiles({ name: "structured.pdf", mimeType: "application/pdf", buffer: source });
+  await page.getByLabel("Compression level").selectOption("balanced");
+  const compressed = await downloadBytes(page, "Download compressed PDF");
+  expect(compressed.bytes.length).toBeLessThan(source.length);
+  const parsed = await PDFDocument.load(compressed.bytes);
+  expect(parsed.getForm().getFields().map((field) => field.getName())).toContain("invoice.customer");
+  const rendered = await pdfjsLib.getDocument({ data: compressed.bytes.slice(0), disableWorker: true, verbosity: 0 }).promise;
+  const content = await (await rendered.getPage(1)).getTextContent();
+  expect(content.items.map((item) => item.str).join(" ")).toContain("SEARCHABLE INVOICE 42000");
 });
 
 test("PDF to Word and Word to PDF produce valid searchable documents", async ({ page }, testInfo) => {

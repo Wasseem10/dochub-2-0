@@ -139,9 +139,9 @@ describe("public PDF tool platform", () => {
   it("renders complete browser workspaces for Office conversions", async () => {
     const toWord = await render(<OfficeConversionPage tool={TOOL_BY_ID.get("pdf-to-word")} />);
     expect(toWord.root.findAllByType("input").some((input) => input.props.type === "file" && input.props.accept.includes("application/pdf"))).toBe(true);
-    expect(toWord.root.findAllByType("option").map((option) => textOf(option))).toEqual(["Editable text", "Visual fidelity"]);
-    expect(textOf(toWord.root).includes("page breaks, indentation, vertical spacing")).toBe(true);
-    expect(textOf(toWord.root).includes("Why is scanned text missing?")).toBe(true);
+    expect(toWord.root.findAllByType("option").map((option) => textOf(option))).toEqual(["Editable layout", "Scanned PDF — editable OCR", "Visual fidelity"]);
+    expect(textOf(toWord.root).includes("tab-aligned columns and table rows")).toBe(true);
+    expect(textOf(toWord.root).includes("Can I convert a scanned PDF?")).toBe(true);
     await unmount(toWord);
 
     const toPdf = await render(<OfficeConversionPage tool={TOOL_BY_ID.get("word-to-pdf")} />);
@@ -298,9 +298,9 @@ describe("public PDF tool platform", () => {
     await unmount(crop);
 
     const compress = await render(<PdfPageToolPage tool={TOOL_BY_ID.get("compress-pdf")} />);
-    expect(textOf(compress.root).includes("Make image-heavy PDFs lighter")).toBe(true);
+    expect(textOf(compress.root).includes("Make PDFs lighter")).toBe(true);
     expect(textOf(compress.root).includes("Download compressed PDF")).toBe(true);
-    expect(textOf(compress.root).includes("Why can’t I select text afterward?")).toBe(true);
+    expect(textOf(compress.root).includes("Will compression keep text and forms?")).toBe(true);
     await unmount(compress);
   });
 

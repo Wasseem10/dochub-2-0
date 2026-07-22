@@ -6,6 +6,8 @@ import {
   PageBreak,
   Packer,
   Paragraph,
+  Tab,
+  TabStopType,
   TextRun,
 } from "docx";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
@@ -87,6 +89,9 @@ export function groupPdfTextItems(items = [], styles = {}) {
           && !/^[,.;:!?%)/’”]/.test(value);
         segments.push({
           text: `${needsSpace ? " " : ""}${value}`,
+          x: item.x,
+          width: Number(item.width || 0),
+          gapBefore: index > 0 ? Math.max(0, Number(item.x || 0) - previousEnd) : 0,
           fontSize: item.fontSize,
           fontFamily: item.fontFamily,
           bold: item.bold,
@@ -105,6 +110,24 @@ export function groupPdfTextItems(items = [], styles = {}) {
       };
     })
     .filter((line) => line.text);
+}
+
+export function groupOcrWordsIntoLines(words = [], imageWidth, imageHeight, pageWidth = 612, pageHeight = 792) {
+  const safeImageWidth = Math.max(1, Number(imageWidth) || 1);
+  const safeImageHeight = Math.max(1, Number(imageHeight) || 1);
+  return groupPdfTextItems(words.map((word) => {
+    const bbox = word?.bbox || {};
+    const x = Number(bbox.x0 || 0) / safeImageWidth * pageWidth;
+    const top = Number(bbox.y0 || 0) / safeImageHeight * pageHeight;
+    const width = Math.max(1, (Number(bbox.x1 || 0) - Number(bbox.x0 || 0)) / safeImageWidth * pageWidth);
+    const height = Math.max(6, (Number(bbox.y1 || 0) - Number(bbox.y0 || 0)) / safeImageHeight * pageHeight);
+    return {
+      str: String(word?.text || ""),
+      transform: [1, 0, 0, height, x, pageHeight - top - height],
+      width,
+      height,
+    };
+  }));
 }
 
 function docxPageBreak() {
@@ -135,17 +158,29 @@ function editablePageParagraphs(page, pageIndex, baseFontSize) {
     const leftIndent = Math.round(Math.max(0, Math.min(0.78, Number(line.x || 0) / pageWidth)) * 10080);
     const centered = Math.abs((Number(line.x || 0) + Number(line.width || 0) / 2) - pageWidth / 2) < pageWidth * 0.045
       && Number(line.width || 0) < pageWidth * 0.82;
-    const runs = (line.segments?.length ? line.segments : [{ text: line.text, fontSize: line.fontSize }]).map((segment) => new TextRun({
-      text: segment.text,
-      size: Math.round(Math.max(8, Math.min(36, Number(segment.fontSize || line.fontSize || 11))) * 2),
-      font: safeWordFont(segment.fontFamily),
-      bold: heading || Boolean(segment.bold),
-      italics: Boolean(segment.italic),
+    const sourceSegments = line.segments?.length ? line.segments : [{ text: line.text, fontSize: line.fontSize }];
+    const tabbedSegments = sourceSegments.map((segment, index) => ({
+      ...segment,
+      useTab: index > 0 && Number(segment.gapBefore || 0) > Math.max(12, Number(segment.fontSize || line.fontSize || 11) * 1.6),
     }));
+    const runs = tabbedSegments.flatMap((segment) => [
+      ...(segment.useTab ? [new TextRun({ children: [new Tab()] })] : []),
+      new TextRun({
+        text: segment.useTab ? String(segment.text || "").trimStart() : segment.text,
+        size: Math.round(Math.max(8, Math.min(36, Number(segment.fontSize || line.fontSize || 11))) * 2),
+        font: safeWordFont(segment.fontFamily),
+        bold: heading || Boolean(segment.bold),
+        italics: Boolean(segment.italic),
+      }),
+    ]);
+    const tabStops = tabbedSegments
+      .filter((segment) => segment.useTab)
+      .map((segment) => ({ type: TabStopType.LEFT, position: Math.round(Math.max(0, Math.min(pageWidth, Number(segment.x || 0))) / pageWidth * 10080) }));
     children.push(new Paragraph({
       heading: heading ? HeadingLevel.HEADING_1 : undefined,
       alignment: centered ? AlignmentType.CENTER : undefined,
       indent: centered ? undefined : { left: leftIndent },
+      tabStops: centered || !tabStops.length ? undefined : tabStops,
       spacing: { before: Math.min(720, Math.round(verticalGap * 20)), after: heading ? 80 : 20, line: 276 },
       children: runs,
     }));

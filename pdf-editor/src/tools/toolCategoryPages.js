@@ -21,9 +21,9 @@ const categorySeoContent = Object.freeze({
   compress: {
     slug: "compress-pdf-tools",
     seoTitle: "Compress PDF Online | FixThatPDF",
-    metaDescription: "Reduce image-heavy PDF file size in your browser with an honest explanation of quality and text tradeoffs.",
-    headline: "Make an image-heavy PDF easier to send.",
-    intro: "Compression can shrink scans and image-based documents, but stronger compression trades detail for size and may flatten searchable text, links, forms, and layers.",
+    metaDescription: "Reduce PDF file size in your browser while preserving text, links, forms, vectors, and document structure.",
+    headline: "Make a PDF easier to send without losing its features.",
+    intro: "Balanced compression compacts the original PDF structure. Maximum compression is an optional flattened fallback for image-heavy files when the smallest visual copy matters most.",
     guidance: ["Start with balanced quality before choosing a stronger setting.", "Compare the downloaded size with the original before sharing.", "Check small text and detailed images at 100% zoom."],
   },
   "from-pdf": {

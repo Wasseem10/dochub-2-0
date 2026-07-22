@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { PDFDocument } from "pdf-lib";
 import * as pdfjsLib from "pdfjs-dist/legacy/build/pdf.mjs";
+import { strFromU8, unzipSync } from "fflate";
 import {
   createDocxFromPdfPages,
   createPdfFromRenderedDocxPages,
+  groupOcrWordsIntoLines,
   groupPdfTextItems,
   validateOfficeConversionFile,
 } from "../../src/tools/officeConversion.js";
@@ -30,6 +32,27 @@ describe("Office conversion primitives", () => {
     ]);
     expect(lines.map((line) => line.text)).toEqual(["Hello world", "Second line"]);
     expect(lines[0]).toMatchObject({ x: 10, y: 100, width: 60 });
+  });
+
+  it("maps OCR words back into editable page coordinates", () => {
+    const lines = groupOcrWordsIntoLines([
+      { text: "Scanned", bbox: { x0: 100, y0: 200, x1: 250, y1: 240 } },
+      { text: "text", bbox: { x0: 270, y0: 200, x1: 340, y1: 240 } },
+    ], 1000, 1200, 500, 600);
+    expect(lines).toHaveLength(1);
+    expect(lines[0].text).toBe("Scanned text");
+    expect(lines[0].x).toBe(50);
+  });
+
+  it("uses editable tab stops for widely separated table cells", async () => {
+    const lines = groupPdfTextItems([
+      { str: "Item", transform: [1, 0, 0, 11, 50, 700], width: 30, height: 11 },
+      { str: "Amount", transform: [1, 0, 0, 11, 350, 700], width: 45, height: 11 },
+    ]);
+    const bytes = await createDocxFromPdfPages([{ lines, pageWidth: 612, pageHeight: 792 }], { mode: "editable" });
+    const documentXml = strFromU8(unzipSync(bytes)["word/document.xml"]);
+    expect(documentXml).toContain("<w:tab/>");
+    expect(documentXml).toContain("<w:tabs>");
   });
 
   it("creates a real editable DOCX package", async () => {

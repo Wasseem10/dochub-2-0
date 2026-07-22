@@ -17,7 +17,7 @@ import { PageMetadata } from "../../components/public/PageMetadata.jsx";
 import { ToolGuideContent } from "../../components/public/ToolGuideContent.jsx";
 import { ROUTE_PATHS } from "../../router/routePaths.js";
 import { createStoredZip } from "../../tools/imageConversion.js";
-import { createCompressedPdfFromJpegs } from "../../tools/pdfCompression.js";
+import { compressPdfPreservingStructure, createCompressedPdfFromJpegs } from "../../tools/pdfCompression.js";
 import { cropPdfPages } from "../../tools/pdfCrop.js";
 import { addPageNumbersToPdf, buildPdfFromPagePlan, extractPdfPages, inspectPdfBytes, mergePdfDocuments, PAGE_TOOL_LIMITS, parsePageRanges, splitPdfByRanges } from "../../tools/pdfPageOperations.js";
 import { addWatermarkToPdf } from "../../tools/pdfWatermark.js";
@@ -319,7 +319,11 @@ function CompressWorkspace({ tool }) {
   const [progress, setProgress] = useState(0);
   const [resultSize, setResultSize] = useState(0);
   const [error, setError] = useState("");
-  const options = { strong: { scale: 0.85, quality: 0.48, label: "Strong" }, balanced: { scale: 1.1, quality: 0.65, label: "Balanced" }, quality: { scale: 1.35, quality: 0.8, label: "Better quality" } };
+  const options = {
+    balanced: { label: "Balanced — preserve PDF features", structurePreserving: true },
+    lossless: { label: "Preserve quality — lossless cleanup", structurePreserving: true },
+    maximum: { label: "Maximum — flatten pages", scale: 0.85, quality: 0.48, structurePreserving: false },
+  };
 
   const loadPdf = async (fileList) => {
     const nextFile = Array.from(fileList || [])[0];
@@ -344,32 +348,67 @@ function CompressWorkspace({ tool }) {
     const operation = beginToolOperation(tool.id, { operation: "compress", slowAfterMs: 15000 });
     try {
       const config = options[preset];
-      const pdfjsLib = await loadPdfRenderer();
-      const source = await pdfjsLib.getDocument({ data: sourceBytes.slice(0) }).promise;
-      const pages = [];
-      for (let pageNumber = 1; pageNumber <= source.numPages; pageNumber += 1) {
-        const page = await source.getPage(pageNumber);
-        const outputViewport = page.getViewport({ scale: 1 });
-        const renderViewport = page.getViewport({ scale: config.scale });
-        const canvas = document.createElement("canvas");
-        canvas.width = Math.max(1, Math.round(renderViewport.width));
-        canvas.height = Math.max(1, Math.round(renderViewport.height));
-        await page.render({ canvasContext: canvas.getContext("2d"), viewport: renderViewport }).promise;
-        const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", config.quality));
-        if (!blob) throw new Error("A page could not be prepared for compression.");
-        pages.push({ jpegBytes: new Uint8Array(await blob.arrayBuffer()), width: outputViewport.width, height: outputViewport.height });
-        setProgress(Math.round((pageNumber / source.numPages) * 100));
+      let output;
+      if (config.structurePreserving) {
+        setProgress(25);
+        output = await compressPdfPreservingStructure(sourceBytes.slice(0), preset);
+        setProgress(100);
+      } else {
+        const pdfjsLib = await loadPdfRenderer();
+        const source = await pdfjsLib.getDocument({ data: sourceBytes.slice(0) }).promise;
+        const pages = [];
+        for (let pageNumber = 1; pageNumber <= source.numPages; pageNumber += 1) {
+          const page = await source.getPage(pageNumber);
+          const outputViewport = page.getViewport({ scale: 1 });
+          const renderViewport = page.getViewport({ scale: config.scale });
+          const canvas = document.createElement("canvas");
+          canvas.width = Math.max(1, Math.round(renderViewport.width));
+          canvas.height = Math.max(1, Math.round(renderViewport.height));
+          await page.render({ canvasContext: canvas.getContext("2d"), viewport: renderViewport }).promise;
+          const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", config.quality));
+          if (!blob) throw new Error("A page could not be prepared for compression.");
+          pages.push({ jpegBytes: new Uint8Array(await blob.arrayBuffer()), width: outputViewport.width, height: outputViewport.height });
+          setProgress(Math.round((pageNumber / source.numPages) * 100));
+        }
+        await source.destroy?.();
+        output = await createCompressedPdfFromJpegs(pages);
       }
-      await source.destroy?.();
-      const output = await createCompressedPdfFromJpegs(pages);
-      if (output.length >= sourceBytes.length) throw new Error("These settings did not make the PDF smaller. Choose Strong compression or keep the original PDF.");
+      if (output.length >= sourceBytes.length) throw new Error(config.structurePreserving
+        ? "This PDF is already optimized with its features intact. Try Maximum compression only if a flattened visual copy is acceptable."
+        : "This PDF is already as small as the Maximum compression result. Keep the original PDF.");
       downloadBytes(output, "application/pdf", `${file.name.replace(/\.pdf$/i, "") || "document"}-compressed.pdf`);
       operation.succeed({ result: preset, pageCountBucket: pageCountBucket(pageCount) });
       setResultSize(output.length); setStatus("complete");
-    } catch (compressionError) { operation.fail("pdf_processing", { result: preset }); setError(friendlyPdfError(compressionError)); setStatus("idle"); }
+    } catch (compressionError) {
+      operation.fail("pdf_processing", { result: preset });
+      const message = String(compressionError?.message || "");
+      setError(message.startsWith("This PDF is already") ? message : friendlyPdfError(compressionError));
+      setStatus("idle");
+    }
   };
 
-  return <div className="conversion-workspace-grid"><section><PdfDropzone multiple={false} label="Drop a PDF to compress" onFiles={loadPdf} disabled={status === "reading" || status === "working"} />{status === "reading" && <div className="conversion-progress"><LoaderCircle className="is-spinning" size={18} /> Reading PDF...</div>}{status === "working" && <div className="conversion-progress"><LoaderCircle className="is-spinning" size={18} /> Compressing pages... {progress}%</div>}{error && <div className="conversion-error" role="alert">{error}</div>}{file && <article className="page-number-file-card"><strong>{file.name}</strong><small>{pageCount} page{pageCount === 1 ? "" : "s"} · {formatBytes(file.size)}</small></article>}</section><aside className="conversion-settings-card"><span>Compression settings</span><h2>Make image-heavy PDFs lighter</h2><p className="page-tool-help">This privacy-first workflow runs locally. It creates a smaller visual PDF by flattening pages to JPEG images, so searchable text, links, forms, and layers are not retained.</p><label>Compression level<select value={preset} onChange={(event) => setPreset(event.target.value)}>{Object.entries(options).map(([key, option]) => <option key={key} value={key}>{option.label}</option>)}</select></label><div className="conversion-summary"><Check size={18} /><span>{!file ? "Upload a PDF to continue" : resultSize ? `${formatBytes(file.size)} → ${formatBytes(resultSize)}` : `${pageCount} page${pageCount === 1 ? "" : "s"} ready`}</span></div><button className="conversion-primary-action" type="button" disabled={!file || status === "working" || status === "reading"} onClick={compressPdf}>{status === "working" ? <><LoaderCircle className="is-spinning" size={18} /> Compressing...</> : <><Download size={18} /> Download compressed PDF</>}</button>{status === "complete" && <ExportSuccessState toolId={tool.id} onDownloadAgain={compressPdf} onStartAnother={() => { setFile(null); setSourceBytes(null); setPageCount(0); setResultSize(0); setStatus("idle"); }} relatedRoute="/organize-pdf" relatedName="Organize PDF" />}</aside></div>;
+  const preservesStructure = options[preset].structurePreserving;
+  return (
+    <div className="conversion-workspace-grid">
+      <section>
+        <PdfDropzone multiple={false} label="Drop a PDF to compress" onFiles={loadPdf} disabled={status === "reading" || status === "working"} />
+        {status === "reading" && <div className="conversion-progress"><LoaderCircle className="is-spinning" size={18} /> Reading PDF...</div>}
+        {status === "working" && <div className="conversion-progress"><LoaderCircle className="is-spinning" size={18} /> Compressing PDF... {progress}%</div>}
+        {error && <div className="conversion-error" role="alert">{error}</div>}
+        {file && <article className="page-number-file-card"><strong>{file.name}</strong><small>{pageCount} page{pageCount === 1 ? "" : "s"} · {formatBytes(file.size)}</small></article>}
+      </section>
+      <aside className="conversion-settings-card">
+        <span>Compression settings</span>
+        <h2>Make PDFs lighter</h2>
+        <p className="page-tool-help">Balanced and Preserve quality keep selectable text, links, form fields, vectors, and page structure. Maximum can shrink image-heavy files further by flattening every page.</p>
+        <label>Compression level<select value={preset} onChange={(event) => setPreset(event.target.value)}>{Object.entries(options).map(([key, option]) => <option key={key} value={key}>{option.label}</option>)}</select></label>
+        <div className="office-mode-note"><strong>{preservesStructure ? "Document features stay intact" : "Smallest visual copy"}</strong><p>{preservesStructure ? "Your PDF is rewritten without turning its pages into pictures. Existing digital signatures should be revalidated after any PDF compression." : "Maximum compression removes searchable text, links, forms, layers, and accessibility structure. Use it only when file size matters more than editing or searching."}</p></div>
+        <div className="conversion-summary"><Check size={18} /><span>{!file ? "Upload a PDF to continue" : resultSize ? `${formatBytes(file.size)} → ${formatBytes(resultSize)}` : `${pageCount} page${pageCount === 1 ? "" : "s"} ready`}</span></div>
+        <button className="conversion-primary-action" type="button" disabled={!file || status === "working" || status === "reading"} onClick={compressPdf}>{status === "working" ? <><LoaderCircle className="is-spinning" size={18} /> Compressing...</> : <><Download size={18} /> Download compressed PDF</>}</button>
+        {status === "complete" && <ExportSuccessState toolId={tool.id} onDownloadAgain={compressPdf} onStartAnother={() => { setFile(null); setSourceBytes(null); setPageCount(0); setResultSize(0); setStatus("idle"); }} relatedRoute="/organize-pdf" relatedName="Organize PDF" />}
+      </aside>
+    </div>
+  );
 }
 
 function SinglePdfWorkspace({ tool }) {

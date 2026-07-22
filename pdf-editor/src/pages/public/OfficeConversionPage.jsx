@@ -14,9 +14,11 @@ import {
   createDocxFromPdfPages,
   createPdfFromRenderedDocxPages,
   groupPdfTextItems,
+  groupOcrWordsIntoLines,
   OFFICE_CONVERSION_LIMITS,
   validateOfficeConversionFile,
 } from "../../tools/officeConversion.js";
+import { flattenOcrWords, OCR_LANGUAGES, ocrRenderScaleForPage } from "../../tools/ocrPdf.js";
 
 async function loadPdfRenderer() {
   const pdfjsLib = await import("pdfjs-dist");
@@ -116,6 +118,7 @@ function PdfToWordWorkspace({ tool }) {
   const [pdfDocument, setPdfDocument] = useState(null);
   const [pages, setPages] = useState([]);
   const [mode, setMode] = useState("editable");
+  const [ocrLanguage, setOcrLanguage] = useState("eng");
   const [status, setStatus] = useState("idle");
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState("");
@@ -164,6 +167,7 @@ function PdfToWordWorkspace({ tool }) {
       setFile(nextFile);
       setPdfDocument(documentProxy);
       setPages(pageRecords);
+      if (!pageRecords.some((page) => page.lines.length)) setMode("ocr");
       setStatus("idle");
     } catch (loadError) {
       trackUploadValidationFailure(tool.id, "invalid_pdf");
@@ -177,6 +181,10 @@ function PdfToWordWorkspace({ tool }) {
 
   const convert = async () => {
     if (!pdfDocument || !pages.length) return;
+    if (mode === "ocr" && pages.length > 24) {
+      setError("Editable OCR supports up to 24 pages at a time. Split this PDF first, or choose Visual fidelity.");
+      return;
+    }
     const textLineCount = pages.reduce((total, page) => total + page.lines.length, 0);
     if (mode === "editable" && !textLineCount) {
       setError("No selectable text was found. Use Visual fidelity for this scanned PDF, or run OCR first.");
@@ -186,6 +194,7 @@ function PdfToWordWorkspace({ tool }) {
     setProgress(0);
     setError("");
     const operation = beginToolOperation(tool.id, { operation: `convert_${mode}`, slowAfterMs: 15000 });
+    let ocrWorker;
     try {
       let conversionPages = pages;
       if (mode === "visual") {
@@ -201,6 +210,35 @@ function PdfToWordWorkspace({ tool }) {
           conversionPages.push({ ...pages[index], imageBytes: await canvasToPngBytes(canvas), width: viewport.width, height: viewport.height });
           setProgress(Math.round(((index + 1) / pages.length) * 75));
         }
+      } else if (mode === "ocr") {
+        const { createWorker } = await import("tesseract.js");
+        ocrWorker = await createWorker(ocrLanguage);
+        await ocrWorker.setParameters({ preserve_interword_spaces: "1", user_defined_dpi: "300" });
+        conversionPages = [];
+        for (let index = 0; index < pages.length; index += 1) {
+          if (pages[index].lines.length) {
+            conversionPages.push(pages[index]);
+          } else {
+            const page = await pdfDocument.getPage(index + 1);
+            const pageSize = page.getViewport({ scale: 1 });
+            const viewport = page.getViewport({ scale: ocrRenderScaleForPage(pageSize.width, pageSize.height) });
+            const canvas = document.createElement("canvas");
+            canvas.width = Math.max(1, Math.round(viewport.width));
+            canvas.height = Math.max(1, Math.round(viewport.height));
+            const context = canvas.getContext("2d", { alpha: false });
+            context.fillStyle = "#ffffff";
+            context.fillRect(0, 0, canvas.width, canvas.height);
+            await page.render({ canvasContext: context, viewport }).promise;
+            const recognition = await ocrWorker.recognize(canvas, { rotateAuto: true }, { text: true, blocks: true });
+            const words = flattenOcrWords(recognition.data);
+            conversionPages.push({
+              ...pages[index],
+              lines: groupOcrWordsIntoLines(words, canvas.width, canvas.height, pageSize.width, pageSize.height),
+            });
+          }
+          setProgress(Math.round(((index + 1) / pages.length) * 80));
+        }
+        if (!conversionPages.some((page) => page.lines.length)) throw new Error("No readable text was found. Try Visual fidelity or a clearer scan.");
       }
       const bytes = await createDocxFromPdfPages(conversionPages, { mode, title: file.name.replace(/\.pdf$/i, "") });
       setProgress(100);
@@ -212,6 +250,8 @@ function PdfToWordWorkspace({ tool }) {
       operation.fail("conversion_failed", { result: mode });
       setStatus("idle");
       setError(conversionError.message || "The Word document could not be created.");
+    } finally {
+      await ocrWorker?.terminate();
     }
   };
 
@@ -230,8 +270,9 @@ function PdfToWordWorkspace({ tool }) {
       <aside className="conversion-settings-card">
         <span>Word settings</span>
         <h2>Choose the result</h2>
-        <label>Conversion mode<select value={mode} onChange={(event) => setMode(event.target.value)}><option value="editable">Editable text</option><option value="visual">Visual fidelity</option></select></label>
-        <div className="office-mode-note"><strong>{mode === "editable" ? "Best for editing" : "Best for appearance"}</strong><p>{mode === "editable" ? "Rebuilds selectable text with page breaks, indentation, vertical spacing, common font styling, and heading detection." : "Places each PDF page into Word as a high-quality image so the original page appearance stays intact."}</p></div>
+        <label>Conversion mode<select value={mode} onChange={(event) => setMode(event.target.value)}><option value="editable">Editable layout</option><option value="ocr">Scanned PDF — editable OCR</option><option value="visual">Visual fidelity</option></select></label>
+        {mode === "ocr" && <label>Document language<select value={ocrLanguage} onChange={(event) => setOcrLanguage(event.target.value)}>{OCR_LANGUAGES.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>}
+        <div className="office-mode-note"><strong>{mode === "editable" ? "Best for editing" : mode === "ocr" ? "Best for scanned pages" : "Best for appearance"}</strong><p>{mode === "editable" ? "Rebuilds selectable text with page breaks, spacing, headings, font styling, and tab-aligned columns and table rows." : mode === "ocr" ? "Keeps native text where available and recognizes image-only pages directly, creating editable Word text without a separate OCR step." : "Places each PDF page into Word as a high-quality image so the original page appearance, photos, and graphics stay intact."}</p></div>
         <div className="conversion-summary"><Check size={18} /><span>{pages.length ? `${pages.length} page${pages.length === 1 ? "" : "s"} ready` : "Add a PDF to continue"}</span></div>
         {status === "converting" && <div className="conversion-progress-bar"><i style={{ width: `${progress}%` }} /></div>}
         <button className="conversion-primary-action" type="button" disabled={!pages.length || status === "reading" || status === "converting"} onClick={convert}>{status === "converting" ? <><LoaderCircle className="is-spinning" size={18} /> Converting {progress}%</> : <><Download size={18} /> Download DOCX</>}</button>
