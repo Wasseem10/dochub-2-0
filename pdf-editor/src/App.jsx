@@ -51,6 +51,7 @@ import Search from "lucide-react/dist/esm/icons/search.mjs";
 import Send from "lucide-react/dist/esm/icons/send.mjs";
 import Settings from "lucide-react/dist/esm/icons/settings.mjs";
 import Share2 from "lucide-react/dist/esm/icons/share-2.mjs";
+import ShieldCheck from "lucide-react/dist/esm/icons/shield-check.mjs";
 import Link from "lucide-react/dist/esm/icons/link.mjs";
 import PanelsTopLeft from "lucide-react/dist/esm/icons/panels-top-left.mjs";
 import Stamp from "lucide-react/dist/esm/icons/stamp.mjs";
@@ -85,8 +86,9 @@ import { AccountDeletionCard } from "./components/app/AccountDeletionCard.jsx";
 import { BrandWordmark } from "./components/public/BrandWordmark.jsx";
 import { isAnalyticsOwner } from "./config/adminAccess.js";
 import { createSecurePdfShare, revokeSecurePdfShare } from "./sharing/securePdfSharing.js";
-import { createSigningRequestUrl } from "./signing/signingRequest.js";
+import { createCloudSignatureRequest } from "./signing/signatureRequestStore.js";
 import { OwnerAnalyticsPanel } from "./pages/app/OwnerAnalyticsPanel.jsx";
+import { SignatureRequestManager } from "./pages/app/SignatureRequestManager.jsx";
 import { LatticePdfLanding } from "./LatticePdfLanding.jsx";
 import { EditorRouteStatePage } from "./pages/app/EditorRouteStatePage.jsx";
 import { EditorToolUploadPage } from "./pages/public/EditorToolUploadPage.jsx";
@@ -4324,7 +4326,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     window.setTimeout(() => { void hydratePdfPageAt(targetIndex); }, 0);
   };
 
-  const prepareSignatureRequest = async ({ recipientName, recipient, message, expirationDays }) => {
+  const prepareSignatureRequest = async ({ recipients, message, expirationDays }) => {
     if (!(await requireAuthenticationForEditorAction("signature-request"))) {
       setSignatureRequestModalOpen(false);
       return null;
@@ -4343,22 +4345,23 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     if (!requestFields.length) throw new Error("Place at least one field on the PDF before creating the request.");
     const exported = await exportPdf({ download: false, showResult: false });
     if (!exported) throw new Error("The signing copy could not be created.");
-    const share = await createSecurePdfShare({ db, storage, userId: currentUser.uid, pdfBlob: exported.blob, fileName: exported.name, expirationDays });
-    const url = createSigningRequestUrl({
+    const request = await createCloudSignatureRequest({
+      db,
+      storage,
+      user: currentUser,
+      pdfBlob: exported.blob,
+      fileName: exported.name,
+      expirationDays,
+      message,
       origin: window.location.origin,
-      token: share.token,
-      payload: {
-        requestId: share.token,
-        recipient: { name: recipientName, email: recipient },
-        requester: { name: currentUser.name || currentUser.email, email: currentUser.email },
-        message,
-        createdAt: new Date(),
-        expiresAt: share.expiresAt,
-        fields: requestFields,
-      },
+      recipients: recipients.map((recipient) => ({
+        name: recipient.name,
+        email: recipient.email,
+        fields: requestFields.filter((field) => recipient.fieldIds.includes(field.id)),
+      })),
     });
-    showToast("Secure signing link created.");
-    return { ...share, url };
+    showToast(`${request.recipients.length}-recipient signature request created.`);
+    return request;
   };
 
   const protectDocument = async (password) => {
@@ -5308,6 +5311,12 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       {signatureRequestModalOpen && (
         <SignatureRequestModal
           fileName={fileName}
+          fields={annotations.filter((annotation) => ["field", "checkbox"].includes(annotation.type)).map((annotation, index) => ({
+            id: annotation.id,
+            label: annotation.fieldName || `Field ${index + 1}`,
+            type: annotation.type === "checkbox" ? "checkbox" : annotation.requestFieldType || "text",
+            page: annotation.page,
+          }))}
           onClose={() => setSignatureRequestModalOpen(false)}
           onPrepare={prepareSignatureRequest}
         />
@@ -6500,7 +6509,11 @@ export function UploadLanding({
       );
     }
 
-    if (activeSection === "Agreements" || activeSection === "Signatures") {
+    if (activeSection === "Signatures") {
+      return <SignatureRequestManager currentUser={currentUser} onCreateRequest={() => onNavigate("/request-signatures")} />;
+    }
+
+    if (activeSection === "Agreements") {
       const isSign = activeSection === "Signatures";
       return (
         <section className="document-library enterprise-workspace-panel">
@@ -7359,25 +7372,57 @@ function ShareModal({ fileName, onClose, onCreate, onRevoke, onExport }) {
   );
 }
 
-function SignatureRequestModal({ fileName, onClose, onPrepare }) {
-  const [recipientName, setRecipientName] = useState("");
-  const [recipient, setRecipient] = useState("");
+function SignatureRequestModal({ fileName, fields, onClose, onPrepare }) {
+  const firstRecipientId = useRef(makeId("signer")).current;
+  const [recipients, setRecipients] = useState([{ id: firstRecipientId, name: "", email: "" }]);
+  const [fieldOwners, setFieldOwners] = useState(() => Object.fromEntries(fields.map((field) => [field.id, firstRecipientId])));
   const [message, setMessage] = useState(`Please review and sign ${fileName}.`);
   const [expirationDays, setExpirationDays] = useState(7);
   const [request, setRequest] = useState(null);
-  const [copied, setCopied] = useState(false);
+  const [copiedId, setCopiedId] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
+  const updateRecipient = (id, patch) => setRecipients((items) => items.map((item) => item.id === id ? { ...item, ...patch } : item));
+  const addRecipient = () => {
+    if (recipients.length >= 10) return;
+    setRecipients((items) => [...items, { id: makeId("signer"), name: "", email: "" }]);
+  };
+  const removeRecipient = (id) => {
+    if (recipients.length === 1) return;
+    const remaining = recipients.filter((item) => item.id !== id);
+    setRecipients(remaining);
+    setFieldOwners((owners) => Object.fromEntries(Object.entries(owners).map(([fieldId, ownerId]) => [fieldId, ownerId === id ? remaining[0].id : ownerId])));
+  };
+  const moveRecipient = (index, direction) => {
+    const target = index + direction;
+    if (target < 0 || target >= recipients.length) return;
+    setRecipients((items) => {
+      const next = [...items];
+      [next[index], next[target]] = [next[target], next[index]];
+      return next;
+    });
+  };
+
   const prepare = async () => {
-    if (!recipient || !recipient.includes("@")) {
-      setError("Enter a valid recipient email address.");
-      return;
-    }
+    const invalid = recipients.find((recipient) => !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipient.email.trim()));
+    if (invalid) return setError(`Enter a valid email for ${invalid.name || "every recipient"}.`);
+    const normalizedEmails = recipients.map((recipient) => recipient.email.trim().toLowerCase());
+    if (new Set(normalizedEmails).size !== normalizedEmails.length) return setError("Each recipient must use a different email address.");
+    const recipientWithoutFields = recipients.find((recipient) => !Object.values(fieldOwners).includes(recipient.id));
+    if (recipientWithoutFields) return setError(`Assign at least one field to ${recipientWithoutFields.name || recipientWithoutFields.email}.`);
     setBusy(true);
     setError("");
     try {
-      const created = await onPrepare({ recipientName, recipient, message, expirationDays });
+      const created = await onPrepare({
+        recipients: recipients.map((recipient) => ({
+          name: recipient.name.trim(),
+          email: recipient.email.trim(),
+          fieldIds: fields.filter((field) => fieldOwners[field.id] === recipient.id).map((field) => field.id),
+        })),
+        message,
+        expirationDays,
+      });
       if (created) setRequest(created);
     } catch (requestError) {
       if (requestError?.name !== "AbortError") setError(requestError?.message || "The signing request could not be created.");
@@ -7386,36 +7431,38 @@ function SignatureRequestModal({ fileName, onClose, onPrepare }) {
     }
   };
 
-  const copyRequest = async () => {
-    await navigator.clipboard.writeText(request.url);
-    setCopied(true);
-    window.setTimeout(() => setCopied(false), 1600);
+  const copyRequest = async (recipient) => {
+    await navigator.clipboard.writeText(recipient.url);
+    setCopiedId(recipient.inviteId);
+    window.setTimeout(() => setCopiedId(""), 1600);
   };
-
-  const emailSubject = encodeURIComponent(`Signature requested: ${fileName}`);
-  const emailBody = request ? encodeURIComponent(`${message}\n\nOpen the secure signing link:\n${request.url}\n\nThis link expires ${request.expiresAt.toLocaleString()}.`) : "";
 
   return (
     <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="Request signatures">
-      <section className="share-modal workflow-modal">
-        <header>
-          <div><h2>Request a signature</h2><p>{fileName}</p></div>
-          <button type="button" className="modal-close" onClick={onClose}><X size={18} /></button>
-        </header>
+      <section className="share-modal workflow-modal signature-routing-modal">
+        <header><div><h2>Request signatures</h2><p>{fileName}</p></div><button type="button" className="modal-close" onClick={onClose}><X size={18} /></button></header>
         <div className="workflow-modal-body signature-request-body">
           {!request ? <>
-          <p>Create a revocable signing link with required fields. The recipient completes and downloads the signed PDF in their browser.</p>
-          <div className="signature-recipient-grid"><label><span>Recipient name</span><input value={recipientName} onChange={(event) => setRecipientName(event.target.value)} placeholder="Jordan Lee" /></label><label><span>Recipient email</span><input type="email" value={recipient} onChange={(event) => setRecipient(event.target.value)} placeholder="name@example.com" /></label></div>
-          <label><span>Message</span><textarea value={message} onChange={(event) => setMessage(event.target.value)} rows="4" /></label>
-          <label><span>Link expiration</span><select value={expirationDays} onChange={(event) => setExpirationDays(Number(event.target.value))}><option value={1}>1 day</option><option value={7}>7 days</option><option value={30}>30 days</option></select></label>
-          <small>The completed PDF stays on the recipient's device. The completion receipt includes a SHA-256 fingerprint but is not independent identity verification.</small>
-          </> : <section className="signature-request-created"><CheckCircle2 size={31} /><h3>Secure signing link ready</h3><p>Send this unique link to {recipientName || recipient}. It expires {request.expiresAt.toLocaleString()}.</p><div className="share-link-row"><input aria-label="Secure signing link" readOnly value={request.url} onFocus={(event) => event.target.select()} /><button type="button" onClick={copyRequest}><Copy size={15} /> {copied ? "Copied" : "Copy"}</button></div></section>}
+            <div className="signature-routing-intro"><ShieldCheck size={21} /><p><strong>Verified, ordered signing</strong><span>Each recipient must use the invited Google account. The next step unlocks only after the current signer finishes.</span></p></div>
+            <section className="signature-recipient-list" aria-label="Signing order">
+              <div className="signature-section-heading"><div><span>Recipients</span><small>Signing order runs from top to bottom.</small></div><button type="button" onClick={addRecipient} disabled={recipients.length >= 10}><Users size={16} /> Add recipient</button></div>
+              {recipients.map((recipient, index) => <article key={recipient.id} className="signature-recipient-row">
+                <span className="signature-order-number">{index + 1}</span>
+                <div className="signature-recipient-inputs"><label><span>Name</span><input value={recipient.name} onChange={(event) => updateRecipient(recipient.id, { name: event.target.value })} placeholder="Jordan Lee" /></label><label><span>Google account email</span><input type="email" value={recipient.email} onChange={(event) => updateRecipient(recipient.id, { email: event.target.value })} placeholder="name@example.com" /></label></div>
+                <div className="signature-order-actions"><button type="button" aria-label={`Move ${recipient.name || `recipient ${index + 1}`} earlier`} disabled={index === 0} onClick={() => moveRecipient(index, -1)}><ChevronUp size={16} /></button><button type="button" aria-label={`Move ${recipient.name || `recipient ${index + 1}`} later`} disabled={index === recipients.length - 1} onClick={() => moveRecipient(index, 1)}><ChevronDown size={16} /></button><button type="button" aria-label={`Remove ${recipient.name || `recipient ${index + 1}`}`} disabled={recipients.length === 1} onClick={() => removeRecipient(recipient.id)}><X size={16} /></button></div>
+              </article>)}
+            </section>
+            <section className="signature-field-routing"><div className="signature-section-heading"><div><span>Assign fields</span><small>Every recipient needs at least one field.</small></div></div>{fields.map((field) => <label key={field.id}><span><strong>{field.label}</strong><small>Page {field.page + 1} · {field.type}</small></span><select aria-label={`Assign ${field.label}`} value={fieldOwners[field.id]} onChange={(event) => setFieldOwners((owners) => ({ ...owners, [field.id]: event.target.value }))}>{recipients.map((recipient, index) => <option key={recipient.id} value={recipient.id}>{index + 1}. {recipient.name || recipient.email || "Unnamed recipient"}</option>)}</select></label>)}</section>
+            <div className="signature-request-options"><label><span>Message</span><textarea value={message} onChange={(event) => setMessage(event.target.value)} rows="3" /></label><label><span>Request expiration</span><select value={expirationDays} onChange={(event) => setExpirationDays(Number(event.target.value))}><option value={1}>1 day</option><option value={7}>7 days</option><option value={15}>15 days</option><option value={30}>30 days</option></select></label></div>
+            <small className="signature-request-legal">Google sign-in confirms control of the invited account email. Server timestamps and SHA-256 fingerprints create an activity record, but this is not government-ID verification, a qualified timestamp, or a certified digital signature.</small>
+          </> : <section className="signature-request-created signature-request-links"><CheckCircle2 size={31} /><h3>{request.recipients.length}-recipient request ready</h3><p>Send each person their unique link. Later recipients will see a waiting screen until their turn.</p>{request.recipients.map((recipient, index) => {
+            const emailSubject = encodeURIComponent(`Signature requested: ${fileName}`);
+            const emailBody = encodeURIComponent(`${message}\n\nYou are signer ${index + 1} of ${request.recipients.length}. Open your secure link with the invited Google account:\n${recipient.url}\n\nThis request expires ${request.expiresAt.toLocaleString()}.`);
+            return <article key={recipient.inviteId}><span>{index + 1}</span><div><strong>{recipient.name || recipient.email}</strong><small>{recipient.email}</small><div className="share-link-row"><input aria-label={`Signing link for ${recipient.email}`} readOnly value={recipient.url} onFocus={(event) => event.target.select()} /><button type="button" onClick={() => copyRequest(recipient)}><Copy size={15} /> {copiedId === recipient.inviteId ? "Copied" : "Copy"}</button></div></div><a href={`mailto:${encodeURIComponent(recipient.email)}?subject=${emailSubject}&body=${emailBody}`}><Mail size={16} /> Email</a></article>;
+          })}<a className="signature-manage-link" href={ROUTE_PATHS.signatures}>Track request and send reminders</a></section>}
           {error && <p className="workflow-error" role="alert">{error}</p>}
         </div>
-        <footer>
-          <button type="button" className="modal-secondary" onClick={onClose}>{request ? "Done" : "Keep editing"}</button>
-          {request ? <a className="modal-primary signature-email-link" href={`mailto:${encodeURIComponent(recipient)}?subject=${emailSubject}&body=${emailBody}`}><Mail size={16} /> Open email draft</a> : <button type="button" className="modal-primary" disabled={busy} onClick={prepare}><Send size={16} /> {busy ? "Creating secure link…" : "Create signing link"}</button>}
-        </footer>
+        <footer><button type="button" className="modal-secondary" onClick={onClose}>{request ? "Done" : "Keep editing"}</button>{!request && <button type="button" className="modal-primary" disabled={busy || !fields.length} onClick={prepare}><Send size={16} /> {busy ? "Creating ordered request…" : `Create request for ${recipients.length} recipient${recipients.length === 1 ? "" : "s"}`}</button>}</footer>
       </section>
     </div>
   );

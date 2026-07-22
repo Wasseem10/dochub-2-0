@@ -46,6 +46,23 @@ async function purgeUserData(userId) {
     }
     await deleteDoc(doc(db, "users", userId, "documents", documentRecord.id));
   }
+  if (db) {
+    const signatureRequests = await getDocs(query(collection(db, "signatureRequests"), where("ownerId", "==", userId)));
+    for (const requestRecord of signatureRequests.docs) {
+      const requestId = requestRecord.id;
+      const recipients = await getDocs(collection(db, "signatureRequests", requestId, "recipients"));
+      for (const recipient of recipients.docs) await deleteDoc(recipient.ref);
+      const payloadPath = requestRecord.data()?.storagePath;
+      const payloadPaths = new Set([payloadPath, `signatureRequests/${requestId}/current.pdf`, ...recipients.docs.map((recipient) => `signatureRequests/${requestId}/submissions/${recipient.id}`)].filter(Boolean));
+      if (storage) {
+        for (const path of payloadPaths) {
+          try { await deleteObject(ref(storage, path)); }
+          catch (error) { if (error?.code !== "storage/object-not-found") throw error; }
+        }
+      }
+      await deleteDoc(requestRecord.ref);
+    }
+  }
   for (const collectionName of ["productAnalyticsEvents", "supportRequests"]) {
     if (!db) continue;
     const snapshot = await getDocs(query(collection(db, collectionName), where("actorId", "==", userId)));

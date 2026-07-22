@@ -141,6 +141,7 @@ export const appRouteObjects = [
       {
         element: <LazyAuthRouteProvider />,
         children: [
+          { path: ROUTE_PATHS.signPattern, element: <PublicToolBoundary><LazySigningRequestPage /></PublicToolBoundary> },
           {
             element: <PublicOnlyRoute />,
             children: [
@@ -185,7 +186,6 @@ export const appRouteObjects = [
           },
         ],
       },
-      { path: ROUTE_PATHS.signPattern, element: <PublicToolBoundary><LazySigningRequestPage /></PublicToolBoundary> },
       { path: "*", element: <NotFoundPage /> },
     ],
   },

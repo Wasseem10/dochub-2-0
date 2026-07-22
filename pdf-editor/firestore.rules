@@ -133,6 +133,294 @@ service cloud.firestore {
       }
     }
 
+    match /signatureRequests/{requestId} {
+      function isRequestOwner() {
+        return isSignedIn() && resource.data.ownerId == request.auth.uid;
+      }
+
+      function currentRecipient() {
+        return get(/databases/$(database)/documents/signatureRequests/$(requestId)/recipients/$(resource.data.currentInviteId));
+      }
+
+      function nextRecipient() {
+        return get(/databases/$(database)/documents/signatureRequests/$(requestId)/recipients/$(currentRecipient().data.nextInviteId));
+      }
+
+      function isCurrentSigner() {
+        return isSignedIn()
+          && request.auth.token.email is string
+          && currentRecipient().data.email == request.auth.token.email;
+      }
+
+      function validFingerprint(value) {
+        return value is string && value.matches("^[a-f0-9]{64}$");
+      }
+
+      allow get: if isSignedIn();
+      allow list: if isSignedIn() && resource.data.ownerId == request.auth.uid;
+      allow create: if isSignedIn()
+        && requestId.matches("^[A-Za-z0-9_-]{32}$")
+        && request.resource.data.keys().hasAll([
+          "ownerId",
+          "ownerName",
+          "ownerEmail",
+          "fileName",
+          "size",
+          "contentType",
+          "storagePath",
+          "status",
+          "recipientCount",
+          "currentOrder",
+          "currentInviteId",
+          "currentRecipientEmail",
+          "message",
+          "sourceFingerprint",
+          "currentFingerprint",
+          "createdAt",
+          "updatedAt",
+          "expiresAt"
+        ])
+        && request.resource.data.keys().hasOnly([
+          "ownerId",
+          "ownerName",
+          "ownerEmail",
+          "fileName",
+          "size",
+          "contentType",
+          "storagePath",
+          "status",
+          "recipientCount",
+          "currentOrder",
+          "currentInviteId",
+          "currentRecipientEmail",
+          "message",
+          "sourceFingerprint",
+          "currentFingerprint",
+          "createdAt",
+          "updatedAt",
+          "expiresAt"
+        ])
+        && request.resource.data.ownerId == request.auth.uid
+        && request.resource.data.ownerName is string
+        && request.resource.data.ownerName.size() <= 100
+        && request.resource.data.ownerEmail == request.auth.token.email
+        && request.resource.data.fileName is string
+        && request.resource.data.fileName.size() > 0
+        && request.resource.data.fileName.size() <= 124
+        && request.resource.data.size is int
+        && request.resource.data.size > 0
+        && request.resource.data.size <= 26214400
+        && request.resource.data.contentType == "application/pdf"
+        && request.resource.data.storagePath == "signatureRequests/" + requestId + "/current.pdf"
+        && request.resource.data.status == "uploading"
+        && request.resource.data.recipientCount is int
+        && request.resource.data.recipientCount > 0
+        && request.resource.data.recipientCount <= 10
+        && request.resource.data.currentOrder == 0
+        && request.resource.data.currentInviteId.matches("^[A-Za-z0-9_-]{32}$")
+        && request.resource.data.currentRecipientEmail is string
+        && request.resource.data.currentRecipientEmail.size() <= 160
+        && request.resource.data.message is string
+        && request.resource.data.message.size() <= 500
+        && validFingerprint(request.resource.data.sourceFingerprint)
+        && request.resource.data.currentFingerprint == request.resource.data.sourceFingerprint
+        && request.resource.data.createdAt is timestamp
+        && request.resource.data.updatedAt is timestamp
+        && request.resource.data.createdAt <= request.time + duration.value(5, "m")
+        && request.resource.data.updatedAt <= request.time + duration.value(5, "m")
+        && request.resource.data.expiresAt > request.time
+        && request.resource.data.expiresAt <= request.time + duration.value(30, "d");
+
+      allow update: if (
+          isRequestOwner()
+          && resource.data.status == "uploading"
+          && request.resource.data.status == "active"
+          && request.resource.data.updatedAt == request.time
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["status", "updatedAt"])
+        ) || (
+          isRequestOwner()
+          && resource.data.status in ["uploading", "active"]
+          && request.resource.data.status == "revoked"
+          && request.resource.data.updatedAt == request.time
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["status", "updatedAt"])
+        ) || (
+          resource.data.status == "active"
+          && resource.data.expiresAt > request.time
+          && isCurrentSigner()
+          && getAfter(/databases/$(database)/documents/signatureRequests/$(requestId)/recipients/$(resource.data.currentInviteId)).data.status == "completed"
+          && request.resource.data.updatedAt == request.time
+          && request.resource.data.size is int
+          && request.resource.data.size > 0
+          && request.resource.data.size <= 26214400
+          && validFingerprint(request.resource.data.currentFingerprint)
+          && request.resource.data.storagePath == "signatureRequests/" + requestId + "/submissions/" + resource.data.currentInviteId
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            "status",
+            "currentOrder",
+            "currentInviteId",
+            "currentRecipientEmail",
+            "currentFingerprint",
+            "finalFingerprint",
+            "storagePath",
+            "size",
+            "completedAt",
+            "updatedAt"
+          ])
+          && ((
+              currentRecipient().data.nextInviteId != ""
+              && request.resource.data.status == "active"
+              && request.resource.data.currentOrder == resource.data.currentOrder + 1
+              && request.resource.data.currentInviteId == currentRecipient().data.nextInviteId
+              && request.resource.data.currentRecipientEmail == nextRecipient().data.email
+              && getAfter(/databases/$(database)/documents/signatureRequests/$(requestId)/recipients/$(currentRecipient().data.nextInviteId)).data.status == "active"
+              && !("completedAt" in request.resource.data)
+              && !("finalFingerprint" in request.resource.data)
+            ) || (
+              currentRecipient().data.nextInviteId == ""
+              && request.resource.data.status == "completed"
+              && request.resource.data.currentInviteId == ""
+              && request.resource.data.currentRecipientEmail == ""
+              && request.resource.data.currentOrder == resource.data.currentOrder
+              && request.resource.data.completedAt == request.time
+              && request.resource.data.finalFingerprint == request.resource.data.currentFingerprint
+            ))
+        );
+      allow delete: if isRequestOwner();
+
+      match /recipients/{inviteId} {
+        function parentRequest() {
+          return get(/databases/$(database)/documents/signatureRequests/$(requestId));
+        }
+
+        function isRecipientOwner() {
+          return isSignedIn() && parentRequest().data.ownerId == request.auth.uid;
+        }
+
+        function isInvitedSigner() {
+          return isSignedIn()
+            && request.auth.token.email is string
+            && resource.data.email == request.auth.token.email;
+        }
+
+        function validRecipientFingerprint(value) {
+          return value is string && value.matches("^[a-f0-9]{64}$");
+        }
+
+        allow get: if isRecipientOwner() || isInvitedSigner();
+        allow list: if isRecipientOwner();
+        allow create: if isSignedIn()
+          && parentRequest().data.ownerId == request.auth.uid
+          && inviteId.matches("^[A-Za-z0-9_-]{32}$")
+          && request.resource.data.keys().hasAll([
+            "ownerId",
+            "requestId",
+            "inviteId",
+            "name",
+            "email",
+            "order",
+            "previousInviteId",
+            "nextInviteId",
+            "nextEmail",
+            "nextOrder",
+            "status",
+            "fields",
+            "reminderCount",
+            "createdAt",
+            "updatedAt"
+          ])
+          && request.resource.data.keys().hasOnly([
+            "ownerId",
+            "requestId",
+            "inviteId",
+            "name",
+            "email",
+            "order",
+            "previousInviteId",
+            "nextInviteId",
+            "nextEmail",
+            "nextOrder",
+            "status",
+            "fields",
+            "reminderCount",
+            "createdAt",
+            "updatedAt"
+          ])
+          && request.resource.data.ownerId == request.auth.uid
+          && request.resource.data.requestId == requestId
+          && request.resource.data.inviteId == inviteId
+          && request.resource.data.name is string
+          && request.resource.data.name.size() > 0
+          && request.resource.data.name.size() <= 100
+          && request.resource.data.email is string
+          && request.resource.data.email.size() > 3
+          && request.resource.data.email.size() <= 160
+          && request.resource.data.order is int
+          && request.resource.data.order >= 0
+          && request.resource.data.order < parentRequest().data.recipientCount
+          && (request.resource.data.previousInviteId == "" || request.resource.data.previousInviteId.matches("^[A-Za-z0-9_-]{32}$"))
+          && (request.resource.data.nextInviteId == "" || request.resource.data.nextInviteId.matches("^[A-Za-z0-9_-]{32}$"))
+          && request.resource.data.nextEmail is string
+          && request.resource.data.nextEmail.size() <= 160
+          && request.resource.data.nextOrder is int
+          && ((request.resource.data.nextInviteId == "" && request.resource.data.nextEmail == "" && request.resource.data.nextOrder == -1)
+            || (request.resource.data.nextInviteId != ""
+              && request.resource.data.nextEmail.size() > 3
+              && request.resource.data.nextOrder == request.resource.data.order + 1))
+          && request.resource.data.status in ["active", "waiting"]
+          && request.resource.data.fields is list
+          && request.resource.data.fields.size() > 0
+          && request.resource.data.fields.size() <= 100
+          && request.resource.data.reminderCount == 0
+          && request.resource.data.createdAt is timestamp
+          && request.resource.data.updatedAt is timestamp;
+
+        allow update: if (
+            isRecipientOwner()
+            && request.resource.data.reminderCount == resource.data.reminderCount + 1
+            && request.resource.data.lastReminderAt == request.time
+            && request.resource.data.updatedAt == request.time
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["reminderCount", "lastReminderAt", "updatedAt"])
+          ) || (
+            isInvitedSigner()
+            && parentRequest().data.status == "active"
+            && parentRequest().data.currentInviteId == inviteId
+            && resource.data.status == "active"
+            && request.resource.data.status == "completed"
+            && request.resource.data.signedAt == request.time
+            && request.resource.data.consentedAt == request.time
+            && request.resource.data.consentVersion == "electronic-signature-v1"
+            && request.resource.data.updatedAt == request.time
+            && request.resource.data.authenticatedEmail == request.auth.token.email
+            && validRecipientFingerprint(request.resource.data.sourceFingerprint)
+            && validRecipientFingerprint(request.resource.data.outputFingerprint)
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+              "status",
+              "signedAt",
+              "consentedAt",
+              "consentVersion",
+              "updatedAt",
+              "authenticatedEmail",
+              "sourceFingerprint",
+              "outputFingerprint"
+            ])
+            && getAfter(/databases/$(database)/documents/signatureRequests/$(requestId)).data.currentInviteId != inviteId
+          ) || (
+            isSignedIn()
+            && request.auth.token.email is string
+            && resource.data.status == "waiting"
+            && resource.data.previousInviteId != ""
+            && parentRequest().data.currentInviteId == resource.data.previousInviteId
+            && get(/databases/$(database)/documents/signatureRequests/$(requestId)/recipients/$(resource.data.previousInviteId)).data.email == request.auth.token.email
+            && getAfter(/databases/$(database)/documents/signatureRequests/$(requestId)/recipients/$(resource.data.previousInviteId)).data.status == "completed"
+            && request.resource.data.status == "active"
+            && request.resource.data.updatedAt == request.time
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["status", "updatedAt"])
+            && getAfter(/databases/$(database)/documents/signatureRequests/$(requestId)).data.currentInviteId == inviteId
+          );
+        allow delete: if isRecipientOwner();
+      }
+    }
+
     match /productAnalyticsEvents/{eventId} {
       allow create: if request.resource.data.keys().hasAll([
           "name",

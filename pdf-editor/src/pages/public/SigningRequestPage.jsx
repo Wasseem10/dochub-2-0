@@ -10,9 +10,17 @@ import ShieldCheck from "lucide-react/dist/esm/icons/shield-check.mjs";
 import X from "lucide-react/dist/esm/icons/x.mjs";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import { Link, useParams } from "react-router-dom";
+import { useAuth } from "../../auth/AuthContext.jsx";
 import { db, storage } from "../../firebase.js";
 import { ROUTE_PATHS } from "../../router/routePaths.js";
 import { loadSecurePdfShare } from "../../sharing/securePdfSharing.js";
+import {
+  completeSignatureInvitation,
+  hasVerifiedSigningIdentity,
+  loadSignatureInvitation,
+  sha256Hex,
+  signatureInvitationFromLocation,
+} from "../../signing/signatureRequestStore.js";
 import { signingRequestFromLocation } from "../../signing/signingRequest.js";
 
 async function renderPdfPages(bytes) {
@@ -100,7 +108,7 @@ function SignatureCapture({ field, recipientName, onClose, onSave }) {
   </section></div>;
 }
 
-async function createCompletionFiles(sourceBytes, request, values, sourceName) {
+export async function createCompletionFiles(sourceBytes, request, values, sourceName) {
   const pdf = await PDFDocument.load(sourceBytes);
   const font = await pdf.embedFont(StandardFonts.Helvetica);
   const italic = await pdf.embedFont(StandardFonts.TimesRomanItalic);
@@ -145,10 +153,13 @@ async function createCompletionFiles(sourceBytes, request, values, sourceName) {
   const receiptBold = await receipt.embedFont(StandardFonts.HelveticaBold);
   const page = receipt.addPage([612, 792]);
   page.drawText("FixThatPDF completion receipt", { x: 54, y: 716, size: 22, font: receiptBold, color: rgb(0.05, 0.1, 0.22) });
-  page.drawText("Device-generated record — not identity verification or a digital certificate", { x: 54, y: 688, size: 10, font: receiptFont, color: rgb(0.35, 0.4, 0.48) });
+  page.drawText(request.identityVerified
+    ? "Google-account email matched — not a certified digital signature"
+    : "Device-generated record — not identity verification or a digital certificate", { x: 54, y: 688, size: 10, font: receiptFont, color: rgb(0.35, 0.4, 0.48) });
   const lines = [
     ["Document", sourceName], ["Request ID", request.requestId], ["Signer", request.recipient.name || request.recipient.email],
     ["Signer email", request.recipient.email], ["Requested by", request.requester.name || request.requester.email || "Document owner"],
+    ["Electronic signature consent", "Confirmed before completion"],
     ["Completed", completedAt.toISOString()], ["Document SHA-256", fingerprint],
   ];
   lines.forEach(([label, value], index) => {
@@ -164,15 +175,45 @@ async function createCompletionFiles(sourceBytes, request, values, sourceName) {
 
 export function SigningRequestPage() {
   const { token = "" } = useParams();
+  const { authReady, currentUser, authenticate } = useAuth();
   const [state, setState] = useState({ status: "loading" });
   const [values, setValues] = useState({});
   const [activeCapture, setActiveCapture] = useState(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState(null);
+  const [consentAccepted, setConsentAccepted] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
+    const cloudInvitation = signatureInvitationFromLocation(window.location);
+    if (cloudInvitation) {
+      if (!authReady) {
+        setState({ status: "loading" });
+        return undefined;
+      }
+      if (!hasVerifiedSigningIdentity(currentUser)) {
+        setState({ status: "authentication-required", cloud: true });
+        return undefined;
+      }
+      loadSignatureInvitation({ db, storage, ...cloudInvitation, user: currentUser }).then(async (loaded) => {
+        if (cancelled) return;
+        if (loaded.status !== "ready") return setState({ ...loaded, cloud: true });
+        const pages = await renderPdfPages(loaded.bytes);
+        const request = {
+          requestId: cloudInvitation.requestId,
+          recipient: { name: loaded.recipient.name, email: loaded.recipient.email },
+          requester: { name: loaded.request.ownerName, email: loaded.request.ownerEmail },
+          message: loaded.request.message,
+          createdAt: loaded.request.createdAt?.toDate?.()?.toISOString?.() || "",
+          expiresAt: loaded.expiresAt.toISOString(),
+          fields: loaded.recipient.fields,
+          identityVerified: true,
+        };
+        if (!cancelled) setState({ ...loaded, status: "ready", cloud: true, fileName: loaded.request.fileName, pages, request });
+      }).catch(() => { if (!cancelled) setState({ status: "error", cloud: true }); });
+      return () => { cancelled = true; };
+    }
     const request = signingRequestFromLocation(window.location);
     if (!request || new Date(request.expiresAt).getTime() <= Date.now()) {
       setState({ status: request ? "expired" : "invalid" });
@@ -186,7 +227,7 @@ export function SigningRequestPage() {
       if (!cancelled) setState({ ...share, status: "ready", bytes, pages, request });
     }).catch(() => { if (!cancelled) setState({ status: "error" }); });
     return () => { cancelled = true; };
-  }, [token]);
+  }, [authReady, currentUser?.email, currentUser?.providers, currentUser?.uid, token]);
 
   useEffect(() => () => {
     if (result?.signedUrl) URL.revokeObjectURL(result.signedUrl);
@@ -195,6 +236,10 @@ export function SigningRequestPage() {
 
   const update = (fieldId, patch) => setValues((current) => ({ ...current, [fieldId]: { ...(current[fieldId] || {}), ...patch } }));
   const complete = async () => {
+    if (!consentAccepted) {
+      setError("Confirm that you agree to use an electronic signature before finishing.");
+      return;
+    }
     const missing = state.request.fields.find((field) => {
       if (!field.required) return false;
       const value = values[field.id] || {};
@@ -209,10 +254,24 @@ export function SigningRequestPage() {
     try {
       const files = await createCompletionFiles(state.bytes, state.request, values, state.fileName);
       const baseName = state.fileName.replace(/\.pdf$/i, "") || "signed-document";
+      const signedBlob = new Blob([files.signedBytes], { type: "application/pdf" });
+      let cloudResult = null;
+      if (state.cloud) {
+        cloudResult = await completeSignatureInvitation({
+          db,
+          storage,
+          requestId: state.request.requestId,
+          inviteId: state.recipient.inviteId,
+          user: currentUser,
+          signedBlob,
+          sourceFingerprint: await sha256Hex(state.bytes),
+          outputFingerprint: files.fingerprint,
+        });
+      }
       setResult({
-        ...files,
+        ...files, cloudResult,
         signedName: `${baseName}-signed.pdf`, receiptName: `${baseName}-completion-receipt.pdf`,
-        signedUrl: URL.createObjectURL(new Blob([files.signedBytes], { type: "application/pdf" })),
+        signedUrl: URL.createObjectURL(signedBlob),
         receiptUrl: URL.createObjectURL(new Blob([files.receiptBytes], { type: "application/pdf" })),
       });
     } catch (completionError) {
@@ -220,7 +279,17 @@ export function SigningRequestPage() {
     } finally { setBusy(false); }
   };
 
+  const signInWithGoogle = async () => {
+    setBusy(true); setError("");
+    const authResult = await authenticate({ mode: "login", provider: "google" });
+    if (!authResult.ok) setError(authResult.error || "Google sign-in could not be completed.");
+    setBusy(false);
+  };
+
   if (state.status === "loading") return <main className="sign-request-page"><section className="secure-share-state"><LoaderCircle className="is-spinning" size={28} /><h1>Opening secure signing request</h1><p>Loading the document and its required fields.</p></section></main>;
+  if (state.status === "authentication-required" || state.status === "wrong-account") return <main className="sign-request-page"><section className="secure-share-state sign-identity-state"><ShieldCheck size={30} /><h1>{state.status === "wrong-account" ? "Use the invited Google account" : "Confirm your signer identity"}</h1><p>{state.status === "wrong-account" ? `The signed-in account ${currentUser?.email || ""} does not match this invitation.` : "Sign in with Google. The account email must match the address selected by the document owner."}</p>{error && <p className="sign-request-error" role="alert">{error}</p>}<button type="button" disabled={busy} onClick={signInWithGoogle}>{busy ? "Opening Google…" : "Continue with Google"}</button><small>This confirms control of the invited Google account. It is not government-ID verification or a certified digital signature.</small></section></main>;
+  if (state.status === "waiting") return <main className="sign-request-page"><section className="secure-share-state sign-waiting-state"><LoaderCircle size={30} /><h1>Your signing step is waiting</h1><p>You are recipient {Number(state.recipient?.order || 0) + 1} of {state.request?.recipientCount || "the ordered request"}. The previous recipient must finish first.</p><small>Keep this link. Refresh it after the document owner tells you the prior step is complete.</small></section></main>;
+  if (state.status === "completed") return <main className="sign-request-page"><section className="secure-share-state"><CheckCircle2 size={30} /><h1>You already completed this signing step</h1><p>The document owner can download the current completed copy from their signature dashboard.</p></section></main>;
   if (state.status !== "ready") return <main className="sign-request-page"><section className="secure-share-state"><Lock size={28} /><h1>{state.status === "expired" ? "This signing request has expired" : "This signing request cannot be opened"}</h1><p>Ask the sender to create a new secure request.</p><Link to={ROUTE_PATHS.home}>Go to FixThatPDF</Link></section></main>;
 
   return <main className="sign-request-page">
@@ -236,12 +305,13 @@ export function SigningRequestPage() {
         })}
       </article>)}
     </section><aside className="sign-request-sidebar">
-      {result ? <section className="sign-complete-card"><CheckCircle2 size={34} /><h2>Document completed</h2><p>Download both files now. FixThatPDF does not keep the completed copy.</p><button type="button" className="is-primary" onClick={() => downloadUrl(result.signedUrl, result.signedName)}><Download size={17} /> Download signed PDF</button><button type="button" onClick={() => downloadUrl(result.receiptUrl, result.receiptName)}><ShieldCheck size={17} /> Download completion receipt</button><small>Receipt fingerprint: {result.fingerprint.slice(0, 16)}…</small></section> : <>
+      {result ? <section className="sign-complete-card"><CheckCircle2 size={34} /><h2>{result.cloudResult?.completed ? "All recipients have signed" : "Your signing step is complete"}</h2><p>{state.cloud ? result.cloudResult?.completed ? "The final PDF is now available to the document owner." : "The next recipient can now open their invitation." : "Download both files now. FixThatPDF does not keep the completed copy."}</p><button type="button" className="is-primary" onClick={() => downloadUrl(result.signedUrl, result.signedName)}><Download size={17} /> Download signed PDF</button><button type="button" onClick={() => downloadUrl(result.receiptUrl, result.receiptName)}><ShieldCheck size={17} /> Download completion receipt</button><small>Receipt fingerprint: {result.fingerprint.slice(0, 16)}…</small></section> : <>
         <span>Requested from</span><h2>{state.request.recipient.name || state.request.recipient.email}</h2>{state.request.message && <p className="sign-request-message">{state.request.message}</p>}
         <ol className="sign-field-checklist">{state.request.fields.map((field) => { const value = values[field.id] || {}; const completeField = field.type === "checkbox" ? value.checked : value.text || value.imageDataUrl; return <li key={field.id} className={completeField ? "is-complete" : ""}><span>{completeField ? <Check size={14} /> : state.request.fields.indexOf(field) + 1}</span><div><strong>{field.label}</strong><small>Page {field.page + 1} · {field.required ? "Required" : "Optional"}</small></div></li>; })}</ol>
         {error && <p className="sign-request-error" role="alert">{error}</p>}
+        <label className="sign-consent-control"><input type="checkbox" checked={consentAccepted} onChange={(event) => setConsentAccepted(event.target.checked)} /><span>I agree to use an electronic signature for this document and intend the fields I complete to be applied to the PDF.</span></label>
         <button type="button" className="sign-finish-button" disabled={busy} onClick={complete}>{busy ? <><LoaderCircle className="is-spinning" size={17} /> Creating signed PDF…</> : <><PenLine size={17} /> Finish and create signed PDF</>}</button>
-        <small className="sign-request-disclosure"><Lock size={13} /> This secure link can be revoked by the sender. The completion receipt records the document fingerprint but does not independently verify identity.</small>
+        <small className="sign-request-disclosure"><Lock size={13} /> {state.cloud ? "Your Google account email is recorded with a server timestamp and document fingerprints. This is not a certified digital signature." : "This secure link can be revoked by the sender. The completion receipt records the document fingerprint but does not independently verify identity."}</small>
       </>}
     </aside></div>
     {activeCapture && <SignatureCapture field={activeCapture} recipientName={state.request.recipient.name} onClose={() => setActiveCapture(null)} onSave={(signature) => { update(activeCapture.id, signature); setActiveCapture(null); }} />}

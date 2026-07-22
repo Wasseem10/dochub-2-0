@@ -183,7 +183,7 @@ export const HIGH_INTENT_TOOL_CONTENT = Object.freeze({
     troubleshooting: [
       { question: "Why is my uploaded signature background visible?", answer: "Use a transparent PNG for the cleanest result, or crop the image closely before uploading it." },
       { question: "Is this a digital certificate signature?", answer: "No. This tool places self-attested visual signature content; it does not issue a cryptographic certificate or verify identity." },
-      { question: "Can I send this to someone else to sign?", answer: "Yes. Signed-in owners can create a revocable, expiring single-signer link with required fields. The recipient can type or draw a signature and download both the signed PDF and a device-generated SHA-256 completion receipt. Automated reminders and independent identity verification are not included." },
+      { question: "Can I send this to other people to sign?", answer: "Yes. Signed-in owners can assign fields to as many as ten ordered recipients. Each signer opens a unique link with the invited Google account and confirms electronic-signature intent. The owner can track progress, open reminder drafts, revoke the request, and download an account-attributed SHA-256 activity record. Automatic email or SMS delivery and certified digital signatures are not included." },
     ],
     faqEntries: [
       { question: "How can I create my signature?", answer: "Type your name, draw with a pointer or touchscreen, or upload a PNG or JPG signature image." },
