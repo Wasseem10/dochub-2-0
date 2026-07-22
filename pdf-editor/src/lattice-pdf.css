@@ -224,13 +224,14 @@
 .freepdf-final button:hover { background: var(--fp-cream); color: var(--fp-blue-dark); }
 .freepdf-final > a { margin-top: 16px; color: #e5e9ff; font-size: 12px; }
 
-.freepdf-site-footer { position: relative; overflow: hidden; margin-top: 74px; background: #071a49 url("../runtime-public/homepage/footer-starfield-v1.jpg") center top / cover no-repeat; color: #fff; }
-.freepdf-footer-surface { width: min(1380px, calc(100% - 72px)); margin: 0 auto; padding: 48px 0 38px; }
-.freepdf-footer-wordmark { display: flex; align-items: baseline; justify-content: center; min-height: 250px; overflow: hidden; border-bottom: 1px solid rgba(221, 235, 255, .35); color: rgba(221, 235, 255, .22); font-family: "DM Sans", sans-serif; font-size: clamp(112px, 14.7vw, 230px); font-weight: 600; letter-spacing: -.09em; line-height: 1.02; text-decoration: none; white-space: nowrap; }
-.freepdf-footer-wordmark strong { color: rgba(159, 221, 255, .34); font-weight: 600; }
+.freepdf-site-footer { position: relative; isolation: isolate; overflow: hidden; margin-top: 74px; background: #0c68b7 url("../runtime-public/homepage/footer-starfield-v1.jpg") center top / cover no-repeat; color: #fff; }
+.freepdf-site-footer::before { position: absolute; z-index: -1; inset: 0; background: radial-gradient(circle at 82% 105%, rgba(166, 231, 246, .36), transparent 46%), linear-gradient(180deg, rgba(58, 160, 222, .6) 0%, rgba(54, 157, 222, .5) 48%, rgba(99, 200, 238, .38) 100%); content: ""; pointer-events: none; }
+.freepdf-footer-surface { position: relative; z-index: 1; width: min(1380px, calc(100% - 72px)); margin: 0 auto; padding: 48px 0 38px; }
+.freepdf-footer-wordmark { display: flex; align-items: baseline; justify-content: center; min-height: 250px; overflow: hidden; border-bottom: 1px solid rgba(235, 248, 255, .4); color: rgba(232, 248, 255, .28); font-family: "DM Sans", sans-serif; font-size: clamp(112px, 14.7vw, 230px); font-weight: 600; letter-spacing: -.09em; line-height: 1.02; text-decoration: none; white-space: nowrap; }
+.freepdf-footer-wordmark strong { color: rgba(210, 243, 255, .42); font-weight: 600; }
 .freepdf-footer-wordmark:hover { color: rgba(237, 245, 255, .3); }
 .freepdf-footer-wordmark:hover strong { color: rgba(179, 231, 255, .44); }
-.freepdf-footer-directory { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: clamp(24px, 3vw, 52px); padding: 46px 0 52px; border-bottom: 1px solid rgba(221, 235, 255, .3); }
+.freepdf-footer-directory { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: clamp(24px, 3vw, 52px); padding: 46px 0 52px; border-bottom: 1px solid rgba(235, 248, 255, .36); }
 .freepdf-footer-directory nav { display: flex; align-items: flex-start; flex-direction: column; gap: 17px; }
 .freepdf-footer-directory h2 { margin: 0 0 6px; color: #fff; font-family: "DM Sans", sans-serif; font-size: 13px; font-weight: 700; letter-spacing: 0; line-height: 1.35; }
 .freepdf-footer-directory a { color: rgba(244, 249, 255, .82); font-size: 13px; line-height: 1.35; text-decoration: none; }
