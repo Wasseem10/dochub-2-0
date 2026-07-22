@@ -923,3 +923,412 @@ main.editor-shell .highlight-opacity-output {
     display: none !important;
   }
 }
+
+/* Responsive editor shell: desktop, laptop, tablet, and phone contracts. */
+main.editor-shell .reference-compact-tools {
+  display: none;
+}
+
+@media (min-width: 1281px) {
+  main.editor-shell.editor-shell,
+  main.editor-shell.editor-shell.has-tool-settings {
+    grid-template-rows: 56px 68px minmax(0, 1fr) !important;
+  }
+
+  main.editor-shell .reference-file-header {
+    min-height: 56px !important;
+    height: 56px !important;
+  }
+
+  main.editor-shell .reference-tool-ribbon {
+    min-height: 60px !important;
+    height: 60px !important;
+    margin-block: 4px !important;
+  }
+
+  main.editor-shell .reference-toolbar-button {
+    height: 52px !important;
+  }
+}
+
+@media (min-width: 901px) and (max-width: 1280px) {
+  main.editor-shell.editor-shell,
+  main.editor-shell.editor-shell.has-tool-settings {
+    grid-template-rows: 52px 64px minmax(0, 1fr) !important;
+  }
+
+  main.editor-shell .reference-file-header {
+    min-height: 52px !important;
+    height: 52px !important;
+    padding-inline: 14px !important;
+  }
+
+  main.editor-shell .reference-brand-divider {
+    height: 26px !important;
+    margin-inline: 12px !important;
+  }
+
+  main.editor-shell .reference-document-name {
+    max-width: min(270px, 25vw) !important;
+  }
+
+  main.editor-shell .reference-save-state span {
+    display: none !important;
+  }
+
+  main.editor-shell .reference-header-actions > button {
+    min-width: 44px !important;
+    height: 38px !important;
+    padding-inline: 9px !important;
+  }
+
+  main.editor-shell .reference-header-actions .reference-done-button {
+    min-width: 82px !important;
+    width: 82px !important;
+    height: 38px !important;
+  }
+
+  main.editor-shell .reference-tool-ribbon {
+    min-height: 58px !important;
+    height: 58px !important;
+    margin: 3px 8px !important;
+    width: calc(100% - 16px) !important;
+    padding: 3px 6px !important;
+    border-radius: 14px !important;
+    scrollbar-width: none !important;
+  }
+
+  main.editor-shell .reference-tool-ribbon::-webkit-scrollbar {
+    display: none !important;
+  }
+
+  main.editor-shell .reference-toolbar-button {
+    min-width: 48px !important;
+    height: 50px !important;
+    padding-inline: 5px !important;
+    font-size: 9.5px !important;
+  }
+
+  main.editor-shell .reference-toolbar-button svg {
+    width: 19px !important;
+    height: 19px !important;
+  }
+
+  main.editor-shell .document-stage {
+    padding: 26px 36px 82px !important;
+  }
+}
+
+@media (max-width: 900px) {
+  main.editor-shell.editor-shell,
+  main.editor-shell.editor-shell.has-tool-settings,
+  main.editor-shell.editor-shell.has-tool-settings.is-highlight-settings-mode {
+    grid-template-rows: 56px 68px minmax(0, 1fr) !important;
+  }
+
+  main.editor-shell .reference-file-header {
+    min-height: 56px !important;
+    height: 56px !important;
+    padding: 0 10px !important;
+  }
+
+  main.editor-shell .reference-brand-name {
+    font-size: 18px !important;
+  }
+
+  main.editor-shell .reference-brand-divider {
+    height: 26px !important;
+    margin-inline: 10px !important;
+  }
+
+  main.editor-shell .reference-document-name {
+    max-width: min(260px, 30vw) !important;
+    font-size: 12px !important;
+  }
+
+  main.editor-shell .reference-save-state {
+    display: none !important;
+  }
+
+  main.editor-shell .reference-header-actions {
+    gap: 5px !important;
+  }
+
+  main.editor-shell .reference-header-actions > button {
+    width: 42px !important;
+    min-width: 42px !important;
+    height: 40px !important;
+    padding: 0 !important;
+  }
+
+  main.editor-shell .reference-header-actions > button > span {
+    display: none !important;
+  }
+
+  main.editor-shell .reference-header-actions .reference-done-button {
+    width: 72px !important;
+    min-width: 72px !important;
+    height: 40px !important;
+  }
+
+  main.editor-shell .reference-header-actions .reference-done-button > span {
+    display: inline !important;
+  }
+
+  main.editor-shell .reference-tool-ribbon {
+    width: calc(100% - 12px) !important;
+    min-height: 62px !important;
+    height: 62px !important;
+    margin: 3px 6px !important;
+    padding: 3px 5px !important;
+    gap: 2px !important;
+    overflow: visible !important;
+    border-radius: 14px !important;
+  }
+
+  main.editor-shell .reference-history-tools,
+  main.editor-shell .reference-content-tools {
+    min-width: 0 !important;
+    gap: 1px !important;
+    padding-right: 3px !important;
+  }
+
+  main.editor-shell .reference-primary-tools {
+    min-width: 0 !important;
+    flex: 0 1 auto !important;
+    gap: 1px !important;
+  }
+
+  main.editor-shell .reference-markup-tools,
+  main.editor-shell .reference-annotation-tools,
+  main.editor-shell .reference-secondary-tools {
+    display: none !important;
+  }
+
+  main.editor-shell .reference-toolbar-button {
+    min-width: 50px !important;
+    height: 54px !important;
+    gap: 3px !important;
+    padding: 3px 4px !important;
+    border-radius: 9px !important;
+    font-size: 9.5px !important;
+  }
+
+  main.editor-shell .reference-toolbar-button svg {
+    width: 20px !important;
+    height: 20px !important;
+  }
+
+  main.editor-shell .reference-compact-tools {
+    position: relative;
+    display: block !important;
+    flex: 0 0 auto;
+  }
+
+  main.editor-shell .reference-compact-tools-menu {
+    position: fixed;
+    top: 126px;
+    right: 8px;
+    z-index: 950;
+    width: min(480px, calc(100vw - 16px));
+    max-height: calc(100dvh - 144px);
+    overflow-y: auto;
+    padding: 10px;
+    border: 1px solid #d7deea;
+    border-radius: 16px;
+    background: #fff;
+    box-shadow: 0 18px 46px rgba(23, 37, 62, .22);
+    overscroll-behavior: contain;
+  }
+
+  main.editor-shell .reference-compact-tools-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  main.editor-shell .reference-compact-tools-grid button,
+  main.editor-shell .reference-compact-tools-footer button {
+    display: flex;
+    min-width: 0;
+    min-height: 54px;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 8px;
+    border: 1px solid transparent;
+    border-radius: 10px;
+    background: #f7f9fc;
+    color: #2c3545;
+    font: inherit;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  main.editor-shell .reference-compact-tools-grid button {
+    flex-direction: column;
+  }
+
+  main.editor-shell .reference-compact-tools-grid button:hover,
+  main.editor-shell .reference-compact-tools-grid button.is-active,
+  main.editor-shell .reference-compact-tools-footer button:hover {
+    border-color: #c9dcff;
+    background: #eaf2ff;
+    color: #2851eb;
+  }
+
+  main.editor-shell .reference-compact-tools-grid button:focus-visible,
+  main.editor-shell .reference-compact-tools-footer button:focus-visible {
+    outline: 3px solid rgba(40, 81, 235, .22);
+    outline-offset: 1px;
+  }
+
+  main.editor-shell .reference-compact-tools-footer {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid #e2e7ef;
+  }
+
+  main.editor-shell .workspace,
+  main.editor-shell .workspace.pages-collapsed,
+  main.editor-shell .workspace.is-managing-pages {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  main.editor-shell .pages-panel,
+  main.editor-shell .workspace.is-managing-pages .pages-panel {
+    position: absolute !important;
+    inset: 0 auto 0 0 !important;
+    z-index: 70 !important;
+    width: min(82vw, 286px) !important;
+    height: 100% !important;
+    box-shadow: 12px 0 34px rgba(25, 38, 61, .18) !important;
+  }
+
+  main.editor-shell .pages-panel.is-collapsed {
+    display: none !important;
+  }
+
+  main.editor-shell .canvas-column {
+    scrollbar-gutter: auto !important;
+    overscroll-behavior: contain;
+  }
+
+  main.editor-shell .document-stage {
+    min-width: 100% !important;
+    padding: 22px 20px 82px !important;
+  }
+
+  main.editor-shell .status-bar {
+    left: 50% !important;
+    bottom: max(10px, env(safe-area-inset-bottom)) !important;
+    max-width: calc(100vw - 20px) !important;
+  }
+
+  main.editor-shell > .text-format-settings,
+  main.editor-shell > .tool-settings {
+    top: 126px !important;
+    max-width: calc(100vw - 16px) !important;
+    justify-content: flex-start !important;
+    overflow-x: auto !important;
+    overflow-y: visible !important;
+    scrollbar-width: none !important;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x proximity;
+  }
+
+  main.editor-shell > .text-format-settings::-webkit-scrollbar,
+  main.editor-shell > .tool-settings::-webkit-scrollbar {
+    display: none !important;
+  }
+
+  main.editor-shell > .text-format-settings > *,
+  main.editor-shell > .tool-settings > * {
+    flex: 0 0 auto !important;
+    scroll-snap-align: start;
+  }
+}
+
+@media (max-width: 600px) {
+  main.editor-shell .reference-brand-divider,
+  main.editor-shell .reference-document-name,
+  main.editor-shell .reference-header-actions > button:first-child {
+    display: none !important;
+  }
+
+  main.editor-shell .reference-brand-lockup {
+    flex: 1 1 auto !important;
+  }
+
+  main.editor-shell .reference-toolbar-button {
+    min-width: 46px !important;
+    padding-inline: 2px !important;
+    font-size: 9px !important;
+  }
+
+  main.editor-shell .reference-history-tools {
+    padding-right: 2px !important;
+  }
+
+  main.editor-shell .reference-compact-tools-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  main.editor-shell .reference-compact-tools-menu {
+    padding: 8px;
+    border-radius: 14px;
+  }
+
+  main.editor-shell .reference-compact-tools-grid button,
+  main.editor-shell .reference-compact-tools-footer button {
+    min-height: 52px;
+  }
+
+  main.editor-shell .document-stage {
+    padding: 16px 8px 76px !important;
+  }
+
+  main.editor-shell > .text-format-settings,
+  main.editor-shell > .tool-settings {
+    width: calc(100vw - 12px) !important;
+    max-width: calc(100vw - 12px) !important;
+    padding-inline: 4px !important;
+  }
+
+  main.editor-shell .font-menu-wrap {
+    width: 128px !important;
+    min-width: 128px !important;
+  }
+
+  main.editor-shell .font-menu-trigger span {
+    max-width: 92px !important;
+  }
+}
+
+@media (max-width: 410px) {
+  main.editor-shell .reference-file-header {
+    padding-inline: 8px !important;
+  }
+
+  main.editor-shell .reference-brand-name {
+    font-size: 17px !important;
+  }
+
+  main.editor-shell .reference-header-actions .reference-done-button {
+    width: 60px !important;
+    min-width: 60px !important;
+  }
+
+  main.editor-shell .reference-toolbar-button {
+    min-width: 43px !important;
+    font-size: 8.5px !important;
+  }
+
+  main.editor-shell .reference-tool-ribbon {
+    padding-inline: 3px !important;
+  }
+}

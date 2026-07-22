@@ -130,7 +130,7 @@ const MIN_EDITOR_ZOOM = 40;
 const ZOOM_PRESETS = [40, 50, 60, 80, 90, 100, 120, 140, 160];
 
 function usesMobileEditorLayout() {
-  return typeof window !== "undefined" && window.matchMedia("(max-width: 820px)").matches;
+  return typeof window !== "undefined" && window.matchMedia("(max-width: 900px)").matches;
 }
 
 const colors = {
@@ -216,6 +216,16 @@ const referencePrimaryTools = [
   { id: "link", label: "Link", icon: Link },
   { id: "checkbox", label: "Check", icon: Check },
   { id: "note", label: "Note", icon: StickyNote },
+];
+
+const compactEditorTools = [
+  { id: "draw", label: "Draw", icon: Paintbrush },
+  { id: "erase", label: "Erase", icon: Eraser },
+  { id: "arrow", label: "Arrow", icon: Send },
+  { id: "line", label: "Line", icon: Minus },
+  { id: "rectangle", label: "Rectangle", icon: RectangleHorizontal },
+  { id: "circle", label: "Circle", icon: Circle },
+  ...referencePrimaryTools.slice(5),
 ];
 
 function makeId(prefix) {
@@ -1617,6 +1627,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   const moreMenuRef = useRef(null);
   const zoomMenuRef = useRef(null);
   const shapeMenuRef = useRef(null);
+  const compactToolsMenuRef = useRef(null);
   const canvasColumnRef = useRef(null);
   const publicDocumentRecoveryRef = useRef(new Set());
   const trackedDocumentOpenRef = useRef(new Set());
@@ -1670,6 +1681,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
   const [isZoomMenuOpen, setIsZoomMenuOpen] = useState(false);
   const [isShapeMenuOpen, setIsShapeMenuOpen] = useState(false);
+  const [isCompactToolsMenuOpen, setIsCompactToolsMenuOpen] = useState(false);
   const [shapeMenuPosition, setShapeMenuPosition] = useState({ top: 0, left: 0 });
   const [isManagePagesOpen, setIsManagePagesOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -1773,7 +1785,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
 
   useEffect(() => {
     if (typeof window === "undefined") return undefined;
-    const mobileLayout = window.matchMedia("(max-width: 820px)");
+    const mobileLayout = window.matchMedia("(max-width: 900px)");
     const handleLayoutChange = (event) => {
       if (event.matches) {
         setIsPagesCollapsed(true);
@@ -2488,6 +2500,25 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       window.removeEventListener("resize", closeShapeMenu);
     };
   }, [isShapeMenuOpen]);
+
+  useEffect(() => {
+    if (!isCompactToolsMenuOpen) return undefined;
+
+    const closeCompactToolsMenu = (event) => {
+      if (event?.type === "keydown" && event.key !== "Escape") return;
+      if (event?.type === "pointerdown" && compactToolsMenuRef.current?.contains(event.target)) return;
+      setIsCompactToolsMenuOpen(false);
+    };
+
+    window.addEventListener("pointerdown", closeCompactToolsMenu);
+    window.addEventListener("keydown", closeCompactToolsMenu);
+    window.addEventListener("resize", closeCompactToolsMenu);
+    return () => {
+      window.removeEventListener("pointerdown", closeCompactToolsMenu);
+      window.removeEventListener("keydown", closeCompactToolsMenu);
+      window.removeEventListener("resize", closeCompactToolsMenu);
+    };
+  }, [isCompactToolsMenuOpen]);
 
   const selectPdfFile = () => {
     fileInputRef.current?.click();
@@ -4298,6 +4329,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
 
   const activateReferenceTool = (nextTool) => {
     setIsShapeMenuOpen(false);
+    setIsCompactToolsMenuOpen(false);
     setSelectedDetectedTextId(null);
     if (nextTool === "image") {
       setTool("image");
@@ -4657,6 +4689,51 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
             setIsManagePagesOpen((value) => !value);
             setIsPagesCollapsed(false);
           }}><PanelsTopLeft size={23} /><span>Manage pages</span></button>
+        </div>
+
+        <div className="reference-compact-tools" ref={compactToolsMenuRef}>
+          <button
+            type="button"
+            className={`reference-toolbar-button reference-compact-tools-trigger ${isCompactToolsMenuOpen ? "is-active" : ""}`}
+            aria-haspopup="menu"
+            aria-expanded={isCompactToolsMenuOpen}
+            aria-controls="compact-editor-tools-menu"
+            onClick={() => {
+              setIsShapeMenuOpen(false);
+              setIsCompactToolsMenuOpen((value) => !value);
+            }}
+          >
+            <Grid2X2 size={23} /><span>More</span>
+          </button>
+          {isCompactToolsMenuOpen && (
+            <div id="compact-editor-tools-menu" className="reference-compact-tools-menu" role="menu" aria-label="More editing tools">
+              <div className="reference-compact-tools-grid">
+                {compactEditorTools.map(({ id, label, icon: Icon }) => (
+                  <button
+                    key={id}
+                    type="button"
+                    role="menuitem"
+                    className={tool === id || (id === "note" && tool === "comment") ? "is-active" : ""}
+                    onClick={() => activateReferenceTool(id)}
+                  >
+                    <Icon size={20} /><span>{label}</span>
+                  </button>
+                ))}
+              </div>
+              <div className="reference-compact-tools-footer">
+                <button type="button" role="menuitem" onClick={() => {
+                  setIsSearchOpen((value) => !value);
+                  setIsCommentsOpen(false);
+                  setIsCompactToolsMenuOpen(false);
+                }}><Search size={19} /><span>Search document</span></button>
+                <button type="button" role="menuitem" onClick={() => {
+                  setIsManagePagesOpen((value) => !value);
+                  setIsPagesCollapsed(false);
+                  setIsCompactToolsMenuOpen(false);
+                }}><PanelsTopLeft size={19} /><span>Manage pages</span></button>
+              </div>
+            </div>
+          )}
         </div>
       </section>
 
