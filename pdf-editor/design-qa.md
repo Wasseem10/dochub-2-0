@@ -1,43 +1,42 @@
-# Landing Footer Design QA
+# Landing Header Design QA
 
-- Source visual truth: `/var/folders/y5/5nxfxhk97_9fmsmdf8tqj81r0000gn/T/TemporaryItems/NSIRD_screencaptureui_HuTaNj/Screenshot 2026-07-21 at 10.30.55 PM.png`
-- Implementation screenshot: `/tmp/fixthatpdf-footer-desktop.png`
-- Mobile implementation screenshot: `/tmp/fixthatpdf-footer-mobile.png`
-- Combined comparison evidence: `/tmp/fixthatpdf-footer-comparison.png`
-- Desktop viewport: 1280 × 720
+- Source visual truth: `/var/folders/y5/5nxfxhk97_9fmsmdf8tqj81r0000gn/T/TemporaryItems/NSIRD_screencaptureui_HHSLAq/Screenshot 2026-07-21 at 10.51.56 PM.png`
+- Implementation screenshot: `/tmp/fixthatpdf-header-aligned-playwright.png`
+- Combined comparison evidence: `/tmp/fixthatpdf-header-alignment-comparison.png`
+- Desktop viewport: 1584 × 178
 - Mobile viewport: 390 × 844
-- State: landing-page footer at rest
-- Primary interactions tested: first footer tool link opens `/edit-pdf`; all footer links remain keyboard-focusable and use real routes
+- State: landing-page header at rest; Tools menu open and closed
+- Primary interactions tested: Tools opens by click, closes with Escape, and returns focus to its trigger; mobile navigation opens, closes with Escape, and returns focus to its trigger
 - Browser console errors: none
 
 ## Full-view comparison evidence
 
-The combined comparison places the reference footer and the rendered FixThatPDF footer together. The implementation preserves the requested visual structure: a full-width celestial blue surface, oversized translucent wordmark, quiet divider, spacious multi-column navigation, and a compact legal/meta row. It intentionally uses FixThatPDF content, routes, colors, and branding instead of copying Gamma's name, app badges, social accounts, or legal copy.
+The combined comparison places the supplied header directly above the rendered FixThatPDF header. It shows the requested correction without changing the hero or header information architecture: Tools, Edit, Organize, Sign, and Convert now use the same height and vertical centerline.
 
 ## Focused region comparison evidence
 
-The desktop screenshot verifies the full footer at readable scale. The mobile screenshot verifies the oversized wordmark, two-column tool directory, readable link spacing, and the absence of horizontal overflow at 390px. No additional detail crop was required because headings, links, dividers, star texture, and both wordmarks are legible in those captures.
+The source and implementation are both captured at 1584 × 178 so the navigation baseline, header border, button height, and beginning of the hero can be compared without scaling. Browser geometry confirms each of the five desktop navigation controls has `top: 15px`, `height: 38px`, and a `34px` vertical center.
 
 ## Required fidelity surfaces
 
-- Fonts and typography: Existing DM Sans is retained. The wordmark uses a large, low-opacity display treatment while directory headings and links use practical 13px weights and line heights.
-- Spacing and layout rhythm: The desktop footer uses six balanced navigation columns under the wordmark. Tablet collapses to three columns and mobile to two. The meta row separates brand, utility links, and copyright without crowding.
-- Colors and visual tokens: The generated background moves from midnight navy to FixThatPDF cobalt and sky blue. White and pale-blue text maintain readable contrast while the decorative wordmark stays intentionally subdued.
-- Image quality and asset fidelity: The footer uses one original 1857 × 847 starfield raster generated for this project and compressed to a 405 KB JPEG. It contains no copied branding, text, app badges, or watermark.
-- Copy and content: All 30 directory links are existing FixThatPDF tool routes. The footer keeps the product tagline, support, privacy, terms, and copyright information.
-- Accessibility and behavior: The footer is semantic, uses visible keyboard focus inherited from the landing page, preserves real link targets, and has no horizontal overflow at desktop or mobile widths.
+- Fonts and typography: The existing product typefaces, weights, and label sizes are unchanged. A consistent unit line-height prevents the Tools label from drifting below adjacent links.
+- Spacing and layout rhythm: All five center navigation items use a shared 38px inline-flex control with centered content, 11px horizontal padding, 10px corner radius, and a compact 4px group gap.
+- Colors and visual tokens: Existing FixThatPDF white, cobalt, and slate tokens are retained. The only additions are a restrained pale-blue hover surface and a subtle header shadow.
+- Copy and content: No navigation labels, routes, hero copy, or calls to action were changed.
+- Accessibility and behavior: The Tools trigger keeps its button semantics and expanded state. Escape closes both desktop and mobile menus and returns keyboard focus to the relevant trigger.
+- Responsive behavior: At 390px the desktop navigation remains hidden, the mobile navigation toggle remains visible, and the document width equals the viewport width with no horizontal overflow.
 
 ## Findings
 
 - No remaining P0, P1, or P2 issues.
-- Intentional difference: the implementation replaces the reference's app-store and social columns with useful FixThatPDF tools because those apps and social accounts do not currently exist.
-- Intentional difference: the starfield is an original blue FixThatPDF asset rather than a copy of Gamma's artwork.
+- The original mismatch was caused by the desktop navigation flex container stretching link items while the Tools button centered its own contents.
+- Scope remained limited to the landing header navigation CSS; the hero and all page sections are unchanged.
 
 ## Comparison history
 
-1. Initial implementation screenshot found one P2 contrast issue: the compact footer wordmark inherited dark global brand colors against the blue background.
-2. The footer-specific wordmark colors were corrected to white and pale sky blue.
-3. Post-fix desktop evidence confirms the corrected colors, 36 working footer links, a 1280px footer matching the viewport, and no console errors. Post-fix mobile evidence confirms a 390px-wide layout with two 168px columns and no horizontal overflow.
+1. Initial reference inspection found one P2 alignment issue: Tools used centered button content while adjacent links stretched in the navigation row and rendered on a different baseline.
+2. The navigation row was changed to center its children, and every desktop navigation item now shares the same inline-flex geometry.
+3. Post-fix evidence confirms equal `15px` top positions, `38px` heights, and `34px` vertical centers across all five items, plus working desktop and mobile menu interactions with zero console errors.
 
 ## Follow-up polish
 
