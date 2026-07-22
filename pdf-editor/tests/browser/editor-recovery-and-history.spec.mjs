@@ -115,8 +115,11 @@ test("mobile editor collapses thumbnails, keeps tools reachable, fits the page, 
   await expect(thumbnails).toHaveAttribute("aria-expanded", "false");
   const toolbar = page.getByRole("region", { name: "PDF editing toolbar" });
   await expect(toolbar).toBeVisible();
-  const toolbarFits = await toolbar.evaluate((element) => element.scrollWidth <= element.clientWidth + 1);
-  expect(toolbarFits).toBe(true);
+  const toolbarLayout = await toolbar.evaluate((element) => ({
+    clientWidth: element.clientWidth,
+    scrollWidth: element.scrollWidth,
+  }));
+  expect(toolbarLayout.scrollWidth, `toolbar should fit within ${toolbarLayout.clientWidth}px`).toBeLessThanOrEqual(toolbarLayout.clientWidth + 1);
 
   const moreTools = toolbar.getByRole("button", { name: "More", exact: true });
   await expect(moreTools).toBeVisible();

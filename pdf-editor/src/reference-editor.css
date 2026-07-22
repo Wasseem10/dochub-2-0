@@ -1106,10 +1106,13 @@ main.editor-shell .reference-compact-tools {
   }
 
   main.editor-shell .reference-toolbar-button {
+    box-sizing: border-box !important;
     min-width: 50px !important;
+    width: 50px !important;
     height: 54px !important;
     gap: 3px !important;
     padding: 3px 4px !important;
+    overflow: hidden !important;
     border-radius: 9px !important;
     font-size: 9.5px !important;
   }
@@ -1266,6 +1269,7 @@ main.editor-shell .reference-compact-tools {
 
   main.editor-shell .reference-toolbar-button {
     min-width: 46px !important;
+    width: 46px !important;
     padding-inline: 2px !important;
     font-size: 9px !important;
   }
@@ -1325,6 +1329,7 @@ main.editor-shell .reference-compact-tools {
 
   main.editor-shell .reference-toolbar-button {
     min-width: 43px !important;
+    width: 43px !important;
     font-size: 8.5px !important;
   }
 
