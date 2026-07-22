@@ -66,7 +66,10 @@ test("the lightweight homepage hands a selected PDF to the full editor", async (
   firstPage.drawText("LANDING HANDOFF", { x: 72, y: 650, size: 18, font });
 
   await page.goto(appPath("/"));
-  await page.locator('input[type="file"]').first().setInputFiles({ name: "landing-handoff.pdf", mimeType: "application/pdf", buffer: Buffer.from(await pdf.save()) });
+  const fileChooserPromise = page.waitForEvent("filechooser");
+  await page.getByRole("button", { name: "Choose a PDF from your device", exact: true }).click();
+  const fileChooser = await fileChooserPromise;
+  await fileChooser.setFiles({ name: "landing-handoff.pdf", mimeType: "application/pdf", buffer: Buffer.from(await pdf.save()) });
 
   await expect(page).toHaveURL(/\/edit-pdf\?tool=edit-pdf&document=/);
   await expect(page.locator(".detected-text-item").first()).toContainText("LANDING HANDOFF");
@@ -113,7 +116,7 @@ test("tool guides stay centered and readable on wide screens", async ({ page }) 
     expect(layout.width).toBeLessThanOrEqual(360.5);
     expect(Math.abs(layout.left - layout.rightGap)).toBeLessThanOrEqual(1);
     expect(layout.cardWidth).toBeLessThanOrEqual(layout.width);
-    expect(layout.scrollWidth).toBeLessThanOrEqual(390);
+    expect(layout.scrollWidth, `${route} should not overflow the 390px viewport`).toBeLessThanOrEqual(390);
   }
 });
 

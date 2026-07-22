@@ -194,16 +194,28 @@ function SiteHeader({ onChoose }) {
 }
 
 function Dropzone({ choose, dragging, setDragging, isUploading, uploadError, uploadStage, onDropFiles, onUpload }) {
-  return <section className={`freepdf-dropzone ${dragging ? "is-dragging" : ""} ${uploadError ? "has-error" : ""}`} aria-label="Upload a PDF" onDragEnter={(event) => { event.preventDefault(); setDragging(true); }} onDragOver={(event) => { event.preventDefault(); event.dataTransfer.dropEffect = "copy"; }} onDragLeave={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setDragging(false); }} onDrop={(event) => { event.preventDefault(); setDragging(false); if (onDropFiles) onDropFiles(event.dataTransfer.files); else onUpload?.({ target: { files: event.dataTransfer.files, value: "" } }); }}>
+  const openFilePicker = () => {
+    if (!isUploading) choose();
+  };
+
+  return <button
+    type="button"
+    className={`freepdf-dropzone ${dragging ? "is-dragging" : ""} ${uploadError ? "has-error" : ""}`}
+    aria-label="Choose a PDF from your device"
+    aria-disabled={isUploading}
+    aria-busy={isUploading}
+    onClick={openFilePicker}
+    onDragEnter={(event) => { event.preventDefault(); setDragging(true); }}
+    onDragOver={(event) => { event.preventDefault(); event.dataTransfer.dropEffect = "copy"; }}
+    onDragLeave={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setDragging(false); }}
+    onDrop={(event) => { event.preventDefault(); setDragging(false); if (onDropFiles) onDropFiles(event.dataTransfer.files); else onUpload?.({ target: { files: event.dataTransfer.files, value: "" } }); }}
+  >
     <span className="freepdf-upload-icon"><Upload size={26} /></span>
-    <h2>{dragging ? "Drop your PDF here" : isUploading ? "Opening your PDF…" : "Drop your PDF here"}</h2>
-    <p>or choose a file from your device</p>
+    <span className="freepdf-dropzone-title">{dragging ? "Drop your PDF here" : isUploading ? "Opening your PDF…" : "Drop your PDF here"}</span>
+    <span className="freepdf-dropzone-copy">or choose a file from your device</span>
     <img className="freepdf-drop-file-art" src={asset("hero-pdf-document-v1.png")} alt="" width="270" height="360" decoding="async" />
-    <button type="button" onClick={choose} disabled={isUploading}>Choose a PDF</button>
-    <small>PDF · Up to 50 MB · Maximum 500 pages</small>
-    <div className="freepdf-upload-status" aria-live="polite">{uploadError ? <p role="alert">{uploadError}</p> : isUploading ? <><p>{uploadStage.status}{uploadStage.fileName ? ` · ${uploadStage.fileName}` : ""}</p><div role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow={uploadStage.percent || 0}><span style={{ width: `${uploadStage.percent || 0}%` }} /></div></> : null}</div>
-    <Link to={ROUTE_PATHS.privacy}><LockKeyhole size={13} /> Your file stays private</Link>
-  </section>;
+    <span className="freepdf-upload-status" aria-live="polite">{uploadError ? <span role="alert">{uploadError}</span> : isUploading ? <><span className="freepdf-upload-status-copy">{uploadStage.status}{uploadStage.fileName ? ` · ${uploadStage.fileName}` : ""}</span><span className="freepdf-upload-progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow={uploadStage.percent || 0}><span style={{ width: `${uploadStage.percent || 0}%` }} /></span></> : null}</span>
+  </button>;
 }
 
 function PopularTools() {
@@ -256,7 +268,7 @@ export function LatticePdfLanding({ fileInputRef, onUpload, onSelectFiles, onDro
     <SiteHeader onChoose={choose} />
 
     <section className="freepdf-hero">
-      <div className="freepdf-hero-backdrop" aria-hidden="true"><HomepageImage fileName="hero-open-horizon-v1.png" alt="" width="1661" height="947" sizes="100vw" eager /></div>
+      <div className="freepdf-hero-backdrop" aria-hidden="true"><HomepageImage fileName="hero-paper-workspace-v1.png" alt="" width="1825" height="862" sizes="100vw" eager /></div>
       <div className="freepdf-hero-layout">
         <div className="freepdf-hero-copy">
           <span className="freepdf-eyebrow">More than just editing</span>

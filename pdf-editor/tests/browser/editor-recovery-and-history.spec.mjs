@@ -40,7 +40,7 @@ test("existing-text edits undo, redo, autosave, survive reload, and export", asy
   await detected.click();
   const content = detected.locator(".detected-text-content");
   await content.fill("UPDATED ACCOUNT TOTAL 42000");
-  await expect(page.getByText("Unsaved changes").first()).toBeVisible();
+  await expect(page.locator(".reference-save-state")).toContainText("Unsaved changes");
   await page.getByRole("button", { name: "Download", exact: true }).focus();
 
   const undo = page.getByRole("button", { name: "Undo", exact: true });
@@ -52,8 +52,8 @@ test("existing-text edits undo, redo, autosave, survive reload, and export", asy
   await redo.click();
   await expect(page.locator(".detected-text-item").filter({ hasText: "UPDATED ACCOUNT TOTAL 42000" })).toBeVisible();
 
-  await expect(page.getByText("Unsaved changes").first()).toBeVisible();
-  await expect(page.getByText("Saved in this browser").first()).toBeVisible({ timeout: 5_000 });
+  await expect(page.locator(".reference-save-state")).toContainText("Unsaved changes");
+  await expect(page.locator(".reference-save-state")).toContainText("Saved in this browser", { timeout: 5_000 });
   const editorUrl = page.url();
   await page.reload();
   await expect(page).toHaveURL(editorUrl);
@@ -115,9 +115,20 @@ test("mobile editor collapses thumbnails, keeps tools reachable, fits the page, 
   await expect(thumbnails).toHaveAttribute("aria-expanded", "false");
   const toolbar = page.getByRole("region", { name: "PDF editing toolbar" });
   await expect(toolbar).toBeVisible();
-  const check = page.getByRole("button", { name: "Check", exact: true });
-  await check.scrollIntoViewIfNeeded();
+  const toolbarLayout = await toolbar.evaluate((element) => ({
+    clientWidth: element.clientWidth,
+    scrollWidth: element.scrollWidth,
+  }));
+  expect(toolbarLayout.scrollWidth, `toolbar should fit within ${toolbarLayout.clientWidth}px`).toBeLessThanOrEqual(toolbarLayout.clientWidth + 1);
+
+  const moreTools = toolbar.getByRole("button", { name: "More", exact: true });
+  await expect(moreTools).toBeVisible();
+  await moreTools.click();
+  const compactToolsMenu = page.getByRole("menu", { name: "More editing tools" });
+  await expect(compactToolsMenu).toBeVisible();
+  const check = compactToolsMenu.getByRole("menuitem", { name: "Check", exact: true });
   await check.click();
+  await expect(compactToolsMenu).toBeHidden();
 
   const surface = page.locator(".page-surface");
   await expect(surface).toBeVisible();
