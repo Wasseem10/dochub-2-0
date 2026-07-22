@@ -293,7 +293,24 @@ export function LatticePdfLanding({ fileInputRef, onUpload, onSelectFiles, onDro
 
     <section className="freepdf-section freepdf-faq" aria-labelledby="faq-title"><div className="freepdf-section-heading"><span>Good to know</span><h2 id="faq-title">Clear answers before you upload.</h2></div><div>{faqs.map(([question, answer]) => <details key={question}><summary>{question}</summary><p>{answer}</p></details>)}</div></section>
 
-    <section className="freepdf-final"><span>Ready when you are</span><h2>Finish that PDF today.</h2><p>Choose a supported PDF and start immediately. No signup, no watermark, no payment screen.</p><button type="button" onClick={choose}><Upload size={18} /> Choose a PDF</button><Link to={ROUTE_PATHS.privacy}>Privacy and file handling</Link></section>
+    <section className="freepdf-final">
+      <div className="freepdf-final-copy">
+        <span>Ready when you are</span>
+        <h2>Finish that PDF today.</h2>
+        <p>Choose a supported PDF and start immediately. No signup, no watermark, no payment screen.</p>
+        <div className="freepdf-final-trust" aria-label="Upload benefits">
+          <span><Check size={15} /> Free to use</span>
+          <span><ShieldCheck size={15} /> Private by design</span>
+        </div>
+      </div>
+      <div className="freepdf-final-action">
+        <div className="freepdf-final-file" aria-hidden="true"><FileText size={30} /></div>
+        <strong>Your PDF, ready in seconds</strong>
+        <small>Drop a file here or choose one from your device.</small>
+        <button type="button" onClick={choose}><Upload size={18} /> Choose a PDF</button>
+        <Link to={ROUTE_PATHS.privacy}>How we handle your files <ArrowRight size={13} /></Link>
+      </div>
+    </section>
 
     <SiteFooter />
   </main>;
