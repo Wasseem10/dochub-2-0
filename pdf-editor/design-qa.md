@@ -1,45 +1,46 @@
-# Landing Tools Mega-Menu Design QA
+# Landing Footer Design QA
 
-- Source visual truth: `/var/folders/y5/5nxfxhk97_9fmsmdf8tqj81r0000gn/T/TemporaryItems/NSIRD_screencaptureui_UyD8S9/Screenshot 2026-07-21 at 4.48.26 PM.png`
-- Implementation screenshot: `/tmp/dochub-design-qa/landing-tools-menu-final.png`
-- Combined comparison evidence: `/tmp/dochub-design-qa/landing-tools-menu-comparison.png`
-- Viewport: 1814 × 638
-- State: FixThatPDF landing page with the desktop Tools menu open
-- Primary interactions tested: open Tools, expose all released tool links, close with Escape, and return focus to the Tools trigger
+- Source visual truth: `/var/folders/y5/5nxfxhk97_9fmsmdf8tqj81r0000gn/T/TemporaryItems/NSIRD_screencaptureui_HuTaNj/Screenshot 2026-07-21 at 10.30.55 PM.png`
+- Implementation screenshot: `/tmp/fixthatpdf-footer-desktop.png`
+- Mobile implementation screenshot: `/tmp/fixthatpdf-footer-mobile.png`
+- Combined comparison evidence: `/tmp/fixthatpdf-footer-comparison.png`
+- Desktop viewport: 1280 × 720
+- Mobile viewport: 390 × 844
+- State: landing-page footer at rest
+- Primary interactions tested: first footer tool link opens `/edit-pdf`; all footer links remain keyboard-focusable and use real routes
 - Browser console errors: none
 
 ## Full-view comparison evidence
 
-The combined comparison shows the source and implementation at their native 1814 × 638 viewport width. The implementation preserves the source pattern: a Tools trigger with a grid icon and active underline, a full-width white menu, six category columns, compact colored icons, short tool labels, and a clean lower edge that fits the viewport. FixThatPDF intentionally retains its existing wordmark, navigation, brand colors, and real product categories.
+The combined comparison places the reference footer and the rendered FixThatPDF footer together. The implementation preserves the requested visual structure: a full-width celestial blue surface, oversized translucent wordmark, quiet divider, spacious multi-column navigation, and a compact legal/meta row. It intentionally uses FixThatPDF content, routes, colors, and branding instead of copying Gamma's name, app badges, social accounts, or legal copy.
 
 ## Focused region comparison evidence
 
-A separate crop was not needed because the reference and implementation are both menu-only captures at native viewport width. Header controls, category headings, icon treatments, item typography, column spacing, and the lower menu boundary remain readable in the combined comparison.
+The desktop screenshot verifies the full footer at readable scale. The mobile screenshot verifies the oversized wordmark, two-column tool directory, readable link spacing, and the absence of horizontal overflow at 390px. No additional detail crop was required because headings, links, dividers, star texture, and both wordmarks are legible in those captures.
 
 ## Required fidelity surfaces
 
-- Fonts and typography: The implementation uses the product's existing DM Sans family. Compact 11px category headings and 12px tool labels reproduce the source density without introducing a new font dependency. Long real tool names truncate rather than collide with adjacent columns.
-- Spacing and layout rhythm: Six equal columns, 31px tool rows, restrained section gaps, and a 540px menu height reproduce the reference structure. The final menu has no internal scrolling at the comparison viewport and no horizontal page overflow.
-- Colors and visual tokens: The active control uses FixThatPDF blue. Tool icons use the existing category accent colors so the menu feels native to FixThatPDF while retaining the reference's color-coded scanning pattern.
-- Image quality and asset fidelity: The reference contains only standard UI icons. The implementation uses the established ToolIcon/Lucide system; no placeholder graphics, emoji, CSS drawings, or generated raster assets are used.
-- Copy and content: All 68 links come from the current released FixThatPDF tool registry. No competitor-only tool names or unavailable FixThatPDF routes were copied from the reference.
+- Fonts and typography: Existing DM Sans is retained. The wordmark uses a large, low-opacity display treatment while directory headings and links use practical 13px weights and line heights.
+- Spacing and layout rhythm: The desktop footer uses six balanced navigation columns under the wordmark. Tablet collapses to three columns and mobile to two. The meta row separates brand, utility links, and copyright without crowding.
+- Colors and visual tokens: The generated background moves from midnight navy to FixThatPDF cobalt and sky blue. White and pale-blue text maintain readable contrast while the decorative wordmark stays intentionally subdued.
+- Image quality and asset fidelity: The footer uses one original 1857 × 847 starfield raster generated for this project and compressed to a 405 KB JPEG. It contains no copied branding, text, app badges, or watermark.
+- Copy and content: All 30 directory links are existing FixThatPDF tool routes. The footer keeps the product tagline, support, privacy, terms, and copyright information.
+- Accessibility and behavior: The footer is semantic, uses visible keyboard focus inherited from the landing page, preserves real link targets, and has no horizontal overflow at desktop or mobile widths.
 
 ## Findings
 
 - No remaining P0, P1, or P2 issues.
-- Intentional difference: the implementation includes more rows because the user requested every currently released FixThatPDF tool, while the reference shows a smaller competitor tool set.
-- Intentional difference: the existing FixThatPDF wordmark and primary navigation remain in place rather than copying the competitor's header.
+- Intentional difference: the implementation replaces the reference's app-store and social columns with useful FixThatPDF tools because those apps and social accounts do not currently exist.
+- Intentional difference: the starfield is an original blue FixThatPDF asset rather than a copy of Gamma's artwork.
 
 ## Comparison history
 
-1. Initial implementation evidence: `/tmp/dochub-design-qa/landing-tools-menu.png`.
-   - P2: the redundant “Browse all tools” strip extended below the 638px reference viewport and made the menu internally scrollable.
-   - Fix: removed the redundant strip and retained direct access to all 68 tools inside the menu. The full directory remains available through the mobile Tools link and existing site navigation/footer.
-2. Post-fix evidence: `/tmp/dochub-design-qa/landing-tools-menu-final.png`.
-   - The menu now measures 540px high, its content height equals its client height, the lower edge is visible, all 68 links are present, and horizontal overflow is 0px.
+1. Initial implementation screenshot found one P2 contrast issue: the compact footer wordmark inherited dark global brand colors against the blue background.
+2. The footer-specific wordmark colors were corrected to white and pale sky blue.
+3. Post-fix desktop evidence confirms the corrected colors, 36 working footer links, a 1280px footer matching the viewport, and no console errors. Post-fix mobile evidence confirms a 390px-wide layout with two 168px columns and no horizontal overflow.
 
 ## Follow-up polish
 
-- P3: A future iteration could add optional keyboard arrow-key movement between menu groups; current tab navigation, focus visibility, Escape handling, and link activation already work.
+- No P3 item is required for this release.
 
 final result: passed

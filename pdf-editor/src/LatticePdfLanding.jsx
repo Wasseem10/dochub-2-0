@@ -222,6 +222,22 @@ function FooterToolDirectory() {
   </section>;
 }
 
+function SiteFooter() {
+  return <footer className="freepdf-site-footer">
+    <div className="freepdf-footer-surface">
+      <Link className="freepdf-footer-wordmark" to={ROUTE_PATHS.home} aria-label="FixThatPDF home">
+        <span>FixThat</span><strong>PDF</strong>
+      </Link>
+      <FooterToolDirectory />
+      <div className="freepdf-footer-meta">
+        <div><Brand /><p>Every PDF task, finally in one place.</p></div>
+        <nav aria-label="Footer"><Link to={ROUTE_PATHS.tools}>All tools</Link><Link to={ROUTE_PATHS.support}>Support</Link><Link to={ROUTE_PATHS.privacy}>Privacy</Link><Link to={ROUTE_PATHS.terms}>Terms</Link></nav>
+        <span>© 2026 FixThatPDF</span>
+      </div>
+    </div>
+  </footer>;
+}
+
 export function LatticePdfLanding({ fileInputRef, onUpload, onSelectFiles, onDropFiles, uploadError = "", uploadStage = { status: "idle", percent: 0, fileName: "" } }) {
   const fallbackInputRef = useRef(null);
   const inputRef = fileInputRef || fallbackInputRef;
@@ -278,8 +294,6 @@ export function LatticePdfLanding({ fileInputRef, onUpload, onSelectFiles, onDro
 
     <section className="freepdf-final"><span>Ready when you are</span><h2>Finish that PDF today.</h2><p>Choose a supported PDF and start immediately. No signup, no watermark, no payment screen.</p><button type="button" onClick={choose}><Upload size={18} /> Choose a PDF</button><Link to={ROUTE_PATHS.privacy}>Privacy and file handling</Link></section>
 
-    <FooterToolDirectory />
-
-    <footer className="freepdf-footer"><div><Brand /><p>Every PDF task, finally in one place.</p></div><nav aria-label="Footer"><Link to={ROUTE_PATHS.tools}>All tools</Link><Link to={ROUTE_PATHS.support}>Support</Link><Link to={ROUTE_PATHS.privacy}>Privacy</Link><Link to={ROUTE_PATHS.terms}>Terms</Link></nav><span>© 2026 FixThatPDF</span></footer>
+    <SiteFooter />
   </main>;
 }

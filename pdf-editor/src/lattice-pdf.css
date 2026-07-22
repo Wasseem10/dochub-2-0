@@ -220,18 +220,27 @@
 .freepdf-final button:hover { background: var(--fp-cream); color: var(--fp-blue-dark); }
 .freepdf-final > a { margin-top: 16px; color: #e5e9ff; font-size: 12px; }
 
-.freepdf-footer-directory { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: clamp(26px, 3vw, 54px); width: min(1320px, calc(100% - 72px)); margin: 0 auto; padding: 52px 0 60px; border-bottom: 1px solid var(--fp-line); }
+.freepdf-site-footer { position: relative; overflow: hidden; margin-top: 74px; background: #071a49 url("../runtime-public/homepage/footer-starfield-v1.jpg") center top / cover no-repeat; color: #fff; }
+.freepdf-footer-surface { width: min(1380px, calc(100% - 72px)); margin: 0 auto; padding: 48px 0 38px; }
+.freepdf-footer-wordmark { display: flex; align-items: baseline; justify-content: center; min-height: 250px; overflow: hidden; border-bottom: 1px solid rgba(221, 235, 255, .35); color: rgba(221, 235, 255, .22); font-family: "DM Sans", sans-serif; font-size: clamp(112px, 14.7vw, 230px); font-weight: 600; letter-spacing: -.09em; line-height: 1.02; text-decoration: none; white-space: nowrap; }
+.freepdf-footer-wordmark strong { color: rgba(159, 221, 255, .34); font-weight: 600; }
+.freepdf-footer-wordmark:hover { color: rgba(237, 245, 255, .3); }
+.freepdf-footer-wordmark:hover strong { color: rgba(179, 231, 255, .44); }
+.freepdf-footer-directory { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: clamp(24px, 3vw, 52px); padding: 46px 0 52px; border-bottom: 1px solid rgba(221, 235, 255, .3); }
 .freepdf-footer-directory nav { display: flex; align-items: flex-start; flex-direction: column; gap: 17px; }
-.freepdf-footer-directory h2 { margin: 0 0 4px; color: #7a8585; font-family: "DM Sans", sans-serif; font-size: 12px; font-weight: 800; letter-spacing: .08em; line-height: 1.35; text-transform: uppercase; }
-.freepdf-footer-directory a { color: #344144; font-size: 14px; line-height: 1.35; text-decoration: none; }
-.freepdf-footer-directory a:hover { color: var(--fp-blue); }
+.freepdf-footer-directory h2 { margin: 0 0 6px; color: #fff; font-family: "DM Sans", sans-serif; font-size: 13px; font-weight: 700; letter-spacing: 0; line-height: 1.35; }
+.freepdf-footer-directory a { color: rgba(244, 249, 255, .82); font-size: 13px; line-height: 1.35; text-decoration: none; }
+.freepdf-footer-directory a:hover { color: #fff; text-decoration: underline; text-underline-offset: 4px; }
 
-.freepdf-footer { display: grid; grid-template-columns: 1fr auto auto; gap: 30px; align-items: center; width: min(1180px, calc(100% - 48px)); min-height: 120px; margin: 0 auto; color: var(--fp-muted); }
-.freepdf-footer > div { display: flex; align-items: center; gap: 16px; }
-.freepdf-footer p { margin: 0; font-size: 13px; }
-.freepdf-footer nav { display: flex; gap: 18px; }
-.freepdf-footer nav a { color: #555a69; font-size: 13px; font-weight: 700; text-decoration: none; }
-.freepdf-footer > span { font-size: 12px; }
+.freepdf-footer-meta { display: grid; grid-template-columns: 1fr auto auto; gap: 30px; align-items: center; min-height: 94px; color: rgba(239, 247, 255, .78); }
+.freepdf-footer-meta > div { display: flex; align-items: center; gap: 16px; }
+.freepdf-footer-meta .brand-wordmark-name { color: #fff; }
+.freepdf-footer-meta .brand-wordmark-pdf { color: #9ddcff; }
+.freepdf-footer-meta p { margin: 0; font-size: 12px; }
+.freepdf-footer-meta nav { display: flex; gap: 18px; }
+.freepdf-footer-meta nav a { color: rgba(239, 247, 255, .82); font-size: 12px; font-weight: 700; text-decoration: none; }
+.freepdf-footer-meta nav a:hover { color: #fff; }
+.freepdf-footer-meta > span { font-size: 12px; }
 
 @media (max-width: 1060px) {
   .freepdf-desktop-nav { display: none; }
@@ -243,7 +252,8 @@
   .freepdf-task-lane,
   .freepdf-task-lane.is-reversed { grid-template-columns: minmax(240px, .8fr) minmax(0, 1.2fr); gap: 36px; padding: 38px; }
   .freepdf-tool-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .freepdf-footer-directory { grid-template-columns: repeat(3, minmax(0, 1fr)); row-gap: 48px; }
+  .freepdf-footer-wordmark { min-height: 210px; }
+  .freepdf-footer-directory { grid-template-columns: repeat(3, minmax(0, 1fr)); row-gap: 44px; }
 }
 
 @media (max-width: 760px) {
@@ -260,7 +270,7 @@
   .freepdf-task-lane.is-reversed .freepdf-task-copy { order: 0; }
   .freepdf-task-visual { grid-row: auto; height: min(54vw, 290px); }
   .freepdf-privacy { grid-template-columns: 1fr; gap: 35px; padding: 52px 34px; }
-  .freepdf-footer { grid-template-columns: 1fr; gap: 16px; padding: 38px 0; }
+  .freepdf-footer-meta { grid-template-columns: 1fr; gap: 16px; padding: 26px 0; }
 }
 
 @media (max-width: 540px) {
@@ -271,8 +281,7 @@
   .freepdf-task-lanes,
   .freepdf-section,
   .freepdf-final,
-  .freepdf-footer-directory,
-  .freepdf-footer { width: min(100% - 30px, 1180px); }
+  .freepdf-footer-surface { width: min(100% - 30px, 1180px); }
   .freepdf-header { min-height: 64px; }
   .freepdf-brand { font-size: 20px; }
   .freepdf-mobile-nav { top: 57px; }
@@ -309,12 +318,15 @@
   .freepdf-privacy { padding: 42px 22px; border-radius: 21px; }
   .freepdf-final { margin-bottom: 44px; padding: 54px 22px; border-radius: 22px; }
   .freepdf-final button { width: 100%; max-width: 310px; }
-  .freepdf-footer-directory { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 38px 24px; padding: 46px 0 52px; }
+  .freepdf-site-footer { margin-top: 52px; background-position: 45% top; }
+  .freepdf-footer-surface { padding-top: 28px; }
+  .freepdf-footer-wordmark { justify-content: flex-start; min-height: 132px; font-size: clamp(64px, 19.2vw, 96px); letter-spacing: -.075em; }
+  .freepdf-footer-directory { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 38px 24px; padding: 38px 0 42px; }
   .freepdf-footer-directory nav { gap: 14px; }
   .freepdf-footer-directory h2 { font-size: 11px; }
   .freepdf-footer-directory a { font-size: 13px; }
-  .freepdf-footer > div { align-items: flex-start; flex-direction: column; }
-  .freepdf-footer nav { flex-wrap: wrap; }
+  .freepdf-footer-meta > div { align-items: flex-start; flex-direction: column; gap: 8px; }
+  .freepdf-footer-meta nav { flex-wrap: wrap; }
 }
 
 @media (prefers-reduced-motion: reduce) {
