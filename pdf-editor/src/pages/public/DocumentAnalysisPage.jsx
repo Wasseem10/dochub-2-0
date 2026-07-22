@@ -45,7 +45,7 @@ const MODES = Object.freeze({
 });
 
 const LANGUAGES = [
-  ["es", "Spanish"], ["fr", "French"], ["de", "German"], ["it", "Italian"], ["pt", "Portuguese"], ["ja", "Japanese"], ["ko", "Korean"], ["zh", "Chinese"],
+  ["en", "English"], ["es", "Spanish"], ["fr", "French"], ["de", "German"], ["it", "Italian"], ["pt", "Portuguese"], ["ja", "Japanese"], ["ko", "Korean"], ["zh", "Chinese"],
 ];
 
 async function loadPdfRenderer() {
@@ -87,6 +87,7 @@ export function DocumentAnalysisPage({ tool }) {
   const [file, setFile] = useState(null);
   const [pages, setPages] = useState([]);
   const [query, setQuery] = useState("");
+  const [sourceLanguage, setSourceLanguage] = useState("en");
   const [targetLanguage, setTargetLanguage] = useState("es");
   const [result, setResult] = useState(null);
   const [conversation, setConversation] = useState([]);
@@ -143,7 +144,7 @@ export function DocumentAnalysisPage({ tool }) {
       else if (tool.id === "ai-question-generator") nextResult = generateDocumentQuestions(pages, 10);
       else if (tool.id === "contract-analyzer") nextResult = analyzeContract(pages);
       else if (tool.id === "resume-analyzer") nextResult = analyzeResume(pages);
-      else if (tool.id === "translate-pdf") nextResult = await translateDocumentText(fullText, { sourceLanguage: "en", targetLanguage, onProgress: ({ completed, total }) => setProgress(Math.round(completed / total * 96)) });
+      else if (tool.id === "translate-pdf") nextResult = await translateDocumentText(fullText, { sourceLanguage, targetLanguage, onProgress: ({ completed, total }) => setProgress(Math.round(completed / total * 96)) });
       setResult(nextResult || null); setProgress(100); setStatus("complete");
       trackProductEvent("export_succeeded", { toolId: tool.id });
     } catch (analysisError) {
@@ -169,7 +170,11 @@ export function DocumentAnalysisPage({ tool }) {
     {!file ? <section className="analysis-upload" onDragOver={(event) => event.preventDefault()} onDrop={(event) => { event.preventDefault(); void choose(event.dataTransfer.files?.[0]); }}><input ref={inputRef} type="file" accept="application/pdf,.pdf" onChange={(event) => { void choose(event.target.files?.[0]); event.target.value = ""; }} /><span><Upload size={27} /></span><h2>Choose a text-based PDF</h2><p>Valid, unencrypted PDFs up to 20 MB and 100 pages. Image-only scans need OCR first.</p><button type="button" onClick={() => inputRef.current?.click()}>Choose a PDF</button></section> : <div className="analysis-workspace"><aside className="analysis-source-card"><FileText size={24} /><h2>{file.name}</h2><p>{formatBytes(file.size)} · {pages.length} page{pages.length === 1 ? "" : "s"}</p><ul><li><Check size={15} /> {fullText.length.toLocaleString()} extracted characters</li><li><Check size={15} /> Source page citations retained</li><li><Check size={15} /> No document-content logging</li></ul><button type="button" onClick={() => inputRef.current?.click()}><Upload size={16} /> Replace PDF</button><input ref={inputRef} type="file" accept="application/pdf,.pdf" onChange={(event) => { void choose(event.target.files?.[0]); event.target.value = ""; }} /></aside>
       <section className="analysis-main-card"><header><span><ModeIcon size={22} /></span><div><h2>{mode.heading}</h2><p>{mode.detail}</p></div></header>
         {QUESTION_TOOLS.has(tool.id) && <div className="analysis-question-box"><label htmlFor="document-question">Question about this PDF</label><div><textarea id="document-question" rows="3" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Example: What is the payment deadline?" /><button type="button" disabled={status === "analyzing"} onClick={run}><Send size={18} /> Ask</button></div></div>}
-        {tool.id === "translate-pdf" && <label className="analysis-language"><span>Translate English document text to</span><select value={targetLanguage} onChange={(event) => setTargetLanguage(event.target.value)}>{LANGUAGES.map(([code, label]) => <option key={code} value={code}>{label}</option>)}</select><small>Translation works only when this language pair is available through the browser's on-device Translator API.</small></label>}
+        {tool.id === "translate-pdf" && <div className="analysis-language"><div className="analysis-language-pair"><label><span>Document language</span><select aria-label="Document language" value={sourceLanguage} onChange={(event) => {
+          const nextSource = event.target.value;
+          setSourceLanguage(nextSource);
+          if (nextSource === targetLanguage) setTargetLanguage(nextSource === "en" ? "es" : "en");
+        }}>{LANGUAGES.map(([code, label]) => <option key={code} value={code}>{label}</option>)}</select></label><label><span>Translate to</span><select aria-label="Translate to" value={targetLanguage} onChange={(event) => setTargetLanguage(event.target.value)}>{LANGUAGES.map(([code, label]) => <option key={code} value={code} disabled={code === sourceLanguage}>{label}</option>)}</select></label></div><small>Choose the PDF's current language and a different target language. Translation works only when that language pair is available through the browser's on-device Translator API.</small></div>}
         {!QUESTION_TOOLS.has(tool.id) && <button className="analysis-primary" type="button" disabled={status === "analyzing"} onClick={run}>{status === "analyzing" ? <><LoaderCircle className="is-spinning" size={18} /> Working… {progress}%</> : <><Sparkles size={18} /> {mode.action}</>}</button>}
         {status === "analyzing" && <div className="analysis-progress"><i style={{ width: `${progress}%` }} /></div>}{error && <div className="conversion-error" role="alert">{error}</div>}
         <AnalysisResult toolId={tool.id} result={result} conversation={conversation} />

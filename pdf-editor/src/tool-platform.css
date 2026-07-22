@@ -787,13 +787,16 @@
 .analysis-main-card h2 { margin: 0; font-size: clamp(20px, 3vw, 27px); letter-spacing: -.025em; }
 .analysis-main-card header p { margin: 7px 0 0; color: #667085; line-height: 1.5; }
 .analysis-question-box { margin-top: 22px; }
-.analysis-question-box label, .analysis-language > span { display: block; margin-bottom: 7px; color: #344054; font-size: 12px; font-weight: 800; }
+.analysis-question-box label, .analysis-language label > span { display: block; margin-bottom: 7px; color: #344054; font-size: 12px; font-weight: 800; }
 .analysis-question-box > div { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: end; }
 .analysis-question-box textarea { min-height: 84px; resize: vertical; padding: 12px; border: 1px solid #d5dbea; border-radius: 12px; color: #101828; font: inherit; }
 .analysis-question-box button { display: inline-flex; min-height: 44px; align-items: center; gap: 7px; padding: 0 17px; border: 0; border-radius: 11px; background: #4058e8; color: #fff; font: inherit; font-weight: 750; cursor: pointer; }
 .analysis-language { display: grid; gap: 7px; margin: 22px 0 5px; }
+.analysis-language-pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.analysis-language-pair label { min-width: 0; }
 .analysis-language select { min-height: 45px; padding: 0 12px; border: 1px solid #d5dbea; border-radius: 11px; background: #fff; color: #101828; font: inherit; }
 .analysis-language small { color: #667085; line-height: 1.45; }
+@media (max-width: 520px) { .analysis-language-pair { grid-template-columns: 1fr; } }
 .analysis-progress { height: 6px; overflow: hidden; margin: 14px 0; border-radius: 999px; background: #edf0f7; }
 .analysis-progress i { display: block; height: 100%; background: linear-gradient(90deg, #4058e8, #8d5be8); transition: width .2s ease; }
 .analysis-cited-list, .analysis-question-list { display: grid; gap: 10px; margin: 22px 0 0; padding: 0; list-style: none; }

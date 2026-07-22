@@ -114,6 +114,7 @@ import { canSaveEditorSignature } from "./tools/editorSignature.js";
 import { duplicateEditorPageState, rotateEditorPageRecord } from "./tools/editorPageOrganizer.js";
 import { applyNativePdfFormAnnotation, createEditorExportDocument } from "./tools/pdfEditorPageExport.js";
 import { sanitizeReplacedPdfBytes } from "./tools/pdfExportSanitizer.js";
+import { closePdfPrintTarget, createPdfPrintTarget, sendPdfToPrint } from "./tools/pdfPrint.js";
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
   "pdfjs-dist/build/pdf.worker.mjs",
@@ -856,6 +857,16 @@ function PdfPageLoading({ pageNumber, compact = false }) {
     <div className={`pdf-page-loading ${compact ? "is-compact" : ""}`} role="status" aria-label={`Loading PDF page ${pageNumber}`}>
       <LoaderCircle size={compact ? 16 : 28} />
       {!compact && <><strong>Loading page {pageNumber}</strong><span>Large documents render pages as you open them.</span></>}
+    </div>
+  );
+}
+
+function PdfPageUnavailable({ pageNumber, compact = false, onRetry }) {
+  return (
+    <div className={`pdf-page-unavailable ${compact ? "is-compact" : ""}`} role="alert">
+      <FileText size={compact ? 16 : 28} />
+      {!compact && <><strong>Page {pageNumber} needs to reload</strong><span>The PDF is still safe in this browser.</span></>}
+      <button type="button" onClick={onRetry}>{compact ? "Retry" : "Reload page"}</button>
     </div>
   );
 }
@@ -1618,6 +1629,8 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   const fileInputRef = useRef(null);
   const sourceFileRef = useRef(null);
   const pdfDocumentRef = useRef(null);
+  const pdfDocumentLoadingRef = useRef(null);
+  const pdfBytesRef = useRef(null);
   const pdfHydrationTokenRef = useRef(0);
   const pdfPageHydrationTasksRef = useRef(new Map());
   const pagesRef = useRef([]);
@@ -1708,11 +1721,34 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     whiteoutOpacity: 1,
   });
 
+  const ensurePdfDocumentProxy = useCallback(async () => {
+    if (pdfDocumentRef.current) return pdfDocumentRef.current;
+    if (pdfDocumentLoadingRef.current) return pdfDocumentLoadingRef.current;
+    const sourceBytes = pdfBytesRef.current;
+    if (!sourceBytes) return null;
+
+    const loading = pdfjsLib.getDocument({ data: sourceBytes.slice(0) }).promise;
+    pdfDocumentLoadingRef.current = loading;
+    try {
+      const documentProxy = await loading;
+      pdfDocumentRef.current = documentProxy;
+      return documentProxy;
+    } finally {
+      pdfDocumentLoadingRef.current = null;
+    }
+  }, []);
+
   const hydratePdfPageAt = useCallback(async (targetIndex) => {
-    const documentProxy = pdfDocumentRef.current;
+    const documentProxy = pdfDocumentRef.current || await ensurePdfDocumentProxy();
     const token = pdfHydrationTokenRef.current;
     const pageRecord = pagesRef.current[targetIndex];
-    if (!documentProxy || !pageRecord || pageRecord.source !== "pdf" || pageRecord.image) return;
+    if (!pageRecord || pageRecord.source !== "pdf" || pageRecord.image) return;
+    if (!documentProxy) {
+      setPages((items) => items.map((page, index) => (
+        index === targetIndex ? { ...page, renderStatus: "error" } : page
+      )));
+      return;
+    }
     if (pdfPageHydrationTasksRef.current.has(targetIndex)) return pdfPageHydrationTasksRef.current.get(targetIndex);
 
     const sourcePageIndex = Number.isInteger(pageRecord.originalIndex) ? pageRecord.originalIndex : targetIndex;
@@ -1735,8 +1771,12 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
         const savedFormFields = items.filter((item) => item.page === targetIndex && item.source === "pdf-form");
         return savedFormFields.length ? items : [...items, ...rendered.detectedFormFields];
       });
-    })().catch(() => {
+    })().catch(async () => {
       if (token !== pdfHydrationTokenRef.current) return;
+      if (pdfDocumentRef.current === documentProxy) {
+        try { await documentProxy.destroy?.(); } catch { /* A failed renderer can already be closed. */ }
+        pdfDocumentRef.current = null;
+      }
       setPages((items) => items.map((page, index) => (
         index === targetIndex ? { ...page, renderStatus: "error" } : page
       )));
@@ -1745,7 +1785,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     });
     pdfPageHydrationTasksRef.current.set(targetIndex, task);
     return task;
-  }, []);
+  }, [ensurePdfDocumentProxy]);
 
   const selected = useMemo(() => annotations.find((annotation) => annotation.id === selectedId), [annotations, selectedId]);
   const selectedDetectedText = useMemo(() => detectedTextItems.find((item) => item.id === selectedDetectedTextId), [detectedTextItems, selectedDetectedTextId]);
@@ -1767,6 +1807,10 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   useEffect(() => {
     pagesRef.current = pages;
   }, [pages]);
+
+  useEffect(() => {
+    pdfBytesRef.current = pdfBytes;
+  }, [pdfBytes]);
 
   useEffect(() => {
     if (editorRouteState !== "ready" || currentPage?.source !== "pdf") return undefined;
@@ -4222,6 +4266,29 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     }
   };
 
+  const printPdf = async () => {
+    const printTarget = createPdfPrintTarget();
+    if (!printTarget) {
+      showToast("Allow pop-ups for FixThatPDF, then choose Print again.");
+      return;
+    }
+    const exported = await exportPdf({ download: false, showResult: false, analytics: false });
+    if (!exported) {
+      closePdfPrintTarget(printTarget);
+      return;
+    }
+    sendPdfToPrint(printTarget, exported.blob);
+    showToast("Your edited PDF is opening in the print preview.");
+  };
+
+  const retryPdfPage = (targetIndex) => {
+    pdfPageHydrationTasksRef.current.delete(targetIndex);
+    setPages((items) => items.map((page, index) => (
+      index === targetIndex ? { ...page, image: "", isHydrated: false, renderStatus: "pending" } : page
+    )));
+    window.setTimeout(() => { void hydratePdfPageAt(targetIndex); }, 0);
+  };
+
   const prepareSignatureRequest = async ({ recipient, message }) => {
     const exported = await exportPdf({ download: false, showResult: false });
     if (!exported) throw new Error("The signing copy could not be created.");
@@ -4479,7 +4546,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
           </span>
         </div>
         <div className="reference-header-actions" aria-label="Document actions">
-          <button type="button" onClick={() => window.print()}><Printer size={23} /><span>Print</span></button>
+          <button type="button" onClick={printPdf} disabled={isExporting}><Printer size={23} /><span>{isExporting ? "Preparing…" : "Print"}</span></button>
           <button type="button" aria-label={isExporting ? "Preparing PDF" : "Download"} onClick={exportPdf} disabled={isExporting}><Download size={23} /><span>{isExporting ? "Preparing…" : "Download"}</span></button>
           <button type="button" className="reference-done-button" onClick={finishEditing}><span>Done</span></button>
         </div>
@@ -4584,7 +4651,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
                   setIsMoreMenuOpen(false);
                 }}><Share2 size={16} /> Share settings</button>
                 <button type="button" role="menuitem" onClick={() => {
-                  window.print();
+                  printPdf();
                   setIsMoreMenuOpen(false);
                 }}><Printer size={16} /> Print document</button>
                 <button type="button" role="menuitem" onClick={() => {
@@ -4873,7 +4940,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
               >
                 <div className="thumbnail-preview" style={{ "--thumbnail-aspect": `${page.width || BASE_PAGE_WIDTH} / ${page.height || BASE_PAGE_HEIGHT}` }}>
                   <div className="thumb-page">
-                    {page.image ? <img src={page.image} alt={`Page ${index + 1}`} /> : page.source === "pdf" ? <PdfPageLoading pageNumber={index + 1} compact /> : page.source === "blank" ? <BlankDocument /> : <SampleDocument pageIndex={index} />}
+                    {page.image ? <img src={page.image} alt={`Page ${index + 1}`} onError={() => retryPdfPage(index)} /> : page.source === "pdf" ? page.renderStatus === "error" ? <PdfPageUnavailable pageNumber={index + 1} compact onRetry={() => retryPdfPage(index)} /> : <PdfPageLoading pageNumber={index + 1} compact /> : page.source === "blank" ? <BlankDocument /> : <SampleDocument pageIndex={index} />}
                   </div>
                 </div>
                 <span className="thumbnail-label">{index + 1}</span>
@@ -4918,7 +4985,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
               onPointerUp={onPagePointerUp}
               onPointerCancel={onPagePointerUp}
             >
-              {currentPage.image ? <img className="pdf-image" src={currentPage.image} alt={`PDF page ${pageIndex + 1}`} /> : currentPage.source === "pdf" ? <PdfPageLoading pageNumber={pageIndex + 1} /> : currentPage.source === "blank" ? <BlankDocument /> : <SampleDocument pageIndex={pageIndex} />}
+              {currentPage.image ? <img className="pdf-image" src={currentPage.image} alt={`PDF page ${pageIndex + 1}`} onError={() => retryPdfPage(pageIndex)} /> : currentPage.source === "pdf" ? currentPage.renderStatus === "error" ? <PdfPageUnavailable pageNumber={pageIndex + 1} onRetry={() => retryPdfPage(pageIndex)} /> : <PdfPageLoading pageNumber={pageIndex + 1} /> : currentPage.source === "blank" ? <BlankDocument /> : <SampleDocument pageIndex={pageIndex} />}
               {currentPage.source === "pdf" && currentPage.isHydrated !== false && !pageDetectedTextItems.length && !currentPage.text?.trim() && (
                 <div className="ocr-state">
                   <ScanText size={16} />
@@ -5086,7 +5153,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
               onSave={saveDocumentToAccount}
               onExport={exportPdf}
               onShare={openShareSettings}
-              onPrint={() => window.print()}
+              onPrint={printPdf}
               onSignatureModal={() => { setSignatureModalMode("signature"); setSignatureModalOpen(true); }}
             />
           )}
@@ -5103,7 +5170,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
           }}><MessageSquare size={24} /></button>
           <span />
           <button type="button" title="Download" onClick={exportPdf}><Download size={25} /></button>
-          <button type="button" title="Print" onClick={() => window.print()}><Printer size={25} /></button>
+          <button type="button" title="Print" onClick={printPdf} disabled={isExporting}><Printer size={25} /></button>
           <button type="button" title="Share link" onClick={openShareSettings}><Share2 size={25} /></button>
           <span />
           <button type="button" title="Add page" onClick={addBlankPage}><Plus size={25} /></button>

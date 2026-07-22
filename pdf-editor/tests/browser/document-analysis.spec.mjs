@@ -44,11 +44,13 @@ test("answers a focused question only with matching source passages", async ({ p
 
 test("uses the browser Translator model and downloads translated PDF", async ({ page }) => {
   await page.addInitScript(() => {
-    globalThis.Translator = { availability: async () => "available", create: async ({ targetLanguage }) => ({ translate: async (text) => `[${targetLanguage}] ${text}`, destroy() {} }) };
+    globalThis.Translator = { availability: async () => "available", create: async ({ sourceLanguage, targetLanguage }) => ({ translate: async (text) => `[${sourceLanguage}->${targetLanguage}] ${text}`, destroy() {} }) };
   });
   await upload(page, "/translate-pdf");
+  await page.getByLabel("Document language").selectOption("es");
+  await page.getByLabel("Translate to").selectOption("en");
   await page.getByRole("button", { name: "Translate document" }).click();
-  await expect(page.getByText(/\[es\] Page 1/)).toBeVisible();
+  await expect(page.getByText(/\[es->en\] Page 1/)).toBeVisible();
   const pending = page.waitForEvent("download");
   await page.getByRole("button", { name: "Download translated PDF" }).click();
   const download = await pending;
