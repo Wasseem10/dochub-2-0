@@ -1,30 +1,29 @@
-function renderPreparingState(printWindow) {
-  try {
-    printWindow.document.title = "Preparing PDF to print";
-    printWindow.document.body.innerHTML = `
-      <main style="min-height:100vh;display:grid;place-items:center;margin:0;padding:24px;font:600 16px/1.5 system-ui,sans-serif;color:#172033;background:#f7f9fc;text-align:center">
-        Preparing the edited PDF for printing&hellip;
-      </main>
-    `;
-  } catch {
-    // A browser may restrict access to a newly opened window before it navigates.
-  }
-}
-
 export function createPdfPrintTarget({ windowObject = window } = {}) {
-  const printWindow = windowObject.open("about:blank", "_blank");
-  if (printWindow && !printWindow.closed) {
-    renderPreparingState(printWindow);
-    return { type: "window", printWindow };
+  const editorDocument = windowObject.document;
+  if (!editorDocument?.body) return null;
+
+  const iframe = editorDocument.createElement("iframe");
+  iframe.title = "PDF print document";
+  iframe.setAttribute("aria-hidden", "true");
+  iframe.style.position = "fixed";
+  iframe.style.right = "0";
+  iframe.style.bottom = "0";
+  iframe.style.width = "0";
+  iframe.style.height = "0";
+  iframe.style.border = "0";
+  iframe.style.opacity = "0";
+  iframe.style.pointerEvents = "none";
+  editorDocument.body.appendChild(iframe);
+
+  const printWindow = iframe.contentWindow;
+  if (!printWindow) {
+    iframe.remove();
+    return null;
   }
-  return null;
+  return { type: "iframe", iframe, printWindow };
 }
 
 export function closePdfPrintTarget(target) {
-  if (target?.type === "window") {
-    try { target.printWindow.close(); } catch { /* The print window may already be gone. */ }
-    return;
-  }
   target?.iframe?.remove?.();
 }
 
@@ -41,7 +40,7 @@ function waitForImage(image) {
 }
 
 export async function renderPdfDocumentForPrint(target, pdfDocument, { windowObject = window } = {}) {
-  if (!target?.printWindow || !pdfDocument?.numPages) throw new Error("A loaded PDF and print window are required.");
+  if (!target?.printWindow || !pdfDocument?.numPages) throw new Error("A loaded PDF and print frame are required.");
   const printWindow = target.printWindow;
   const printDocument = printWindow.document;
   const objectUrls = [];
@@ -97,9 +96,8 @@ export async function renderPdfDocumentForPrint(target, pdfDocument, { windowObj
   const cleanup = () => {
     objectUrls.forEach((url) => windowObject.URL.revokeObjectURL(url));
     pdfDocument.destroy?.();
-    try { printWindow.close(); } catch { /* The user may already have closed it. */ }
+    target.iframe?.remove?.();
   };
   printWindow.addEventListener?.("afterprint", cleanup, { once: true });
-  printWindow.focus?.();
   printWindow.print();
 }

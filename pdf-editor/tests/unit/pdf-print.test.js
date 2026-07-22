@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { closePdfPrintTarget, createPdfPrintTarget, renderPdfDocumentForPrint } from "../../src/tools/pdfPrint.js";
 
-function makePrintWindow() {
+function makePrintTarget() {
   const listeners = new Map();
   const elements = [];
   const container = { appendChild: vi.fn((element) => elements.push(element)) };
@@ -22,7 +22,7 @@ function makePrintWindow() {
     };
     return element;
   });
-  return {
+  const printWindow = {
     closed: false,
     document: {
       title: "",
@@ -47,23 +47,36 @@ function makePrintWindow() {
     close: vi.fn(),
     elements,
   };
+  const iframe = {
+    contentWindow: printWindow,
+    style: {},
+    setAttribute: vi.fn(),
+    remove: vi.fn(),
+  };
+  const editorDocument = {
+    body: { appendChild: vi.fn() },
+    createElement: vi.fn(() => iframe),
+  };
+  return { printWindow, iframe, editorDocument };
 }
 
 describe("edited PDF printing", () => {
-  it("opens a dedicated print target instead of printing the editor window", () => {
-    const printWindow = makePrintWindow();
+  it("creates an invisible print frame inside the editor instead of opening a tab", () => {
+    const { printWindow, iframe, editorDocument } = makePrintTarget();
     const editorPrint = vi.fn();
-    const windowObject = { open: vi.fn(() => printWindow), print: editorPrint };
+    const windowObject = { document: editorDocument, open: vi.fn(), print: editorPrint };
     const target = createPdfPrintTarget({ windowObject });
 
-    expect(target).toEqual({ type: "window", printWindow });
-    expect(windowObject.open).toHaveBeenCalledWith("about:blank", "_blank");
+    expect(target).toEqual({ type: "iframe", iframe, printWindow });
+    expect(editorDocument.body.appendChild).toHaveBeenCalledWith(iframe);
+    expect(windowObject.open).not.toHaveBeenCalled();
     expect(editorPrint).not.toHaveBeenCalled();
-    expect(printWindow.document.body.innerHTML).toContain("Preparing the edited PDF");
+    expect(iframe.style.position).toBe("fixed");
+    expect(iframe.style.width).toBe("0");
   });
 
   it("renders only PDF pages into a dedicated document before invoking print", async () => {
-    const printWindow = makePrintWindow();
+    const { printWindow, iframe } = makePrintTarget();
     const createObjectURL = vi.fn(() => "blob:rendered-page");
     const revokeObjectURL = vi.fn();
     const windowObject = { URL: { createObjectURL, revokeObjectURL } };
@@ -78,7 +91,7 @@ describe("edited PDF printing", () => {
       destroy: vi.fn(),
     };
 
-    await renderPdfDocumentForPrint({ type: "window", printWindow }, pdfDocument, { windowObject });
+    await renderPdfDocumentForPrint({ type: "iframe", iframe, printWindow }, pdfDocument, { windowObject });
 
     expect(render).toHaveBeenCalledTimes(1);
     expect(printWindow.document.write).toHaveBeenCalledWith(expect.stringContaining("pdf-print-document"));
@@ -87,16 +100,16 @@ describe("edited PDF printing", () => {
     expect(printWindow.location.replace).not.toHaveBeenCalled();
   });
 
-  it("never falls back to printing the editor page when pop-ups are blocked", () => {
+  it("never falls back to printing the editor page when a frame cannot be created", () => {
     const editorPrint = vi.fn();
-    const windowObject = { open: vi.fn(() => null), print: editorPrint };
+    const windowObject = { document: null, print: editorPrint };
     expect(createPdfPrintTarget({ windowObject })).toBeNull();
     expect(editorPrint).not.toHaveBeenCalled();
   });
 
-  it("closes a preparation window when PDF export fails", () => {
-    const printWindow = makePrintWindow();
-    closePdfPrintTarget({ type: "window", printWindow });
-    expect(printWindow.close).toHaveBeenCalledTimes(1);
+  it("removes the print frame when PDF export fails", () => {
+    const { printWindow, iframe } = makePrintTarget();
+    closePdfPrintTarget({ type: "iframe", iframe, printWindow });
+    expect(iframe.remove).toHaveBeenCalledTimes(1);
   });
 });

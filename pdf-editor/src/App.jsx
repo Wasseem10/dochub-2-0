@@ -4269,7 +4269,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   const printPdf = async () => {
     const printTarget = createPdfPrintTarget();
     if (!printTarget) {
-      showToast("Allow pop-ups for FixThatPDF, then choose Print again.");
+      showToast("Print could not be prepared. Please choose Print again.");
       return;
     }
     const exported = await exportPdf({ download: false, showResult: false, analytics: false });
