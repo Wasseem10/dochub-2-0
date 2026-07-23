@@ -22,6 +22,15 @@ service firebase.storage {
         && share.data.expiresAt > request.time;
     }
 
+    function signatureRequest(requestId) {
+      return firestore.get(/databases/(default)/documents/signatureRequests/$(requestId));
+    }
+
+    function currentSignatureRecipient(requestId) {
+      let signingRequest = signatureRequest(requestId);
+      return firestore.get(/databases/(default)/documents/signatureRequests/$(requestId)/recipients/$(signingRequest.data.currentInviteId));
+    }
+
     match /users/{userId}/documents/{documentId}/document.json {
       allow read, delete: if ownsPath(userId);
       allow create, update: if ownsPath(userId)
@@ -43,6 +52,66 @@ service firebase.storage {
         && request.resource.metadata.shareToken == token;
       allow update: if false;
       allow delete: if ownsShare(token);
+    }
+
+    match /signatureRequests/{requestId}/current.pdf {
+      allow read: if requestId.matches("^[A-Za-z0-9_-]{32}$")
+        && request.auth != null
+        && (signatureRequest(requestId).data.ownerId == request.auth.uid
+          || (signatureRequest(requestId).data.storagePath == "signatureRequests/" + requestId + "/current.pdf"
+            && signatureRequest(requestId).data.status == "active"
+            && signatureRequest(requestId).data.expiresAt > request.time
+            && request.auth.token.email is string
+            && currentSignatureRecipient(requestId).data.status == "active"
+            && currentSignatureRecipient(requestId).data.email == request.auth.token.email));
+      allow create: if requestId.matches("^[A-Za-z0-9_-]{32}$")
+        && request.auth != null
+        && signatureRequest(requestId).data.ownerId == request.auth.uid
+        && signatureRequest(requestId).data.status == "uploading"
+        && signatureRequest(requestId).data.storagePath == "signatureRequests/" + requestId + "/current.pdf"
+        && request.resource.size > 0
+        && request.resource.size <= 25 * 1024 * 1024
+        && request.resource.contentType == "application/pdf"
+        && request.resource.metadata.ownerId == request.auth.uid
+        && request.resource.metadata.requestId == requestId;
+      allow update: if false;
+      allow delete: if request.auth != null
+        && signatureRequest(requestId).data.ownerId == request.auth.uid;
+    }
+
+    match /signatureRequests/{requestId}/submissions/{inviteId} {
+      allow read: if requestId.matches("^[A-Za-z0-9_-]{32}$")
+        && inviteId.matches("^[A-Za-z0-9_-]{32}$")
+        && request.auth != null
+        && (signatureRequest(requestId).data.ownerId == request.auth.uid
+          || (signatureRequest(requestId).data.storagePath == "signatureRequests/" + requestId + "/submissions/" + inviteId
+            && signatureRequest(requestId).data.status == "active"
+            && signatureRequest(requestId).data.expiresAt > request.time
+            && request.auth.token.email is string
+            && currentSignatureRecipient(requestId).data.status == "active"
+            && currentSignatureRecipient(requestId).data.email == request.auth.token.email));
+      allow create: if requestId.matches("^[A-Za-z0-9_-]{32}$")
+        && inviteId.matches("^[A-Za-z0-9_-]{32}$")
+        && request.auth != null
+        && request.auth.token.email is string
+        && signatureRequest(requestId).data.status == "active"
+        && signatureRequest(requestId).data.expiresAt > request.time
+        && signatureRequest(requestId).data.currentInviteId == inviteId
+        && currentSignatureRecipient(requestId).data.status == "active"
+        && currentSignatureRecipient(requestId).data.email == request.auth.token.email
+        && request.resource.size > 0
+        && request.resource.size <= 25 * 1024 * 1024
+        && request.resource.contentType == "application/pdf"
+        && request.resource.metadata.ownerId == signatureRequest(requestId).data.ownerId
+        && request.resource.metadata.requestId == requestId
+        && request.resource.metadata.inviteId == inviteId;
+      allow update: if false;
+      allow delete: if request.auth != null
+        && (signatureRequest(requestId).data.ownerId == request.auth.uid
+          || (request.auth.token.email is string
+            && signatureRequest(requestId).data.status == "active"
+            && signatureRequest(requestId).data.currentInviteId == inviteId
+            && currentSignatureRecipient(requestId).data.email == request.auth.token.email));
     }
 
     match /{allPaths=**} {

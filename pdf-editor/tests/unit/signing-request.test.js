@@ -5,6 +5,15 @@ import {
   decodeSigningRequestPayload,
   encodeSigningRequestPayload,
 } from "../../src/signing/signingRequest.js";
+import {
+  createSignatureInvitationUrl,
+  hasVerifiedSigningIdentity,
+  planSignatureRequestAdvance,
+  sha256Hex,
+  signatureInvitationFromLocation,
+  signatureSubmissionStoragePath,
+  signatureRequestStoragePath,
+} from "../../src/signing/signatureRequestStore.js";
 
 const request = {
   requestId: "request-123",
@@ -37,5 +46,47 @@ describe("secure signing request payloads", () => {
   it("rejects requests without a valid recipient or fields", () => {
     expect(() => createSigningRequestPayload({ ...request, recipient: { email: "invalid" } })).toThrow(/valid recipient/);
     expect(() => createSigningRequestPayload({ ...request, fields: [] })).toThrow(/at least one field/);
+  });
+});
+
+describe("ordered cloud signature invitations", () => {
+  const requestId = "a".repeat(32);
+  const inviteId = "b".repeat(32);
+
+  it("keeps the recipient invite secret in the URL fragment", () => {
+    const url = createSignatureInvitationUrl({ origin: "https://fixthatpdf.example/", requestId, inviteId });
+    expect(url).toBe(`https://fixthatpdf.example/sign/${requestId}#invite=${inviteId}`);
+    expect(signatureInvitationFromLocation(new URL(url))).toEqual({ requestId, inviteId });
+    expect(signatureRequestStoragePath(requestId)).toBe(`signatureRequests/${requestId}/current.pdf`);
+    expect(signatureSubmissionStoragePath(requestId, inviteId)).toBe(`signatureRequests/${requestId}/submissions/${inviteId}`);
+  });
+
+  it("requires the matching Google-backed account for signer identity", () => {
+    expect(hasVerifiedSigningIdentity({ uid: "user", email: "signer@example.com", providers: ["google.com"] }, "signer@example.com")).toBe(true);
+    expect(hasVerifiedSigningIdentity({ uid: "user", email: "other@example.com", providers: ["google.com"] }, "signer@example.com")).toBe(false);
+    expect(hasVerifiedSigningIdentity({ uid: "user", email: "signer@example.com", providers: ["password"] }, "signer@example.com")).toBe(false);
+  });
+
+  it("creates stable SHA-256 fingerprints for the audit chain", async () => {
+    expect(await sha256Hex(new TextEncoder().encode("FixThatPDF"))).toBe("f58f26f42ac3d93fc0dd9eb232af96c5cdf188490271aabe569c910ebd0ff7b4");
+  });
+
+  it("advances only to the next ordered recipient and closes the final step", () => {
+    const fingerprint = "c".repeat(64);
+    const next = planSignatureRequestAdvance({
+      request: { currentInviteId: inviteId },
+      recipient: { inviteId, status: "active", order: 0, nextInviteId: "d".repeat(32), nextEmail: "next@example.com", nextOrder: 1 },
+      outputFingerprint: fingerprint,
+      size: 42000,
+    });
+    expect(next).toMatchObject({ completed: false, rootPatch: { currentOrder: 1, currentRecipientEmail: "next@example.com", currentFingerprint: fingerprint } });
+
+    const final = planSignatureRequestAdvance({
+      request: { currentInviteId: inviteId },
+      recipient: { inviteId, status: "active", order: 1, nextInviteId: "", nextEmail: "", nextOrder: -1 },
+      outputFingerprint: fingerprint,
+      size: 43000,
+    });
+    expect(final).toMatchObject({ completed: true, rootPatch: { status: "completed", finalFingerprint: fingerprint } });
   });
 });

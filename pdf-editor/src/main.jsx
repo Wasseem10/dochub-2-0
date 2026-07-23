@@ -15,6 +15,7 @@ import "./dashboard-premium.css";
 import "./features-page.css";
 import "./seo-category.css";
 import "./editorial-resources.css";
+import "./signature-workflow.css";
 import { installProductionMonitoring } from "./monitoring/productionMonitoring.js";
 
 installProductionMonitoring();
