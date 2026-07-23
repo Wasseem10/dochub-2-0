@@ -397,7 +397,7 @@ export async function createComparisonPdfReport(pages, { firstName = "Original.p
     }
   }
   pdf.setTitle("PDF comparison report");
-  pdf.setCreator("FixThatPDF");
-  pdf.setProducer("FixThatPDF browser comparison");
+  pdf.setCreator("PDFArrow");
+  pdf.setProducer("PDFArrow browser comparison");
   return pdf.save();
 }

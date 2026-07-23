@@ -4,7 +4,7 @@ import { TOOL_CATEGORIES } from "./toolRegistry.js";
 const categorySeoContent = Object.freeze({
   "edit-view": {
     slug: "edit-pdf-tools",
-    seoTitle: "Edit PDF Tools Online | FixThatPDF",
+    seoTitle: "Edit PDF Tools Online | PDFArrow",
     metaDescription: "Edit, annotate, fill, crop, watermark, number, redact, and review PDFs with browser-based tools and clear file limits.",
     headline: "Edit PDF tools for the changes people make most.",
     intro: "Correct a page, complete a form, add visual feedback, or prepare a clean sharing copy without rebuilding the document in another app.",
@@ -12,7 +12,7 @@ const categorySeoContent = Object.freeze({
   },
   organize: {
     slug: "organize-pdf-tools",
-    seoTitle: "Organize PDF Pages Online | FixThatPDF",
+    seoTitle: "Organize PDF Pages Online | PDFArrow",
     metaDescription: "Merge, split, reorder, rotate, delete, extract, duplicate, and organize PDF pages in your browser.",
     headline: "Put every PDF page in the right place.",
     intro: "Combine documents, separate page ranges, fix page direction, and prepare a final page order while preserving native PDF pages whenever the workflow allows.",
@@ -20,7 +20,7 @@ const categorySeoContent = Object.freeze({
   },
   compress: {
     slug: "compress-pdf-tools",
-    seoTitle: "Compress PDF Online | FixThatPDF",
+    seoTitle: "Compress PDF Online | PDFArrow",
     metaDescription: "Reduce PDF file size in your browser while preserving text, links, forms, vectors, and document structure.",
     headline: "Make a PDF easier to send without losing its features.",
     intro: "Balanced compression compacts the original PDF structure. Maximum compression is an optional flattened fallback for image-heavy files when the smallest visual copy matters most.",
@@ -28,7 +28,7 @@ const categorySeoContent = Object.freeze({
   },
   "from-pdf": {
     slug: "convert-from-pdf",
-    seoTitle: "Convert PDF to Word, Excel, Images and More | FixThatPDF",
+    seoTitle: "Convert PDF to Word, Excel, Images and More | PDFArrow",
     metaDescription: "Convert PDFs to Word, Excel, PowerPoint, HTML, TXT, JPG, or PNG with format-specific browser workflows.",
     headline: "Move PDF content into the format you need next.",
     intro: "Choose an editable document, spreadsheet, presentation, text file, webpage, or page image based on what you need to do after conversion.",
@@ -36,7 +36,7 @@ const categorySeoContent = Object.freeze({
   },
   "to-pdf": {
     slug: "convert-to-pdf",
-    seoTitle: "Convert Files to PDF Online | FixThatPDF",
+    seoTitle: "Convert Files to PDF Online | PDFArrow",
     metaDescription: "Convert Word, Excel, PowerPoint, HTML, images, text, OpenDocument, EPUB, and ZIP content into PDFs.",
     headline: "Turn the files you already use into a PDF.",
     intro: "Create shareable PDFs from office documents, webpages, images, text, and open document formats with limits shown before processing.",
@@ -44,7 +44,7 @@ const categorySeoContent = Object.freeze({
   },
   sign: {
     slug: "sign-pdf-tools",
-    seoTitle: "Sign PDF Online | FixThatPDF",
+    seoTitle: "Sign PDF Online | PDFArrow",
     metaDescription: "Add a signature, initials, or date to a PDF and prepare signing fields with clear self-signing limitations.",
     headline: "Add the signature details a PDF needs.",
     intro: "Place your own typed, drawn, or uploaded signature, add initials and dates, or prepare a signing copy for handoff from your device.",
@@ -52,7 +52,7 @@ const categorySeoContent = Object.freeze({
   },
   protect: {
     slug: "protect-pdf-tools",
-    seoTitle: "Protect, Unlock and Flatten PDF Online | FixThatPDF",
+    seoTitle: "Protect, Unlock and Flatten PDF Online | PDFArrow",
     metaDescription: "Protect a PDF with a password, unlock an authorized file, or flatten interactive content in your browser.",
     headline: "Prepare a PDF for safer access or final delivery.",
     intro: "Add open-password protection, remove a known password from an authorized document, or flatten content when a stable visual copy matters more than editability.",
@@ -60,7 +60,7 @@ const categorySeoContent = Object.freeze({
   },
   "ocr-scan": {
     slug: "ocr-pdf-tools",
-    seoTitle: "OCR and Scan PDF Tools Online | FixThatPDF",
+    seoTitle: "OCR and Scan PDF Tools Online | PDFArrow",
     metaDescription: "Recognize English text in scanned PDFs, turn page photos into PDFs, and create searchable image PDFs in your browser.",
     headline: "Turn scanned pages into useful PDFs.",
     intro: "Capture paper pages, combine ordered images, and add a searchable English text layer when a PDF contains pictures of text instead of selectable text.",
@@ -68,7 +68,7 @@ const categorySeoContent = Object.freeze({
   },
   ai: {
     slug: "document-analysis-tools",
-    seoTitle: "PDF Analysis and Question Tools | FixThatPDF",
+    seoTitle: "PDF Analysis and Question Tools | PDFArrow",
     metaDescription: "Search, summarize, extract, and review PDF content with source-grounded browser tools and page references.",
     headline: "Find important PDF content with its source pages attached.",
     intro: "Search for matching passages, create extractive summaries, identify structured fields, and surface review questions without pretending the tool knows more than the document shows.",
@@ -76,7 +76,7 @@ const categorySeoContent = Object.freeze({
   },
   "compare-review": {
     slug: "compare-pdf-tools",
-    seoTitle: "Compare and Review PDF Tools Online | FixThatPDF",
+    seoTitle: "Compare and Review PDF Tools Online | PDFArrow",
     metaDescription: "Compare two PDF versions, inspect text and visual changes, and add review comments with browser-based tools.",
     headline: "See what changed between PDF versions.",
     intro: "Review word-level additions and deletions in searchable documents, inspect focused visual changes in scans, and leave page-level feedback for follow-up.",
@@ -84,7 +84,7 @@ const categorySeoContent = Object.freeze({
   },
   templates: {
     slug: "pdf-document-templates",
-    seoTitle: "PDF Document Templates Online | FixThatPDF",
+    seoTitle: "PDF Document Templates Online | PDFArrow",
     metaDescription: "Create resumes, contracts, NDAs, invoices, and offer-letter drafts in your browser and export searchable PDFs.",
     headline: "Start common documents with a structured draft.",
     intro: "Build a resume, services agreement, NDA, invoice, or offer letter with editable fields and a live PDF-ready preview.",

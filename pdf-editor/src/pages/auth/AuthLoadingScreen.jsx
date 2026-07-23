@@ -1,6 +1,6 @@
 import { BrandWordmark } from "../../components/public/BrandWordmark.jsx";
 
-export function AuthLoadingScreen({ label = "Opening FixThatPDF" }) {
+export function AuthLoadingScreen({ label = "Opening PDFArrow" }) {
   return (
     <main className="auth-loading-shell">
       <section className="auth-loading-card" role="status" aria-live="polite" aria-label={label}>

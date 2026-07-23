@@ -47,7 +47,7 @@ export function SecureSharePage() {
 
   if (state.status !== "ready") {
     const expired = state.status === "expired";
-    return <main className="secure-share-page"><section className="secure-share-state"><Lock size={28} /><h1>{expired ? "This sharing link has expired" : "This sharing link cannot be opened"}</h1><p>{expired ? "Ask the document owner to create a new link." : "The link may be invalid, revoked, or no longer available."}</p><Link to={ROUTE_PATHS.home}>Go to FixThatPDF</Link></section></main>;
+    return <main className="secure-share-page"><section className="secure-share-state"><Lock size={28} /><h1>{expired ? "This sharing link has expired" : "This sharing link cannot be opened"}</h1><p>{expired ? "Ask the document owner to create a new link." : "The link may be invalid, revoked, or no longer available."}</p><Link to={ROUTE_PATHS.home}>Go to PDFArrow</Link></section></main>;
   }
 
   const downloadName = state.fileName;
@@ -63,7 +63,7 @@ export function SecureSharePage() {
       <section className="secure-share-viewer" aria-label={`Preview of ${state.fileName}`}>
         <object data={state.objectUrl} type="application/pdf"><p>Your browser cannot preview this PDF. <a href={state.objectUrl} download={downloadName}>Download the file</a>.</p></object>
       </section>
-      <footer className="secure-share-footer"><Lock size={14} /> Read-only sharing by FixThatPDF. The owner can revoke this link at any time.</footer>
+      <footer className="secure-share-footer"><Lock size={14} /> Read-only sharing by PDFArrow. The owner can revoke this link at any time.</footer>
     </main>
   );
 }

@@ -47,6 +47,6 @@ export async function cropPdfPages(sourceBytes, options = {}) {
   });
 
   pdf.setTitle("Cropped PDF");
-  pdf.setCreator("FixThatPDF");
+  pdf.setCreator("PDFArrow");
   return pdf.save();
 }

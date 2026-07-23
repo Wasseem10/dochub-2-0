@@ -1706,7 +1706,7 @@ export function EditorBrandButton({ onDashboard }) {
       className="reference-brand-name reference-brand-button"
       onClick={onDashboard}
       title="Back to dashboard"
-      aria-label="Back to FixThatPDF dashboard"
+      aria-label="Back to PDFArrow dashboard"
     >
       <BrandWordmark />
     </button>
@@ -2760,7 +2760,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       publicTool,
       notice: intent === "share" || intent === "signature-request"
         ? `Sign in to save this document before creating a persistent ${intent === "signature-request" ? "signing" : "sharing"} link.`
-        : "Your document is safe in this browser. Sign in to save it to your FixThatPDF account.",
+        : "Your document is safe in this browser. Sign in to save it to your PDFArrow account.",
     });
   };
 
@@ -2786,7 +2786,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       navigate(editorPath(claimedDocument.id), { state: { publicTool, postAuthAction: "save" } });
       return true;
     }
-    showToast("Saved to your FixThatPDF workspace.");
+    showToast("Saved to your PDFArrow workspace.");
     return true;
   };
 
@@ -4791,7 +4791,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
         </div>
       </header>
       <header className="file-header">
-        <button type="button" className="editor-home-button" onClick={() => navigate(ROUTE_PATHS.home)} title="Back to FixThatPDF home" aria-label="Back to FixThatPDF home"><Home size={21} /></button>
+        <button type="button" className="editor-home-button" onClick={() => navigate(ROUTE_PATHS.home)} title="Back to PDFArrow home" aria-label="Back to PDFArrow home"><Home size={21} /></button>
         <button
           type="button"
           className="pdfnet-brand"
@@ -5869,8 +5869,8 @@ function AuthPage({ mode, setMode, onBack, backLabel = "Back to home", onComplet
 
   return (
     <main className="auth-shell">
-      <section className="auth-showcase" aria-label="FixThatPDF product preview">
-        <button type="button" className="auth-showcase-brand" onClick={onBack} aria-label="FixThatPDF home"><BrandWordmark /></button>
+      <section className="auth-showcase" aria-label="PDFArrow product preview">
+        <button type="button" className="auth-showcase-brand" onClick={onBack} aria-label="PDFArrow home"><BrandWordmark /></button>
         <div className="auth-showcase-copy">
           <span>Your PDF workspace</span>
           <h1>A focused place to finish important documents.</h1>
@@ -5878,21 +5878,21 @@ function AuthPage({ mode, setMode, onBack, backLabel = "Back to home", onComplet
           <ul className="auth-showcase-points">
             <li><CheckCircle2 size={18} /> Continue your work across devices with optional cloud history.</li>
             <li><CheckCircle2 size={18} /> Keep editing, signing, and page tools in one workspace.</li>
-            <li><CheckCircle2 size={18} /> Download polished PDFs without a FixThatPDF watermark.</li>
+            <li><CheckCircle2 size={18} /> Download polished PDFs without a PDFArrow watermark.</li>
           </ul>
         </div>
         <div className="auth-showcase-preview" aria-hidden="true">
           <div className="auth-preview-topbar"><span /><span /><span /><strong>Quarterly report.pdf</strong><em>Ready to review</em></div>
           <div className="auth-preview-body">
             <aside><span className="is-active" /><span /><span /><span /></aside>
-            <article><small>FIXTHATPDF</small><h3>Quarterly operations review</h3><p /><p /><p /><div><span /><span /><span /></div></article>
+            <article><small>PDFARROW</small><h3>Quarterly operations review</h3><p /><p /><p /><div><span /><span /><span /></div></article>
             <section><b>Document status</b><span>3 edits saved</span><span>Ready to export</span></section>
           </div>
         </div>
       </section>
       <section className="auth-card" aria-label={isSignup ? "Create account" : isPasswordReset ? "Reset password" : "Log in"}>
         <header className="auth-card-header">
-          <button type="button" className="auth-mark auth-realpdf-brand" onClick={onBack} aria-label="FixThatPDF home"><BrandWordmark /></button>
+          <button type="button" className="auth-mark auth-realpdf-brand" onClick={onBack} aria-label="PDFArrow home"><BrandWordmark /></button>
           <button type="button" className="auth-back" onClick={onBack}>{backLabel}</button>
         </header>
         <h2>{isSignup ? "Create your workspace" : isPasswordReset ? "Reset your password" : "Welcome back"}</h2>
@@ -5941,7 +5941,7 @@ function AuthPage({ mode, setMode, onBack, backLabel = "Back to home", onComplet
         <div className="auth-security-note"><Lock size={15} aria-hidden="true" /><span>Your PDF processing stays in your browser for supported tools.</span></div>
         <p className="auth-privacy">Review our <button type="button">Privacy Notice</button>.</p>
         <div className="auth-switch">
-          <span>{isSignup ? "Already have an account?" : isPasswordReset ? "Remembered your password?" : "New to FixThatPDF?"}</span>
+          <span>{isSignup ? "Already have an account?" : isPasswordReset ? "Remembered your password?" : "New to PDFArrow?"}</span>
           <button type="button" onClick={isPasswordReset ? () => setMode("login") : switchMode}>{isSignup ? "Sign in" : isPasswordReset ? "Back to login" : "Create an account"}</button>
         </div>
       </section>
@@ -6802,7 +6802,7 @@ export function UploadLanding({
     if (["Trash", "Billing", "Team", "Integrations"].includes(activeSection)) {
       const sectionDetails = {
         Trash: [Trash2, "Deleted documents", "Files moved to trash will be available here before permanent removal."],
-        Billing: [CreditCard, "Plans and billing", "Manage your FixThatPDF plan, invoices, and payment details."],
+        Billing: [CreditCard, "Plans and billing", "Manage your PDFArrow plan, invoices, and payment details."],
         Team: [Users, "Workspace members", "Invite teammates and manage document collaboration access."],
         Integrations: [Plug, "Connected apps", "Connect cloud storage and workflow tools to your PDF workspace."],
       };
@@ -6860,7 +6860,7 @@ export function UploadLanding({
             </div>
           </header>
           {dashboardView === "list" ? renderDashboardLibraryList() : renderDashboardLibraryGrid()}
-          <footer><span>Showing {dashboardLibraryRows.length} of {filteredDocuments.length} document{filteredDocuments.length === 1 ? "" : "s"}</span><button type="button" onClick={() => onNavigate(ROUTE_PATHS.features)}>Explore every FixThatPDF feature <ChevronRight size={15} /></button></footer>
+          <footer><span>Showing {dashboardLibraryRows.length} of {filteredDocuments.length} document{filteredDocuments.length === 1 ? "" : "s"}</span><button type="button" onClick={() => onNavigate(ROUTE_PATHS.features)}>Explore every PDFArrow feature <ChevronRight size={15} /></button></footer>
         </section>
       </div>
     );
@@ -6870,7 +6870,7 @@ export function UploadLanding({
     <main className="upload-shell lumin-home">
       <input ref={fileInputRef} className="hidden-input" type="file" accept="application/pdf" onChange={onUpload} />
       <aside className="lumin-home-rail">
-        <button type="button" className="dashboard-brand" aria-label="FixThatPDF dashboard" onClick={() => setActiveSection("Home")}><BrandWordmark /></button>
+        <button type="button" className="dashboard-brand" aria-label="PDFArrow dashboard" onClick={() => setActiveSection("Home")}><BrandWordmark /></button>
         <nav className="upload-nav" aria-label="Primary">
           {primaryNav.map(({ label, section: navSection = label, icon: Icon, badge }) => (
             <button key={label} type="button" className={navSection === activeSection ? "is-active" : ""} onClick={() => setActiveSection(navSection)}>
@@ -7422,7 +7422,7 @@ function SignatureModal({ defaultName, mode = "signature", onClose, onSave }) {
 
   const saveSignature = () => {
     if (mode === "initials" && !typedName.trim()) {
-      setError("Enter your name so FixThatPDF can create your initials.");
+      setError("Enter your name so PDFArrow can create your initials.");
       return;
     }
     if (tab === "upload" && !uploadedImage) {

@@ -33,15 +33,15 @@ import { createPdfFromPlainText, textContentToPlainText } from "../../tools/text
 
 const QUESTION_TOOLS = new Set(["ai-pdf", "chat-with-pdf", "ask-pdf"]);
 const MODES = Object.freeze({
-  "ai-pdf": { icon: Bot, heading: "Ask for source-grounded help", detail: "FixThatPDF retrieves the strongest matching passages from the PDF and cites their pages. It does not invent an answer beyond the source text.", action: "Find cited passages" },
+  "ai-pdf": { icon: Bot, heading: "Ask for source-grounded help", detail: "PDFArrow retrieves the strongest matching passages from the PDF and cites their pages. It does not invent an answer beyond the source text.", action: "Find cited passages" },
   "chat-with-pdf": { icon: MessageSquareText, heading: "Keep a private document conversation", detail: "Ask multiple questions in this tab. Every response is a set of exact, page-cited source passages; conversation text is not uploaded or saved.", action: "Ask document" },
   "summarize-pdf": { icon: Sparkles, heading: "Create an extractive page-cited summary", detail: "Important source sentences are ranked by document terms, reduced for repetition, and kept in document order. No model-generated facts are added.", action: "Create cited summary" },
-  "translate-pdf": { icon: Languages, heading: "Translate with your browser's local language model", detail: "Compatible Chrome browsers can download and run an on-device Translator model. The source PDF is never sent to FixThatPDF or a translation server.", action: "Translate document" },
+  "translate-pdf": { icon: Languages, heading: "Translate with your browser's local language model", detail: "Compatible Chrome browsers can download and run an on-device Translator model. The source PDF is never sent to PDFArrow or a translation server.", action: "Translate document" },
   "extract-data-from-pdf": { icon: Database, heading: "Extract structured fields with page references", detail: "Detect email addresses, phone numbers, dates, money, percentages, and label-value lines, then download JSON or CSV for review.", action: "Extract document data" },
   "ask-pdf": { icon: MessageSquareText, heading: "Find where the PDF answers your question", detail: "Question terms are matched against document sentences and numbers. The result shows exact passages with page citations instead of a generated answer.", action: "Find answer sources" },
   "ai-question-generator": { icon: Sparkles, heading: "Generate review questions from real sentences", detail: "Important document terms and figures become questions with exact source-sentence answer keys and page citations.", action: "Generate questions" },
   "contract-analyzer": { icon: FileCheck2, heading: "Surface clauses that deserve human review", detail: "Detect obligation, termination, confidentiality, liability, date, and money language with source pages. This is document organization, not legal advice.", action: "Analyze contract" },
-  "resume-analyzer": { icon: FileText, heading: "Check resume structure and evidence", detail: "Review sections, contact details, skills, action verbs, bullets, and quantified results. FixThatPDF does not rank candidates or infer protected traits.", action: "Analyze resume" },
+  "resume-analyzer": { icon: FileText, heading: "Check resume structure and evidence", detail: "Review sections, contact details, skills, action verbs, bullets, and quantified results. PDFArrow does not rank candidates or infer protected traits.", action: "Analyze resume" },
 });
 
 const LANGUAGES = [
@@ -70,7 +70,7 @@ function CitedList({ items, keyName = "sentence" }) {
 }
 
 function AnalysisResult({ toolId, result, conversation }) {
-  if (QUESTION_TOOLS.has(toolId)) return <div className="analysis-conversation">{conversation.map((turn, index) => <article key={index}><header><strong>You</strong><p>{turn.question}</p></header><div><strong>FixThatPDF sources</strong>{turn.passages.length ? <CitedList items={turn.passages} /> : <p>No passage shared enough specific terms with that question. Try using names, dates, or wording found in the document.</p>}</div></article>)}</div>;
+  if (QUESTION_TOOLS.has(toolId)) return <div className="analysis-conversation">{conversation.map((turn, index) => <article key={index}><header><strong>You</strong><p>{turn.question}</p></header><div><strong>PDFArrow sources</strong>{turn.passages.length ? <CitedList items={turn.passages} /> : <p>No passage shared enough specific terms with that question. Try using names, dates, or wording found in the document.</p>}</div></article>)}</div>;
   if (!result) return null;
   if (toolId === "summarize-pdf") return <CitedList items={result} />;
   if (toolId === "ai-question-generator") return <ol className="analysis-question-list">{result.map((item, index) => <li key={index}><strong>{item.question}</strong><p>{item.answer}</p><span>Answer source · Page {item.pageNumber}</span></li>)}</ol>;
@@ -181,7 +181,7 @@ export function DocumentAnalysisPage({ tool }) {
         {(result || conversation.length > 0) && <div className="analysis-downloads">{tool.id === "translate-pdf" ? <><button type="button" onClick={downloadTranslatedPdf}><Download size={16} /> Download translated PDF</button><button type="button" onClick={() => download(result, "text/plain", `${baseName}-translated.txt`, tool.id)}><Download size={16} /> Download TXT</button></> : tool.id === "extract-data-from-pdf" ? <><button type="button" onClick={() => download(JSON.stringify(result, null, 2), "application/json", `${baseName}-data.json`, tool.id)}><Download size={16} /> Download JSON</button><button type="button" onClick={() => download(documentDataCsv(result), "text/csv", `${baseName}-data.csv`, tool.id)}><Download size={16} /> Download CSV</button></> : <button type="button" onClick={() => download(reportText, "text/plain", `${baseName}-${tool.id}.txt`, tool.id)}><Download size={16} /> Download report</button>}</div>}
       </section></div>}
     {status === "reading" && <div className="analysis-reading"><LoaderCircle className="is-spinning" size={18} /> Extracting document text… {progress}%</div>}{error && !file && <div className="conversion-error" role="alert">{error}</div>}
-    <section className="analysis-disclosure"><h2>What “AI” means in this private workflow</h2><p>FixThatPDF uses deterministic local document intelligence for retrieval, extractive summaries, field detection, questions, contract organization, and resume structure. It returns source text and page citations instead of sending your PDF to a generative model. Translation is separate and uses a compatible browser's on-device Translator model. Always review results against the PDF.</p></section>
+    <section className="analysis-disclosure"><h2>What “AI” means in this private workflow</h2><p>PDFArrow uses deterministic local document intelligence for retrieval, extractive summaries, field detection, questions, contract organization, and resume structure. It returns source text and page citations instead of sending your PDF to a generative model. Translation is separate and uses a compatible browser's on-device Translator model. Always review results against the PDF.</p></section>
     <ToolGuideContent tool={tool} />
   </main>;
 }

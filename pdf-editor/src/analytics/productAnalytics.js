@@ -24,8 +24,8 @@ const ALLOWED_EVENTS = new Set([
 const ALLOWED_PROPERTIES = new Set(["toolId", "fileSizeBucket", "pageCountBucket", "errorCategory", "result", "authMethod", "route", "operation", "durationBucket", "durationMs", "deviceClass", "browserFamily", "trafficSource", "referrerDomain", "landingPath"]);
 const ANALYTICS_COLLECTION = "productAnalyticsEvents";
 const VISITOR_KEY = "realpdf_analytics_visitor_id";
-const ATTRIBUTION_KEY = "fixthatpdf_session_attribution_v1";
-const PAGE_VIEWS_KEY = "fixthatpdf_session_page_views_v1";
+const ATTRIBUTION_KEY = "pdfarrow_session_attribution_v1";
+const PAGE_VIEWS_KEY = "pdfarrow_session_page_views_v1";
 const ANALYTICS_RETENTION_DAYS = 400;
 const memoryPageViews = new Set();
 
@@ -176,7 +176,7 @@ export function trackProductEvent(name, properties = {}) {
     window.dispatchEvent(new CustomEvent("realpdf:analytics", { detail: event }));
     queueProductEventPersistence(event);
   }
-  if (import.meta.env.DEV) console.info("[FixThatPDF analytics]", event);
+  if (import.meta.env.DEV) console.info("[PDFArrow analytics]", event);
   return true;
 }
 

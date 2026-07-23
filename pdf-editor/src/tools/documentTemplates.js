@@ -168,8 +168,8 @@ export async function createTemplatePdf(templateId, values, { styleId = "modern"
 
   const pdf = await PDFDocument.create();
   pdf.setTitle(safe(values.title || definition.title).slice(0, 120));
-  pdf.setAuthor(safe(values.businessName || values.company || values.name || "FixThatPDF user").slice(0, 120));
-  pdf.setCreator("FixThatPDF template builder");
+  pdf.setAuthor(safe(values.businessName || values.company || values.name || "PDFArrow user").slice(0, 120));
+  pdf.setCreator("PDFArrow template builder");
   const regular = await pdf.embedFont(StandardFonts.Helvetica);
   const bold = await pdf.embedFont(StandardFonts.HelveticaBold);
   const italic = await pdf.embedFont(StandardFonts.HelveticaOblique);
@@ -316,12 +316,12 @@ export async function createTemplatePdf(templateId, values, { styleId = "modern"
     y -= 8;
     page.drawLine({ start: { x: margin, y }, end: { x: 612 - margin, y }, thickness: 1, color: line });
     y -= 15;
-    text("Template for review only. FixThatPDF does not provide legal advice. Laws and required terms vary; have qualified counsel review this draft before use or signature.", { size: 7.5, font: italic, color: muted, lineHeight: 10 });
+    text("Template for review only. PDFArrow does not provide legal advice. Laws and required terms vary; have qualified counsel review this draft before use or signature.", { size: 7.5, font: italic, color: muted, lineHeight: 10 });
   }
 
   const pages = pdf.getPages();
   pages.forEach((pdfPage, index) => {
-    pdfPage.drawText(`Created privately with FixThatPDF  |  Page ${index + 1} of ${pages.length}`, { x: margin, y: 24, size: 7, font: regular, color: muted });
+    pdfPage.drawText(`Created privately with PDFArrow  |  Page ${index + 1} of ${pages.length}`, { x: margin, y: 24, size: 7, font: regular, color: muted });
   });
   return pdf.save();
 }

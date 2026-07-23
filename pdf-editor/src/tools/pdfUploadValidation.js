@@ -26,5 +26,5 @@ export function getPdfLoadErrorMessage(error) {
   if (name === "MissingPDFException") {
     return "The PDF could not be read from your device. Choose the file again.";
   }
-  return "FixThatPDF could not open this PDF. Try a valid, unencrypted file smaller than 50 MB.";
+  return "PDFArrow could not open this PDF. Try a valid, unencrypted file smaller than 50 MB.";
 }

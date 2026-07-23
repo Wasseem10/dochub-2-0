@@ -63,7 +63,7 @@ export function ToolLandingPage({ tool }) {
 
       <section className={`tool-action-panel ${isUsable ? "is-usable" : "is-coming"}`}>
         <span style={{ background: tool.accentColor }}><ToolIcon name={tool.icon} size={29} /></span>
-        <div><small>{isUsable ? "Existing FixThatPDF workflow" : "Tool status"}</small><h2>{isUsable ? `Continue to ${tool.name} in the editor` : `${tool.name} is currently in development`}</h2><p>{isUsable ? "FixThatPDF reuses the existing validated PDF upload and editor flow. No second uploader or duplicate file-processing path is created here." : "This page does not accept a file or show invented output. Use a related available editor workflow while this tool is being built."}</p></div>
+        <div><small>{isUsable ? "Existing PDFArrow workflow" : "Tool status"}</small><h2>{isUsable ? `Continue to ${tool.name} in the editor` : `${tool.name} is currently in development`}</h2><p>{isUsable ? "PDFArrow reuses the existing validated PDF upload and editor flow. No second uploader or duplicate file-processing path is created here." : "This page does not accept a file or show invented output. Use a related available editor workflow while this tool is being built."}</p></div>
         {isUsable && <Link to={editorHref}>Open {tool.name}</Link>}
       </section>
 
@@ -74,7 +74,7 @@ export function ToolLandingPage({ tool }) {
 
       <section className="tool-use-cases"><header><span className="public-eyebrow">Common uses</span><h2>When {tool.name.toLowerCase()} helps</h2></header><div>{tool.useCases.map((useCase) => <article key={useCase}><span style={{ background: tool.accentColor }}><ToolIcon name={tool.icon} size={21} /></span><h3>{useCase}</h3><p>{tool.shortDescription}</p></article>)}</div></section>
 
-      <section id="limitations" className="tool-limitations"><span><Info size={24} /></span><div><small>Current limitations</small><h2>What FixThatPDF does not claim</h2><p>{tool.currentLimitations}</p></div></section>
+      <section id="limitations" className="tool-limitations"><span><Info size={24} /></span><div><small>Current limitations</small><h2>What PDFArrow does not claim</h2><p>{tool.currentLimitations}</p></div></section>
 
       <section className="tool-faq"><header><span className="public-eyebrow">Questions</span><h2>{tool.name} FAQ</h2></header><div>{tool.faqEntries.map((entry) => <details key={entry.question}><summary>{entry.question}</summary><p>{entry.answer}</p></details>)}</div></section>
 

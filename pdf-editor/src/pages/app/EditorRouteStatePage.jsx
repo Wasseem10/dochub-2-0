@@ -17,7 +17,7 @@ export function EditorRouteStatePage({ state, onBack, backLabel = "Back to docum
         <span className="route-status-pill">{isLoading ? "Loading" : "Editor unavailable"}</span>
         <h1>{title}</h1>
         <p>{message}</p>
-        {!isLoading && <div className="route-state-actions"><button type="button" onClick={onBack}>{backLabel}</button>{onHome && <button type="button" onClick={onHome}>FixThatPDF home</button>}</div>}
+        {!isLoading && <div className="route-state-actions"><button type="button" onClick={onBack}>{backLabel}</button>{onHome && <button type="button" onClick={onHome}>PDFArrow home</button>}</div>}
       </section>
     </main>
   );

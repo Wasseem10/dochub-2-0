@@ -59,17 +59,17 @@ export function FeaturesPage() {
   return (
     <main className="features-page">
       <PageMetadata
-        title="All Features | FixThatPDF"
-        description={`See all ${releasedTools.length} released FixThatPDF features for editing, organizing, converting, signing, scanning, protecting, and reviewing PDFs.`}
+        title="All Features | PDFArrow"
+        description={`See all ${releasedTools.length} released PDFArrow features for editing, organizing, converting, signing, scanning, protecting, and reviewing PDFs.`}
         canonicalUrl={ROUTE_PATHS.features}
-        schemas={[{ "@context": "https://schema.org", "@type": "CollectionPage", name: "FixThatPDF features", url: absoluteSiteUrl(ROUTE_PATHS.features), mainEntity: { "@type": "ItemList", numberOfItems: releasedTools.length, itemListElement: releasedTools.map((tool, index) => ({ "@type": "ListItem", position: index + 1, name: tool.name, url: absoluteSiteUrl(tool.route) })) } }]}
+        schemas={[{ "@context": "https://schema.org", "@type": "CollectionPage", name: "PDFArrow features", url: absoluteSiteUrl(ROUTE_PATHS.features), mainEntity: { "@type": "ItemList", numberOfItems: releasedTools.length, itemListElement: releasedTools.map((tool, index) => ({ "@type": "ListItem", position: index + 1, name: tool.name, url: absoluteSiteUrl(tool.route) })) } }]}
       />
 
       <section className="features-hero">
         <div>
           <span><Sparkles size={15} /> Everything in one place</span>
           <h1>Every feature you need to finish a PDF.</h1>
-          <p>Explore the complete FixThatPDF workspace—from text editing and page organization to conversion, OCR, signing, protection, comparison, and export.</p>
+          <p>Explore the complete PDFArrow workspace—from text editing and page organization to conversion, OCR, signing, protection, comparison, and export.</p>
           <div><Link className="features-primary-action" to={ROUTE_PATHS.editPdf}>Open the PDF editor <ArrowRight size={17} /></Link><Link to={ROUTE_PATHS.tools}>Browse the full tool directory</Link></div>
         </div>
         <aside aria-label="Current feature coverage">
@@ -79,10 +79,10 @@ export function FeaturesPage() {
         </aside>
       </section>
 
-      <section className="features-promises" aria-label="FixThatPDF product promises">
+      <section className="features-promises" aria-label="PDFArrow product promises">
         <div><LockKeyhole size={21} /><span><strong>Browser-first processing</strong><small>Supported file work stays on your device</small></span></div>
         <div><ShieldCheck size={21} /><span><strong>No forced signup</strong><small>Use supported tools before creating an account</small></span></div>
-        <div><FileText size={21} /><span><strong>No FixThatPDF watermark</strong><small>Your downloaded document remains yours</small></span></div>
+        <div><FileText size={21} /><span><strong>No PDFArrow watermark</strong><small>Your downloaded document remains yours</small></span></div>
       </section>
 
       <section className="features-highlights" aria-labelledby="feature-highlights-title">
@@ -92,7 +92,7 @@ export function FeaturesPage() {
 
       <section className="features-catalog" aria-labelledby="all-features-title">
         <header>
-          <div><span>Complete capability list</span><h2 id="all-features-title">All working FixThatPDF features</h2><p>Only released, beta, or clearly limited workflows appear here. Each feature links to the real tool and shows its current availability.</p></div>
+          <div><span>Complete capability list</span><h2 id="all-features-title">All working PDFArrow features</h2><p>Only released, beta, or clearly limited workflows appear here. Each feature links to the real tool and shows its current availability.</p></div>
           <label><Search size={18} /><span className="sr-only">Search features</span><input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder={`Search ${releasedTools.length} features`} /></label>
         </header>
 

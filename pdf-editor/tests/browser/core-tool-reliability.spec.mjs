@@ -113,7 +113,7 @@ test("batch compression reports measured savings, previews output, and downloads
   await expect(page.getByText("2 PDFs · 2 pages ready")).toBeVisible();
   await page.getByLabel("Compression level").selectOption("maximum");
   const batch = await downloadBytes(page, "Compress and download ZIP");
-  expect(batch.download.suggestedFilename()).toBe("fixthatpdf-compressed.zip");
+  expect(batch.download.suggestedFilename()).toBe("pdfarrow-compressed.zip");
   const files = unzipSync(batch.bytes);
   expect(Object.keys(files).sort()).toEqual([
     "photos-one-compressed.pdf",

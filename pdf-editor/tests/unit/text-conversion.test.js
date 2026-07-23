@@ -18,7 +18,7 @@ describe("text conversion", () => {
   });
 
   it("creates a searchable, paginated PDF from text", async () => {
-    const bytes = await createPdfFromPlainText("FixThatPDF text conversion\n\n" + "A long readable sentence. ".repeat(500), { title: "Notes", fontSize: 12 });
+    const bytes = await createPdfFromPlainText("PDFArrow text conversion\n\n" + "A long readable sentence. ".repeat(500), { title: "Notes", fontSize: 12 });
     const pdf = await PDFDocument.load(bytes);
     expect(pdf.getTitle()).toBe("Notes");
     expect(pdf.getPageCount()).toBeGreaterThan(1);

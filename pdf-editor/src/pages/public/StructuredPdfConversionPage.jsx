@@ -66,7 +66,7 @@ function friendlyPdfError(error) {
   if (error?.name === "PasswordException" || message.includes("password")) return "This PDF is encrypted. Remove its password with an authorized tool, then try again.";
   if (message.includes("invalid pdf") || message.includes("missing pdf") || message.includes("no pdf header") || message.includes("parse pdf")) return "This PDF appears corrupted or incomplete. Try downloading a fresh copy.";
   if (message.includes("supports up to") || message.includes("no embedded text")) return error.message;
-  return error?.message || "FixThatPDF could not convert this PDF.";
+  return error?.message || "PDFArrow could not convert this PDF.";
 }
 
 function downloadOutput(data, type, name, toolId) {
@@ -137,7 +137,7 @@ export function StructuredPdfConversionPage({ tool }) {
     setProgress(0);
     setError("");
     const operation = beginToolOperation(tool.id, { operation: "convert", slowAfterMs: 15000 });
-    const baseName = file.name.replace(/\.pdf$/i, "") || "fixthatpdf-document";
+    const baseName = file.name.replace(/\.pdf$/i, "") || "pdfarrow-document";
     let ocrWorker;
     try {
       if (tool.id === "pdf-to-excel") {

@@ -21,12 +21,12 @@ import { POPULAR_TOOLS, TOOL_CATEGORIES, TOOL_REGISTRY } from "./tools/toolRegis
 const asset = (fileName) => `${import.meta.env.BASE_URL}homepage/${fileName}`;
 
 const faqs = [
-  ["Is FixThatPDF really free?", "Yes. Supported core tools are free to use with no subscription, checkout, email requirement, or FixThatPDF watermark."],
+  ["Is PDFArrow really free?", "Yes. Supported core tools are free to use with no subscription, checkout, email requirement, or PDFArrow watermark."],
   ["Do I need an account?", "No. Open, edit, and download supported files as a guest. Create an account only when you want cloud document history."],
   ["Are files processed in my browser?", "Supported editor, page, and image tools process files in your browser. Account-based cloud history uses Firebase and is clearly separate."],
   ["What is the editor file limit?", "The editor accepts valid, unencrypted PDFs up to 50 MB and 500 pages. Large documents open progressively, so later pages render as you visit them."],
-  ["Can FixThatPDF perfectly rewrite original PDF text?", "Not always. The editor can change detected text overlays and add new content, but original fonts, spacing, and layout may vary. Always review the export."],
-  ["Does FixThatPDF add a watermark?", "No. FixThatPDF does not add a watermark to supported exports."],
+  ["Can PDFArrow perfectly rewrite original PDF text?", "Not always. The editor can change detected text overlays and add new content, but original fonts, spacing, and layout may vary. Always review the export."],
+  ["Does PDFArrow add a watermark?", "No. PDFArrow does not add a watermark to supported exports."],
 ];
 
 const taskLanes = [
@@ -44,7 +44,7 @@ const taskLanes = [
     title: "Put every page exactly where it belongs.",
     copy: "Reorder, rotate, duplicate, remove, merge, and split pages with clear visual controls.",
     image: "organize-preview.png",
-    imageAlt: "FixThatPDF page organizer with PDF page thumbnails ready to reorder",
+    imageAlt: "PDFArrow page organizer with PDF page thumbnails ready to reorder",
     route: "/organize-pdf",
     cta: "Organize a PDF",
   },
@@ -53,7 +53,7 @@ const taskLanes = [
     title: "Move between PDF and the formats you use.",
     copy: "Turn PDFs into Word or images, and convert common files back into clean PDFs.",
     image: "convert-preview.png",
-    imageAlt: "FixThatPDF conversion workspace showing PDF, Word, and image formats",
+    imageAlt: "PDFArrow conversion workspace showing PDF, Word, and image formats",
     route: "/pdf-to-word",
     cta: "Convert a PDF",
   },
@@ -111,7 +111,7 @@ function HomepageImage({ fileName, alt, width, height, sizes, eager = false }) {
 }
 
 function Brand() {
-  return <Link className="freepdf-brand" to={ROUTE_PATHS.home} aria-label="FixThatPDF home"><BrandWordmark /></Link>;
+  return <Link className="freepdf-brand" to={ROUTE_PATHS.home} aria-label="PDFArrow home"><BrandWordmark logo /></Link>;
 }
 
 function SiteHeader({ onChoose }) {
@@ -170,7 +170,7 @@ function SiteHeader({ onChoose }) {
       </div>
       {open && <nav className="freepdf-mobile-nav" aria-label="Mobile navigation">{links.map(([label, href], index) => <Link ref={index === 0 ? firstLinkRef : undefined} key={label} to={href} onClick={() => setOpen(false)}>{label}</Link>)}<Link to={ROUTE_PATHS.login} onClick={() => setOpen(false)}>Log in</Link><button type="button" onClick={() => { setOpen(false); onChoose(); }}>Choose a PDF</button></nav>}
     </div>
-    {toolsOpen && <div ref={toolsMenuRef} className="freepdf-tools-mega" id="freepdf-tools-menu" role="region" aria-label="FixThatPDF tools">
+    {toolsOpen && <div ref={toolsMenuRef} className="freepdf-tools-mega" id="freepdf-tools-menu" role="region" aria-label="PDFArrow tools">
       <div className="freepdf-tools-mega-grid">
         {toolsMenuColumns.map((categoryIds, columnIndex) => <div className="freepdf-tools-menu-column" key={columnIndex}>
           {categoryIds.map((categoryId) => {
@@ -238,14 +238,14 @@ function FooterToolDirectory() {
 function SiteFooter() {
   return <footer className="freepdf-site-footer">
     <div className="freepdf-footer-surface">
-      <Link className="freepdf-footer-wordmark" to={ROUTE_PATHS.home} aria-label="FixThatPDF home">
-        <span>FixThat</span><strong>PDF</strong>
+      <Link className="freepdf-footer-wordmark" to={ROUTE_PATHS.home} aria-label="PDFArrow home">
+        <span>PDF</span><strong>Arrow</strong>
       </Link>
       <FooterToolDirectory />
       <div className="freepdf-footer-meta">
         <div><Brand /><p>Every PDF task, finally in one place.</p></div>
         <nav aria-label="Footer"><Link to={ROUTE_PATHS.tools}>All tools</Link><Link to={ROUTE_PATHS.support}>Support</Link><Link to={ROUTE_PATHS.privacy}>Privacy</Link><Link to={ROUTE_PATHS.terms}>Terms</Link></nav>
-        <span>© 2026 FixThatPDF</span>
+        <span>© 2026 PDFArrow</span>
       </div>
     </div>
   </footer>;
@@ -263,7 +263,7 @@ export function LatticePdfLanding({ fileInputRef, onUpload, onSelectFiles, onDro
   }, []);
 
   return <main className="freepdf-page">
-    <PageMetadata title="Every PDF Task in One Place | FixThatPDF" description="Edit, sign, fill, merge, split, organize, and convert PDFs without subscriptions, watermarks, or forced signup." canonicalUrl="/" schemas={[{ "@context": "https://schema.org", "@type": "WebSite", "@id": `${absoluteSiteUrl("/")}#website`, name: "FixThatPDF", alternateName: "Fix That PDF", url: absoluteSiteUrl("/"), inLanguage: "en-US" }, { "@context": "https://schema.org", "@type": "Organization", "@id": `${absoluteSiteUrl("/")}#organization`, name: "FixThatPDF", url: absoluteSiteUrl("/"), logo: absoluteSiteUrl("/icon.svg") }]} />
+    <PageMetadata title="Every PDF Task in One Place | PDFArrow" description="Edit, sign, fill, merge, split, organize, and convert PDFs without subscriptions, watermarks, or forced signup." canonicalUrl="/" schemas={[{ "@context": "https://schema.org", "@type": "WebSite", "@id": `${absoluteSiteUrl("/")}#website`, name: "PDFArrow", alternateName: "PDFArrow", url: absoluteSiteUrl("/"), inLanguage: "en-US" }, { "@context": "https://schema.org", "@type": "Organization", "@id": `${absoluteSiteUrl("/")}#organization`, name: "PDFArrow", url: absoluteSiteUrl("/"), logo: absoluteSiteUrl("/icon.svg") }]} />
     <input ref={inputRef} className="hidden-input" type="file" accept="application/pdf,.pdf" onChange={onUpload} />
     <SiteHeader onChoose={choose} />
 
@@ -274,7 +274,7 @@ export function LatticePdfLanding({ fileInputRef, onUpload, onSelectFiles, onDro
           <span className="freepdf-eyebrow">More than just editing</span>
           <h1>Every PDF task,<br />finally in one place.</h1>
           <p>Edit, sign, organize, and convert your PDFs without subscriptions, watermarks, or a maze of different apps.</p>
-          <section className="freepdf-trust-strip" aria-label="FixThatPDF promises">
+          <section className="freepdf-trust-strip" aria-label="PDFArrow promises">
             <div><LockKeyhole size={22} /><span><strong>Private by design</strong><small>Your file stays private</small></span></div>
             <div><ShieldCheck size={22} /><span><strong>No watermark</strong><small>Clean results, always</small></span></div>
             <div><Clock3 size={22} /><span><strong>Start right away</strong><small>No account needed</small></span></div>
@@ -288,7 +288,7 @@ export function LatticePdfLanding({ fileInputRef, onUpload, onSelectFiles, onDro
     </section>
 
     <section className="freepdf-task-section" aria-labelledby="task-lanes-title">
-      <div className="freepdf-section-heading freepdf-task-heading"><span>One home for every PDF</span><h2 id="task-lanes-title">From first edit to final export.</h2><p>FixThatPDF keeps the work simple, visual, and close at hand.</p></div>
+      <div className="freepdf-section-heading freepdf-task-heading"><span>One home for every PDF</span><h2 id="task-lanes-title">From first edit to final export.</h2><p>PDFArrow keeps the work simple, visual, and close at hand.</p></div>
       <div className="freepdf-task-lanes">{taskLanes.map((lane, index) => <article className={`freepdf-task-lane ${index % 2 ? "is-reversed" : ""}`} key={lane.eyebrow}>
         <div className="freepdf-task-copy"><span>{lane.eyebrow}</span><h3>{lane.title}</h3><p>{lane.copy}</p><Link to={lane.route}>{lane.cta} <ArrowRight size={17} /></Link></div>
         <Link className="freepdf-task-visual" to={lane.route} aria-label={lane.cta}><HomepageImage fileName={lane.image} alt={lane.imageAlt} width="1536" height="1024" sizes="(max-width: 760px) 100vw, 560px" /></Link>

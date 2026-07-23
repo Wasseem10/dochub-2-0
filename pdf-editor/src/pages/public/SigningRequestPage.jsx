@@ -134,7 +134,7 @@ async function createCompletionFiles(sourceBytes, request, values, sourceName) {
   }
   const completedAt = new Date();
   pdf.setSubject(`Completed signing request ${request.requestId}`);
-  pdf.setCreator("FixThatPDF secure signing link");
+  pdf.setCreator("PDFArrow secure signing link");
   pdf.setModificationDate(completedAt);
   const signedBytes = await pdf.save();
   const digest = await crypto.subtle.digest("SHA-256", signedBytes);
@@ -144,7 +144,7 @@ async function createCompletionFiles(sourceBytes, request, values, sourceName) {
   const receiptFont = await receipt.embedFont(StandardFonts.Helvetica);
   const receiptBold = await receipt.embedFont(StandardFonts.HelveticaBold);
   const page = receipt.addPage([612, 792]);
-  page.drawText("FixThatPDF completion receipt", { x: 54, y: 716, size: 22, font: receiptBold, color: rgb(0.05, 0.1, 0.22) });
+  page.drawText("PDFArrow completion receipt", { x: 54, y: 716, size: 22, font: receiptBold, color: rgb(0.05, 0.1, 0.22) });
   page.drawText("Device-generated record — not identity verification or a digital certificate", { x: 54, y: 688, size: 10, font: receiptFont, color: rgb(0.35, 0.4, 0.48) });
   const lines = [
     ["Document", sourceName], ["Request ID", request.requestId], ["Signer", request.recipient.name || request.recipient.email],
@@ -158,7 +158,7 @@ async function createCompletionFiles(sourceBytes, request, values, sourceName) {
     chunks.slice(0, 2).forEach((chunk, chunkIndex) => page.drawText(chunk, { x: 54, y: y - 18 - chunkIndex * 13, size: 10, font: receiptFont, color: rgb(0.05, 0.1, 0.22) }));
   });
   receipt.setTitle(`Completion receipt for ${sourceName}`);
-  receipt.setCreator("FixThatPDF");
+  receipt.setCreator("PDFArrow");
   return { signedBytes, receiptBytes: await receipt.save(), completedAt, fingerprint };
 }
 
@@ -221,7 +221,7 @@ export function SigningRequestPage() {
   };
 
   if (state.status === "loading") return <main className="sign-request-page"><section className="secure-share-state"><LoaderCircle className="is-spinning" size={28} /><h1>Opening secure signing request</h1><p>Loading the document and its required fields.</p></section></main>;
-  if (state.status !== "ready") return <main className="sign-request-page"><section className="secure-share-state"><Lock size={28} /><h1>{state.status === "expired" ? "This signing request has expired" : "This signing request cannot be opened"}</h1><p>Ask the sender to create a new secure request.</p><Link to={ROUTE_PATHS.home}>Go to FixThatPDF</Link></section></main>;
+  if (state.status !== "ready") return <main className="sign-request-page"><section className="secure-share-state"><Lock size={28} /><h1>{state.status === "expired" ? "This signing request has expired" : "This signing request cannot be opened"}</h1><p>Ask the sender to create a new secure request.</p><Link to={ROUTE_PATHS.home}>Go to PDFArrow</Link></section></main>;
 
   return <main className="sign-request-page">
     <header className="sign-request-header"><div><span><FileText size={21} /></span><div><small>Secure signing request</small><h1>{state.fileName}</h1><p>From {state.request.requester.name || state.request.requester.email || "the document owner"} · expires {new Date(state.request.expiresAt).toLocaleDateString()}</p></div></div><div><ShieldCheck size={18} /> PDF processing stays in this browser</div></header>
@@ -236,7 +236,7 @@ export function SigningRequestPage() {
         })}
       </article>)}
     </section><aside className="sign-request-sidebar">
-      {result ? <section className="sign-complete-card"><CheckCircle2 size={34} /><h2>Document completed</h2><p>Download both files now. FixThatPDF does not keep the completed copy.</p><button type="button" className="is-primary" onClick={() => downloadUrl(result.signedUrl, result.signedName)}><Download size={17} /> Download signed PDF</button><button type="button" onClick={() => downloadUrl(result.receiptUrl, result.receiptName)}><ShieldCheck size={17} /> Download completion receipt</button><small>Receipt fingerprint: {result.fingerprint.slice(0, 16)}…</small></section> : <>
+      {result ? <section className="sign-complete-card"><CheckCircle2 size={34} /><h2>Document completed</h2><p>Download both files now. PDFArrow does not keep the completed copy.</p><button type="button" className="is-primary" onClick={() => downloadUrl(result.signedUrl, result.signedName)}><Download size={17} /> Download signed PDF</button><button type="button" onClick={() => downloadUrl(result.receiptUrl, result.receiptName)}><ShieldCheck size={17} /> Download completion receipt</button><small>Receipt fingerprint: {result.fingerprint.slice(0, 16)}…</small></section> : <>
         <span>Requested from</span><h2>{state.request.recipient.name || state.request.recipient.email}</h2>{state.request.message && <p className="sign-request-message">{state.request.message}</p>}
         <ol className="sign-field-checklist">{state.request.fields.map((field) => { const value = values[field.id] || {}; const completeField = field.type === "checkbox" ? value.checked : value.text || value.imageDataUrl; return <li key={field.id} className={completeField ? "is-complete" : ""}><span>{completeField ? <Check size={14} /> : state.request.fields.indexOf(field) + 1}</span><div><strong>{field.label}</strong><small>Page {field.page + 1} · {field.required ? "Required" : "Optional"}</small></div></li>; })}</ol>
         {error && <p className="sign-request-error" role="alert">{error}</p>}

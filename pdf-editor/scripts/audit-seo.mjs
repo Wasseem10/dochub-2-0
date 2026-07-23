@@ -27,7 +27,7 @@ for (const url of sitemapUrls) {
   const canonical = html.match(/<link rel="canonical" href="([^"]+)"/i)?.[1] || "";
   const robots = html.match(/<meta name="robots" content="([^"]+)"/i)?.[1] || "";
   const h1Count = (html.match(/<h1[ >]/g) || []).length;
-  const structuredData = html.match(/<script id="fixthatpdf-prerender-structured-data" type="application\/ld\+json">([\s\S]*?)<\/script>/)?.[1];
+  const structuredData = html.match(/<script id="pdfarrow-prerender-structured-data" type="application\/ld\+json">([\s\S]*?)<\/script>/)?.[1];
 
   requireMatch(Boolean(title), `${url.pathname}: missing title.`);
   requireMatch(description.length >= 70 && description.length <= 190, `${url.pathname}: meta description length is ${description.length}.`);

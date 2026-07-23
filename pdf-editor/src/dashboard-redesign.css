@@ -1,4 +1,4 @@
-/* Reference-led FixThatPDF dashboard. Loaded after the legacy dashboard rules. */
+/* Reference-led PDFArrow dashboard. Loaded after the legacy dashboard rules. */
 .lumin-home.upload-shell {
   --dash-red: #67bde7;
   --dash-red-dark: #3598ca;
@@ -474,7 +474,7 @@
   .reference-activity-card { grid-row: auto; }
 }
 
-/* Simplified FixThatPDF dashboard. Keep the home screen task-first and quiet. */
+/* Simplified PDFArrow dashboard. Keep the home screen task-first and quiet. */
 .lumin-home {
   --dash-red: #2851eb;
   --dash-red-dark: #1f43c8;

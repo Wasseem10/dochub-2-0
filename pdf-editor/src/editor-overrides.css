@@ -6595,7 +6595,7 @@ main.editor-shell .draw-size-output {
   }
 }
 
-/* FixThatPDF auth screen — aligned with the landing page design system. */
+/* PDFArrow auth screen — aligned with the landing page design system. */
 .auth-shell {
   --auth-ink: #001f1f;
   --auth-body: #243737;
@@ -6862,7 +6862,7 @@ main.editor-shell .draw-color-field {
   box-shadow: 0 1px 2px rgba(31, 41, 55, 0.06) !important;
 }
 
-/* FixThatPDF account experience — cobalt landing-page companion. */
+/* PDFArrow account experience — cobalt landing-page companion. */
 .auth-shell {
   --auth-blue: #2851eb;
   --auth-blue-dark: #1534be;

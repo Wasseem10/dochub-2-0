@@ -19,7 +19,7 @@ export function attachPdfCommentAnnotation({ pdfDoc, page, annotation, x, y, siz
     Subtype: "Text",
     Rect: [x, y, x + size, y + size],
     Contents: PDFHexString.fromText(formatThread(annotation)),
-    T: PDFHexString.fromText(annotation.author || "FixThatPDF reviewer"),
+    T: PDFHexString.fromText(annotation.author || "PDFArrow reviewer"),
     NM: PDFHexString.fromText(annotation.id || `comment-${Date.now()}`),
     M: PDFString.fromDate(safeDate),
     Name: "Comment",

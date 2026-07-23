@@ -101,7 +101,7 @@ export async function createPdfFromPlainText(text, { title = "Text document", fo
   if (cleanText.length > TEXT_CONVERSION_LIMITS.maxTextCharacters) throw new Error("This TXT file contains too much text for safe browser conversion.");
   const pdf = await PDFDocument.create();
   pdf.setTitle(String(title || "Text document").slice(0, 120));
-  pdf.setCreator("FixThatPDF");
+  pdf.setCreator("PDFArrow");
   const font = await pdf.embedFont(StandardFonts.Helvetica);
   const dimensions = pageSize === "a4" ? [595.28, 841.89] : [612, 792];
   const margin = 54;

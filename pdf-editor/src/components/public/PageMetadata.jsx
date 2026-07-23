@@ -26,8 +26,8 @@ export function PageMetadata({ title, description, canonicalUrl, schemas = [], n
     setMeta("og:url", absoluteCanonical, "property");
     const hasDedicatedSocialImage = hasToolShareImage(canonicalUrl) || isEditorialResourcePath(canonicalUrl);
     const resolvedSocialImage = absoluteSiteUrl(socialImage || (hasDedicatedSocialImage ? editorialShareImagePath(canonicalUrl) : "/og-editorial.png"));
-    const resolvedSocialAlt = socialImageAlt || `${title.replace(/ \| FixThatPDF$/, "")} — FixThatPDF guide and browser tool`;
-    setMeta("og:site_name", "FixThatPDF", "property");
+    const resolvedSocialAlt = socialImageAlt || `${title.replace(/ \| PDFArrow$/, "")} — PDFArrow guide and browser tool`;
+    setMeta("og:site_name", "PDFArrow", "property");
     setMeta("og:locale", "en_US", "property");
     setMeta("og:image", resolvedSocialImage, "property");
     setMeta("og:image:width", "1200", "property");
@@ -50,9 +50,9 @@ export function PageMetadata({ title, description, canonicalUrl, schemas = [], n
 
     trackPageView(canonicalUrl);
 
-    const scriptId = "fixthatpdf-structured-data";
+    const scriptId = "pdfarrow-structured-data";
     document.getElementById(scriptId)?.remove();
-    document.getElementById("fixthatpdf-prerender-structured-data")?.remove();
+    document.getElementById("pdfarrow-prerender-structured-data")?.remove();
     const pageSchema = {
       "@context": "https://schema.org",
       "@type": "WebPage",
@@ -60,7 +60,7 @@ export function PageMetadata({ title, description, canonicalUrl, schemas = [], n
       description,
       url: absoluteCanonical,
       inLanguage: "en-US",
-      isPartOf: { "@type": "WebSite", name: "FixThatPDF", url: absoluteSiteUrl("/") },
+      isPartOf: { "@type": "WebSite", name: "PDFArrow", url: absoluteSiteUrl("/") },
     };
     const pageSchemas = [pageSchema, ...schemas];
     if (pageSchemas.length) {

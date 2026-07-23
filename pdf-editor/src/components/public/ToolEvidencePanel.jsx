@@ -43,7 +43,7 @@ export function ToolEvidencePanel({ tool }) {
       <div className="tool-evidence-layout">
         <figure className="tool-evidence-demo">
           <img src={`/editorial/demos/${tool.id}.png`} width="1200" height="675" loading="lazy" alt={evidence.demoAlt} />
-          <figcaption>Original FixThatPDF demonstration built from the regression scenario for {tool.name}.</figcaption>
+          <figcaption>Original PDFArrow demonstration built from the regression scenario for {tool.name}.</figcaption>
         </figure>
 
         <div className="tool-evidence-details">

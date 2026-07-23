@@ -122,7 +122,7 @@ export function OwnerAnalyticsPanel() {
       setStatus("error");
       setMessage(error?.code === "permission-denied"
         ? "Analytics access is waiting for the owner-only Firestore rule to be deployed."
-        : "FixThatPDF could not load analytics right now. Try refreshing in a moment.");
+        : "PDFArrow could not load analytics right now. Try refreshing in a moment.");
     }
   }, [range]);
 
@@ -164,7 +164,7 @@ export function OwnerAnalyticsPanel() {
       <header className="owner-analytics-head">
         <div>
           <span>Owner-only</span>
-          <h1 id="analytics-title">FixThatPDF analytics</h1>
+          <h1 id="analytics-title">PDFArrow analytics</h1>
           <p>Private product usage metrics. PDF names and document contents are never collected.</p>
         </div>
         <div className="owner-analytics-actions">
@@ -284,7 +284,7 @@ export function OwnerAnalyticsPanel() {
               </div>
             ))}
           </div>
-        ) : <div className="owner-analytics-empty"><Activity size={24} /><strong>No activity in this period</strong><p>Events will appear after people use this FixThatPDF release.</p></div>}
+        ) : <div className="owner-analytics-empty"><Activity size={24} /><strong>No activity in this period</strong><p>Events will appear after people use this PDFArrow release.</p></div>}
       </article>
     </section>
   );

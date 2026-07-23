@@ -210,7 +210,7 @@ export async function createPdfFromTextSlides(slides, { title = "Presentation" }
     page.drawText(`${index + 1} / ${slides.length}`, { x: 650, y: 20, size: 9, font: regular, color: rgb(0.45, 0.5, 0.6) });
   }
   pdf.setTitle(title);
-  pdf.setCreator("FixThatPDF");
+  pdf.setCreator("PDFArrow");
   return pdf.save();
 }
 
@@ -285,7 +285,7 @@ export async function createPdfFromZip(input, { title = "ZIP document", onProgre
     onProgress?.({ completed: index + 1, total: entries.length });
   }
   output.setTitle(title);
-  output.setCreator("FixThatPDF");
+  output.setCreator("PDFArrow");
   return output.save();
 }
 

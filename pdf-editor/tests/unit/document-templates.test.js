@@ -32,6 +32,6 @@ describe("document templates", () => {
     const pdf = await PDFDocument.load(bytes);
     expect(pdf.getPageCount()).toBeGreaterThan(0);
     expect(pdf.getTitle()).toBeTruthy();
-    expect(pdf.getCreator()).toContain("FixThatPDF");
+    expect(pdf.getCreator()).toContain("PDFArrow");
   });
 });

@@ -1,7 +1,7 @@
 /* Release-critical overrides. This stylesheet intentionally loads last. */
 
 /* Older auth-mark rules styled every nested span as a logo tile. Restore the
-   shared FixThatPDF wordmark as plain typography. */
+   shared PDFArrow wordmark as plain typography. */
 .auth-shell .auth-realpdf-brand > .brand-wordmark {
   position: static !important;
   display: inline-flex !important;

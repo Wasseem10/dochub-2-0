@@ -57,7 +57,7 @@ export const TOOL_CATEGORIES = Object.freeze([
 ]);
 
 const PARTIAL_EDITOR_LIMIT = "This workflow opens the current browser editor. Supported edits are flattened during export, and source formatting or interactive PDF features may not be preserved.";
-const COMING_SOON_LIMIT = "This tool is not implemented yet. FixThatPDF does not upload or process files for this workflow today.";
+const COMING_SOON_LIMIT = "This tool is not implemented yet. PDFArrow does not upload or process files for this workflow today.";
 const DEDICATED_CONVERTER_IDS = new Set(["pdf-to-word", "pdf-to-excel", "pdf-to-powerpoint", "pdf-to-jpg", "pdf-to-png", "pdf-to-txt", "pdf-to-html", "word-to-pdf", "excel-to-pdf", "powerpoint-to-pdf", "html-to-pdf", "jpg-to-pdf", "png-to-pdf", "txt-to-pdf", "rtf-to-pdf", "odt-to-pdf", "odp-to-pdf", "ods-to-pdf", "epub-to-pdf", "zip-to-pdf", "ocr-pdf", "pdf-scanner", "scan-to-pdf", "image-to-searchable-pdf", "ai-pdf", "chat-with-pdf", "summarize-pdf", "translate-pdf", "extract-data-from-pdf", "ask-pdf", "ai-question-generator", "contract-analyzer", "resume-analyzer", "compare-pdf", "document-version-comparison"]);
 const DEDICATED_PAGE_TOOL_IDS = new Set(["merge-pdf", "split-pdf", "rotate-pdf", "delete-pdf-pages", "extract-pdf-pages", "reorder-pdf-pages", "organize-pdf", "add-page-numbers", "watermark-pdf", "crop-pdf", "compress-pdf", "redact-pdf", "unlock-pdf", "flatten-pdf", "remove-pdf-password"]);
 
@@ -149,7 +149,7 @@ const CATEGORY_BY_ID = new Map(TOOL_CATEGORIES.map((category) => [category.id, c
 const categoryContent = {
   "edit-view": {
     benefit: "Work directly on familiar PDF pages without rebuilding the document from scratch.",
-    steps: ["Open the PDF in the FixThatPDF editor.", "Choose the supported editing or viewing control you need.", "Review the result and export a new PDF when ready."],
+    steps: ["Open the PDF in the PDFArrow editor.", "Choose the supported editing or viewing control you need.", "Review the result and export a new PDF when ready."],
     uses: ["Correcting a document before delivery", "Marking up a draft for personal review", "Completing a form-like document"],
   },
   organize: {
@@ -252,7 +252,7 @@ function buildBaseTool([slug, name, shortDescription, category, icon, status, su
     route,
     name,
     shortDescription,
-    longDescription: `${shortDescription} ${isUsable ? hasDedicatedWorkflow ? "Use the dedicated FixThatPDF workflow and review the downloaded result carefully." : "Use the supported workflow in the current FixThatPDF editor and review the exported result carefully." : "The page explains the intended workflow without pretending that file processing is available."}`,
+    longDescription: `${shortDescription} ${isUsable ? hasDedicatedWorkflow ? "Use the dedicated PDFArrow workflow and review the downloaded result carefully." : "Use the supported workflow in the current PDFArrow editor and review the exported result carefully." : "The page explains the intended workflow without pretending that file processing is available."}`,
     category,
     categoryName: categoryRecord.name,
     icon,
@@ -265,8 +265,8 @@ function buildBaseTool([slug, name, shortDescription, category, icon, status, su
     workflowType: isDedicatedConverter ? "converter" : isDedicatedPageTool ? "page-tool" : isUsable ? "editor" : "information",
     currentLimitations: currentLimitations || (isUsable ? PARTIAL_EDITOR_LIMIT : COMING_SOON_LIMIT),
     availabilityLabel,
-    seoTitle: `${name} Online | FixThatPDF`,
-    metaDescription: `${shortDescription} See current availability, supported formats, and limitations in FixThatPDF.`,
+    seoTitle: `${name} Online | PDFArrow`,
+    metaDescription: `${shortDescription} See current availability, supported formats, and limitations in PDFArrow.`,
     heroHeadline: `${name} online, with private browser processing`,
     heroSubheadline: shortDescription,
     benefits: [content.benefit, `Inputs: ${inputLabel}.`, `Outputs: ${outputLabel}.`],
@@ -281,10 +281,10 @@ function buildBaseTool([slug, name, shortDescription, category, icon, status, su
     })[slug] || content.uses,
     faqEntries: [
       { question: `What does ${name} do?`, answer: shortDescription },
-      { question: `Is ${name} available in FixThatPDF today?`, answer: `${availabilityLabel}. ${currentLimitations}` },
+      { question: `Is ${name} available in PDFArrow today?`, answer: `${availabilityLabel}. ${currentLimitations}` },
       { question: `What should I verify after using ${name}?`, answer: isUsable ? `Open the downloaded ${outputLabel} result, compare important content with the source, and do not share it until the output has been reviewed.` : "No file is processed today. Use the related available editor workflows shown on this page, and return when this tool is implemented." },
     ],
-    privacySummary: isUsable ? "Choosing a file starts the supported FixThatPDF workflow. Review the page-specific privacy note before processing sensitive documents." : "This page does not accept or process a file today.",
+    privacySummary: isUsable ? "Choosing a file starts the supported PDFArrow workflow. Review the page-specific privacy note before processing sensitive documents." : "This page does not accept or process a file today.",
     verificationChecklist: [`Open the downloaded ${outputLabel} result in a compatible application.`, "Compare important text, images, formatting, and page order with the source.", "Keep the source file until the result has been verified."],
     troubleshooting: [
       { question: `Why might ${name} reject a file?`, answer: `The file must match the supported input format and current limits shown on this page. Encrypted PDFs are not accepted unless the workflow specifically removes a known password.` },
@@ -369,4 +369,4 @@ export function validateToolRegistry(tools = TOOL_REGISTRY) {
 }
 
 const registryErrors = validateToolRegistry();
-if (registryErrors.length) throw new Error(`Invalid FixThatPDF tool registry:\n${registryErrors.join("\n")}`);
+if (registryErrors.length) throw new Error(`Invalid PDFArrow tool registry:\n${registryErrors.join("\n")}`);

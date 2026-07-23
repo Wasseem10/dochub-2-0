@@ -46,7 +46,7 @@ describe("public PDF tool platform", () => {
     const renderer = await render(<FeaturesPage />);
     const text = textOf(renderer.root);
     expect(text).toContain("Every feature you need to finish a PDF.");
-    expect(text).toContain("All working FixThatPDF features");
+    expect(text).toContain("All working PDFArrow features");
     expect(text).toContain("PDF to Excel");
     expect(text).toContain("PowerPoint to PDF");
     expect(text).toContain("OCR PDF");

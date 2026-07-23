@@ -1,10 +1,10 @@
 # Open Horizon Hero Design QA
 
 - Source visual truth: `/Users/wasseemdabbas/.codex/generated_images/019f7d99-682c-7551-8036-1bae63d2a1df/exec-d9249e38-30a1-4cae-a267-a1e545721678.png`
-- Desktop implementation screenshot: `/tmp/fixthatpdf-open-horizon-pass3.png`
-- Mobile implementation screenshot: `/tmp/fixthatpdf-open-horizon-mobile.png`
-- Full comparison evidence: `/tmp/fixthatpdf-open-horizon-comparison.png`
-- Focused comparison evidence: `/tmp/fixthatpdf-open-horizon-focused.png`
+- Desktop implementation screenshot: `/tmp/pdfarrow-open-horizon-pass3.png`
+- Mobile implementation screenshot: `/tmp/pdfarrow-open-horizon-mobile.png`
+- Full comparison evidence: `/tmp/pdfarrow-open-horizon-comparison.png`
+- Focused comparison evidence: `/tmp/pdfarrow-open-horizon-focused.png`
 - Desktop viewport: 1440 × 1024
 - Tablet viewport: 768 × 1024
 - Mobile viewport: 390 × 844
@@ -13,7 +13,7 @@
 
 ## Full-view comparison evidence
 
-The source and implementation were normalized to the same 1440 × 1024 frame and placed side by side. The implementation preserves the selected direction: white FixThatPDF header, airy blue-white horizon, left-aligned two-line promise, primary upload action, three trust points, and a large functional upload workspace on the right.
+The source and implementation were normalized to the same 1440 × 1024 frame and placed side by side. The implementation preserves the selected direction: white PDFArrow header, airy blue-white horizon, left-aligned two-line promise, primary upload action, three trust points, and a large functional upload workspace on the right.
 
 ## Focused region comparison evidence
 

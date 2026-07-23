@@ -103,6 +103,6 @@ export async function addWatermarkToPdf(sourceBytes, options = {}) {
   });
 
   pdf.setTitle("Watermarked PDF");
-  pdf.setCreator("FixThatPDF");
+  pdf.setCreator("PDFArrow");
   return pdf.save();
 }

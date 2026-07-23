@@ -78,7 +78,7 @@ function friendlyPdfError(error) {
   const message = String(error?.message || "").toLowerCase();
   if (error?.name === "PasswordException" || message.includes("encrypted") || message.includes("password")) return "This PDF is encrypted. Use an authorized password-removal workflow before organizing it.";
   if (message.includes("invalid pdf") || message.includes("missing pdf") || message.includes("no pdf header") || message.includes("parse pdf")) return "This PDF appears corrupted or incomplete. Try downloading a fresh copy.";
-  return error?.message || "FixThatPDF could not read this PDF. Try a valid, unencrypted file under 50 MB.";
+  return error?.message || "PDFArrow could not read this PDF. Try a valid, unencrypted file under 50 MB.";
 }
 
 function PdfDropzone({ multiple, onFiles, disabled, label }) {
@@ -618,7 +618,7 @@ function CompressWorkspace({ tool }) {
         downloadBytes(
           createStoredZip(downloadable.map((result) => ({ name: result.outputName, data: result.output }))),
           "application/zip",
-          "fixthatpdf-compressed.zip",
+          "pdfarrow-compressed.zip",
         );
       }
       operation.succeed({ result: preset, pageCountBucket: pageCountBucket(totalPages), batchSize: files.length });

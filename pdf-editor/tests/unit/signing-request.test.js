@@ -29,8 +29,8 @@ describe("secure signing request payloads", () => {
   });
 
   it("creates a signer route with metadata in the URL fragment", () => {
-    const url = createSigningRequestUrl({ origin: "https://fixthatpdf.example/", token: "abc_123", payload: request });
-    expect(url).toMatch(/^https:\/\/fixthatpdf\.example\/sign\/abc_123#request=/);
+    const url = createSigningRequestUrl({ origin: "https://pdfarrow.example/", token: "abc_123", payload: request });
+    expect(url).toMatch(/^https:\/\/pdfarrow\.example\/sign\/abc_123#request=/);
     expect(url).not.toContain("Jordan@example.com");
   });
 

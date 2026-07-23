@@ -107,9 +107,9 @@ def make_share_card(slug: str, title: str, kicker: str) -> None:
     draw.rectangle((1008, 165, 1033, 170), fill="#80B7FF")
     y = draw_wrapped(draw, (82, 168), title, font(55, True), "#12213A", 780, line_gap=8, max_lines=3)
     draw_wrapped(draw, (84, y + 22), "Original methods, real examples, and clearly stated limits.", font(23), "#5E6D84", 760, line_gap=7, max_lines=2)
-    draw.text((84, 520), "FixThat", font=font(24, True), fill="#12213A")
-    offset = draw.textbbox((0, 0), "FixThat", font=font(24, True))[2]
-    draw.text((84 + offset, 520), "PDF", font=font(24, True), fill="#2851EB")
+    draw.text((84, 520), "PDF", font=font(24, True), fill="#12213A")
+    offset = draw.textbbox((0, 0), "PDF", font=font(24, True))[2]
+    draw.text((84 + offset, 520), "Arrow", font=font(24, True), fill="#2851EB")
     draw.text((900, 525), "Tested July 21, 2026", font=font(16, True), fill="#6A7890")
     image.save(SHARE / f"{slug}.png", optimize=True)
 
@@ -158,7 +158,7 @@ RESOURCE_SHARES = {
     "workflows-legal-operations-pdf-workflow": ("Version, comparison, and redaction controls for legal operations", "Workflow playbook"),
     "workflows-real-estate-pdf-workflow": ("Complete, legible property PDF packets", "Workflow playbook"),
     "workflows-small-business-pdf-workflow": ("Controlled client-ready PDFs for small businesses", "Workflow playbook"),
-    "privacy": ("Understand every FixThatPDF data path", "Trust center"),
+    "privacy": ("Understand every PDFArrow data path", "Trust center"),
     "security": ("Current security controls and reporting path", "Trust center"),
     "architecture": ("How browser processing, identity, storage, and analytics connect", "Trust center"),
     "uptime": ("Service availability without an invented percentage", "Trust center"),
@@ -169,7 +169,7 @@ RESOURCE_SHARES = {
 def build_simple_pdf(path: Path) -> None:
     c = canvas.Canvas(str(path), pagesize=letter, pageCompression=1)
     for page, heading in [(1, "Browser PDF benchmark - simple fixture"), (2, "Verification checklist")]:
-        c.setTitle("FixThatPDF simple searchable fixture")
+        c.setTitle("PDFArrow simple searchable fixture")
         c.setFont("Helvetica-Bold", 18)
         c.drawString(72, 720, heading)
         c.setFont("Helvetica", 11)
@@ -190,14 +190,14 @@ def build_simple_pdf(path: Path) -> None:
         c.setStrokeColor(HexColor("#2851EB"))
         c.line(72, 90, 540, 90)
         c.setFillColor(HexColor("#52637A"))
-        c.drawRightString(540, 68, f"FixThatPDF regression fixture | {page}")
+        c.drawRightString(540, 68, f"PDFArrow regression fixture | {page}")
         c.showPage()
     c.save()
 
 
 def build_complex_pdf(path: Path) -> None:
     c = canvas.Canvas(str(path), pagesize=letter, pageCompression=1)
-    c.setTitle("FixThatPDF complex layout fixture")
+    c.setTitle("PDFArrow complex layout fixture")
     c.setFillColor(HexColor("#102A43"))
     c.setFont("Helvetica-Bold", 22)
     c.drawString(54, 730, "Complex layout benchmark")
@@ -322,7 +322,7 @@ def image_pdf(image: Image.Image, path: Path) -> None:
 
 def build_large_pdf(path: Path) -> None:
     c = canvas.Canvas(str(path), pagesize=letter, pageCompression=1)
-    c.setTitle("FixThatPDF 100 page progressive rendering fixture")
+    c.setTitle("PDFArrow 100 page progressive rendering fixture")
     for page in range(1, 101):
         c.setFillColor(HexColor("#12213A"))
         c.setFont("Helvetica-Bold", 24)
@@ -345,8 +345,8 @@ def build_redaction_samples(before: Path, after: Path) -> None:
     secret = "4815 1623 4200 0091"
     for path, include_secret in [(before, True), (after, False)]:
         c = canvas.Canvas(str(path), pagesize=letter, pageCompression=1)
-        c.setTitle("FixThatPDF redaction verification sample")
-        c.setAuthor("FixThatPDF Product Engineering")
+        c.setTitle("PDFArrow redaction verification sample")
+        c.setAuthor("PDFArrow Product Engineering")
         c.setFont("Helvetica-Bold", 20)
         c.drawString(72, 720, "Fictional customer record")
         c.setFont("Helvetica", 11)
@@ -487,7 +487,7 @@ def apply_doc_styles(doc: Document, title: str, subtitle: str) -> None:
     header = section.header
     hp = header.paragraphs[0]
     hp.alignment = WD_ALIGN_PARAGRAPH.RIGHT
-    run = hp.add_run("FIXTHATPDF  |  EDITABLE TEMPLATE")
+    run = hp.add_run("PDFARROW  |  EDITABLE TEMPLATE")
     run.font.name = "Calibri"
     run.font.size = Pt(8)
     run.font.bold = True
@@ -584,9 +584,9 @@ def add_checklist_table(doc: Document, headers: list[str], rows: list[list[str]]
 def save_doc(doc: Document, filename: str) -> None:
     props = doc.core_properties
     props.title = filename.replace("-", " ").replace(".docx", "").title()
-    props.author = "FixThatPDF Product Engineering"
+    props.author = "PDFArrow Product Engineering"
     props.subject = "Free editable document template"
-    props.keywords = "FixThatPDF, editable template"
+    props.keywords = "PDFArrow, editable template"
     props.comments = "Created July 21, 2026"
     path = TEMPLATES / filename
     doc.save(path)
@@ -718,7 +718,7 @@ def main() -> None:
     after_text = "\n".join(page.extract_text() or "" for page in PdfReader(redaction_after).pages)
     secret = "4815 1623 4200 0091"
     proof = [
-        "FixThatPDF redaction verification proof",
+        "PDFArrow redaction verification proof",
         "Generated: 2026-07-21",
         "",
         f"Before sample contains fictional secret in extracted text: {secret in before_text}",
@@ -730,7 +730,7 @@ def main() -> None:
     ]
     (REDACTION / "redaction-proof.txt").write_text("\n".join(proof) + "\n", encoding="utf-8")
     benchmark_result = {
-        "benchmark": "FixThatPDF Q3 2026 browser PDF conversion and fidelity benchmark",
+        "benchmark": "PDFArrow Q3 2026 browser PDF conversion and fidelity benchmark",
         "testedAt": "2026-07-21",
         "status": "passed",
         "coreToolCount": len(EVIDENCE),
