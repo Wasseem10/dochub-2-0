@@ -41,6 +41,7 @@ export const ROUTE_PATHS = Object.freeze({
   signup: "/signup",
   forgotPassword: "/forgot-password",
   dashboard: "/app/dashboard",
+  appTools: "/app/tools",
   documents: "/app/documents",
   appTemplates: "/app/templates",
   signatures: "/app/signatures",

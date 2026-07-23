@@ -84,6 +84,8 @@ import { AccountDeletionCard } from "./components/app/AccountDeletionCard.jsx";
 import { BrandWordmark } from "./components/public/BrandWordmark.jsx";
 import { PageMetadata } from "./components/public/PageMetadata.jsx";
 import { isAnalyticsOwner } from "./config/adminAccess.js";
+import { ToolIcon } from "./tools/ToolIcon.jsx";
+import { TOOL_CATEGORIES, TOOL_REGISTRY } from "./tools/toolRegistry.js";
 import { createSecurePdfShare, revokeSecurePdfShare } from "./sharing/securePdfSharing.js";
 import { createSigningRequestUrl } from "./signing/signingRequest.js";
 import { OwnerAnalyticsPanel } from "./pages/app/OwnerAnalyticsPanel.jsx";
@@ -6370,10 +6372,11 @@ export function UploadLanding({
     Billing: ROUTE_PATHS.settings,
     Team: ROUTE_PATHS.settings,
     Integrations: ROUTE_PATHS.settings,
-    Features: ROUTE_PATHS.features,
+    Features: ROUTE_PATHS.appTools,
   };
   const setActiveSection = (nextSection) => onNavigate(sectionPaths[nextSection] || ROUTE_PATHS.dashboard);
   const [searchQuery, setSearchQuery] = useState("");
+  const [toolCategoryFilter, setToolCategoryFilter] = useState("all");
   const suggestionView = "recent";
   const [openPanel, setOpenPanel] = useState(null);
   const [inviteEmail, setInviteEmail] = useState("");
@@ -6433,6 +6436,19 @@ export function UploadLanding({
   ];
 
   const normalizedQuery = searchQuery.trim().toLowerCase();
+  const releasedDashboardTools = useMemo(
+    () => TOOL_REGISTRY.filter((tool) => tool.status !== "coming-soon"),
+    [],
+  );
+  const dashboardToolGroups = useMemo(() => TOOL_CATEGORIES.map((category) => ({
+    ...category,
+    tools: releasedDashboardTools.filter((tool) => (
+      tool.category === category.id
+      && (toolCategoryFilter === "all" || tool.category === toolCategoryFilter)
+      && (!normalizedQuery || `${tool.name} ${tool.shortDescription} ${tool.categoryName}`.toLowerCase().includes(normalizedQuery))
+    )),
+  })).filter((category) => category.tools.length), [normalizedQuery, releasedDashboardTools, toolCategoryFilter]);
+  const visibleDashboardToolCount = dashboardToolGroups.reduce((total, group) => total + group.tools.length, 0);
   const matchesSearch = (value) => !normalizedQuery || value.toLowerCase().includes(normalizedQuery);
   const userDocuments = currentUser?.uid
     ? documents.filter((documentRecord) => documentRecord.ownerId === currentUser.uid)
@@ -6722,6 +6738,85 @@ export function UploadLanding({
       );
     }
 
+    if (activeSection === "Features") {
+      return (
+        <section className="dashboard-tools-directory" aria-labelledby="dashboard-tools-title">
+          <header className="dashboard-tools-intro">
+            <div>
+              <p id="dashboard-tools-title">Choose a workflow and open it directly.</p>
+              <small>{releasedDashboardTools.length} working tools across {TOOL_CATEGORIES.length} focused categories. Supported document processing stays in your browser.</small>
+            </div>
+            <button type="button" onClick={onSelectFiles}><Upload size={17} /> Upload PDF</button>
+          </header>
+
+          <div className="dashboard-tools-layout">
+            <nav className="dashboard-tool-categories" aria-label="Tool categories">
+              <strong>Categories</strong>
+              <button
+                type="button"
+                className={toolCategoryFilter === "all" ? "is-active" : ""}
+                onClick={() => setToolCategoryFilter("all")}
+              >
+                <span>All tools</span>
+                <small>{releasedDashboardTools.length}</small>
+              </button>
+              {TOOL_CATEGORIES.map((category) => {
+                const categoryCount = releasedDashboardTools.filter((tool) => tool.category === category.id).length;
+                return (
+                  <button
+                    type="button"
+                    key={category.id}
+                    className={toolCategoryFilter === category.id ? "is-active" : ""}
+                    onClick={() => setToolCategoryFilter(category.id)}
+                  >
+                    <span>{category.name}</span>
+                    <small>{categoryCount}</small>
+                  </button>
+                );
+              })}
+              <div className="dashboard-tools-privacy"><Lock size={16} /><span><strong>Browser-first</strong><small>Your files stay local for supported tools.</small></span></div>
+            </nav>
+
+            <div className="dashboard-tools-catalog">
+              <div className="dashboard-tools-result-count">
+                <span>{visibleDashboardToolCount} result{visibleDashboardToolCount === 1 ? "" : "s"}</span>
+                {(normalizedQuery || toolCategoryFilter !== "all") && (
+                  <button type="button" onClick={() => { setSearchQuery(""); setToolCategoryFilter("all"); }}>Clear filters</button>
+                )}
+              </div>
+              {dashboardToolGroups.map((group) => (
+                <section className="dashboard-tool-group" key={group.id} aria-labelledby={`dashboard-tool-group-${group.id}`}>
+                  <header>
+                    <span><ToolIcon name={group.icon} size={18} /></span>
+                    <div><h2 id={`dashboard-tool-group-${group.id}`}>{group.name}</h2><p>{group.description}</p></div>
+                    <small>{group.tools.length}</small>
+                  </header>
+                  <div>
+                    {group.tools.map((tool) => (
+                      <button type="button" className="dashboard-tool-row" key={tool.id} onClick={() => onNavigate(tool.route)}>
+                        <span><ToolIcon name={tool.icon} size={18} /></span>
+                        <div><strong>{tool.name}</strong><small>{tool.shortDescription}</small></div>
+                        <em className={tool.status === "beta" ? "is-beta" : tool.status === "partial" ? "is-limited" : ""}>{tool.availabilityLabel}</em>
+                        <ChevronRight size={16} />
+                      </button>
+                    ))}
+                  </div>
+                </section>
+              ))}
+              {!dashboardToolGroups.length && (
+                <div className="dashboard-tools-empty">
+                  <Search size={23} />
+                  <h2>No tools match “{searchQuery}”</h2>
+                  <p>Try a task such as edit, sign, compress, OCR, or convert.</p>
+                  <button type="button" onClick={() => { setSearchQuery(""); setToolCategoryFilter("all"); }}>Clear search</button>
+                </div>
+              )}
+            </div>
+          </div>
+        </section>
+      );
+    }
+
     if (activeSection === "Shared") {
       return (
         <section className="document-library enterprise-workspace-panel">
@@ -6903,14 +6998,14 @@ export function UploadLanding({
 
       <section className="upload-main">
         <header className="upload-topbar">
-          {activeSection === "Home" && <h1 className="dashboard-editorial-title">Documents</h1>}
+          {(activeSection === "Home" || activeSection === "Features") && <h1 className="dashboard-editorial-title">{activeSection === "Features" ? "All tools" : "Documents"}</h1>}
           <label className="lumin-search">
             <Search size={18} />
-            <input type="search" placeholder="Search documents" value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} />
+            <input type="search" placeholder={activeSection === "Features" ? `Search ${releasedDashboardTools.length} tools` : "Search documents"} value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} />
             <kbd>⌘ K</kbd>
           </label>
           <div className="upload-top-actions">
-            {activeSection !== "Home" && <button type="button" className="dashboard-top-upload" onClick={onSelectFiles}><Upload size={18} /> Upload PDF</button>}
+            {activeSection !== "Home" && activeSection !== "Features" && <button type="button" className="dashboard-top-upload" onClick={onSelectFiles}><Upload size={18} /> Upload PDF</button>}
             <button type="button" className="top-avatar" aria-haspopup="dialog" aria-expanded={openPanel === "account"} onClick={() => setOpenPanel(openPanel === "account" ? null : "account")}><span>{userInitials}</span><i /><strong>{dashboardAccountName}</strong><ChevronDown size={15} /></button>
             {openPanel && (
               <div className={`workspace-popover ${openPanel === "account" ? "account-menu-popover" : ""}`} role={openPanel === "account" ? "dialog" : undefined} aria-label={openPanel === "account" ? "Account menu" : undefined}>

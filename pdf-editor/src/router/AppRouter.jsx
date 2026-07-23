@@ -116,8 +116,9 @@ const appScreenRouteObjects = Object.entries(APP_ROUTE_SECTIONS).map(([path, app
   path,
   element: <LazyAppContent view="dashboard" appSection={appSection} />,
 })).filter(({ path }) => path !== ROUTE_PATHS.analytics);
-const guestDashboardRouteObject = appScreenRouteObjects.find(({ path }) => path === ROUTE_PATHS.dashboard);
-const protectedAppScreenRouteObjects = appScreenRouteObjects.filter(({ path }) => path !== ROUTE_PATHS.dashboard);
+const guestAppPaths = new Set([ROUTE_PATHS.dashboard, ROUTE_PATHS.appTools]);
+const guestAppScreenRouteObjects = appScreenRouteObjects.filter(({ path }) => guestAppPaths.has(path));
+const protectedAppScreenRouteObjects = appScreenRouteObjects.filter(({ path }) => !guestAppPaths.has(path));
 
 export const appRouteObjects = [
   {
@@ -163,7 +164,7 @@ export const appRouteObjects = [
             element: <AppLayout />,
             children: [
               { path: ROUTE_PATHS.editorPattern, element: <EditorRoute /> },
-              guestDashboardRouteObject,
+              ...guestAppScreenRouteObjects,
             ],
           },
           {

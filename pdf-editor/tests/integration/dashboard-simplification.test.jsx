@@ -81,6 +81,54 @@ describe("simplified dashboard navigation", () => {
     const brand = renderer.root.findByProps({ "aria-label": "PDFArrow dashboard" });
     await act(async () => brand.props.onClick());
     expect(onNavigate).toHaveBeenCalledWith(ROUTE_PATHS.dashboard);
+
+    const allToolsButton = renderer.root.findAllByType("button").find((button) => textOf(button) === "All tools");
+    await act(async () => allToolsButton.props.onClick());
+    expect(onNavigate).toHaveBeenCalledWith(ROUTE_PATHS.appTools);
+    await act(async () => renderer.unmount());
+  });
+
+  it("renders the working tool directory inside the editorial dashboard shell", async () => {
+    const onNavigate = vi.fn();
+    let renderer;
+    await act(async () => {
+      renderer = TestRenderer.create(
+        <UploadLanding
+          section="Features"
+          onNavigate={onNavigate}
+          fileInputRef={{ current: null }}
+          onUpload={() => {}}
+          onSelectFiles={() => {}}
+          onDropFile={() => {}}
+          onBlankPage={() => {}}
+          uploadError=""
+          uploadStage={{ status: "idle", fileName: "" }}
+          isDraggingFile={false}
+          setIsDraggingFile={() => {}}
+          documents={[]}
+          onOpenDocument={() => {}}
+          onRenameDocument={() => {}}
+          onDeleteDocument={() => {}}
+          onDuplicateDocument={() => {}}
+          onDownloadDocument={() => {}}
+          onToggleFavorite={() => {}}
+          onMoveDocument={() => {}}
+          currentUser={null}
+          onLogout={() => {}}
+        />,
+      );
+    });
+
+    const text = textOf(renderer.root);
+    expect(text).toContain("All tools");
+    expect(text).toContain("Categories");
+    expect(text).toContain("Edit and view");
+    expect(text).toContain("Edit PDF");
+    expect(text).toContain("Browser-first");
+
+    const editPdfButton = renderer.root.findAllByType("button").find((button) => textOf(button).includes("Edit PDFChange selected text overlays"));
+    await act(async () => editPdfButton.props.onClick());
+    expect(onNavigate).toHaveBeenCalledWith(ROUTE_PATHS.editPdf);
     await act(async () => renderer.unmount());
   });
 });

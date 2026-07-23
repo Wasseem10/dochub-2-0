@@ -32,6 +32,8 @@ For the next dashboard redesign, do not use a blue-dominant SaaS visual system, 
 
 The dashboard left navigation follows the selected July 23, 2026 Quiet Editorial Rail: a continuous warm-white surface, compact charcoal rows, one slim oxblood active spine, Analytics separated as an owner utility, and Trash plus Help anchored at the bottom. Use a restrained four-circle catalog icon for All tools; do not restore the playful sparkle icon or blue selected-row styling.
 
+The dashboard All tools action stays inside the Editorial Monochrome app shell at `/app/tools`. Keep the persistent Quiet Editorial Rail, serif page title, neutral catalog rows, oxblood selection and actions, compact category filtering, and one shared tool search. Do not send dashboard users to the older blue marketing-style Features page.
+
 Authentication and lazy-loading transitions use PDFArrow’s DM Sans and Funnel Display typography, the blue document mark, concise status copy, a compact centered white card, and reduced-motion-safe progress. Do not use condensed display fonts, tiny all-caps brand pills, or vague filler copy on loading screens.
 
 The login screen should feel professional and document-first: use a restrained workspace preview, calm navy/blue surfaces, clear sign-in hierarchy, and explicit browser-processing reassurance. Avoid playful handwritten type, cloud imagery, or oversized promotional visuals in authentication.

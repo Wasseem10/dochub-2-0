@@ -29,6 +29,7 @@ export const FEATURE_PLACEHOLDER_ROUTES = [
 
 export const APP_ROUTE_SECTIONS = Object.freeze({
   [ROUTE_PATHS.dashboard]: "Home",
+  [ROUTE_PATHS.appTools]: "Features",
   [ROUTE_PATHS.documents]: "Documents",
   [ROUTE_PATHS.appTemplates]: "Templates",
   [ROUTE_PATHS.signatures]: "Signatures",
