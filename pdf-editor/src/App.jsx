@@ -111,7 +111,8 @@ import { annotationPatchFromFrame, framesEqual, getAnnotationFrame, moveFrame, n
 import { circleFrameFromDrag, directedLineFrameFromPoints, directedLineSvgGeometry, ensureDirectedLineLength, getDirectedLineEndpoints, normalizeCircleFrame, resizeCircleFrame } from "./tools/editorShapeGeometry.js";
 import { normalizedPointerInRect } from "./tools/editorPointerCoordinates.js";
 import { createTextAnnotation, estimateTextAnnotationSize, normalizeEditorText, shouldDiscardTextAnnotation } from "./tools/editorTextObjects.js";
-import { detectedTextBaseline, resolveDetectedTextStyle, sampleDetectedTextBackground, standardPdfFontVariant } from "./tools/editorDetectedText.js";
+import { detectedTextBaseline, detectedTextRotation, layoutDetectedText, resolveDetectedTextStyle, sampleDetectedTextBackground, standardPdfFontVariant } from "./tools/editorDetectedText.js";
+import { recoverPdfPageRender, withPdfPageDeadline } from "./tools/editorPageRecovery.js";
 import { canSaveEditorSignature } from "./tools/editorSignature.js";
 import { duplicateEditorPageState, rotateEditorPageRecord } from "./tools/editorPageOrganizer.js";
 import { applyNativePdfFormAnnotation, createEditorExportDocument } from "./tools/pdfEditorPageExport.js";
@@ -439,6 +440,12 @@ function normalizeHexColor(value) {
   return `#${clean.toLowerCase()}`;
 }
 
+function fallbackStandardPdfText(value) {
+  return Array.from(String(value || ""), (character) => (
+    character.codePointAt(0) >= 32 && character.codePointAt(0) <= 255 ? character : "?"
+  )).join("");
+}
+
 function pointerToNormalized(event, pageElement) {
   const drawingSurface = pageElement.querySelector(".annotation-layer") || pageElement;
   return normalizedPointerInRect(event, drawingSurface.getBoundingClientRect());
@@ -537,7 +544,7 @@ function extractDetectedTextItems(textContent, viewport, pageRecord, pageIndex) 
         bold: textStyle.bold,
         italic: textStyle.italic,
         color: colors.black,
-        rotation: 0,
+        rotation: detectedTextRotation(item.transform),
         source: "pdf-text-layer",
         confidence: 1,
         isEdited: false,
@@ -639,68 +646,139 @@ function pendingPdfPageRecord(index) {
 }
 
 async function renderPdfEditorPage(documentProxy, sourcePageIndex, outputPageIndex = sourcePageIndex) {
-  const page = await documentProxy.getPage(sourcePageIndex + 1);
-  const [textContent, pdfAnnotations] = await Promise.all([
-    page.getTextContent(),
-    page.getAnnotations({ intent: "display" }),
-  ]);
-  const pageText = textContent.items.map((item) => item.str).join(" ").replace(/\s+/g, " ").trim();
-  const textViewport = page.getViewport({ scale: 1 });
-  const viewport = page.getViewport({ scale: 1.35 });
-  const canvas = window.document.createElement("canvas");
-  const context = canvas.getContext("2d", { alpha: false });
-  canvas.width = Math.ceil(viewport.width);
-  canvas.height = Math.ceil(viewport.height);
-  context.fillStyle = "#ffffff";
-  context.fillRect(0, 0, canvas.width, canvas.height);
-  await page.render({ canvasContext: context, viewport, background: "#ffffff" }).promise;
-  const displayWidth = BASE_PAGE_WIDTH;
-  const displayHeight = Math.round(BASE_PAGE_WIDTH * (viewport.height / viewport.width));
-  const pageRecord = {
-    id: makeId("page"),
-    number: outputPageIndex + 1,
-    originalIndex: sourcePageIndex,
-    pdfWidth: textViewport.width,
-    pdfHeight: textViewport.height,
-    width: displayWidth,
-    height: displayHeight,
-    image: canvas.toDataURL("image/png"),
-    text: pageText,
-    source: "pdf",
-    hasDetectedText: pageText.length > 0,
-    isHydrated: true,
-    renderStatus: "ready",
-  };
-  const detectedItems = extractDetectedTextItems(textContent, textViewport, pageRecord, outputPageIndex)
-    .map((item) => ({
-      ...item,
-      backgroundColor: sampleDetectedTextBackground(context, canvas.width, canvas.height, item),
-    }));
-  return {
-    pageRecord,
-    detectedItems,
-    detectedFormFields: extractPdfFormAnnotations(pdfAnnotations, textViewport, outputPageIndex, makeId),
-  };
+  let page;
+  let renderTask;
+  const work = (async () => {
+    page = await documentProxy.getPage(sourcePageIndex + 1);
+    const [textContent, pdfAnnotations] = await Promise.all([
+      page.getTextContent(),
+      page.getAnnotations({ intent: "display" }),
+    ]);
+    const pageText = textContent.items.map((item) => item.str).join(" ").replace(/\s+/g, " ").trim();
+    const textViewport = page.getViewport({ scale: 1 });
+    const viewport = page.getViewport({ scale: 1.35 });
+    const canvas = window.document.createElement("canvas");
+    const context = canvas.getContext("2d", { alpha: false });
+    canvas.width = Math.ceil(viewport.width);
+    canvas.height = Math.ceil(viewport.height);
+    context.fillStyle = "#ffffff";
+    context.fillRect(0, 0, canvas.width, canvas.height);
+    renderTask = page.render({ canvasContext: context, viewport, background: "#ffffff" });
+    await renderTask.promise;
+    const displayWidth = BASE_PAGE_WIDTH;
+    const displayHeight = Math.round(BASE_PAGE_WIDTH * (viewport.height / viewport.width));
+    const pageRecord = {
+      id: makeId("page"),
+      number: outputPageIndex + 1,
+      originalIndex: sourcePageIndex,
+      pdfWidth: textViewport.width,
+      pdfHeight: textViewport.height,
+      width: displayWidth,
+      height: displayHeight,
+      image: canvas.toDataURL("image/png"),
+      text: pageText,
+      source: "pdf",
+      hasDetectedText: pageText.length > 0,
+      isHydrated: true,
+      renderStatus: "ready",
+    };
+    const detectedItems = extractDetectedTextItems(textContent, textViewport, pageRecord, outputPageIndex)
+      .map((item) => ({
+        ...item,
+        backgroundColor: sampleDetectedTextBackground(context, canvas.width, canvas.height, item),
+      }));
+    return {
+      pageRecord,
+      detectedItems,
+      detectedFormFields: extractPdfFormAnnotations(pdfAnnotations, textViewport, outputPageIndex, makeId),
+    };
+  })();
+  try {
+    return await withPdfPageDeadline(work, {
+      label: `Page ${sourcePageIndex + 1}`,
+      onTimeout: () => renderTask?.cancel?.(),
+    });
+  } finally {
+    page?.cleanup?.();
+  }
 }
 
-async function renderPdfPageForReplacement(documentProxy, sourcePageIndex) {
-  const page = await documentProxy.getPage(sourcePageIndex + 1);
-  const pageSize = page.getViewport({ scale: 1 });
-  const maxPixels = 12_000_000;
-  const scale = Math.max(1.5, Math.min(2.5, Math.sqrt(maxPixels / Math.max(1, pageSize.width * pageSize.height))));
-  const viewport = page.getViewport({ scale });
-  const canvas = window.document.createElement("canvas");
-  canvas.width = Math.ceil(viewport.width);
-  canvas.height = Math.ceil(viewport.height);
-  const context = canvas.getContext("2d", { alpha: false });
-  context.fillStyle = "#ffffff";
-  context.fillRect(0, 0, canvas.width, canvas.height);
-  await page.render({ canvasContext: context, viewport, background: "#ffffff" }).promise;
-  return {
-    image: canvas.toDataURL("image/png"),
-    pdfWidth: pageSize.width,
-    pdfHeight: pageSize.height,
-  };
+function createDetectedTextBackgroundPatch(context, canvasWidth, canvasHeight, item) {
+  if (!context || !canvasWidth || !canvasHeight || !item) return null;
+  const padding = Math.max(3, Math.round(Math.min(canvasWidth, canvasHeight) * 0.004));
+  const left = Math.max(0, Math.floor(item.x * canvasWidth) - padding);
+  const top = Math.max(0, Math.floor(item.y * canvasHeight) - padding);
+  const right = Math.min(canvasWidth, Math.ceil((item.x + item.w) * canvasWidth) + padding);
+  const bottom = Math.min(canvasHeight, Math.ceil((item.y + item.h) * canvasHeight) + padding);
+  const width = right - left;
+  const height = bottom - top;
+  if (width < 2 || height < 2 || width * height > 1_800_000) return null;
+  try {
+    const source = context.getImageData(left, top, width, height);
+    const patchCanvas = window.document.createElement("canvas");
+    patchCanvas.width = width;
+    patchCanvas.height = height;
+    const patchContext = patchCanvas.getContext("2d", { alpha: false });
+    const patch = patchContext.createImageData(width, height);
+    const pixel = (x, y, channel) => source.data[(Math.max(0, Math.min(height - 1, y)) * width + Math.max(0, Math.min(width - 1, x))) * 4 + channel];
+    for (let y = 0; y < height; y += 1) {
+      const yRatio = height <= 1 ? 0 : y / (height - 1);
+      for (let x = 0; x < width; x += 1) {
+        const xRatio = width <= 1 ? 0 : x / (width - 1);
+        const target = (y * width + x) * 4;
+        for (let channel = 0; channel < 3; channel += 1) {
+          const vertical = pixel(x, 0, channel) * (1 - yRatio) + pixel(x, height - 1, channel) * yRatio;
+          const horizontal = pixel(0, y, channel) * (1 - xRatio) + pixel(width - 1, y, channel) * xRatio;
+          patch.data[target + channel] = Math.round((vertical + horizontal) / 2);
+        }
+        patch.data[target + 3] = 255;
+      }
+    }
+    patchContext.putImageData(patch, 0, 0);
+    return {
+      image: patchCanvas.toDataURL("image/png"),
+      x: left / canvasWidth,
+      y: top / canvasHeight,
+      w: width / canvasWidth,
+      h: height / canvasHeight,
+    };
+  } catch {
+    return null;
+  }
+}
+
+async function renderPdfPageForReplacement(documentProxy, sourcePageIndex, editedItems = []) {
+  let page;
+  let renderTask;
+  const work = (async () => {
+    page = await documentProxy.getPage(sourcePageIndex + 1);
+    const pageSize = page.getViewport({ scale: 1 });
+    const maxPixels = 12_000_000;
+    const scale = Math.max(1.5, Math.min(2.5, Math.sqrt(maxPixels / Math.max(1, pageSize.width * pageSize.height))));
+    const viewport = page.getViewport({ scale });
+    const canvas = window.document.createElement("canvas");
+    canvas.width = Math.ceil(viewport.width);
+    canvas.height = Math.ceil(viewport.height);
+    const context = canvas.getContext("2d", { alpha: false });
+    context.fillStyle = "#ffffff";
+    context.fillRect(0, 0, canvas.width, canvas.height);
+    renderTask = page.render({ canvasContext: context, viewport, background: "#ffffff" });
+    await renderTask.promise;
+    return {
+      image: canvas.toDataURL("image/png"),
+      pdfWidth: pageSize.width,
+      pdfHeight: pageSize.height,
+      textPatches: new Map(editedItems.map((item) => [item.id, createDetectedTextBackgroundPatch(context, canvas.width, canvas.height, item)])),
+    };
+  })();
+  try {
+    return await withPdfPageDeadline(work, {
+      label: `Export page ${sourcePageIndex + 1}`,
+      onTimeout: () => renderTask?.cancel?.(),
+    });
+  } finally {
+    page?.cleanup?.();
+  }
 }
 
 function samplePages() {
@@ -855,11 +933,11 @@ function BlankDocument() {
   return <div className="blank-doc" aria-label="Blank PDF page" />;
 }
 
-function PdfPageLoading({ pageNumber, compact = false }) {
+function PdfPageLoading({ pageNumber, compact = false, recovering = false }) {
   return (
-    <div className={`pdf-page-loading ${compact ? "is-compact" : ""}`} role="status" aria-label={`Loading PDF page ${pageNumber}`}>
+    <div className={`pdf-page-loading ${compact ? "is-compact" : ""}`} role="status" aria-label={`${recovering ? "Recovering" : "Loading"} PDF page ${pageNumber}`}>
       <LoaderCircle size={compact ? 16 : 28} />
-      {!compact && <><strong>Loading page {pageNumber}</strong><span>Large documents render pages as you open them.</span></>}
+      {!compact && <><strong>{recovering ? "Recovering" : "Loading"} page {pageNumber}</strong><span>{recovering ? "The page renderer restarted from your saved PDF." : "Large documents render pages as you open them."}</span></>}
     </div>
   );
 }
@@ -1655,6 +1733,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   const pdfBytesRef = useRef(null);
   const pdfHydrationTokenRef = useRef(0);
   const pdfPageHydrationTasksRef = useRef(new Map());
+  const pdfPageRenderGenerationRef = useRef(new Map());
   const pagesRef = useRef([]);
   const authHandoffStartedRef = useRef(false);
   const appendFileInputRef = useRef(null);
@@ -1763,29 +1842,46 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   }, []);
 
   const hydratePdfPageAt = useCallback(async (targetIndex) => {
-    const documentProxy = pdfDocumentRef.current || await ensurePdfDocumentProxy();
     const token = pdfHydrationTokenRef.current;
+    const generation = pdfPageRenderGenerationRef.current.get(targetIndex) || 0;
     const pageRecord = pagesRef.current[targetIndex];
     if (!pageRecord || pageRecord.source !== "pdf" || pageRecord.image) return;
-    if (!documentProxy) {
-      setPages((items) => items.map((page, index) => (
-        index === targetIndex ? { ...page, renderStatus: "error" } : page
-      )));
-      return;
-    }
     if (pdfPageHydrationTasksRef.current.has(targetIndex)) return pdfPageHydrationTasksRef.current.get(targetIndex);
 
     const sourcePageIndex = Number.isInteger(pageRecord.originalIndex) ? pageRecord.originalIndex : targetIndex;
-    if (sourcePageIndex < 0 || sourcePageIndex >= documentProxy.numPages) return;
+    if (sourcePageIndex < 0) return;
 
-    const task = (async () => {
+    let task;
+    let attemptProxy = null;
+    task = (async () => {
       setPages((items) => items.map((page, index) => (
-        index === targetIndex ? { ...page, renderStatus: "loading" } : page
+        index === targetIndex ? { ...page, renderStatus: "loading", renderAttempts: 0 } : page
       )));
-      const rendered = await renderPdfEditorPage(documentProxy, sourcePageIndex, targetIndex);
-      if (token !== pdfHydrationTokenRef.current) return;
+      const rendered = await recoverPdfPageRender(async () => {
+        attemptProxy = pdfDocumentRef.current || await ensurePdfDocumentProxy();
+        if (!attemptProxy || sourcePageIndex >= attemptProxy.numPages) throw new Error("The saved PDF page is unavailable.");
+        return renderPdfEditorPage(attemptProxy, sourcePageIndex, targetIndex);
+      }, {
+        onAttemptFailed: async (_error, attempt, maximumAttempts) => {
+          if (token !== pdfHydrationTokenRef.current || generation !== (pdfPageRenderGenerationRef.current.get(targetIndex) || 0)) return;
+          if (pdfDocumentRef.current === attemptProxy) {
+            pdfDocumentRef.current = null;
+            pdfDocumentLoadingRef.current = null;
+          }
+          try { await attemptProxy?.destroy?.(); } catch { /* A released worker may already be closed. */ }
+          if (attempt < maximumAttempts) {
+            setPages((items) => items.map((page, index) => (
+              index === targetIndex ? { ...page, renderStatus: "recovering", renderAttempts: attempt } : page
+            )));
+          }
+        },
+      });
+      if (
+        token !== pdfHydrationTokenRef.current
+        || generation !== (pdfPageRenderGenerationRef.current.get(targetIndex) || 0)
+      ) return;
       setPages((items) => items.map((page, index) => (
-        index === targetIndex ? { ...page, ...rendered.pageRecord, id: page.id || rendered.pageRecord.id } : page
+        index === targetIndex ? { ...page, ...rendered.pageRecord, id: page.id || rendered.pageRecord.id, renderAttempts: 0 } : page
       )));
       setDetectedTextItems((items) => {
         const savedPageItems = items.filter((item) => item.pageNumber === targetIndex);
@@ -1795,17 +1891,18 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
         const savedFormFields = items.filter((item) => item.page === targetIndex && item.source === "pdf-form");
         return savedFormFields.length ? items : [...items, ...rendered.detectedFormFields];
       });
-    })().catch(async () => {
-      if (token !== pdfHydrationTokenRef.current) return;
-      if (pdfDocumentRef.current === documentProxy) {
-        try { await documentProxy.destroy?.(); } catch { /* A failed renderer can already be closed. */ }
-        pdfDocumentRef.current = null;
-      }
+    })().catch(() => {
+      if (
+        token !== pdfHydrationTokenRef.current
+        || generation !== (pdfPageRenderGenerationRef.current.get(targetIndex) || 0)
+      ) return;
       setPages((items) => items.map((page, index) => (
-        index === targetIndex ? { ...page, renderStatus: "error" } : page
+        index === targetIndex ? { ...page, renderStatus: "error", renderAttempts: 2 } : page
       )));
     }).finally(() => {
-      pdfPageHydrationTasksRef.current.delete(targetIndex);
+      if (pdfPageHydrationTasksRef.current.get(targetIndex) === task) {
+        pdfPageHydrationTasksRef.current.delete(targetIndex);
+      }
     });
     pdfPageHydrationTasksRef.current.set(targetIndex, task);
     return task;
@@ -2725,7 +2822,17 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
 
   const parsePdfFile = async (file, { startPercent = 18, endPercent = 80, stagePrefix = "Rendering page", progressive = true } = {}) => {
     const buffer = await file.arrayBuffer();
-    const document = await pdfjsLib.getDocument({ data: buffer.slice(0) }).promise;
+    let document = await pdfjsLib.getDocument({ data: buffer.slice(0) }).promise;
+    const renderPageWithRecovery = (targetPageIndex) => recoverPdfPageRender(async () => (
+      renderPdfEditorPage(document, targetPageIndex)
+    ), {
+      onAttemptFailed: async (_error, attempt, maximumAttempts) => {
+        try { await document?.destroy?.(); } catch { /* The failed renderer may already be closed. */ }
+        if (attempt < maximumAttempts) {
+          document = await pdfjsLib.getDocument({ data: buffer.slice(0) }).promise;
+        }
+      },
+    });
     if (document.numPages > MAX_PDF_EDITOR_PAGES) {
       await document.destroy?.();
       throw new Error(`The editor supports up to ${MAX_PDF_EDITOR_PAGES} pages per PDF.`);
@@ -2740,7 +2847,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
           percent: Math.round(startPercent + ((pageIndex + 1) / document.numPages) * (endPercent - startPercent)),
           fileName: file.name,
         });
-        const rendered = await renderPdfEditorPage(document, pageIndex);
+        const rendered = await renderPageWithRecovery(pageIndex);
         loadedPages.push(rendered.pageRecord);
         detectedItems.push(...rendered.detectedItems);
         detectedFormFields.push(...rendered.detectedFormFields);
@@ -2753,7 +2860,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       percent: Math.round(startPercent + (endPercent - startPercent) * 0.7),
       fileName: file.name,
     });
-    const firstPage = await renderPdfEditorPage(document, 0);
+    const firstPage = await renderPageWithRecovery(0);
     const loadedPages = Array.from({ length: document.numPages }, (_, index) => pendingPdfPageRecord(index));
     loadedPages[0] = firstPage.pageRecord;
     setUploadStage({
@@ -2795,6 +2902,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       pdfHydrationTokenRef.current += 1;
       pdfDocumentRef.current = documentProxy;
       pdfPageHydrationTasksRef.current.clear();
+      pdfPageRenderGenerationRef.current.clear();
 
       setUploadStage({ status: "Saving workspace copy", percent: 88, fileName: file.name });
       const stamp = nowIso();
@@ -3146,6 +3254,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     try { await pdfDocumentRef.current?.destroy?.(); } catch { /* Continue reopening the saved PDF. */ }
     pdfHydrationTokenRef.current += 1;
     pdfPageHydrationTasksRef.current.clear();
+    pdfPageRenderGenerationRef.current.clear();
     pdfDocumentRef.current = sourceBytes
       ? await pdfjsLib.getDocument({ data: sourceBytes.slice(0) }).promise
       : null;
@@ -3284,7 +3393,11 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   const onPagePointerDown = (event) => {
     event.currentTarget.focus({ preventScroll: true });
     if (currentPage?.source === "pdf" && !currentPage.image) {
-      showToast(currentPage.renderStatus === "error" ? "This page could not be rendered. Try opening the PDF again." : "This page is still loading.");
+      showToast(currentPage.renderStatus === "error"
+        ? "This page could not be rendered. Choose Reload page to try again."
+        : currentPage.renderStatus === "recovering"
+          ? "The page renderer restarted from your saved PDF."
+          : "This page is still loading.");
       return;
     }
     lastPagePointRef.current = pointerToNormalized(event, event.currentTarget);
@@ -3978,7 +4091,10 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
         const pageRecord = pages[changedPageIndex];
         if (!pageRecord || pageRecord.source !== "pdf" || !exportDocumentProxy) continue;
         const sourcePageIndex = Number.isInteger(pageRecord.originalIndex) ? pageRecord.originalIndex : changedPageIndex;
-        rebuiltPages.set(changedPageIndex, await renderPdfPageForReplacement(exportDocumentProxy, sourcePageIndex));
+        const editedItems = detectedTextItems.filter((item) => (
+          item.pageNumber === changedPageIndex && (item.isEdited || item.isDeleted)
+        ));
+        rebuiltPages.set(changedPageIndex, await renderPdfPageForReplacement(exportDocumentProxy, sourcePageIndex, editedItems));
       }
     } finally {
       if (destroyExportDocumentProxy) await exportDocumentProxy?.destroy?.();
@@ -4066,29 +4182,61 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       const font = pickPdfFont(item.fontFamily, item.bold, item.italic);
       const color = hexToRgb(item.color || colors.black);
       const backgroundColor = hexToRgb(normalizeHexColor(item.backgroundColor) || "#ffffff");
-
-      page.drawRectangle({
-        x: Math.max(0, x - 1.5),
-        y: Math.max(0, y - 1.5),
-        width: Math.min(width - x + 1.5, boxWidth + 3),
-        height: Math.min(height - y + 1.5, boxHeight + 3),
-        color: backgroundColor,
-        opacity: 1,
-        borderOpacity: 0,
-      });
+      const backgroundPatch = rebuiltPages.get(item.pageNumber)?.textPatches?.get(item.id);
+      const backgroundImage = backgroundPatch?.image
+        ? await embedDataUrlImage(pdfDoc, backgroundPatch.image)
+        : null;
+      if (backgroundImage) {
+        const patchX = backgroundPatch.x * width;
+        const patchY = height - (backgroundPatch.y + backgroundPatch.h) * height;
+        page.drawImage(backgroundImage, {
+          x: patchX,
+          y: patchY,
+          width: backgroundPatch.w * width,
+          height: backgroundPatch.h * height,
+        });
+      } else {
+        page.drawRectangle({
+          x: Math.max(0, x - 1.5),
+          y: Math.max(0, y - 1.5),
+          width: Math.min(width - x + 1.5, boxWidth + 3),
+          height: Math.min(height - y + 1.5, boxHeight + 3),
+          color: backgroundColor,
+          opacity: 1,
+          borderOpacity: 0,
+        });
+      }
 
       if (!item.isDeleted && String(item.currentText || "").trim()) {
-        const baseline = detectedTextBaseline(item, height, boxHeight, fontSize);
-        String(item.currentText || "").split("\n").forEach((line, index) => {
-          page.drawText(line, {
+        const layout = layoutDetectedText(item.currentText, {
+          fontSize,
+          minimumFontSize: 4,
+          maximumWidth: Math.max(4, boxWidth - 3),
+          maximumHeight: Math.max(4, boxHeight - 2),
+          measure: (value, size) => {
+            try {
+              return font.widthOfTextAtSize(value, size);
+            } catch {
+              return String(value || "").length * size * 0.52;
+            }
+          },
+        });
+        const baseline = detectedTextBaseline(item, height, boxHeight, layout.fontSize);
+        layout.lines.forEach((line, index) => {
+          const options = {
             x: x + 1.5,
-            y: baseline - index * fontSize * 1.18,
-            size: fontSize,
+            y: baseline - index * layout.lineHeight,
+            size: layout.fontSize,
             font,
             color,
             opacity: 1,
             rotate: degrees(Number(item.rotation || 0)),
-          });
+          };
+          try {
+            page.drawText(line, options);
+          } catch {
+            page.drawText(fallbackStandardPdfText(line), options);
+          }
         });
       }
     }
@@ -4356,9 +4504,10 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   };
 
   const retryPdfPage = (targetIndex) => {
+    pdfPageRenderGenerationRef.current.set(targetIndex, (pdfPageRenderGenerationRef.current.get(targetIndex) || 0) + 1);
     pdfPageHydrationTasksRef.current.delete(targetIndex);
     setPages((items) => items.map((page, index) => (
-      index === targetIndex ? { ...page, image: "", isHydrated: false, renderStatus: "pending" } : page
+      index === targetIndex ? { ...page, image: "", isHydrated: false, renderStatus: "pending", renderAttempts: 0 } : page
     )));
     window.setTimeout(() => { void hydratePdfPageAt(targetIndex); }, 0);
   };
@@ -5052,7 +5201,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
               >
                 <div className="thumbnail-preview" style={{ "--thumbnail-aspect": `${page.width || BASE_PAGE_WIDTH} / ${page.height || BASE_PAGE_HEIGHT}` }}>
                   <div className="thumb-page">
-                    {page.image ? <img src={page.image} alt={`Page ${index + 1}`} onError={() => retryPdfPage(index)} /> : page.source === "pdf" ? page.renderStatus === "error" ? <PdfPageUnavailable pageNumber={index + 1} compact onRetry={() => retryPdfPage(index)} /> : <PdfPageLoading pageNumber={index + 1} compact /> : page.source === "blank" ? <BlankDocument /> : <SampleDocument pageIndex={index} />}
+                    {page.image ? <img src={page.image} alt={`Page ${index + 1}`} onError={() => retryPdfPage(index)} /> : page.source === "pdf" ? page.renderStatus === "error" ? <PdfPageUnavailable pageNumber={index + 1} compact onRetry={() => retryPdfPage(index)} /> : <PdfPageLoading pageNumber={index + 1} compact recovering={page.renderStatus === "recovering"} /> : page.source === "blank" ? <BlankDocument /> : <SampleDocument pageIndex={index} />}
                   </div>
                 </div>
                 <span className="thumbnail-label">{index + 1}</span>
@@ -5097,7 +5246,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
               onPointerUp={onPagePointerUp}
               onPointerCancel={onPagePointerUp}
             >
-              {currentPage.image ? <img className="pdf-image" src={currentPage.image} alt={`PDF page ${pageIndex + 1}`} onError={() => retryPdfPage(pageIndex)} /> : currentPage.source === "pdf" ? currentPage.renderStatus === "error" ? <PdfPageUnavailable pageNumber={pageIndex + 1} onRetry={() => retryPdfPage(pageIndex)} /> : <PdfPageLoading pageNumber={pageIndex + 1} /> : currentPage.source === "blank" ? <BlankDocument /> : <SampleDocument pageIndex={pageIndex} />}
+              {currentPage.image ? <img className="pdf-image" src={currentPage.image} alt={`PDF page ${pageIndex + 1}`} onError={() => retryPdfPage(pageIndex)} /> : currentPage.source === "pdf" ? currentPage.renderStatus === "error" ? <PdfPageUnavailable pageNumber={pageIndex + 1} onRetry={() => retryPdfPage(pageIndex)} /> : <PdfPageLoading pageNumber={pageIndex + 1} recovering={currentPage.renderStatus === "recovering"} /> : currentPage.source === "blank" ? <BlankDocument /> : <SampleDocument pageIndex={pageIndex} />}
               {currentPage.source === "pdf" && currentPage.isHydrated !== false && !pageDetectedTextItems.length && !currentPage.text?.trim() && (
                 <div className="ocr-state">
                   <ScanText size={16} />

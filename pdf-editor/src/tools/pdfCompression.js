@@ -5,6 +5,43 @@ export const STRUCTURE_PRESERVING_COMPRESSION_PRESETS = Object.freeze({
   balanced: Object.freeze({ optimizeImages: true }),
 });
 
+export const PDF_COMPRESSION_PRESETS = Object.freeze({
+  lossless: Object.freeze({
+    label: "Lossless cleanup",
+    detail: "Keeps selectable text, vectors, links, forms, layers, and original image quality.",
+    impact: "No intentional visual loss",
+    structurePreserving: true,
+  }),
+  balanced: Object.freeze({
+    label: "Balanced",
+    detail: "Keeps PDF features while recompressing eligible image and object streams.",
+    impact: "Low visual impact",
+    structurePreserving: true,
+  }),
+  maximum: Object.freeze({
+    label: "Maximum reduction",
+    detail: "Flattens each page to a smaller JPEG image for image-heavy delivery copies.",
+    impact: "Visible softening; removes searchable and interactive structure",
+    structurePreserving: false,
+    scale: 0.85,
+    quality: 0.48,
+  }),
+});
+
+export function compressionSavings(originalBytes, compressedBytes) {
+  const original = Math.max(0, Number(originalBytes) || 0);
+  const compressed = Math.max(0, Number(compressedBytes) || 0);
+  const savedBytes = Math.max(0, original - compressed);
+  const savedPercent = original ? savedBytes / original * 100 : 0;
+  return {
+    originalBytes: original,
+    compressedBytes: compressed,
+    savedBytes,
+    savedPercent,
+    smaller: compressed > 0 && compressed < original,
+  };
+}
+
 export function buildStructurePreservingCompressionArgs(preset = "balanced", inputName = "input.pdf", outputName = "compressed.pdf") {
   const profile = STRUCTURE_PRESERVING_COMPRESSION_PRESETS[preset];
   if (!profile) throw new Error("Choose a supported structure-preserving compression level.");

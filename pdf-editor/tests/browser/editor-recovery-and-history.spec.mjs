@@ -17,6 +17,16 @@ async function editorFixture() {
   return Buffer.from(await pdf.save());
 }
 
+async function progressiveFixture() {
+  const pdf = await PDFDocument.create();
+  const font = await pdf.embedFont(StandardFonts.Helvetica);
+  for (let pageNumber = 1; pageNumber <= 3; pageNumber += 1) {
+    const page = pdf.addPage([612, 792]);
+    page.drawText(`PROGRESSIVE PAGE ${pageNumber}`, { x: 72, y: 680, size: 20, font });
+  }
+  return Buffer.from(await pdf.save());
+}
+
 async function extractedText(bytes) {
   const document = await pdfjsLib.getDocument({ data: new Uint8Array(bytes), disableWorker: true, verbosity: 0 }).promise;
   const pages = [];
@@ -153,4 +163,18 @@ test("editor rejects a corrupted PDF with a recoverable explanation", async ({ p
   });
   await expect(page.getByText(/corrupted or invalid/i)).toBeVisible();
   await expect(page.getByRole("button", { name: "Upload from your device" })).toBeVisible();
+});
+
+test("progressive pages finish rendering instead of remaining on an endless loader", async ({ page }) => {
+  await page.goto(appPath("/edit-pdf"));
+  await page.locator('input[type="file"]').first().setInputFiles({
+    name: "progressive-three-pages.pdf",
+    mimeType: "application/pdf",
+    buffer: await progressiveFixture(),
+  });
+  await expect(page.locator(".page-thumbnail-item")).toHaveCount(3);
+  await page.getByRole("button", { name: /Page 3\./ }).click();
+  await expect(page.getByRole("img", { name: "PDF page 3" })).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByRole("status", { name: /PDF page 3/ })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Reload page" })).toHaveCount(0);
 });

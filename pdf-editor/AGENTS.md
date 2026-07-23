@@ -35,3 +35,5 @@ The Translate PDF workflow must let users choose the document's source language 
 Every editor Print control must print the generated edited PDF itself, never the surrounding editor interface, toolbars, sidebars, or browser page chrome.
 
 If an editor PDF page renderer is released or fails, rebuild it from the saved source bytes and give the user an explicit page-level retry. A PDF page must never silently disappear or remain as an endless blank loading surface.
+
+Compress PDF must support honest lossless, balanced, and maximum-reduction modes, show measured before/after size and a visual comparison, keep batch results downloadable together, and never present a larger output as a successful compression.

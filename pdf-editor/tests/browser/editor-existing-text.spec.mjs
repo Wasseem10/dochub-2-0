@@ -32,7 +32,8 @@ test("existing PDF text keeps its detected style, baseline, and page background 
   await expect(detected).toHaveCSS("pointer-events", "auto");
   await detected.click();
   const editable = detected.locator(".detected-text-content");
-  await editable.fill("Updated quarterly total");
+  const replacement = "Updated quarterly total for every region and department in the annual operating plan";
+  await editable.fill(replacement);
   await expect(detected).toHaveCSS("font-family", "serif");
   await expect(detected).toHaveCSS("font-style", "normal");
   await expect(detected).toHaveCSS("font-weight", "400");
@@ -52,5 +53,8 @@ test("existing PDF text keeps its detected style, baseline, and page background 
   const text = await (await rendered.getPage(1)).getTextContent();
   const extractedText = text.items.map((item) => item.str).join(" ");
   expect(extractedText).toContain("Updated quarterly total");
+  expect(extractedText).toContain("annual operating plan");
   expect(extractedText).not.toContain("Original quarterly total");
+  const replacementItems = text.items.filter((item) => /Updated quarterly|annual operating plan/.test(item.str));
+  expect(replacementItems.length).toBeGreaterThan(1);
 });

@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { buildStructurePreservingCompressionArgs, createCompressedPdfFromJpegs } from "../../src/tools/pdfCompression.js";
+import {
+  buildStructurePreservingCompressionArgs,
+  compressionSavings,
+  createCompressedPdfFromJpegs,
+  PDF_COMPRESSION_PRESETS,
+} from "../../src/tools/pdfCompression.js";
 
 describe("PDF compression primitive", () => {
   it("requires rendered JPEG pages", async () => {
@@ -14,5 +19,16 @@ describe("PDF compression primitive", () => {
     expect(lossless).not.toContain("--optimize-images");
     expect(buildStructurePreservingCompressionArgs("balanced")).toContain("--optimize-images");
     expect(() => buildStructurePreservingCompressionArgs("unknown")).toThrow("supported");
+  });
+
+  it("publishes honest preset impact and measured savings", () => {
+    expect(PDF_COMPRESSION_PRESETS.maximum.structurePreserving).toBe(false);
+    expect(PDF_COMPRESSION_PRESETS.lossless.impact).toMatch(/No intentional/);
+    expect(compressionSavings(1_000, 625)).toMatchObject({
+      savedBytes: 375,
+      savedPercent: 37.5,
+      smaller: true,
+    });
+    expect(compressionSavings(1_000, 1_100).smaller).toBe(false);
   });
 });

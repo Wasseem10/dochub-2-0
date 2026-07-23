@@ -100,6 +100,29 @@ test("balanced compression preserves searchable text and form fields", async ({ 
   expect(content.items.map((item) => item.str).join(" ")).toContain("SEARCHABLE INVOICE 42000");
 });
 
+test("batch compression reports measured savings, previews output, and downloads a ZIP", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "desktop-chromium", "Batch compression output is validated once in Chromium.");
+  test.setTimeout(120_000);
+  const first = await imageHeavyPdf();
+  const second = await imageHeavyPdf();
+  await page.goto(appPath("/compress-pdf"));
+  await page.locator('input[type="file"]').setInputFiles([
+    { name: "photos-one.pdf", mimeType: "application/pdf", buffer: first },
+    { name: "photos-two.pdf", mimeType: "application/pdf", buffer: second },
+  ]);
+  await expect(page.getByText("2 PDFs · 2 pages ready")).toBeVisible();
+  await page.getByLabel("Compression level").selectOption("maximum");
+  const batch = await downloadBytes(page, "Compress and download ZIP");
+  expect(batch.download.suggestedFilename()).toBe("fixthatpdf-compressed.zip");
+  const files = unzipSync(batch.bytes);
+  expect(Object.keys(files).sort()).toEqual([
+    "photos-one-compressed.pdf",
+    "photos-two-compressed.pdf",
+  ]);
+  await expect(page.getByRole("region", { name: "Compression results" })).toContainText("% smaller");
+  await expect(page.getByRole("img", { name: "Compressed first page of photos-one.pdf" })).toBeVisible();
+});
+
 test("PDF to Word and Word to PDF produce valid searchable documents", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name.includes("android") || testInfo.project.name.includes("iphone"), "Office output validation runs on desktop engines.");
   await page.goto(appPath("/pdf-to-word"));

@@ -17,7 +17,7 @@ import { PageMetadata } from "../../components/public/PageMetadata.jsx";
 import { ToolGuideContent } from "../../components/public/ToolGuideContent.jsx";
 import { ROUTE_PATHS } from "../../router/routePaths.js";
 import { createStoredZip } from "../../tools/imageConversion.js";
-import { compressPdfPreservingStructure, createCompressedPdfFromJpegs } from "../../tools/pdfCompression.js";
+import { compressionSavings, compressPdfPreservingStructure, createCompressedPdfFromJpegs, PDF_COMPRESSION_PRESETS } from "../../tools/pdfCompression.js";
 import { cropPdfPages } from "../../tools/pdfCrop.js";
 import { addPageNumbersToPdf, buildPdfFromPagePlan, extractPdfPages, inspectPdfBytes, mergePdfDocuments, PAGE_TOOL_LIMITS, parsePageRanges, splitPdfByRanges } from "../../tools/pdfPageOperations.js";
 import { addWatermarkToPdf } from "../../tools/pdfWatermark.js";
@@ -29,6 +29,28 @@ async function loadPdfRenderer() {
   const pdfjsLib = await import("pdfjs-dist");
   pdfjsLib.GlobalWorkerOptions.workerSrc = new URL("pdfjs-dist/build/pdf.worker.mjs", import.meta.url).toString();
   return pdfjsLib;
+}
+
+async function renderCompressionPreview(bytes) {
+  const pdfjsLib = await loadPdfRenderer();
+  const documentProxy = await pdfjsLib.getDocument({ data: bytes.slice(0) }).promise;
+  try {
+    const page = await documentProxy.getPage(1);
+    const base = page.getViewport({ scale: 1 });
+    const scale = Math.min(1, 520 / Math.max(1, base.width));
+    const viewport = page.getViewport({ scale });
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.max(1, Math.ceil(viewport.width));
+    canvas.height = Math.max(1, Math.ceil(viewport.height));
+    const context = canvas.getContext("2d", { alpha: false });
+    context.fillStyle = "#ffffff";
+    context.fillRect(0, 0, canvas.width, canvas.height);
+    await page.render({ canvasContext: context, viewport, background: "#ffffff" }).promise;
+    page.cleanup?.();
+    return canvas.toDataURL("image/jpeg", 0.82);
+  } finally {
+    await documentProxy.destroy?.();
+  }
 }
 
 function makeId(prefix) {
@@ -310,7 +332,7 @@ function CropWorkspace({ tool }) {
   return <div className="conversion-workspace-grid"><section><PdfDropzone multiple={false} label="Drop a PDF to crop" onFiles={loadPdf} disabled={status === "reading" || status === "working"} />{status === "reading" && <div className="conversion-progress"><LoaderCircle className="is-spinning" size={18} /> Reading PDF...</div>}{error && <div className="conversion-error" role="alert">{error}</div>}{file && <article className="page-number-file-card"><strong>{file.name}</strong><small>{pageCount} page{pageCount === 1 ? "" : "s"} · {formatBytes(file.size)}</small></article>}{pageCount > 0 && <section className="watermark-page-selector"><header><strong>Crop these pages</strong><button type="button" onClick={() => setSelectedPages(allPagesSelected ? new Set() : new Set(Array.from({ length: pageCount }, (_, index) => index)))}>{allPagesSelected ? "Clear all" : "Select all"}</button></header><div>{Array.from({ length: pageCount }, (_, index) => <label key={index}><input type="checkbox" checked={selectedPages.has(index)} onChange={() => togglePage(index)} /> Page {index + 1}</label>)}</div></section>}</section><aside className="conversion-settings-card crop-settings"><span>Crop settings</span><h2>Trim the edges</h2><p className="page-tool-help">Choose how much to remove from each edge. Values are a percentage of the current visible page. The original source stays unchanged.</p><div className="crop-presets"><button type="button" onClick={() => setPreset(0)}>No trim</button><button type="button" onClick={() => setPreset(5)}>Trim 5%</button><button type="button" onClick={() => setPreset(10)}>Trim 10%</button></div><div className="crop-margin-grid">{margins.map((margin) => <label key={margin.label}>{margin.label}<input type="number" min="0" max="45" value={margin.value} onChange={updateMargin(margin.set)} /><small>{margin.value}%</small></label>)}</div><div className="conversion-summary"><Check size={18} /><span>{file ? `${selectedPages.size} of ${pageCount} page${pageCount === 1 ? "" : "s"} selected` : "Upload a PDF to continue"}</span></div><button className="conversion-primary-action" type="button" disabled={!file || !selectedPages.size || status === "working" || status === "reading"} onClick={exportCroppedPdf}>{status === "working" ? <><LoaderCircle className="is-spinning" size={18} /> Cropping PDF...</> : <><Download size={18} /> Download cropped PDF</>}</button>{status === "complete" && <ExportSuccessState toolId={tool.id} onDownloadAgain={exportCroppedPdf} onStartAnother={() => { setFile(null); setSourceBytes(null); setPageCount(0); setSelectedPages(new Set()); setStatus("idle"); }} relatedRoute="/organize-pdf" relatedName="Organize PDF" />}</aside></div>;
 }
 
-function CompressWorkspace({ tool }) {
+function LegacyCompressWorkspace({ tool }) {
   const [file, setFile] = useState(null);
   const [sourceBytes, setSourceBytes] = useState(null);
   const [pageCount, setPageCount] = useState(0);
@@ -408,6 +430,260 @@ function CompressWorkspace({ tool }) {
         {status === "complete" && <ExportSuccessState toolId={tool.id} onDownloadAgain={compressPdf} onStartAnother={() => { setFile(null); setSourceBytes(null); setPageCount(0); setResultSize(0); setStatus("idle"); }} relatedRoute="/organize-pdf" relatedName="Organize PDF" />}
       </aside>
     </div>
+  );
+}
+
+function CompressWorkspace({ tool }) {
+  const [files, setFiles] = useState([]);
+  const [preset, setPreset] = useState("balanced");
+  const [status, setStatus] = useState("idle");
+  const [progress, setProgress] = useState(0);
+  const [results, setResults] = useState([]);
+  const [preview, setPreview] = useState(null);
+  const [error, setError] = useState("");
+  const selectedPreset = PDF_COMPRESSION_PRESETS[preset];
+  const totalPages = files.reduce((sum, file) => sum + file.pageCount, 0);
+  const successfulResults = results.filter((result) => result.status === "success");
+  const totalOriginalBytes = successfulResults.reduce((sum, result) => sum + result.metrics.originalBytes, 0);
+  const totalCompressedBytes = successfulResults.reduce((sum, result) => sum + result.metrics.compressedBytes, 0);
+  const totalMetrics = compressionSavings(totalOriginalBytes, totalCompressedBytes);
+
+  const reset = () => {
+    setFiles([]);
+    setResults([]);
+    setPreview(null);
+    setProgress(0);
+    setError("");
+    setStatus("idle");
+  };
+
+  const loadPdfs = async (fileList) => {
+    const incoming = Array.from(fileList || []);
+    if (!incoming.length) return;
+    setError("");
+    setResults([]);
+    setPreview(null);
+    if (incoming.length > PAGE_TOOL_LIMITS.maxFiles) {
+      trackUploadValidationFailure(tool.id, "too_many_files");
+      setError(`Compress no more than ${PAGE_TOOL_LIMITS.maxFiles} PDFs at once.`);
+      return;
+    }
+    if (incoming.some((file) => file.type !== "application/pdf" && !file.name.toLowerCase().endsWith(".pdf"))) {
+      trackUploadValidationFailure(tool.id, "wrong_file_type");
+      setError("Choose PDF files only.");
+      return;
+    }
+    if (incoming.some((file) => file.size > PAGE_TOOL_LIMITS.maxFileBytes)) {
+      trackUploadValidationFailure(tool.id, "file_too_large");
+      setError("Each PDF must be under 50 MB.");
+      return;
+    }
+    setStatus("reading");
+    try {
+      const loaded = [];
+      for (const nextFile of incoming) {
+        const bytes = new Uint8Array(await nextFile.arrayBuffer());
+        const details = await inspectPdfBytes(bytes);
+        if (details.pageCount > PAGE_TOOL_LIMITS.maxPages) {
+          throw new Error(`${nextFile.name} has ${details.pageCount} pages. The limit is ${PAGE_TOOL_LIMITS.maxPages}.`);
+        }
+        trackToolUpload(tool.id, nextFile, { pageCount: details.pageCount });
+        loaded.push({ id: makeId("compress"), file: nextFile, bytes, pageCount: details.pageCount });
+      }
+      setFiles(loaded);
+      if (loaded[0]) {
+        setPreview({
+          fileId: loaded[0].id,
+          fileName: loaded[0].file.name,
+          original: await renderCompressionPreview(loaded[0].bytes),
+          compressed: "",
+        });
+      }
+    } catch (loadError) {
+      trackUploadValidationFailure(tool.id, "invalid_pdf");
+      setFiles([]);
+      setError(friendlyPdfError(loadError));
+    } finally {
+      setStatus("idle");
+    }
+  };
+
+  const compressRecord = async (record, config, fileIndex) => {
+    const updateFileProgress = (value) => {
+      const completed = (fileIndex + Math.max(0, Math.min(100, value)) / 100) / files.length;
+      setProgress(Math.round(completed * 100));
+    };
+    if (config.structurePreserving) {
+      updateFileProgress(20);
+      const output = await compressPdfPreservingStructure(record.bytes.slice(0), preset);
+      updateFileProgress(100);
+      return output;
+    }
+    const pdfjsLib = await loadPdfRenderer();
+    const source = await pdfjsLib.getDocument({ data: record.bytes.slice(0) }).promise;
+    try {
+      const renderedPages = [];
+      for (let pageNumber = 1; pageNumber <= source.numPages; pageNumber += 1) {
+        const page = await source.getPage(pageNumber);
+        const outputViewport = page.getViewport({ scale: 1 });
+        const renderViewport = page.getViewport({ scale: config.scale });
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.max(1, Math.round(renderViewport.width));
+        canvas.height = Math.max(1, Math.round(renderViewport.height));
+        const context = canvas.getContext("2d", { alpha: false });
+        context.fillStyle = "#ffffff";
+        context.fillRect(0, 0, canvas.width, canvas.height);
+        await page.render({ canvasContext: context, viewport: renderViewport, background: "#ffffff" }).promise;
+        const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", config.quality));
+        page.cleanup?.();
+        if (!blob) throw new Error("A page could not be prepared for compression.");
+        renderedPages.push({
+          jpegBytes: new Uint8Array(await blob.arrayBuffer()),
+          width: outputViewport.width,
+          height: outputViewport.height,
+        });
+        updateFileProgress(pageNumber / source.numPages * 100);
+      }
+      return createCompressedPdfFromJpegs(renderedPages);
+    } finally {
+      await source.destroy?.();
+    }
+  };
+
+  const showResultPreview = async (result) => {
+    const source = files.find((file) => file.id === result.fileId);
+    if (!source || result.status !== "success") return;
+    setPreview({
+      fileId: source.id,
+      fileName: source.file.name,
+      original: await renderCompressionPreview(source.bytes),
+      compressed: await renderCompressionPreview(result.output),
+    });
+  };
+
+  const compressPdfs = async () => {
+    if (!files.length) return;
+    setStatus("working");
+    setProgress(0);
+    setError("");
+    setResults([]);
+    const operation = beginToolOperation(tool.id, { operation: "compress", slowAfterMs: 15000 });
+    try {
+      const nextResults = [];
+      for (const [index, record] of files.entries()) {
+        try {
+          const output = await compressRecord(record, selectedPreset, index);
+          const metrics = compressionSavings(record.bytes.length, output.length);
+          if (!metrics.smaller) {
+            nextResults.push({
+              fileId: record.id,
+              fileName: record.file.name,
+              status: "skipped",
+              message: selectedPreset.structurePreserving
+                ? "Already optimized with PDF features intact. Try Maximum reduction only if a flattened copy is acceptable."
+                : "The original is already smaller than the flattened result.",
+              metrics,
+            });
+          } else {
+            nextResults.push({
+              fileId: record.id,
+              fileName: record.file.name,
+              outputName: `${record.file.name.replace(/\.pdf$/i, "") || "document"}-compressed.pdf`,
+              status: "success",
+              output,
+              metrics,
+            });
+          }
+        } catch (compressionError) {
+          nextResults.push({
+            fileId: record.id,
+            fileName: record.file.name,
+            status: "error",
+            message: friendlyPdfError(compressionError),
+          });
+        }
+      }
+      setResults(nextResults);
+      const downloadable = nextResults.filter((result) => result.status === "success");
+      if (!downloadable.length) {
+        operation.fail("no_smaller_output", { result: preset });
+        setError("None of these PDFs produced a smaller result. Keep the originals or choose a different compression level.");
+        setStatus("idle");
+        return;
+      }
+      await showResultPreview(downloadable[0]);
+      if (downloadable.length === 1 && files.length === 1) {
+        downloadBytes(downloadable[0].output, "application/pdf", downloadable[0].outputName);
+      } else {
+        downloadBytes(
+          createStoredZip(downloadable.map((result) => ({ name: result.outputName, data: result.output }))),
+          "application/zip",
+          "fixthatpdf-compressed.zip",
+        );
+      }
+      operation.succeed({ result: preset, pageCountBucket: pageCountBucket(totalPages), batchSize: files.length });
+      setProgress(100);
+      setStatus("complete");
+    } catch (compressionError) {
+      operation.fail("pdf_processing", { result: preset });
+      setError(friendlyPdfError(compressionError));
+      setStatus("idle");
+    }
+  };
+
+  return (
+    <>
+      <div className="conversion-workspace-grid compression-workspace">
+        <section>
+          <PdfDropzone multiple label="Drop PDFs to compress" onFiles={loadPdfs} disabled={status === "reading" || status === "working"} />
+          {status === "reading" && <div className="conversion-progress"><LoaderCircle className="is-spinning" size={18} /> Reading PDFs...</div>}
+          {status === "working" && <div className="conversion-progress"><LoaderCircle className="is-spinning" size={18} /> Compressing {files.length > 1 ? `${files.length} PDFs` : "PDF"}... {progress}%</div>}
+          {files.length > 0 && <div className="compression-file-list">{files.map((record) => <article key={record.id}>
+            <div><strong>{record.file.name}</strong><small>{record.pageCount} page{record.pageCount === 1 ? "" : "s"} · {formatBytes(record.file.size)}</small></div>
+            <button type="button" aria-label={`Remove ${record.file.name}`} disabled={status === "working"} onClick={() => {
+              setFiles((items) => items.filter((item) => item.id !== record.id));
+              setResults([]);
+              if (preview?.fileId === record.id) setPreview(null);
+            }}><Trash2 size={16} /></button>
+          </article>)}</div>}
+          {results.length > 0 && <section className="compression-results" aria-label="Compression results">
+            <header><strong>Measured results</strong><small>{successfulResults.length} smaller file{successfulResults.length === 1 ? "" : "s"}</small></header>
+            {results.map((result) => <article key={result.fileId} className={`is-${result.status}`}>
+              <div><strong>{result.fileName}</strong>{result.status === "success"
+                ? <small>{formatBytes(result.metrics.originalBytes)} → {formatBytes(result.metrics.compressedBytes)} · {result.metrics.savedPercent.toFixed(1)}% smaller</small>
+                : <small>{result.message}</small>}</div>
+              {result.status === "success" && <button type="button" onClick={() => void showResultPreview(result)}>Preview</button>}
+            </article>)}
+          </section>}
+          {error && <div className="conversion-error" role="alert">{error}</div>}
+        </section>
+        <aside className="conversion-settings-card compression-settings-card">
+          <span>Compression settings</span>
+          <h2>Make PDFs lighter</h2>
+          <label>Compression level<select value={preset} disabled={status === "working"} onChange={(event) => {
+            setPreset(event.target.value);
+            setResults([]);
+          }}>{Object.entries(PDF_COMPRESSION_PRESETS).map(([key, option]) => <option key={key} value={key}>{option.label}</option>)}</select></label>
+          <div className="compression-preset-detail"><strong>{selectedPreset.impact}</strong><p>{selectedPreset.detail}</p></div>
+          <div className="office-mode-note"><strong>{selectedPreset.structurePreserving ? "Document features stay intact" : "Flattened visual copy"}</strong><p>{selectedPreset.structurePreserving ? "Selectable text, links, forms, vectors, and page structure remain. Revalidate cryptographic signatures after changing the file." : "Every page becomes an image. Search, links, forms, layers, and accessibility tags are removed."}</p></div>
+          <div className="conversion-summary"><Check size={18} /><span>{!files.length
+            ? "Add up to 20 PDFs"
+            : successfulResults.length
+              ? `${formatBytes(totalOriginalBytes)} → ${formatBytes(totalCompressedBytes)} · ${totalMetrics.savedPercent.toFixed(1)}% smaller`
+              : `${files.length} PDF${files.length === 1 ? "" : "s"} · ${totalPages} page${totalPages === 1 ? "" : "s"} ready`}</span></div>
+          <button className="conversion-primary-action" type="button" disabled={!files.length || status === "working" || status === "reading"} onClick={compressPdfs}>{status === "working" ? <><LoaderCircle className="is-spinning" size={18} /> Compressing {progress}%</> : <><Download size={18} /> {files.length > 1 ? "Compress and download ZIP" : "Download compressed PDF"}</>}</button>
+          {status === "complete" && <ExportSuccessState toolId={tool.id} onDownloadAgain={compressPdfs} onStartAnother={reset} relatedRoute="/organize-pdf" relatedName="Organize PDF" />}
+        </aside>
+      </div>
+      {preview && <section className="compression-preview" aria-label={`Compression preview for ${preview.fileName}`}>
+        <header><div><span>Visual check</span><h2>Compare the first page</h2></div><small>{preview.fileName}</small></header>
+        <div>
+          <figure><figcaption>Original</figcaption><img src={preview.original} alt={`Original first page of ${preview.fileName}`} /></figure>
+          <figure className={!preview.compressed ? "is-waiting" : ""}><figcaption>Compressed</figcaption>{preview.compressed ? <img src={preview.compressed} alt={`Compressed first page of ${preview.fileName}`} /> : <p>Compress the PDF to see the result beside the original.</p>}</figure>
+        </div>
+        <p>Preview checks appearance only. Also reopen the downloaded PDF to verify text selection, links, forms, and signatures when those features matter.</p>
+      </section>}
+    </>
   );
 }
 
