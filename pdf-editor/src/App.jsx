@@ -83,6 +83,7 @@ import { beginToolOperation, fileSizeBucket, pageCountBucket, trackProductEvent,
 import { AuthRequiredModal } from "./components/editor/AuthRequiredModal.jsx";
 import { AccountDeletionCard } from "./components/app/AccountDeletionCard.jsx";
 import { BrandWordmark } from "./components/public/BrandWordmark.jsx";
+import { PageMetadata } from "./components/public/PageMetadata.jsx";
 import { isAnalyticsOwner } from "./config/adminAccess.js";
 import { createSecurePdfShare, revokeSecurePdfShare } from "./sharing/securePdfSharing.js";
 import { createSigningRequestUrl } from "./signing/signingRequest.js";
@@ -5810,6 +5811,23 @@ function LandingPage({ fileInputRef, onUpload, onSelectFiles, onLogin }) {
 function AuthPage({ mode, setMode, onBack, backLabel = "Back to home", onComplete, onPasswordReset, authReady, isFirebaseConfigured, routeNotice = "" }) {
   const isSignup = mode === "signup";
   const isPasswordReset = mode === "forgot-password";
+  const authMetadata = isSignup
+    ? {
+        title: "Create Your PDFArrow Account",
+        description: "Create a PDFArrow account to keep optional cloud history and workspace preferences together.",
+        canonicalUrl: ROUTE_PATHS.signup,
+      }
+    : isPasswordReset
+      ? {
+          title: "Reset Your PDFArrow Password",
+          description: "Request a PDFArrow password reset and return to your document workspace.",
+          canonicalUrl: ROUTE_PATHS.forgotPassword,
+        }
+      : {
+          title: "Sign In to PDFArrow",
+          description: "Sign in to continue to your PDFArrow document workspace.",
+          canonicalUrl: ROUTE_PATHS.login,
+        };
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -5860,7 +5878,9 @@ function AuthPage({ mode, setMode, onBack, backLabel = "Back to home", onComplet
   };
 
   return (
-    <main className="auth-shell">
+    <>
+      <PageMetadata {...authMetadata} noIndex />
+      <main className="auth-shell">
       <section className="auth-showcase" aria-label="PDFArrow product preview">
         <button type="button" className="auth-showcase-brand" onClick={onBack} aria-label="PDFArrow home"><BrandWordmark logo /></button>
         <div className="auth-showcase-copy">
@@ -5931,7 +5951,8 @@ function AuthPage({ mode, setMode, onBack, backLabel = "Back to home", onComplet
           <button type="button" onClick={isPasswordReset ? () => setMode("login") : switchMode}>{isSignup ? "Sign in" : isPasswordReset ? "Back to login" : "Create an account"}</button>
         </div>
       </section>
-    </main>
+      </main>
+    </>
   );
 }
 
