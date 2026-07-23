@@ -1,44 +1,45 @@
-# Open Horizon Hero Design QA
+# Design QA — Quiet Editorial Dashboard Rail
 
-- Source visual truth: `/Users/wasseemdabbas/.codex/generated_images/019f7d99-682c-7551-8036-1bae63d2a1df/exec-d9249e38-30a1-4cae-a267-a1e545721678.png`
-- Desktop implementation screenshot: `/tmp/pdfarrow-open-horizon-pass3.png`
-- Mobile implementation screenshot: `/tmp/pdfarrow-open-horizon-mobile.png`
-- Full comparison evidence: `/tmp/pdfarrow-open-horizon-comparison.png`
-- Focused comparison evidence: `/tmp/pdfarrow-open-horizon-focused.png`
-- Desktop viewport: 1440 × 1024
-- Tablet viewport: 768 × 1024
-- Mobile viewport: 390 × 844
-- State: landing hero at rest; desktop Tools menu and mobile navigation exercised
-- Browser console errors: none
+- Source visual truth: `C:\Users\wasse\OneDrive\Desktop\pdf-editor\design-evidence\dashboard-editorial-sidebar\selected-source.png`
+- Browser-rendered implementation: `C:\Users\wasse\OneDrive\Desktop\pdf-editor\design-evidence\dashboard-editorial-sidebar\implementation-owner-final.png`
+- Full-view comparison: `C:\Users\wasse\OneDrive\Desktop\pdf-editor\design-evidence\dashboard-editorial-sidebar\source-vs-implementation.png`
+- Focused navigation comparison: `C:\Users\wasse\OneDrive\Desktop\pdf-editor\design-evidence\dashboard-editorial-sidebar\focused-navigation-comparison.png`
+- URL: `http://127.0.0.1:4173/app/dashboard`
+- Browser viewport: 1280 × 720 CSS px, device scale factor 1
+- Source pixels: 887 × 1774
+- Implementation pixels: 1280 × 720; compared rail crop: 266 × 720
+- Density normalization: source was proportionally downsampled to 720px high without stretching; implementation was cropped to the rendered 266px rail. The focused comparison uses proportional crops of the Templates, All tools, divider, and Analytics region.
+- State: authenticated owner dashboard with Home selected, Analytics visible, no recent documents
 
-## Full-view comparison evidence
+## Findings
 
-The source and implementation were normalized to the same 1440 × 1024 frame and placed side by side. The implementation preserves the selected direction: white PDFArrow header, airy blue-white horizon, left-aligned two-line promise, primary upload action, three trust points, and a large functional upload workspace on the right.
+No actionable P0, P1, or P2 differences remain.
 
-## Focused region comparison evidence
+- Fonts and typography: compact DM Sans labels use the source’s regular-medium optical weight, 14px readable sizing, single-line wrapping, and aligned baselines. The official logo remains blue by product requirement instead of adopting the mock’s black approximation.
+- Spacing and layout rhythm: the 266px continuous rail, 50px primary rows, inset divider, flexible middle spacer, and bottom-anchored Trash/Help group match the selected hierarchy. The browser viewport is shorter than the generated source, but the flex layout preserves the same top and bottom grouping.
+- Colors and visual tokens: warm white, charcoal, neutral hairlines, and the single oxblood active spine match the selected direction. No blue selected row, rounded SaaS pill, gradient, card, or shadow remains.
+- Image quality and asset fidelity: the official `pdfarrow-logo.png` crop is used as required. Navigation icons come from the existing outline icon library; All tools uses four outline-circle icons rather than a handcrafted SVG or the former sparkle mark.
+- Copy and content: Home, Documents, Signatures, Templates, All tools, Analytics, Trash, and Help are preserved in the selected order and hierarchy.
 
-The focused comparison crops both designs to the complete hero region. It confirms the selected visual hierarchy and proportions without the page below affecting judgment. The coded hero uses original generated background and PDF-document assets instead of CSS artwork or placeholder boxes.
+## Functional Verification
 
-## Required fidelity surfaces
+- Home and Documents navigation states were clicked and rendered successfully.
+- All tools retained its existing navigation to `/features`.
+- Owner authentication state rendered Analytics in the separate administration group.
+- Trash and Help remain keyboard-focusable buttons at the bottom of the rail.
+- TypeScript check passed.
+- Route guard and dashboard integration suites passed: 15 tests.
 
-- Fonts and typography: The existing DM Sans and Caveat product typefaces are retained. The headline is a stable two-line lockup at desktop size, with matching medium weight, tight display tracking, and a readable 1.01 line height.
-- Spacing and layout: The 1280px desktop grid uses a 590px copy column, 48px gap, and 642px upload workspace. Browser geometry measured the final upload panel at 642 × 520 and confirmed the hero ends at 899px, closely matching the selected direction.
-- Colors and tokens: The existing cobalt action color is preserved while the hero adopts the selected white, powder-blue, and distant-horizon palette. Text contrast remains strong on the generated image.
-- Image quality: The responsive hero background is served as 640px and 1200px WebP sources with a PNG fallback. The PDF illustration is a transparent PNG sized for the panel without scaling halos or masking artifacts.
-- Copy and content: The approved homepage promise is preserved. Upload guidance is concise, and the trust points reinforce privacy, watermark-free output, and immediate use.
-- Icons: Existing Lucide upload, lock, shield, clock, grid, and navigation icons remain aligned to the product icon system. The decorative document artwork is an image asset, not custom SVG or CSS art.
-- States and interactions: The real PDF input and drag-and-drop target remain connected. Tools opens on click, closes on Escape, and restores focus to the trigger. Mobile navigation opens, focuses its first link, and closes on Escape.
-- Accessibility: The primary actions remain semantic buttons with visible focus styling. The upload region keeps its accessible label, decorative imagery has empty alt text, and the page has no horizontal overflow.
-- Responsiveness: At 768px and 390px the hero stacks cleanly, the CTA becomes full-width on mobile, the upload panel remains usable, and `scrollWidth` equals `innerWidth`.
+## Comparison History
 
-## Findings and comparison history
+1. Pass 1 found the four-circle catalog mark clipped into a broken arc because an older sidebar selector overrode the icon grid.
+2. Increased selector specificity and recaptured; all four circles rendered correctly.
+3. The first full comparison found inherited last-item dividers before All tools, Analytics, and Trash, plus overly bold labels and oversized icons.
+4. Neutralized the legacy last-item rule, introduced one explicit administration divider, reduced row/icon sizing, and restored regular-medium label weight.
+5. The final full-view and focused comparisons show no remaining actionable P0/P1/P2 differences.
 
-1. Initial coded pass had one P2 typography/layout issue: the headline wrapped to three lines and the copy/upload columns drifted from the source. The desktop grid was widened to 1280px, the copy column was fixed at 590px, and the display size was tuned to keep the intended two-line lockup.
-2. The second pass had one P2 vertical-rhythm issue: the upload panel and hero ending sat about 35–40px above the source, compressing the CTA and trust-point spacing. Desktop hero height, panel offset, and section margins were adjusted to match the selected frame.
-3. Final desktop, tablet, and mobile passes show no remaining P0, P1, or P2 issues. Navigation interactions work, the console has no errors, and all tested viewports have zero horizontal overflow.
+## Follow-up Polish
 
-## Follow-up polish
-
-- No P3 item is required for this release.
+- P3: the generated mock approximates the PDFArrow wordmark in black; the implementation intentionally preserves the official blue logo asset.
 
 final result: passed
