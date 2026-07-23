@@ -28,6 +28,8 @@ The editor’s FixThatPDF wordmark is a labeled button that returns to `/app/das
 
 Authentication and lazy-loading transitions use FixThatPDF’s DM Sans and Funnel Display typography, the blue document mark, concise status copy, a compact centered white card, and reduced-motion-safe progress. Do not use condensed display fonts, tiny all-caps brand pills, or vague filler copy on loading screens.
 
+The login screen should feel professional and document-first: use a restrained workspace preview, calm navy/blue surfaces, clear sign-in hierarchy, and explicit browser-processing reassurance. Avoid playful handwritten type, cloud imagery, or oversized promotional visuals in authentication.
+
 The Draw tool opens one compact floating settings bar below the primary toolbar. It must expose direct black, blue, red, orange, green, and purple choices, a working custom color picker, five readable pen-size presets, and a fine-size slider without clipping, overlapping, or duplicating controls elsewhere in the same bar.
 
 The Translate PDF workflow must let users choose the document's source language and must include English as a translation target. Do not assume every uploaded document starts in English, and never allow the source and target language to remain identical.

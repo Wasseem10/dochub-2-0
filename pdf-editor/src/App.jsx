@@ -5872,17 +5872,31 @@ function AuthPage({ mode, setMode, onBack, backLabel = "Back to home", onComplet
       <section className="auth-showcase" aria-label="FixThatPDF product preview">
         <button type="button" className="auth-showcase-brand" onClick={onBack} aria-label="FixThatPDF home"><BrandWordmark /></button>
         <div className="auth-showcase-copy">
-          <span>Every PDF task</span>
-          <h1>Pick up right where you left off.</h1>
-          <p>Edit, sign, organize, and export in the same focused workspace.</p>
+          <span>Your PDF workspace</span>
+          <h1>A focused place to finish important documents.</h1>
+          <p>Edit, sign, organize, and export without bouncing between disconnected tools.</p>
+          <ul className="auth-showcase-points">
+            <li><CheckCircle2 size={18} /> Continue your work across devices with optional cloud history.</li>
+            <li><CheckCircle2 size={18} /> Keep editing, signing, and page tools in one workspace.</li>
+            <li><CheckCircle2 size={18} /> Download polished PDFs without a FixThatPDF watermark.</li>
+          </ul>
         </div>
-        <img src={`${import.meta.env.BASE_URL}homepage/hero-product-stage.png`} alt="FixThatPDF upload workspace preview" />
+        <div className="auth-showcase-preview" aria-hidden="true">
+          <div className="auth-preview-topbar"><span /><span /><span /><strong>Quarterly report.pdf</strong><em>Ready to review</em></div>
+          <div className="auth-preview-body">
+            <aside><span className="is-active" /><span /><span /><span /></aside>
+            <article><small>FIXTHATPDF</small><h3>Quarterly operations review</h3><p /><p /><p /><div><span /><span /><span /></div></article>
+            <section><b>Document status</b><span>3 edits saved</span><span>Ready to export</span></section>
+          </div>
+        </div>
       </section>
       <section className="auth-card" aria-label={isSignup ? "Create account" : isPasswordReset ? "Reset password" : "Log in"}>
-        <button type="button" className="auth-back" onClick={onBack}>{backLabel}</button>
-        <button type="button" className="auth-mark auth-realpdf-brand" onClick={onBack} aria-label="FixThatPDF home"><BrandWordmark /></button>
+        <header className="auth-card-header">
+          <button type="button" className="auth-mark auth-realpdf-brand" onClick={onBack} aria-label="FixThatPDF home"><BrandWordmark /></button>
+          <button type="button" className="auth-back" onClick={onBack}>{backLabel}</button>
+        </header>
         <h2>{isSignup ? "Create your workspace" : isPasswordReset ? "Reset your password" : "Welcome back"}</h2>
-        <p className="auth-intro">{isSignup ? "Start editing, signing, and organizing PDFs in one focused place." : isPasswordReset ? "Enter your account email and we will send the existing Firebase reset flow." : "Sign in to continue working with your PDFs."}</p>
+        <p className="auth-intro">{isSignup ? "Create an account to keep optional cloud history and workspace preferences together." : isPasswordReset ? "Enter the email associated with your account and we will send a reset link." : "Sign in to access your optional cloud history and saved workspace settings."}</p>
         {routeNotice && <div className="auth-notice">{routeNotice}</div>}
         {!isFirebaseConfigured && (
           <div className="auth-error">
@@ -5921,10 +5935,11 @@ function AuthPage({ mode, setMode, onBack, backLabel = "Back to home", onComplet
           {error && <div className="auth-error">{error}</div>}
           {notice && <div className="auth-notice">{notice}</div>}
           <button type="submit" className="auth-submit" disabled={!authReady || isSubmitting || !isFirebaseConfigured}>
-            {isSubmitting ? "Connecting..." : isSignup ? "Create account" : isPasswordReset ? "Send reset email" : "Sign in with password"}
+            {isSubmitting ? "Connecting..." : isSignup ? "Create account" : isPasswordReset ? "Send reset email" : "Sign in"}
           </button>
         </form>
-        <p className="auth-privacy">Check our <button type="button">Privacy Notice</button>.</p>
+        <div className="auth-security-note"><Lock size={15} aria-hidden="true" /><span>Your PDF processing stays in your browser for supported tools.</span></div>
+        <p className="auth-privacy">Review our <button type="button">Privacy Notice</button>.</p>
         <div className="auth-switch">
           <span>{isSignup ? "Already have an account?" : isPasswordReset ? "Remembered your password?" : "New to FixThatPDF?"}</span>
           <button type="button" onClick={isPasswordReset ? () => setMode("login") : switchMode}>{isSignup ? "Sign in" : isPasswordReset ? "Back to login" : "Create an account"}</button>
