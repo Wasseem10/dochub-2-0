@@ -165,7 +165,7 @@ export const HIGH_INTENT_TOOL_CONTENT = Object.freeze({
       { question: "What does OCR do to a PDF?", answer: "OCR recognizes text in page images and adds a searchable text layer while keeping the scan visible." },
       { question: "Which OCR languages are supported?", answer: "The current workflow offers English, Spanish, French, German, Italian, and Portuguese recognition." },
       { question: "Can OCR recognize handwriting?", answer: "It is designed for printed text. Handwriting and poor scans may produce unreliable results and require correction." },
-      { question: "What limits apply?", answer: "Browser OCR supports unencrypted PDFs up to 20 MB and 12 pages." },
+      { question: "What limits apply?", answer: "Browser OCR supports unencrypted PDFs up to 20 MB and 24 pages." },
       { question: "Is OCR performed by an external service?", answer: "No. A language model downloads on first use, then recognition and PDF creation run on this device." },
     ],
   },
@@ -183,7 +183,7 @@ export const HIGH_INTENT_TOOL_CONTENT = Object.freeze({
     troubleshooting: [
       { question: "Why is my uploaded signature background visible?", answer: "Use a transparent PNG for the cleanest result, or crop the image closely before uploading it." },
       { question: "Is this a digital certificate signature?", answer: "No. This tool places self-attested visual signature content; it does not issue a cryptographic certificate or verify identity." },
-      { question: "Can I send this to someone else to sign?", answer: "The current Request Signatures tool prepares and shares a signing copy, but hosted invitations, reminders, identity checks, and audit certificates are not yet available." },
+      { question: "Can I send this to someone else to sign?", answer: "Yes. Signed-in owners can create a revocable, expiring single-signer link with required fields. The recipient can type or draw a signature and download both the signed PDF and a device-generated SHA-256 completion receipt. Automated reminders and independent identity verification are not included." },
     ],
     faqEntries: [
       { question: "How can I create my signature?", answer: "Type your name, draw with a pointer or touchscreen, or upload a PNG or JPG signature image." },

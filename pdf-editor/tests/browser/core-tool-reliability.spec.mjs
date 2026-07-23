@@ -111,6 +111,14 @@ test("PDF to Word and Word to PDF produce valid searchable documents", async ({ 
   expect(docxFiles["word/document.xml"]).toBeTruthy();
   expect(strFromU8(docxFiles["word/document.xml"])).toContain("QUARTERLY TOTAL 42000");
 
+  await page.goto(appPath("/pdf-to-word"));
+  await page.locator('input[type="file"]').setInputFiles({ name: "quarterly.pdf", mimeType: "application/pdf", buffer: await textPdf("QUARTERLY TOTAL 42000") });
+  await page.getByLabel("Conversion mode").selectOption({ label: "Visual fidelity" });
+  const visualWord = await downloadBytes(page, "Download DOCX");
+  const visualDocxFiles = unzipSync(visualWord.bytes);
+  expect(Object.keys(visualDocxFiles).some((path) => path.startsWith("word/media/"))).toBe(true);
+  expect(strFromU8(visualDocxFiles["word/document.xml"])).toContain("w:drawing");
+
   const sourceDocx = new Document({ sections: [{ children: [new Paragraph({ children: [new TextRun({ text: "SEARCHABLE WORD REPORT 42000", bold: true })] })] }] });
   await page.goto(appPath("/word-to-pdf"));
   await page.locator('input[type="file"]').setInputFiles({ name: "report.docx", mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document", buffer: await Packer.toBuffer(sourceDocx) });

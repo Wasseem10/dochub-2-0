@@ -16,10 +16,12 @@ import {
   createPptxFromRenderedPages,
   createStandaloneHtmlFromPdfPages,
   createXlsxFromPdfPages,
+  ocrWordsToPdfTextItems,
   pdfTextItemsToRows,
   STRUCTURED_CONVERSION_LIMITS,
   validateStructuredPdf,
 } from "../../tools/structuredPdfConversion.js";
+import { flattenOcrWords, OCR_LANGUAGES, OCR_PDF_LIMITS, ocrRenderScaleForPage } from "../../tools/ocrPdf.js";
 
 const MODES = Object.freeze({
   "pdf-to-excel": {
@@ -92,6 +94,9 @@ export function StructuredPdfConversionPage({ tool }) {
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState("");
   const [dragging, setDragging] = useState(false);
+  const [excelLayout, setExcelLayout] = useState("multi");
+  const [excelOcr, setExcelOcr] = useState(true);
+  const [ocrLanguage, setOcrLanguage] = useState("eng");
   const ModeIcon = mode.icon;
 
   const loadFile = async (nextFile) => {
@@ -133,17 +138,47 @@ export function StructuredPdfConversionPage({ tool }) {
     setError("");
     const operation = beginToolOperation(tool.id, { operation: "convert", slowAfterMs: 15000 });
     const baseName = file.name.replace(/\.pdf$/i, "") || "fixthatpdf-document";
+    let ocrWorker;
     try {
       if (tool.id === "pdf-to-excel") {
         const pages = [];
         for (let pageNumber = 1; pageNumber <= pdfDocument.numPages; pageNumber += 1) {
           const page = await pdfDocument.getPage(pageNumber);
-          pages.push({ name: `Page ${pageNumber}`, rows: pdfTextItemsToRows((await page.getTextContent()).items) });
+          let items = (await page.getTextContent()).items;
+          if (!items.some((item) => String(item.str || "").trim()) && excelOcr) {
+            if (pdfDocument.numPages > OCR_PDF_LIMITS.maxPages) throw new Error(`Scanned PDF OCR supports up to ${OCR_PDF_LIMITS.maxPages} pages. Turn OCR off or split the PDF first.`);
+            if (!ocrWorker) {
+              const { createWorker } = await import("tesseract.js");
+              ocrWorker = await createWorker(ocrLanguage, undefined, { logger: (message) => {
+                if (message.status === "recognizing text") {
+                  const completed = ((pageNumber - 1) + Number(message.progress || 0)) / pdfDocument.numPages;
+                  setProgress(Math.max(2, Math.min(88, Math.round(completed * 88))));
+                }
+              } });
+              await ocrWorker.setParameters({ preserve_interword_spaces: "1", user_defined_dpi: "300" });
+            }
+            const pageSize = page.getViewport({ scale: 1 });
+            const viewport = page.getViewport({ scale: ocrRenderScaleForPage(pageSize.width, pageSize.height) });
+            const canvas = document.createElement("canvas");
+            canvas.width = Math.ceil(viewport.width);
+            canvas.height = Math.ceil(viewport.height);
+            const context = canvas.getContext("2d", { alpha: false });
+            context.fillStyle = "#ffffff";
+            context.fillRect(0, 0, canvas.width, canvas.height);
+            await page.render({ canvasContext: context, viewport }).promise;
+            const recognition = await ocrWorker.recognize(canvas, {}, { blocks: true, text: true });
+            items = ocrWordsToPdfTextItems(flattenOcrWords(recognition.data), canvas.width, canvas.height);
+          }
+          pages.push({ name: `Page ${pageNumber}`, rows: pdfTextItemsToRows(items) });
+          page.cleanup?.();
           setProgress(Math.round((pageNumber / pdfDocument.numPages) * 90));
         }
         const hasText = pages.some((page) => page.rows.length);
-        if (!hasText) throw new Error("No embedded text was found. Scanned image PDFs need OCR before Excel conversion.");
-        downloadOutput(createXlsxFromPdfPages(pages, { title: baseName }), mode.mimeType, `${baseName}.xlsx`, tool.id);
+        if (!hasText) throw new Error(excelOcr ? "No readable table text was found. Try a clearer scan or a different OCR language." : "No embedded text was found. Turn on OCR for scanned pages.");
+        const workbookPages = excelLayout === "single"
+          ? [{ name: "All pages", rows: pages.flatMap((page, index) => index ? [[], ...page.rows] : page.rows) }]
+          : pages;
+        downloadOutput(createXlsxFromPdfPages(workbookPages, { title: baseName }), mode.mimeType, `${baseName}.xlsx`, tool.id);
       } else if (tool.id === "pdf-to-html") {
         const pdfjsLib = await loadPdfRenderer();
         const pages = [];
@@ -185,6 +220,8 @@ export function StructuredPdfConversionPage({ tool }) {
       operation.fail("conversion_failed");
       setStatus("idle");
       setError(friendlyPdfError(conversionError));
+    } finally {
+      await ocrWorker?.terminate();
     }
   };
 
@@ -205,7 +242,13 @@ export function StructuredPdfConversionPage({ tool }) {
           {file && <div className="office-file-card"><header><FileText size={20} /><div><strong>{file.name}</strong><small>{formatBytes(file.size)} · {pageCount} page{pageCount === 1 ? "" : "s"}</small></div></header></div>}
         </section>
         <aside className="conversion-settings-card">
-          <span>{mode.format} output</span><ModeIcon size={25} /><h2>{mode.heading}</h2><div className="office-mode-note"><strong>What the converter preserves</strong><p>{mode.detail}</p></div>
+          <span>{mode.format} output</span><ModeIcon size={25} /><h2>{mode.heading}</h2>
+          {tool.id === "pdf-to-excel" && <div className="structured-excel-settings">
+            <label><span>Workbook layout</span><select value={excelLayout} disabled={status === "converting"} onChange={(event) => setExcelLayout(event.target.value)}><option value="multi">One sheet per page</option><option value="single">Combine into one sheet</option></select></label>
+            <label><span>Scanned pages</span><select value={excelOcr ? "ocr" : "text"} disabled={status === "converting"} onChange={(event) => setExcelOcr(event.target.value === "ocr")}><option value="ocr">Run OCR when needed</option><option value="text">Selectable text only</option></select></label>
+            {excelOcr && <label><span>OCR language</span><select value={ocrLanguage} disabled={status === "converting"} onChange={(event) => setOcrLanguage(event.target.value)}>{OCR_LANGUAGES.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>}
+          </div>}
+          <div className="office-mode-note"><strong>What the converter preserves</strong><p>{tool.id === "pdf-to-excel" ? "Aligned columns, typed numbers, currency, percentages, dates, styled headers, filters, and scanned-page text when OCR is enabled." : mode.detail}</p></div>
           <div className="conversion-summary"><Check size={18} /><span>{file ? `${pageCount} page${pageCount === 1 ? "" : "s"} ready` : "Add a PDF to continue"}</span></div>
           {status === "converting" && <div className="conversion-progress-bar"><i style={{ width: `${progress}%` }} /></div>}
           <button className="conversion-primary-action" type="button" disabled={!file || status === "reading" || status === "converting"} onClick={convert}>{status === "converting" ? <><LoaderCircle className="is-spinning" size={18} /> Converting {progress}%</> : <><Download size={18} /> Download {mode.extension.toUpperCase()}</>}</button>

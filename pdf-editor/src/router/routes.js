@@ -23,7 +23,7 @@ export const FEATURE_PLACEHOLDER_ROUTES = [
   [ROUTE_PATHS.signPdf, "Sign PDF", "Signatures can be placed in the editor. Secure signature-request workflows are in development."],
   [ROUTE_PATHS.pdfToWord, "PDF to Word", "Layout-preserving PDF to Word conversion is currently in development."],
   [ROUTE_PATHS.jpgToPdf, "JPG to PDF", "A dedicated image-to-PDF workflow is currently in development."],
-  [ROUTE_PATHS.ocrPdf, "OCR PDF", "OCR for scanned PDFs is currently in development."],
+  [ROUTE_PATHS.ocrPdf, "OCR PDF", "Recognize printed text in six languages locally and download a searchable PDF plus TXT."],
   [ROUTE_PATHS.aiPdf, "AI PDF", "Document AI features are currently in development and do not return fake results."],
 ].map(([path, title, description]) => ({ path, title, description, status: "Coming soon" }));
 

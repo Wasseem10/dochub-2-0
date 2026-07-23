@@ -85,6 +85,7 @@ import { AccountDeletionCard } from "./components/app/AccountDeletionCard.jsx";
 import { BrandWordmark } from "./components/public/BrandWordmark.jsx";
 import { isAnalyticsOwner } from "./config/adminAccess.js";
 import { createSecurePdfShare, revokeSecurePdfShare } from "./sharing/securePdfSharing.js";
+import { createSigningRequestUrl } from "./signing/signingRequest.js";
 import { OwnerAnalyticsPanel } from "./pages/app/OwnerAnalyticsPanel.jsx";
 import { LatticePdfLanding } from "./LatticePdfLanding.jsx";
 import { EditorRouteStatePage } from "./pages/app/EditorRouteStatePage.jsx";
@@ -1093,6 +1094,15 @@ function Annotation({ annotation, selected, zoom, onSelect, onDrag, onResize, on
     );
   }
 
+  if (annotation.type === "radio") {
+    return (
+      <div className={`annotation radio-field ${selected ? "is-selected" : ""}`} style={{ ...commonStyle, "--checkbox-color": annotation.color }} onPointerDown={dragStart} onDoubleClick={(event) => { event.stopPropagation(); onUpdate(annotation.id, { selected: true }); }} role="radio" aria-checked={Boolean(annotation.selected)} aria-label={annotation.fieldName || "PDF radio option"} title="Double-click to select">
+        {annotation.selected && <span className="radio-mark" aria-hidden="true" />}
+        {selected && <span className="resize-handle" onPointerDown={resizeStart} />}
+      </div>
+    );
+  }
+
   if (annotation.type === "rectangle" || annotation.type === "circle") {
     return (
       <div
@@ -1160,10 +1170,15 @@ function Annotation({ annotation, selected, zoom, onSelect, onDrag, onResize, on
     );
   }
 
-  if (annotation.type === "field") {
+  if (annotation.type === "field" || annotation.type === "choice") {
     return (
       <div className={`annotation fillable-field ${selected ? "is-selected" : ""}`} style={{ ...commonStyle, "--field-color": annotation.color }} onPointerDown={dragStart}>
-        <input
+        {annotation.type === "choice" ? <select
+          aria-label={annotation.fieldName || "PDF choice field"}
+          value={annotation.content || ""}
+          onPointerDown={(event) => { event.stopPropagation(); onSelect(annotation.id); }}
+          onChange={(event) => onUpdate(annotation.id, { content: event.target.value })}
+        ><option value="">Choose an option</option>{(annotation.options || []).map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select> : <input
           aria-label={annotation.fieldName || "PDF text field"}
           value={annotation.content || ""}
           placeholder={annotation.fieldName || "Enter text"}
@@ -1172,7 +1187,7 @@ function Annotation({ annotation, selected, zoom, onSelect, onDrag, onResize, on
             onSelect(annotation.id);
           }}
           onChange={(event) => onUpdate(annotation.id, { content: event.target.value })}
-        />
+        />}
         {selected && <span className="resize-handle" onPointerDown={resizeStart} />}
       </div>
     );
@@ -1496,6 +1511,11 @@ function ProfessionalAnnotation({ annotation, selected, zoom, activeTool, pageWi
     );
   }
 
+
+  if (annotation.type === "radio") {
+    return <div className={`annotation radio-field ${selected ? "is-selected" : ""}`} style={{ ...commonStyle, "--checkbox-color": annotation.color }} onPointerDown={dragStart} onDoubleClick={(event) => { event.stopPropagation(); onUpdate(annotation.id, { selected: true }); }} role="radio" aria-checked={Boolean(annotation.selected)} aria-label={annotation.fieldName || "PDF radio option"} title="Double-click to select">{annotation.selected && <span className="radio-mark" aria-hidden="true" />}{controls}</div>;
+  }
+
   if (annotation.type === "rectangle" || annotation.type === "circle") {
     return <div className={`annotation shape ${annotation.type} ${selected ? "is-selected" : ""}`} style={{ ...commonStyle, borderColor: annotation.color, borderWidth: `${Math.max(1, annotation.strokeWidth || 2)}px`, backgroundColor: annotation.fillColor || "transparent" }} onPointerDown={dragStart}>{controls}</div>;
   }
@@ -1582,10 +1602,10 @@ function ProfessionalAnnotation({ annotation, selected, zoom, activeTool, pageWi
 
   if (annotation.type === "image") return <div className={`annotation image-annotation ${selected ? "is-selected" : ""}`} style={commonStyle} onPointerDown={dragStart}><img src={annotation.imageDataUrl} alt={annotation.content || "Inserted image"} />{controls}</div>;
 
-  if (annotation.type === "field") {
+  if (annotation.type === "field" || annotation.type === "choice") {
     return (
       <div className={`annotation fillable-field ${selected ? "is-selected" : ""}`} style={{ ...commonStyle, "--field-color": annotation.color }} onPointerDown={dragStart}>
-        <input aria-label={annotation.fieldName || "PDF text field"} value={annotation.content || ""} placeholder={annotation.fieldName || "Enter text"} onPointerDown={(event) => { event.stopPropagation(); onSelect(annotation.id); }} onChange={(event) => onUpdate(annotation.id, { content: event.target.value, updatedAt: nowIso() })} />
+        {annotation.type === "choice" ? <select aria-label={annotation.fieldName || "PDF choice field"} value={annotation.content || ""} onPointerDown={(event) => { event.stopPropagation(); onSelect(annotation.id); }} onChange={(event) => onUpdate(annotation.id, { content: event.target.value, updatedAt: nowIso() })}><option value="">Choose an option</option>{(annotation.options || []).map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select> : <input aria-label={annotation.fieldName || "PDF text field"} value={annotation.content || ""} placeholder={annotation.fieldName || "Enter text"} onPointerDown={(event) => { event.stopPropagation(); onSelect(annotation.id); }} onChange={(event) => onUpdate(annotation.id, { content: event.target.value, updatedAt: nowIso() })} />}
         {controls}
       </div>
     );
@@ -2116,7 +2136,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
         },
       }) : null;
       let cloudSaveStatus = "local";
-      if (claimedDocument && ["save", "share"].includes(intent) && isCloudPersistenceConfigured) {
+      if (claimedDocument && ["save", "share", "signature-request"].includes(intent) && isCloudPersistenceConfigured) {
         try {
           await uploadDocumentRecordToCloud(user.uid, claimedDocument);
           cloudSaveStatus = "synced";
@@ -2333,7 +2353,12 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     if (!current) return;
     const changed = Object.entries(patch).some(([key, value]) => current[key] !== value);
     if (!changed) return;
-    commitAnnotations(annotations.map((item) => (item.id === id ? { ...item, ...patch } : item)));
+    commitAnnotations(annotations.map((item) => {
+      if (current.type === "radio" && patch.selected && item.type === "radio" && item.fieldName === current.fieldName) {
+        return item.id === id ? { ...item, ...patch } : { ...item, selected: false };
+      }
+      return item.id === id ? { ...item, ...patch } : item;
+    }));
   };
 
   const updateDetectedTextItem = (id, patch) => {
@@ -2589,8 +2614,8 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       intent,
       guestDocumentId: activeDocumentId,
       publicTool,
-      notice: intent === "share"
-        ? "Sign in to save this document before creating a persistent sharing link."
+      notice: intent === "share" || intent === "signature-request"
+        ? `Sign in to save this document before creating a persistent ${intent === "signature-request" ? "signing" : "sharing"} link.`
         : "Your document is safe in this browser. Sign in to save it to your FixThatPDF account.",
     });
   };
@@ -3282,6 +3307,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     }
 
     if (tool === "field") {
+      const isSignatureRequest = publicTool === "request-signatures";
       addAnnotation({
         id: makeId("field"),
         type: "field",
@@ -3291,7 +3317,9 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
         w: 0.28,
         h: 0.055,
         content: "",
-        fieldName: "Text field",
+        fieldName: isSignatureRequest ? "Signature" : "Text field",
+        requestFieldType: isSignatureRequest ? "signature" : "text",
+        required: true,
         color: colors.blue,
         fontSize: 12,
         opacity: 1,
@@ -4296,27 +4324,41 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     window.setTimeout(() => { void hydratePdfPageAt(targetIndex); }, 0);
   };
 
-  const prepareSignatureRequest = async ({ recipient, message }) => {
+  const prepareSignatureRequest = async ({ recipientName, recipient, message, expirationDays }) => {
+    if (!(await requireAuthenticationForEditorAction("signature-request"))) {
+      setSignatureRequestModalOpen(false);
+      return null;
+    }
+    const requestFields = annotations.filter((annotation) => ["field", "checkbox"].includes(annotation.type)).map((annotation, index) => ({
+      id: annotation.id,
+      page: annotation.page,
+      x: annotation.x,
+      y: annotation.y,
+      w: annotation.w,
+      h: annotation.h,
+      type: annotation.type === "checkbox" ? "checkbox" : annotation.requestFieldType || "text",
+      label: annotation.fieldName || `Field ${index + 1}`,
+      required: annotation.required !== false,
+    }));
+    if (!requestFields.length) throw new Error("Place at least one field on the PDF before creating the request.");
     const exported = await exportPdf({ download: false, showResult: false });
     if (!exported) throw new Error("The signing copy could not be created.");
-    const shareFile = new File([exported.blob], exported.name, { type: "application/pdf" });
-    const shareData = {
-      title: `Signature requested: ${fileName}`,
-      text: message || `Please review and sign ${fileName}.`,
-      files: [shareFile],
-    };
-
-    if (navigator.share && navigator.canShare?.(shareData)) {
-      await navigator.share(shareData);
-      showToast("Signing copy handed off to your share app.");
-    } else {
-      downloadBlob(exported.blob, exported.name);
-      const subject = encodeURIComponent(`Signature requested: ${fileName}`);
-      const body = encodeURIComponent(`${message || `Please review and sign ${fileName}.`}\n\nThe signing copy was downloaded—attach it to this message before sending.`);
-      window.location.href = `mailto:${encodeURIComponent(recipient)}?subject=${subject}&body=${body}`;
-      showToast("Signing copy downloaded. Attach it to the email draft before sending.");
-    }
-    setSignatureRequestModalOpen(false);
+    const share = await createSecurePdfShare({ db, storage, userId: currentUser.uid, pdfBlob: exported.blob, fileName: exported.name, expirationDays });
+    const url = createSigningRequestUrl({
+      origin: window.location.origin,
+      token: share.token,
+      payload: {
+        requestId: share.token,
+        recipient: { name: recipientName, email: recipient },
+        requester: { name: currentUser.name || currentUser.email, email: currentUser.email },
+        message,
+        createdAt: new Date(),
+        expiresAt: share.expiresAt,
+        fields: requestFields,
+      },
+    });
+    showToast("Secure signing link created.");
+    return { ...share, url };
   };
 
   const protectDocument = async (password) => {
@@ -4394,6 +4436,8 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
         : "This document is now saved to your account.");
     } else if (postAuthAction === "share") {
       setShareModalOpen(true);
+    } else if (postAuthAction === "signature-request") {
+      setSignatureRequestModalOpen(true);
     } else if (preset) {
       showToast(`${preset.label} tools are ready.`);
     }
@@ -6746,7 +6790,19 @@ function Inspector({
             </label>
           )}
 
-          {selected.type === "field" && selected.source === "pdf-form" && (
+          {selected.type === "choice" && (
+            <label className="field"><span>Selected option</span><select value={selected.content || ""} onChange={(event) => updateAnnotation(selected.id, { content: event.target.value })}><option value="">Choose an option</option>{(selected.options || []).map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>
+          )}
+
+          {selected.type === "field" && selected.source !== "pdf-form" && (
+            <div className="request-field-settings">
+              <label className="field"><span>Field label</span><input value={selected.fieldName || ""} onChange={(event) => updateAnnotation(selected.id, { fieldName: event.target.value })} /></label>
+              <label className="field"><span>Request field type</span><select value={selected.requestFieldType || "text"} onChange={(event) => updateAnnotation(selected.id, { requestFieldType: event.target.value, fieldName: selected.fieldName === "Text field" ? ({ signature: "Signature", initials: "Initials", date: "Date", text: "Text field" }[event.target.value] || selected.fieldName) : selected.fieldName })}><option value="text">Text</option><option value="signature">Signature</option><option value="initials">Initials</option><option value="date">Date</option></select></label>
+              <label className="protection-authorization"><input type="checkbox" checked={selected.required !== false} onChange={(event) => updateAnnotation(selected.id, { required: event.target.checked })} /><span>Required before the recipient can finish</span></label>
+            </div>
+          )}
+
+          {["field", "checkbox", "radio", "choice"].includes(selected.type) && selected.source === "pdf-form" && (
             <div className="document-info form-field-info">
               <span>Detected PDF form field</span>
               <strong>{selected.fieldName || "Unnamed field"}</strong>
@@ -7304,8 +7360,12 @@ function ShareModal({ fileName, onClose, onCreate, onRevoke, onExport }) {
 }
 
 function SignatureRequestModal({ fileName, onClose, onPrepare }) {
+  const [recipientName, setRecipientName] = useState("");
   const [recipient, setRecipient] = useState("");
   const [message, setMessage] = useState(`Please review and sign ${fileName}.`);
+  const [expirationDays, setExpirationDays] = useState(7);
+  const [request, setRequest] = useState(null);
+  const [copied, setCopied] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
@@ -7317,13 +7377,23 @@ function SignatureRequestModal({ fileName, onClose, onPrepare }) {
     setBusy(true);
     setError("");
     try {
-      await onPrepare({ recipient, message });
+      const created = await onPrepare({ recipientName, recipient, message, expirationDays });
+      if (created) setRequest(created);
     } catch (requestError) {
-      if (requestError?.name !== "AbortError") setError("The signing copy could not be shared. Try again or export it normally.");
+      if (requestError?.name !== "AbortError") setError(requestError?.message || "The signing request could not be created.");
     } finally {
       setBusy(false);
     }
   };
+
+  const copyRequest = async () => {
+    await navigator.clipboard.writeText(request.url);
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 1600);
+  };
+
+  const emailSubject = encodeURIComponent(`Signature requested: ${fileName}`);
+  const emailBody = request ? encodeURIComponent(`${message}\n\nOpen the secure signing link:\n${request.url}\n\nThis link expires ${request.expiresAt.toLocaleString()}.`) : "";
 
   return (
     <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="Request signatures">
@@ -7332,16 +7402,19 @@ function SignatureRequestModal({ fileName, onClose, onPrepare }) {
           <div><h2>Request a signature</h2><p>{fileName}</p></div>
           <button type="button" className="modal-close" onClick={onClose}><X size={18} /></button>
         </header>
-        <div className="workflow-modal-body">
-          <p>Place signature or text fields on the page first. This creates the current PDF and hands it to your device’s share sheet; no copy is uploaded to FixThatPDF.</p>
-          <label><span>Recipient email</span><input type="email" value={recipient} onChange={(event) => setRecipient(event.target.value)} placeholder="name@example.com" /></label>
+        <div className="workflow-modal-body signature-request-body">
+          {!request ? <>
+          <p>Create a revocable signing link with required fields. The recipient completes and downloads the signed PDF in their browser.</p>
+          <div className="signature-recipient-grid"><label><span>Recipient name</span><input value={recipientName} onChange={(event) => setRecipientName(event.target.value)} placeholder="Jordan Lee" /></label><label><span>Recipient email</span><input type="email" value={recipient} onChange={(event) => setRecipient(event.target.value)} placeholder="name@example.com" /></label></div>
           <label><span>Message</span><textarea value={message} onChange={(event) => setMessage(event.target.value)} rows="4" /></label>
-          <small>Local handoff does not provide reminders, completion tracking, identity checks, or an audit certificate.</small>
+          <label><span>Link expiration</span><select value={expirationDays} onChange={(event) => setExpirationDays(Number(event.target.value))}><option value={1}>1 day</option><option value={7}>7 days</option><option value={30}>30 days</option></select></label>
+          <small>The completed PDF stays on the recipient's device. The completion receipt includes a SHA-256 fingerprint but is not independent identity verification.</small>
+          </> : <section className="signature-request-created"><CheckCircle2 size={31} /><h3>Secure signing link ready</h3><p>Send this unique link to {recipientName || recipient}. It expires {request.expiresAt.toLocaleString()}.</p><div className="share-link-row"><input aria-label="Secure signing link" readOnly value={request.url} onFocus={(event) => event.target.select()} /><button type="button" onClick={copyRequest}><Copy size={15} /> {copied ? "Copied" : "Copy"}</button></div></section>}
           {error && <p className="workflow-error" role="alert">{error}</p>}
         </div>
         <footer>
-          <button type="button" className="modal-secondary" onClick={onClose}>Keep editing</button>
-          <button type="button" className="modal-primary" disabled={busy} onClick={prepare}><Send size={16} /> {busy ? "Preparing…" : "Prepare and share"}</button>
+          <button type="button" className="modal-secondary" onClick={onClose}>{request ? "Done" : "Keep editing"}</button>
+          {request ? <a className="modal-primary signature-email-link" href={`mailto:${encodeURIComponent(recipient)}?subject=${emailSubject}&body=${emailBody}`}><Mail size={16} /> Open email draft</a> : <button type="button" className="modal-primary" disabled={busy} onClick={prepare}><Send size={16} /> {busy ? "Creating secure link…" : "Create signing link"}</button>}
         </footer>
       </section>
     </div>

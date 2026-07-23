@@ -10,7 +10,6 @@ import { LandingRoute } from "../pages/public/LandingRoute.jsx";
 import { ToolDirectoryPage } from "../pages/public/ToolDirectoryPage.jsx";
 import { ToolCategoryPage } from "../pages/public/ToolCategoryPage.jsx";
 import { ToolLandingPage } from "../pages/public/ToolLandingPage.jsx";
-import { WorkflowUnavailablePage } from "../pages/public/WorkflowUnavailablePage.jsx";
 import { TOOL_REGISTRY } from "../tools/toolRegistry.js";
 import { TOOL_CATEGORY_PAGES } from "../tools/toolCategoryPages.js";
 import { EDITORIAL_RESOURCE_PATHS } from "../editorial/editorialRoutePaths.js";
@@ -35,6 +34,7 @@ const LazyPdfProtectionPage = lazyNamed(() => import("../pages/public/PdfProtect
 const LazyRedactPdfPage = lazyNamed(() => import("../pages/public/RedactPdfPage.jsx"), "RedactPdfPage");
 const LazyScanPdfPage = lazyNamed(() => import("../pages/public/ScanPdfPage.jsx"), "ScanPdfPage");
 const LazySecureSharePage = lazyNamed(() => import("../pages/public/SecureSharePage.jsx"), "SecureSharePage");
+const LazySigningRequestPage = lazyNamed(() => import("../pages/public/SigningRequestPage.jsx"), "SigningRequestPage");
 const LazySupportPage = lazyNamed(() => import("../pages/public/SupportPage.jsx"), "SupportPage");
 const LazyStructuredPdfConversionPage = lazyNamed(() => import("../pages/public/StructuredPdfConversionPage.jsx"), "StructuredPdfConversionPage");
 const LazyTemplateBuilderPage = lazyNamed(() => import("../pages/public/TemplateBuilderPage.jsx"), "TemplateBuilderPage");
@@ -185,7 +185,7 @@ export const appRouteObjects = [
           },
         ],
       },
-      { path: ROUTE_PATHS.signPattern, element: <WorkflowUnavailablePage kind="signing" /> },
+      { path: ROUTE_PATHS.signPattern, element: <PublicToolBoundary><LazySigningRequestPage /></PublicToolBoundary> },
       { path: "*", element: <NotFoundPage /> },
     ],
   },

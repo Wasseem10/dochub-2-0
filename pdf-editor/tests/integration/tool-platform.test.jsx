@@ -102,7 +102,7 @@ describe("public PDF tool platform", () => {
     expect(textOf(editor.root).includes("No login required to download")).toBe(true);
     expect(textOf(editor.root).includes("How to use Sign PDF safely")).toBe(true);
     expect(textOf(editor.root).includes("Is this a digital certificate signature?")).toBe(true);
-    expect(editor.root.findAllByProps({ role: "button" })).toHaveLength(1);
+    expect(editor.root.findAllByType("button")).toHaveLength(1);
     await unmount(editor);
 
     const protect = await render(<EditorToolUploadPage toolId="protect-pdf" fileInputRef={{ current: null }} onUpload={() => {}} onDropFiles={() => {}} uploadError="" uploadStage={{ status: "idle" }} />);

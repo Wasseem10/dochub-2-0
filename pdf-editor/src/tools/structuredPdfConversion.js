@@ -56,7 +56,7 @@ function uniqueSheetName(value, usedNames) {
   return name;
 }
 
-export function pdfTextItemsToRows(items) {
+function normalizePdfTextItems(items) {
   const normalized = (items || [])
     .filter((item) => String(item.str || "").trim())
     .map((item) => ({
@@ -68,6 +68,11 @@ export function pdfTextItemsToRows(items) {
     }))
     .sort((a, b) => (b.y - a.y) || (a.x - b.x));
 
+  return normalized;
+}
+
+export function pdfTextItemsToTable(items) {
+  const normalized = normalizePdfTextItems(items);
   const lines = [];
   normalized.forEach((item) => {
     const tolerance = Math.max(2.5, item.height * 0.45);
@@ -81,7 +86,7 @@ export function pdfTextItemsToRows(items) {
     }
   });
 
-  return lines
+  const visualRows = lines
     .sort((a, b) => b.y - a.y)
     .map((line) => {
       const cells = [];
@@ -90,15 +95,85 @@ export function pdfTextItemsToRows(items) {
         const gap = previous ? item.x - previous.endX : 0;
         const newCellGap = Math.max(18, line.height * 2.4);
         if (!previous || gap > newCellGap) {
-          cells.push({ text: item.text, endX: item.x + item.width });
+          cells.push({ text: item.text, x: item.x, endX: item.x + item.width, height: item.height });
         } else {
           previous.text = `${previous.text}${gap > 1 ? " " : ""}${item.text}`;
           previous.endX = Math.max(previous.endX, item.x + item.width);
         }
       });
-      return cells.map((cell) => cell.text);
+      return cells;
     })
-    .filter((row) => row.some(Boolean));
+    .filter((row) => row.some((cell) => cell.text));
+
+  const candidates = visualRows.flatMap((row) => row.map((cell) => cell.x)).sort((a, b) => a - b);
+  const anchors = [];
+  candidates.forEach((x) => {
+    const nearest = anchors.find((anchor) => Math.abs(anchor.x - x) <= 16);
+    if (nearest) {
+      nearest.values.push(x);
+      nearest.x = nearest.values.reduce((total, value) => total + value, 0) / nearest.values.length;
+    } else {
+      anchors.push({ x, values: [x] });
+    }
+  });
+  anchors.sort((a, b) => a.x - b.x);
+
+  const rows = visualRows.map((row) => {
+    const output = [];
+    row.forEach((cell) => {
+      let column = anchors.reduce((best, anchor, index) => (
+        Math.abs(anchor.x - cell.x) < Math.abs(anchors[best].x - cell.x) ? index : best
+      ), 0);
+      while (output[column]) column += 1;
+      output[column] = cell.text;
+    });
+    return Array.from({ length: output.length }, (_, index) => output[index] || "");
+  });
+  return { rows, columns: anchors.map((anchor) => anchor.x) };
+}
+
+export function pdfTextItemsToRows(items) {
+  return pdfTextItemsToTable(items).rows;
+}
+
+export function ocrWordsToPdfTextItems(words, _imageWidth, imageHeight) {
+  const height = Math.max(1, Number(imageHeight) || 1);
+  return (words || []).map((word) => ({
+    str: String(word.text || ""),
+    transform: [1, 0, 0, Math.max(4, word.bbox.y1 - word.bbox.y0), word.bbox.x0, height - word.bbox.y1],
+    width: Math.max(0, word.bbox.x1 - word.bbox.x0),
+    height: Math.max(4, word.bbox.y1 - word.bbox.y0),
+  }));
+}
+
+function inferredCell(value) {
+  const text = String(value ?? "").trim();
+  if (!text) return { kind: "empty", value: "" };
+  if (/^0\d+$/.test(text)) return { kind: "string", value: text };
+  const percent = text.match(/^\(?\s*([+-]?[\d,.]+(?:\.\d+)?)\s*%\s*\)?$/);
+  if (percent) return { kind: "percent", value: Number(percent[1].replaceAll(",", "")) / 100 };
+  const currency = text.match(/^\(?\s*([$\u20ac\u00a3\u00a5])\s*([+-]?[\d,.]+(?:\.\d+)?)\s*\)?$/);
+  if (currency) {
+    const value = Number(currency[2].replaceAll(",", "")) * (text.startsWith("(") ? -1 : 1);
+    return { kind: "currency", value };
+  }
+  if (/^[+-]?[\d,.]+(?:\.\d+)?$/.test(text) && Number.isFinite(Number(text.replaceAll(",", "")))) {
+    return { kind: "number", value: Number(text.replaceAll(",", "")) };
+  }
+  const dateMatch = text.match(/^(\d{1,4})[-/](\d{1,2})[-/](\d{1,4})$/);
+  if (dateMatch) {
+    const first = Number(dateMatch[1]);
+    const second = Number(dateMatch[2]);
+    const third = Number(dateMatch[3]);
+    const year = first > 1900 ? first : third;
+    const month = first > 1900 ? second : first;
+    const day = first > 1900 ? third : second;
+    const utc = Date.UTC(year, month - 1, day);
+    if (year >= 1900 && month >= 1 && month <= 12 && day >= 1 && day <= 31 && Number.isFinite(utc)) {
+      return { kind: "date", value: Math.floor(utc / 86400000) + 25569 };
+    }
+  }
+  return { kind: "string", value: text };
 }
 
 export function createXlsxFromPdfPages(pages, { title = "PDF export" } = {}) {
@@ -117,12 +192,25 @@ export function createXlsxFromPdfPages(pages, { title = "PDF export" } = {}) {
   files["docProps/app.xml"] = xml(`<Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/extended-properties" xmlns:vt="http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes"><Application>FixThatPDF</Application><Sheets>${sheets.length}</Sheets></Properties>`);
   files["xl/workbook.xml"] = xml(`<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>${sheets.map((sheet, index) => `<sheet name="${escapeXml(sheet.name)}" sheetId="${index + 1}" r:id="rId${index + 1}"/>`).join("")}</sheets></workbook>`);
   files["xl/_rels/workbook.xml.rels"] = xml(`<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${sheets.map((_, index) => `<Relationship Id="rId${index + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet${index + 1}.xml"/>`).join("")}<Relationship Id="rId${sheets.length + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>`);
-  files["xl/styles.xml"] = xml(`<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><fonts count="1"><font><sz val="11"/><name val="Arial"/><family val="2"/></font></fonts><fills count="2"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill></fills><borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>`);
+  files["xl/styles.xml"] = xml(`<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><numFmts count="3"><numFmt numFmtId="164" formatCode="0.00%"/><numFmt numFmtId="165" formatCode="[$$-409]#,##0.00;[Red]-[$$-409]#,##0.00"/><numFmt numFmtId="166" formatCode="mmm d, yyyy"/></numFmts><fonts count="2"><font><sz val="11"/><name val="Arial"/><family val="2"/></font><font><b/><color rgb="FFFFFFFF"/><sz val="11"/><name val="Arial"/><family val="2"/></font></fonts><fills count="3"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FF2851EB"/><bgColor indexed="64"/></patternFill></fill></fills><borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="6"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf><xf numFmtId="4" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/><xf numFmtId="164" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/><xf numFmtId="165" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/><xf numFmtId="166" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/><xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>`);
 
   sheets.forEach((sheet, sheetIndex) => {
     const maxColumns = Math.max(1, ...sheet.rows.map((row) => row.length));
-    const rowsXml = sheet.rows.map((row, rowIndex) => `<row r="${rowIndex + 1}">${row.map((cell, columnIndex) => `<c r="${columnName(columnIndex)}${rowIndex + 1}" t="inlineStr"><is><t xml:space="preserve">${escapeXml(cell)}</t></is></c>`).join("")}</row>`).join("");
-    files[`xl/worksheets/sheet${sheetIndex + 1}.xml`] = xml(`<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><dimension ref="A1:${columnName(maxColumns - 1)}${Math.max(1, sheet.rows.length)}"/><sheetViews><sheetView workbookViewId="0"/></sheetViews><sheetFormatPr defaultRowHeight="15"/><cols>${Array.from({ length: maxColumns }, (_, index) => `<col min="${index + 1}" max="${index + 1}" width="24" customWidth="1"/>`).join("")}</cols><sheetData>${rowsXml}</sheetData></worksheet>`);
+    const headerIndex = sheet.rows.findIndex((row) => row.filter((cell) => String(cell || "").trim()).length >= 2 && row.every((cell) => !String(cell || "").trim() || inferredCell(cell).kind === "string"));
+    const widths = Array.from({ length: maxColumns }, (_, columnIndex) => Math.max(10, Math.min(44, sheet.rows.reduce((maximum, row) => Math.max(maximum, String(row[columnIndex] ?? "").length + 2), 0))));
+    const rowsXml = sheet.rows.map((row, rowIndex) => `<row r="${rowIndex + 1}">${row.map((cell, columnIndex) => {
+      const inferred = inferredCell(cell);
+      if (inferred.kind === "empty") return "";
+      const reference = `${columnName(columnIndex)}${rowIndex + 1}`;
+      if (rowIndex === headerIndex) return `<c r="${reference}" s="5" t="inlineStr"><is><t xml:space="preserve">${escapeXml(inferred.value)}</t></is></c>`;
+      const style = { number: 1, percent: 2, currency: 3, date: 4 }[inferred.kind];
+      if (style) return `<c r="${reference}" s="${style}"><v>${inferred.value}</v></c>`;
+      return `<c r="${reference}" t="inlineStr"><is><t xml:space="preserve">${escapeXml(inferred.value)}</t></is></c>`;
+    }).join("")}</row>`).join("");
+    const headerRow = headerIndex >= 0 ? headerIndex + 1 : 0;
+    const views = headerRow ? `<sheetViews><sheetView workbookViewId="0"><pane ySplit="${headerRow}" topLeftCell="A${headerRow + 1}" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>` : `<sheetViews><sheetView workbookViewId="0"/></sheetViews>`;
+    const autoFilter = headerRow && sheet.rows.length > headerRow ? `<autoFilter ref="A${headerRow}:${columnName(maxColumns - 1)}${sheet.rows.length}"/>` : "";
+    files[`xl/worksheets/sheet${sheetIndex + 1}.xml`] = xml(`<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><dimension ref="A1:${columnName(maxColumns - 1)}${Math.max(1, sheet.rows.length)}"/>${views}<sheetFormatPr defaultRowHeight="15"/><cols>${widths.map((width, index) => `<col min="${index + 1}" max="${index + 1}" width="${width}" customWidth="1"/>`).join("")}</cols><sheetData>${rowsXml}</sheetData>${autoFilter}</worksheet>`);
   });
   return zipSync(files, { level: 6 });
 }

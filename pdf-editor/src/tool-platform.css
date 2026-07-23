@@ -944,6 +944,94 @@
 .ocr-settings-grid label { display: grid; gap: 6px; color: var(--public-muted); font-size: 12px; font-weight: 750; }
 .ocr-settings-grid select { box-sizing: border-box; width: 100%; min-height: 42px; padding: 0 34px 0 11px; border: 1px solid #d9e2dd; border-radius: 11px; background: #fff; color: var(--public-ink); font: inherit; }
 .ocr-settings-grid select:focus-visible { outline: 3px solid rgba(4,102,69,.18); outline-offset: 2px; border-color: #4d9477; }
+
+.structured-excel-settings { display: grid; gap: 10px; }
+.structured-excel-settings label { display: grid; gap: 6px; color: var(--public-muted); font-size: 12px; font-weight: 750; }
+.structured-excel-settings select { box-sizing: border-box; width: 100%; min-height: 42px; padding: 0 34px 0 11px; border: 1px solid #d7e0ee; border-radius: 11px; background: #fff; color: var(--public-ink); font: inherit; }
+
+.signature-recipient-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.signature-request-created { display: grid; justify-items: start; gap: 10px; padding: 18px; border: 1px solid #cbd8ff; border-radius: 14px; background: #f6f8ff; }
+.signature-request-created > svg { color: #2851eb; }
+.signature-request-created h3, .signature-request-created p { margin: 0; }
+.signature-email-link { text-decoration: none; }
+
+.sign-request-page { min-height: 100vh; background: #eef1f6; color: #0f172a; font-family: "DM Sans", Inter, Arial, sans-serif; }
+.sign-request-header { position: sticky; top: 0; z-index: 20; display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 13px 22px; border-bottom: 1px solid #d8dfeb; background: rgba(255,255,255,.97); box-shadow: 0 4px 18px rgba(15,23,42,.06); }
+.sign-request-header > div { display: flex; align-items: center; gap: 12px; }
+.sign-request-header > div:first-child > span { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 11px; background: #e8eeff; color: #2851eb; }
+.sign-request-header small { color: #2851eb; font-size: 11px; font-weight: 850; text-transform: uppercase; letter-spacing: .07em; }
+.sign-request-header h1, .sign-request-header p { margin: 0; }
+.sign-request-header h1 { max-width: 56vw; overflow: hidden; font-size: 16px; text-overflow: ellipsis; white-space: nowrap; }
+.sign-request-header p { margin-top: 2px; color: #657087; font-size: 12px; }
+.sign-request-header > div:last-child { color: #4a5870; font-size: 12px; font-weight: 750; }
+.sign-request-layout { display: grid; grid-template-columns: minmax(0, 1fr) 330px; min-height: calc(100vh - 70px); }
+.sign-document-pages { display: grid; align-content: start; justify-items: center; gap: 24px; padding: 28px; overflow: auto; }
+.sign-document-page { position: relative; width: min(100%, 820px); background: #fff; box-shadow: 0 10px 34px rgba(15,23,42,.17); }
+.sign-document-page > img { display: block; width: 100%; height: 100%; object-fit: fill; }
+.sign-field-overlay { position: absolute; z-index: 2; box-sizing: border-box; margin: 0; border: 2px solid #2851eb; border-radius: 5px; background: rgba(239,244,255,.94); box-shadow: 0 3px 9px rgba(40,81,235,.15); }
+.sign-field-overlay:focus-visible, .sign-field-overlay input:focus-visible { outline: 3px solid rgba(255,130,60,.42); outline-offset: 2px; }
+.sign-field-overlay.is-text input { box-sizing: border-box; width: 100%; height: 100%; min-width: 0; padding: 3px 6px; border: 0; background: transparent; color: #0f172a; font: inherit; font-size: clamp(8px, 1.1vw, 14px); }
+.sign-field-overlay.is-signature { display: flex; align-items: center; justify-content: center; gap: 5px; overflow: hidden; color: #2851eb; cursor: pointer; font: inherit; font-size: clamp(7px, .95vw, 12px); font-weight: 800; }
+.sign-field-overlay.is-signature.is-complete { border-color: #1b8a63; background: rgba(237,251,246,.96); color: #102a22; font-family: "Brush Script MT", "Segoe Script", cursive; font-size: clamp(10px, 1.8vw, 22px); }
+.sign-field-overlay.is-signature img { width: 100%; height: 100%; object-fit: contain; }
+.sign-field-overlay.is-checkbox { display: grid; place-items: center; cursor: pointer; }
+.sign-field-overlay.is-checkbox input { position: absolute; opacity: 0; }
+.sign-field-overlay.is-checkbox span { display: grid; place-items: center; width: 100%; height: 100%; color: transparent; }
+.sign-field-overlay.is-checkbox input:checked + span { background: #2851eb; color: #fff; }
+.sign-request-sidebar { position: sticky; top: 69px; align-self: start; display: grid; gap: 14px; min-height: calc(100vh - 69px); padding: 24px; border-left: 1px solid #d8dfeb; background: #fff; }
+.sign-request-sidebar > span { color: #2851eb; font-size: 11px; font-weight: 850; text-transform: uppercase; letter-spacing: .06em; }
+.sign-request-sidebar h2, .sign-request-sidebar p { margin: 0; }
+.sign-request-message { padding: 12px; border-radius: 10px; background: #f7f8fb; color: #536076; font-size: 13px; line-height: 1.5; }
+.sign-field-checklist { display: grid; gap: 8px; margin: 4px 0; padding: 0; list-style: none; }
+.sign-field-checklist li { display: flex; align-items: center; gap: 10px; padding: 9px; border: 1px solid #e1e6ef; border-radius: 10px; }
+.sign-field-checklist li > span { display: grid; place-items: center; width: 23px; height: 23px; border-radius: 999px; background: #eef2ff; color: #2851eb; font-size: 11px; font-weight: 850; }
+.sign-field-checklist li.is-complete > span { background: #dff7ee; color: #147456; }
+.sign-field-checklist li div { display: grid; gap: 2px; }
+.sign-field-checklist strong { font-size: 12px; }
+.sign-field-checklist small { color: #748096; font-size: 10px; }
+.sign-finish-button, .sign-complete-card button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 46px; padding: 0 16px; border: 0; border-radius: 11px; background: #2851eb; color: #fff; cursor: pointer; font: inherit; font-weight: 850; }
+.sign-finish-button:disabled { cursor: wait; opacity: .68; }
+.sign-request-error { margin: 0; padding: 10px 12px; border-radius: 9px; background: #fff0f1; color: #a51d2d; font-size: 12px; font-weight: 700; }
+.sign-request-disclosure { display: flex; align-items: flex-start; gap: 6px; color: #748096; font-size: 10px; line-height: 1.45; }
+.sign-complete-card { display: grid; justify-items: stretch; gap: 13px; text-align: center; }
+.sign-complete-card > svg { justify-self: center; color: #16805d; }
+.sign-complete-card button:not(.is-primary) { border: 1px solid #cfd8e8; background: #fff; color: #24324a; }
+.sign-complete-card small { color: #748096; font-size: 10px; overflow-wrap: anywhere; }
+.sign-capture-backdrop { position: fixed; inset: 0; z-index: 80; display: grid; place-items: center; padding: 20px; background: rgba(10,18,34,.62); }
+.sign-capture-card { width: min(620px, 100%); overflow: hidden; border-radius: 16px; background: #fff; box-shadow: 0 28px 80px rgba(5,11,24,.34); }
+.sign-capture-card header, .sign-capture-card footer { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 16px 19px; border-bottom: 1px solid #e3e7ef; }
+.sign-capture-card header span { color: #2851eb; font-size: 10px; font-weight: 850; text-transform: uppercase; }
+.sign-capture-card h2 { margin: 2px 0 0; font-size: 18px; }
+.sign-capture-card header button { display: grid; place-items: center; width: 34px; height: 34px; border: 0; border-radius: 9px; background: #f2f4f8; cursor: pointer; }
+.sign-capture-tabs { display: flex; gap: 6px; padding: 15px 19px 0; }
+.sign-capture-tabs button { padding: 8px 15px; border: 1px solid #d8deea; border-radius: 9px; background: #fff; color: #536076; cursor: pointer; font: inherit; font-weight: 750; }
+.sign-capture-tabs button.is-active { border-color: #2851eb; background: #eef2ff; color: #2851eb; }
+.sign-typed-field, .sign-draw-field { display: grid; gap: 10px; padding: 18px 19px; }
+.sign-typed-field span { color: #536076; font-size: 12px; font-weight: 750; }
+.sign-typed-field input { min-height: 42px; padding: 0 11px; border: 1px solid #cfd8e8; border-radius: 9px; font: inherit; }
+.sign-typed-field strong { display: grid; place-items: center; min-height: 110px; border-bottom: 1px solid #bac4d5; color: #0f172a; font-family: "Brush Script MT", "Segoe Script", cursive; font-size: clamp(28px, 7vw, 52px); font-weight: 500; }
+.sign-draw-field canvas { display: block; box-sizing: border-box; width: 100%; height: 175px; touch-action: none; border: 1px solid #cfd8e8; border-radius: 10px; background: repeating-linear-gradient(0deg,#fff,#fff 34px,#f0f2f6 35px); }
+.sign-draw-field button { justify-self: start; border: 0; background: none; color: #2851eb; cursor: pointer; font: inherit; font-weight: 750; }
+.sign-capture-card footer { justify-content: flex-end; border-top: 1px solid #e3e7ef; border-bottom: 0; }
+.sign-capture-card footer button { display: inline-flex; align-items: center; gap: 7px; min-height: 40px; padding: 0 15px; border: 1px solid #d6dce7; border-radius: 9px; background: #fff; cursor: pointer; font: inherit; font-weight: 800; }
+.sign-capture-card footer button.is-primary { border-color: #2851eb; background: #2851eb; color: #fff; }
+
+@media (max-width: 900px) {
+  .sign-request-header { align-items: flex-start; padding: 11px 14px; }
+  .sign-request-header > div:last-child { display: none; }
+  .sign-request-header h1 { max-width: 72vw; }
+  .sign-request-layout { grid-template-columns: 1fr; }
+  .sign-request-sidebar { position: static; min-height: 0; border-top: 1px solid #d8dfeb; border-left: 0; }
+  .sign-document-pages { padding: 14px; }
+}
+
+@media (max-width: 620px) {
+  .signature-recipient-grid { grid-template-columns: 1fr; }
+  .sign-request-header p { display: none; }
+  .sign-document-pages { gap: 14px; padding: 8px; }
+  .sign-field-overlay.is-signature span { display: none; }
+  .sign-request-sidebar { padding: 18px; }
+}
 .ocr-quality-result { display: grid; gap: 3px; margin-top: 12px; padding: 12px 13px; border: 1px solid #b8dfc7; border-radius: 12px; background: #f1fbf5; color: #155f40; }
 .ocr-quality-result strong { font-size: 13px; }
 .ocr-quality-result span { font-size: 11px; line-height: 1.4; }

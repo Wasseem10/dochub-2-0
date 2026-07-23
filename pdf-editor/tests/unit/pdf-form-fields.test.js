@@ -46,6 +46,18 @@ describe("PDF form field detection", () => {
     expect(annotations[0]).toMatchObject({ type: "checkbox", checked: false });
   });
 
+  it("maps radio buttons and choice widgets with their real options", () => {
+    let nextId = 0;
+    const annotations = extractPdfFormAnnotations([
+      { subtype: "Widget", rect: [30, 600, 52, 622], fieldName: "Plan", fieldType: "Btn", radioButton: true, fieldValue: "Pro", buttonValue: "Basic" },
+      { subtype: "Widget", rect: [60, 600, 82, 622], fieldName: "Plan", fieldType: "Btn", radioButton: true, fieldValue: "Pro", buttonValue: "Pro" },
+      { subtype: "Widget", rect: [30, 540, 220, 570], fieldName: "Country", fieldType: "Ch", fieldValue: "US", options: [{ exportValue: "US", displayValue: "United States" }, { exportValue: "CA", displayValue: "Canada" }] },
+    ], viewport, 0, () => `choice-${++nextId}`);
+    expect(annotations[0]).toMatchObject({ type: "radio", optionValue: "Basic", selected: false });
+    expect(annotations[1]).toMatchObject({ type: "radio", optionValue: "Pro", selected: true });
+    expect(annotations[2]).toMatchObject({ type: "choice", content: "US", options: [{ value: "US", label: "United States" }, { value: "CA", label: "Canada" }] });
+  });
+
   it("detects real AcroForm widgets created in a PDF", async () => {
     const source = await PDFDocument.create();
     const page = source.addPage([600, 800]);

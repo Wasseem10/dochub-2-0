@@ -18,7 +18,7 @@ const UPLOAD_COPY = Object.freeze({
   "sign-pdf": ["Sign a PDF online", "Type, draw, or upload your signature and place it precisely on the document."],
   "add-initials": ["Add initials to a PDF", "Create your initials once, place them anywhere, and download the completed PDF."],
   "add-date-fields": ["Add date fields to a PDF", "Place today’s date or enter a custom date wherever the document needs it."],
-  "request-signatures": ["Request signatures on a PDF", "Place signer fields, prepare the current PDF, and hand it off with your device’s share sheet."],
+  "request-signatures": ["Request signatures on a PDF", "Place required fields, create an expiring link, and let one recipient sign and download the completed PDF securely in their browser."],
   "protect-pdf": ["Protect a PDF with a password", "Apply local AES-256 encryption and download a password-protected copy."],
   "review-pdf": ["Review a PDF online", "Highlight, draw, add shapes, and keep a complete local review trail in one workspace."],
   "comment-on-pdf": ["Comment on a PDF online", "Place comment threads on any page, add replies, resolve feedback, and export the reviewed PDF."],
@@ -63,16 +63,7 @@ export function EditorToolUploadPage({ toolId, fileInputRef, onUpload, onDropFil
         <div className="editor-tool-upload-frame">
           <div
             className={`editor-tool-dropzone ${dragging ? "is-dragging" : ""}`}
-            role="button"
-            tabIndex="0"
-            aria-label={`Upload a PDF to ${tool.name.toLowerCase()}`}
             onClick={openPicker}
-            onKeyDown={(event) => {
-              if (event.key === "Enter" || event.key === " ") {
-                event.preventDefault();
-                openPicker();
-              }
-            }}
             onDragEnter={(event) => {
               event.preventDefault();
               dropDepth.current += 1;

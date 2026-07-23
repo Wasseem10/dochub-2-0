@@ -78,12 +78,22 @@ describe("editor page export plan", () => {
     name.addToPage(page, { x: 50, y: 700, width: 180, height: 24 });
     const approved = form.createCheckBox("customer.approved");
     approved.addToPage(page, { x: 50, y: 650, width: 18, height: 18 });
+    const plan = form.createRadioGroup("customer.plan");
+    plan.addOptionToPage("Basic", page, { x: 50, y: 610, width: 18, height: 18 });
+    plan.addOptionToPage("Pro", page, { x: 80, y: 610, width: 18, height: 18 });
+    const country = form.createDropdown("customer.country");
+    country.addOptions(["US", "CA"]);
+    country.addToPage(page, { x: 50, y: 560, width: 120, height: 24 });
 
     expect(applyNativePdfFormAnnotation(source, { source: "pdf-form", type: "field", fieldName: "customer.name", content: "Grace Hopper" })).toBe(true);
     expect(applyNativePdfFormAnnotation(source, { source: "pdf-form", type: "checkbox", fieldName: "customer.approved", checked: true })).toBe(true);
+    expect(applyNativePdfFormAnnotation(source, { source: "pdf-form", type: "radio", fieldName: "customer.plan", selected: true, optionValue: "Pro" })).toBe(true);
+    expect(applyNativePdfFormAnnotation(source, { source: "pdf-form", type: "choice", fieldName: "customer.country", content: "CA" })).toBe(true);
     const reopened = await PDFDocument.load(await source.save());
     expect(reopened.getForm().getTextField("customer.name").getText()).toBe("Grace Hopper");
     expect(reopened.getForm().getCheckBox("customer.approved").isChecked()).toBe(true);
+    expect(reopened.getForm().getRadioGroup("customer.plan").getSelected()).toBe("Pro");
+    expect(reopened.getForm().getDropdown("customer.country").getSelected()).toEqual(["CA"]);
   });
 
   it("exports reordered, duplicated, rotated, and inserted pages as an openable PDF", async () => {

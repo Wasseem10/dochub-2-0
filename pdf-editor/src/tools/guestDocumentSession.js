@@ -1,7 +1,7 @@
 import { loadLocalDocuments, saveLocalDocuments } from "./localDocumentStore.js";
 
 export const GUEST_OWNER_ID = "realpdf-local-guest";
-export const ACCOUNT_GATED_EDITOR_ACTIONS = Object.freeze(["save", "share", "saved-signature", "template"]);
+export const ACCOUNT_GATED_EDITOR_ACTIONS = Object.freeze(["save", "share", "signature-request", "saved-signature", "template"]);
 
 export function editorActionNeedsAccount(action, currentUser) {
   return ACCOUNT_GATED_EDITOR_ACTIONS.includes(action) && !currentUser?.uid;
