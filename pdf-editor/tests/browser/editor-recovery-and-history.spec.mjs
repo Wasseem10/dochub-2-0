@@ -37,6 +37,7 @@ test("existing-text edits undo, redo, autosave, survive reload, and export", asy
   });
 
   const detected = page.locator(".detected-text-item").filter({ hasText: "ORIGINAL ACCOUNT TOTAL" });
+  await page.getByRole("button", { name: "Edit Text", exact: true }).click();
   await detected.click();
   const content = detected.locator(".detected-text-content");
   await content.fill("UPDATED ACCOUNT TOTAL 42000");

@@ -26,6 +26,10 @@ test("existing PDF text keeps its detected style, baseline, and page background 
 
   const detected = page.locator(".detected-text-item").first();
   await expect(detected).toContainText("Original quarterly total");
+  await expect(page.getByRole("button", { name: "Select", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await expect(detected).toHaveCSS("pointer-events", "none");
+  await page.getByRole("button", { name: "Edit Text", exact: true }).click();
+  await expect(detected).toHaveCSS("pointer-events", "auto");
   await detected.click();
   const editable = detected.locator(".detected-text-content");
   await editable.fill("Updated quarterly total");

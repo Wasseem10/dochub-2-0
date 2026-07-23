@@ -93,6 +93,7 @@ import { EditorToolUploadPage } from "./pages/public/EditorToolUploadPage.jsx";
 import { resolveEditorDocument } from "./router/editorRouteState.js";
 import { currentLocationPath, editorPath, publicEditorDocumentPath, publicEditorPath, ROUTE_PATHS } from "./router/routePaths.js";
 import { getEditorToolPreset, resolveEditorActiveTool } from "./tools/editorToolPresets.js";
+import { calculateEditorFitZoom, EDITOR_ZOOM_MODE, editorZoomLabel } from "./tools/editorZoom.js";
 import { claimGuestDocument, editorActionNeedsAccount, GUEST_OWNER_ID, recoverDocumentAsGuest, resolveEditorStorageOwnerId } from "./tools/guestDocumentSession.js";
 import { clearEditorSession, loadEditorSession, saveEditorSession } from "./tools/editorSessionStore.js";
 import { loadLocalDocuments, saveLocalDocuments } from "./tools/localDocumentStore.js";
@@ -221,6 +222,7 @@ const referencePrimaryTools = [
 ];
 
 const compactEditorTools = [
+  { id: "select", label: "Select", icon: MousePointer2 },
   { id: "draw", label: "Draw", icon: Paintbrush },
   { id: "erase", label: "Erase", icon: Eraser },
   { id: "arrow", label: "Arrow", icon: Send },
@@ -1665,7 +1667,6 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   const publicDocumentRecoveryRef = useRef(new Set());
   const trackedDocumentOpenRef = useRef(new Set());
   const pendingLandingFileConsumedRef = useRef(false);
-  const mobileFitDocumentRef = useRef("");
   const lastPagePointRef = useRef({ x: 0.52, y: 0.28 });
   const editorClipboardRef = useRef(null);
   const detectedTextEditHistoryRef = useRef(new Map());
@@ -1684,6 +1685,9 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   const [selectedId, setSelectedId] = useState(null);
   const [selectedDetectedTextId, setSelectedDetectedTextId] = useState(null);
   const [zoom, setZoom] = useState(100);
+  const [zoomMode, setZoomMode] = useState(() => (
+    usesMobileEditorLayout() ? EDITOR_ZOOM_MODE.FIT_WIDTH : EDITOR_ZOOM_MODE.CUSTOM
+  ));
   const [saved, setSaved] = useState(true);
   const [saveState, setSaveState] = useState("saved");
   const [isOffline, setIsOffline] = useState(() => typeof navigator !== "undefined" && !navigator.onLine);
@@ -1823,6 +1827,24 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   const zoomOptions = useMemo(() => (
     Array.from(new Set([...ZOOM_PRESETS, zoom])).sort((a, b) => a - b)
   ), [zoom]);
+  const zoomDisplayLabel = editorZoomLabel(zoomMode, zoom);
+
+  const setCustomZoom = useCallback((nextZoom) => {
+    setZoomMode(EDITOR_ZOOM_MODE.CUSTOM);
+    setZoom((currentZoom) => clamp(
+      typeof nextZoom === "function" ? nextZoom(currentZoom) : nextZoom,
+      MIN_EDITOR_ZOOM,
+      160,
+    ));
+  }, []);
+
+  const selectZoom = useCallback((selection) => {
+    if (selection === EDITOR_ZOOM_MODE.FIT_WIDTH || selection === EDITOR_ZOOM_MODE.FIT_PAGE) {
+      setZoomMode(selection);
+      return;
+    }
+    setCustomZoom(Number(selection));
+  }, [setCustomZoom]);
 
   useEffect(() => {
     pagesRef.current = pages;
@@ -1853,8 +1875,9 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     const handleLayoutChange = (event) => {
       if (event.matches) {
         setIsPagesCollapsed(true);
-      } else if (mobileFitDocumentRef.current) {
-        mobileFitDocumentRef.current = "";
+        setZoomMode(EDITOR_ZOOM_MODE.FIT_WIDTH);
+      } else {
+        setZoomMode(EDITOR_ZOOM_MODE.CUSTOM);
         setZoom(100);
       }
     };
@@ -1863,18 +1886,42 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   }, []);
 
   useLayoutEffect(() => {
-    if (!currentPage || editorRouteState !== "ready" || !usesMobileEditorLayout()) return undefined;
-    const fitKey = `${activeDocumentId || "document"}:${currentPage.width}x${currentPage.height}`;
-    if (mobileFitDocumentRef.current === fitKey) return undefined;
-    mobileFitDocumentRef.current = fitKey;
-    setIsPagesCollapsed(true);
-    const animationFrame = window.requestAnimationFrame(() => {
-      const availableWidth = Math.max(240, (canvasColumnRef.current?.clientWidth || window.innerWidth) - 24);
-      const fittedZoom = Math.round((availableWidth / (currentPage.width * EDITOR_PAGE_SCALE)) * 100);
-      setZoom(clamp(fittedZoom, MIN_EDITOR_ZOOM, 100));
-    });
-    return () => window.cancelAnimationFrame(animationFrame);
-  }, [activeDocumentId, currentPage, editorRouteState]);
+    if (!currentPage || editorRouteState !== "ready" || zoomMode === EDITOR_ZOOM_MODE.CUSTOM) return undefined;
+    const canvasColumn = canvasColumnRef.current;
+    if (!canvasColumn) return undefined;
+
+    let animationFrame = 0;
+    const updateFittedZoom = () => {
+      window.cancelAnimationFrame(animationFrame);
+      animationFrame = window.requestAnimationFrame(() => {
+        const fittedZoom = calculateEditorFitZoom({
+          mode: zoomMode,
+          pageWidth: currentPage.width,
+          pageHeight: currentPage.height,
+          containerWidth: canvasColumn.clientWidth || window.innerWidth,
+          containerHeight: canvasColumn.clientHeight || window.innerHeight,
+          pageScale: EDITOR_PAGE_SCALE,
+          minZoom: MIN_EDITOR_ZOOM,
+          maxZoom: 160,
+          horizontalPadding: usesMobileEditorLayout() ? 24 : 120,
+          verticalPadding: usesMobileEditorLayout() ? 96 : 140,
+        });
+        setZoom(fittedZoom);
+      });
+    };
+
+    updateFittedZoom();
+    const resizeObserver = typeof ResizeObserver === "function" ? new ResizeObserver(updateFittedZoom) : null;
+    resizeObserver?.observe(canvasColumn);
+    window.addEventListener("orientationchange", updateFittedZoom);
+    window.addEventListener("resize", updateFittedZoom);
+    return () => {
+      window.cancelAnimationFrame(animationFrame);
+      resizeObserver?.disconnect();
+      window.removeEventListener("orientationchange", updateFittedZoom);
+      window.removeEventListener("resize", updateFittedZoom);
+    };
+  }, [currentPage, editorRouteState, zoomMode]);
 
   useEffect(() => {
     if (!activeDocumentId || editorRouteState !== "ready" || !pages.length) return;
@@ -2783,6 +2830,8 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       setSelectedId(null);
       setSelectedDetectedTextId(null);
       setTool(resolveEditorActiveTool(publicTool, detectedItems.length));
+      setZoomMode(usesMobileEditorLayout() ? EDITOR_ZOOM_MODE.FIT_WIDTH : EDITOR_ZOOM_MODE.CUSTOM);
+      setZoom(100);
       setSaved(true);
       setSaveState("saved");
       setLastSavedAt(stamp);
@@ -2790,7 +2839,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       showToast(detectedFormFields.length
         ? `Found ${detectedFormFields.length} fillable field${detectedFormFields.length === 1 ? "" : "s"}.`
         : detectedItems.length
-          ? `Smart Edit detected ${detectedItems.length} text item${detectedItems.length === 1 ? "" : "s"}.`
+          ? `Found ${detectedItems.length} editable text item${detectedItems.length === 1 ? "" : "s"}. Choose Edit Text when you need them.`
           : "This looks scanned. OCR is not enabled in this browser build yet.");
       navigate(isPublicEditor ? publicEditorDocumentPath(publicTool, documentRecord.id) : editorPath(documentRecord.id), { state: { publicTool } });
       window.setTimeout(() => setUploadStage({ status: "idle", percent: 0, fileName: "" }), 900);
@@ -2863,7 +2912,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       setSelectedId(null);
       setSelectedDetectedTextId(null);
       setIsPagesCollapsed(false);
-      setTool(appendedDetectedItems.length ? "editText" : "select");
+      setTool("select");
       markUnsaved();
       setUploadStage({ status: "complete", percent: 100, fileName: file.name });
       showToast(`Appended ${appendedPages.length} page${appendedPages.length === 1 ? "" : "s"} from ${file.name}.`);
@@ -3109,10 +3158,11 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     setPageIndex(clamp(session?.pageIndex || 0, 0, Math.max(0, documentPages.length - 1)));
     setUndoStack(session?.undoStack || []);
     setRedoStack(session?.redoStack || []);
-    setSelectedId(session?.selectedId || null);
-    setSelectedDetectedTextId(session?.selectedDetectedTextId || null);
-    setTool(session?.tool || "select");
-    setZoom(session?.zoom || 100);
+    setSelectedId(null);
+    setSelectedDetectedTextId(null);
+    setTool("select");
+    setZoomMode(usesMobileEditorLayout() ? EDITOR_ZOOM_MODE.FIT_WIDTH : EDITOR_ZOOM_MODE.CUSTOM);
+    setZoom(usesMobileEditorLayout() ? 100 : session?.zoom || 100);
     if (session?.toolSettings) {
       setToolSettings((settings) => ({
         ...settings,
@@ -3684,17 +3734,6 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     updateAnnotation(selected.id, { color: nextColor });
     showToast("Custom color applied.");
     return true;
-  };
-
-  const fitPageToWidth = () => {
-    const availableWidth = (canvasColumnRef.current?.clientWidth || 0) - 96;
-    if (!currentPage?.width || availableWidth <= 0) {
-      setZoom(100);
-      return;
-    }
-    const nextZoom = Math.round((availableWidth / (currentPage.width * EDITOR_PAGE_SCALE)) * 100);
-    setZoom(clamp(nextZoom, MIN_EDITOR_ZOOM, 160));
-    showToast("Fit page to width.");
   };
 
   const updateDetectedTextContent = (id, element) => {
@@ -4578,7 +4617,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   }
 
   return (
-    <main className={`editor-shell ${hasVisibleToolSettings ? "has-tool-settings" : ""} ${tool === "editText" ? "is-smart-text-mode" : ""} ${tool === "textHighlight" ? "is-text-highlight-mode" : ""} ${tool === "highlight" || tool === "textHighlight" ? "is-highlight-settings-mode" : ""}`}>
+    <main className={`editor-shell ${hasVisibleToolSettings ? "has-tool-settings" : ""} ${tool === "editText" ? "is-smart-text-mode" : ""} ${tool === "textHighlight" ? "is-text-highlight-mode" : ""} ${tool === "highlight" || tool === "textHighlight" ? "is-highlight-settings-mode" : ""} ${zoomMode === EDITOR_ZOOM_MODE.CUSTOM ? "is-custom-zoom" : "is-fit-zoom"}`}>
       <input ref={fileInputRef} className="hidden-input" type="file" accept="application/pdf" onChange={onUpload} />
       <input ref={appendFileInputRef} className="hidden-input" type="file" accept="application/pdf" onChange={onAppendUpload} />
       <input ref={imageInputRef} className="hidden-input" type="file" accept="image/png,image/jpeg" onChange={onImageUpload} />
@@ -4623,7 +4662,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
           <button type="button" className="icon-button" onClick={() => setIsSearchOpen((value) => !value)} title="Search"><Search size={22} /></button>
           <button type="button" className="icon-button" onClick={undo} disabled={!undoStack.length} title="Undo"><Undo2 size={21} /></button>
           <button type="button" className="icon-button" onClick={redo} disabled={!redoStack.length} title="Redo"><Redo2 size={21} /></button>
-          <button className="toolbar-icon" type="button" onClick={() => setZoom((value) => clamp(value - 10, MIN_EDITOR_ZOOM, 160))} title="Zoom out">-</button>
+          <button className="toolbar-icon" type="button" onClick={() => setCustomZoom((value) => value - 10)} title="Zoom out">-</button>
           <div className="zoom-menu-wrap" ref={zoomMenuRef}>
             <button
               className={`toolbar-chip ${isZoomMenuOpen ? "is-active" : ""}`}
@@ -4633,30 +4672,49 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
               aria-expanded={isZoomMenuOpen}
               onClick={() => setIsZoomMenuOpen((value) => !value)}
             >
-              {zoom}% <ChevronDown size={15} />
+              {zoomDisplayLabel} <ChevronDown size={15} />
             </button>
             {isZoomMenuOpen && (
               <div className="zoom-preset-menu" role="menu" aria-label="Zoom presets">
+                {[
+                  [EDITOR_ZOOM_MODE.FIT_WIDTH, "Fit width"],
+                  [EDITOR_ZOOM_MODE.FIT_PAGE, "Fit page"],
+                ].map(([mode, label]) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    role="menuitemradio"
+                    aria-checked={zoomMode === mode}
+                    className={zoomMode === mode ? "is-selected" : ""}
+                    onClick={() => {
+                      selectZoom(mode);
+                      setIsZoomMenuOpen(false);
+                    }}
+                  >
+                    <span>{label}</span>
+                    <small>{mode === EDITOR_ZOOM_MODE.FIT_WIDTH ? "Use available width" : "Show the whole page"}</small>
+                  </button>
+                ))}
                 {zoomOptions.map((value) => (
                   <button
                     key={value}
                     type="button"
                     role="menuitemradio"
-                    aria-checked={zoom === value}
-                    className={zoom === value ? "is-selected" : ""}
+                    aria-checked={zoomMode === EDITOR_ZOOM_MODE.CUSTOM && zoom === value}
+                    className={zoomMode === EDITOR_ZOOM_MODE.CUSTOM && zoom === value ? "is-selected" : ""}
                     onClick={() => {
-                      setZoom(value);
+                      setCustomZoom(value);
                       setIsZoomMenuOpen(false);
                     }}
                   >
                     <span>{value}%</span>
-                    {value === 100 ? <small>Actual size</small> : value === 80 ? <small>Comfort view</small> : !ZOOM_PRESETS.includes(value) ? <small>Fit width</small> : null}
+                    {value === 100 ? <small>Actual size</small> : value === 80 ? <small>Comfort view</small> : null}
                   </button>
                 ))}
               </div>
             )}
           </div>
-          <button className="toolbar-icon" type="button" onClick={() => setZoom((value) => clamp(value + 10, MIN_EDITOR_ZOOM, 160))} title="Zoom in">+</button>
+          <button className="toolbar-icon" type="button" onClick={() => setCustomZoom((value) => value + 10)} title="Zoom in">+</button>
         </div>
         <div className="header-actions">
           <div className="more-menu-wrap" ref={moreMenuRef}>
@@ -4736,6 +4794,9 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
 
         <div className="reference-primary-tools" role="toolbar" aria-label="Editing tools">
           <div className="reference-content-tools">
+            <button type="button" className={`reference-toolbar-button reference-select-tool ${tool === "select" ? "is-active" : ""}`} aria-pressed={tool === "select"} onClick={() => activateReferenceTool("select")}>
+              <MousePointer2 size={23} /><span>Select</span>
+            </button>
             {referencePrimaryTools.slice(0, 3).map(({ id, label, icon: Icon }) => (
               <button key={id} type="button" className={`reference-toolbar-button ${tool === id ? "is-active" : ""}`} aria-pressed={tool === id} onClick={() => activateReferenceTool(id)}>
                 <Icon size={23} /><span>{label}</span>
@@ -5254,25 +5315,29 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       <footer className="status-bar">
         <div />
         <div className="page-nav" aria-label="Zoom and page navigation">
-          <button className="page-nav-zoom" type="button" onClick={() => setZoom((value) => clamp(value - 10, MIN_EDITOR_ZOOM, 160))} title="Zoom out" aria-label="Zoom out"><Minus size={21} strokeWidth={2.6} /></button>
-          <select className="page-nav-zoom-select" value={zoom} onChange={(event) => setZoom(Number(event.target.value))} aria-label="Zoom level">
+          <button className="page-nav-zoom" type="button" onClick={() => setCustomZoom((value) => value - 10)} title="Zoom out" aria-label="Zoom out"><Minus size={21} strokeWidth={2.6} /></button>
+          <select className="page-nav-zoom-select" value={zoomMode === EDITOR_ZOOM_MODE.CUSTOM ? String(zoom) : zoomMode} onChange={(event) => selectZoom(event.target.value)} aria-label="Zoom mode or level">
+            <option value={EDITOR_ZOOM_MODE.FIT_WIDTH}>Fit width</option>
+            <option value={EDITOR_ZOOM_MODE.FIT_PAGE}>Fit page</option>
             {zoomOptions.map((value) => <option key={value} value={value}>{value}%</option>)}
           </select>
-          <button className="page-nav-zoom" type="button" onClick={() => setZoom((value) => clamp(value + 10, MIN_EDITOR_ZOOM, 160))} title="Zoom in" aria-label="Zoom in"><Plus size={22} strokeWidth={2.6} /></button>
+          <button className="page-nav-zoom" type="button" onClick={() => setCustomZoom((value) => value + 10)} title="Zoom in" aria-label="Zoom in"><Plus size={22} strokeWidth={2.6} /></button>
           <span className="page-nav-divider" aria-hidden="true" />
-          <button type="button" onClick={() => setPageIndex(0)} title="First page" aria-label="First page"><ChevronLeft size={25} strokeWidth={2.4} /></button>
+          <button className="page-nav-first" type="button" onClick={() => setPageIndex(0)} title="First page" aria-label="First page"><ChevronLeft size={25} strokeWidth={2.4} /></button>
           <input aria-label="Current page" inputMode="numeric" min="1" max={pages.length} value={pageIndex + 1} onChange={(event) => setPageIndex(clamp(Number(event.target.value) - 1 || 0, 0, pages.length - 1))} />
           <span className="page-nav-total">/ {pages.length}</span>
           <button type="button" onClick={() => setPageIndex((value) => clamp(value - 1, 0, pages.length - 1))} title="Previous page" aria-label="Previous page"><ChevronUp size={25} strokeWidth={2.4} /></button>
           <button type="button" onClick={() => setPageIndex((value) => clamp(value + 1, 0, pages.length - 1))} title="Next page" aria-label="Next page"><ChevronDown size={25} strokeWidth={2.4} /></button>
-          <button type="button" onClick={() => setPageIndex(pages.length - 1)} title="Last page" aria-label="Last page"><ChevronRight size={25} strokeWidth={2.4} /></button>
+          <button className="page-nav-last" type="button" onClick={() => setPageIndex(pages.length - 1)} title="Last page" aria-label="Last page"><ChevronRight size={25} strokeWidth={2.4} /></button>
         </div>
         <div className="status-tools">
-          <button type="button" onClick={() => setZoom((value) => clamp(value - 10, MIN_EDITOR_ZOOM, 160))}>-</button>
-          <select value={zoom} onChange={(event) => setZoom(Number(event.target.value))}>
+          <button type="button" onClick={() => setCustomZoom((value) => value - 10)}>-</button>
+          <select value={zoomMode === EDITOR_ZOOM_MODE.CUSTOM ? String(zoom) : zoomMode} onChange={(event) => selectZoom(event.target.value)}>
+            <option value={EDITOR_ZOOM_MODE.FIT_WIDTH}>Fit width</option>
+            <option value={EDITOR_ZOOM_MODE.FIT_PAGE}>Fit page</option>
             {zoomOptions.map((value) => <option key={value} value={value}>{value}%</option>)}
           </select>
-          <button type="button" onClick={() => setZoom((value) => clamp(value + 10, MIN_EDITOR_ZOOM, 160))}>+</button>
+          <button type="button" onClick={() => setCustomZoom((value) => value + 10)}>+</button>
           <span>X: 612.3</span>
           <span>Y: 792.1</span>
         </div>

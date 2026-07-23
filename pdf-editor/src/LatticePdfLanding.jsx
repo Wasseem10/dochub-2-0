@@ -274,12 +274,10 @@ export function LatticePdfLanding({ fileInputRef, onUpload, onSelectFiles, onDro
           <span className="freepdf-eyebrow">More than just editing</span>
           <h1>Every PDF task,<br />finally in one place.</h1>
           <p>Edit, sign, organize, and convert your PDFs without subscriptions, watermarks, or a maze of different apps.</p>
-          <button type="button" className="freepdf-primary-button" onClick={choose}><Upload size={19} /> Choose a PDF</button>
-          <span className="freepdf-drop-hint">or drop a file here</span>
           <section className="freepdf-trust-strip" aria-label="FixThatPDF promises">
-            <div><LockKeyhole size={22} /><span><strong>Private by design</strong>Your file stays private</span></div>
-            <div><ShieldCheck size={22} /><span><strong>No watermark</strong>Clean results, always</span></div>
-            <div><Clock3 size={22} /><span><strong>Start right away</strong>No account needed</span></div>
+            <div><LockKeyhole size={22} /><span><strong>Private by design</strong><small>Your file stays private</small></span></div>
+            <div><ShieldCheck size={22} /><span><strong>No watermark</strong><small>Clean results, always</small></span></div>
+            <div><Clock3 size={22} /><span><strong>Start right away</strong><small>No account needed</small></span></div>
           </section>
         </div>
 

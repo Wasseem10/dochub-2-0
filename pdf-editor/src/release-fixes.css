@@ -296,3 +296,67 @@
     justify-self: stretch !important;
   }
 }
+
+/* Mobile zoom modes keep the PDF proportional and make custom zooms fully
+   reachable instead of clipping the left side of an oversized page. */
+@media (min-width: 821px) {
+  main.editor-shell .workspace.pages-collapsed {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  main.editor-shell .workspace.pages-collapsed .canvas-column {
+    grid-column: 1 !important;
+  }
+}
+
+@media (max-width: 820px) {
+  main.editor-shell .reference-select-tool {
+    display: none !important;
+  }
+
+  main.editor-shell .canvas-column {
+    overscroll-behavior: contain !important;
+    scrollbar-width: none !important;
+    touch-action: pan-x pan-y !important;
+  }
+
+  main.editor-shell .canvas-column::-webkit-scrollbar {
+    display: none !important;
+  }
+
+  main.editor-shell .document-stage {
+    justify-content: flex-start !important;
+  }
+
+  main.editor-shell.is-custom-zoom .document-stage {
+    width: max-content !important;
+    min-width: 100% !important;
+  }
+
+  main.editor-shell.is-fit-zoom .document-stage {
+    width: 100% !important;
+    justify-content: center !important;
+  }
+
+  main.editor-shell .page-surface {
+    max-width: none !important;
+  }
+
+  main.editor-shell .page-nav .page-nav-zoom-select {
+    width: 88px !important;
+    min-width: 88px !important;
+    font-size: 13px !important;
+  }
+}
+
+@media (max-width: 460px) {
+  main.editor-shell .page-nav .page-nav-first,
+  main.editor-shell .page-nav .page-nav-last {
+    display: none !important;
+  }
+
+  main.editor-shell .page-nav {
+    max-width: calc(100vw - 12px) !important;
+    padding-inline: 5px !important;
+  }
+}
