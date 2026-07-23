@@ -1,44 +1,49 @@
-# Open Horizon Hero Design QA
+# Design QA — Editorial Authentication
 
-- Source visual truth: `/Users/wasseemdabbas/.codex/generated_images/019f7d99-682c-7551-8036-1bae63d2a1df/exec-d9249e38-30a1-4cae-a267-a1e545721678.png`
-- Desktop implementation screenshot: `/tmp/pdfarrow-open-horizon-pass3.png`
-- Mobile implementation screenshot: `/tmp/pdfarrow-open-horizon-mobile.png`
-- Full comparison evidence: `/tmp/pdfarrow-open-horizon-comparison.png`
-- Focused comparison evidence: `/tmp/pdfarrow-open-horizon-focused.png`
-- Desktop viewport: 1440 × 1024
-- Tablet viewport: 768 × 1024
-- Mobile viewport: 390 × 844
-- State: landing hero at rest; desktop Tools menu and mobile navigation exercised
-- Browser console errors: none
+- Style source: `C:\Users\wasse\OneDrive\Desktop\pdf-editor\design-evidence\auth-editorial\dashboard-style-source.png`
+- Browser-rendered implementation: `C:\Users\wasse\OneDrive\Desktop\pdf-editor\design-evidence\auth-editorial\implementation-final.png`
+- Side-by-side comparison: `C:\Users\wasse\OneDrive\Desktop\pdf-editor\design-evidence\auth-editorial\dashboard-vs-auth.png`
+- URL: `http://127.0.0.1:4173/login`
+- Desktop viewport: 1440 × 900 CSS px, device scale factor 1
+- Source pixels: 1440 × 900
+- Implementation pixels: 1440 × 900
+- Density normalization: none required
+- State: signed-out local browser authentication
+- Responsive evidence: `C:\Users\wasse\OneDrive\Desktop\pdf-editor\design-evidence\auth-editorial\mobile.png` at 390 × 844
 
-## Full-view comparison evidence
+## Findings
 
-The source and implementation were normalized to the same 1440 × 1024 frame and placed side by side. The implementation preserves the selected direction: white PDFArrow header, airy blue-white horizon, left-aligned two-line promise, primary upload action, three trust points, and a large functional upload workspace on the right.
+No actionable P0, P1, or P2 issues remain.
 
-## Focused region comparison evidence
+- Fonts and typography: both surfaces use the same editorial serif hierarchy and compact DM Sans controls. The sign-in title, labels, helper copy, and mobile wrapping remain readable.
+- Spacing and layout rhythm: the authentication split uses the same restrained grid, fine dividers, square 2px control radii, generous whitespace, and flat hierarchy as the dashboard.
+- Colors and visual tokens: white and neutral-gray surfaces, charcoal text, and oxblood primary actions match the selected dashboard. No blue-dominant panels, gradients, or generic colored feature tiles remain.
+- Image quality and asset fidelity: both screens use the official cropped PDFArrow logo. The workspace preview is crisp and intentionally restrained.
+- Copy and content: the local-mode notice explicitly explains that the session stays on the device. All product naming uses PDFArrow.
 
-The focused comparison crops both designs to the complete hero region. It confirms the selected visual hierarchy and proportions without the page below affecting judgment. The coded hero uses original generated background and PDF-document assets instead of CSS artwork or placeholder boxes.
+## Functional Verification
 
-## Required fidelity surfaces
+- The former Firebase-unconfigured error no longer disables the local form.
+- Email and password fields accept input.
+- A local email sign-in completed successfully and navigated to `/app/dashboard`.
+- The authenticated account menu displayed the local identity.
+- Sign out cleared the temporary local session and returned to the public site.
+- Configured deployments still use Firebase email/password and Google authentication.
+- Google authentication is hidden when Firebase is unavailable rather than presenting a broken control.
+- Mobile layout verified at 390 × 844.
+- Browser console: no warnings or errors.
+- TypeScript check: passed.
+- Route guard, authentication prompt, and dashboard integration suites: 16 tests passed.
 
-- Fonts and typography: The existing DM Sans and Caveat product typefaces are retained. The headline is a stable two-line lockup at desktop size, with matching medium weight, tight display tracking, and a readable 1.01 line height.
-- Spacing and layout: The 1280px desktop grid uses a 590px copy column, 48px gap, and 642px upload workspace. Browser geometry measured the final upload panel at 642 × 520 and confirmed the hero ends at 899px, closely matching the selected direction.
-- Colors and tokens: The existing cobalt action color is preserved while the hero adopts the selected white, powder-blue, and distant-horizon palette. Text contrast remains strong on the generated image.
-- Image quality: The responsive hero background is served as 640px and 1200px WebP sources with a PNG fallback. The PDF illustration is a transparent PNG sized for the panel without scaling halos or masking artifacts.
-- Copy and content: The approved homepage promise is preserved. Upload guidance is concise, and the trust points reinforce privacy, watermark-free output, and immediate use.
-- Icons: Existing Lucide upload, lock, shield, clock, grid, and navigation icons remain aligned to the product icon system. The decorative document artwork is an image asset, not custom SVG or CSS art.
-- States and interactions: The real PDF input and drag-and-drop target remain connected. Tools opens on click, closes on Escape, and restores focus to the trigger. Mobile navigation opens, focuses its first link, and closes on Escape.
-- Accessibility: The primary actions remain semantic buttons with visible focus styling. The upload region keeps its accessible label, decorative imagery has empty alt text, and the page has no horizontal overflow.
-- Responsiveness: At 768px and 390px the hero stacks cleanly, the CTA becomes full-width on mobile, the upload panel remains usable, and `scrollWidth` equals `innerWidth`.
+## Comparison History
 
-## Findings and comparison history
+1. The previous screen used a blue promotional split layout and disabled all authentication when Firebase was missing.
+2. Added a browser-local fallback while retaining Firebase as the configured production path.
+3. Restyled authentication to the dashboard’s editorial serif, neutral surfaces, fine rules, restrained geometry, and oxblood actions.
+4. Desktop and mobile browser captures showed no remaining clipping, overflow, broken controls, or visual-system mismatch.
 
-1. Initial coded pass had one P2 typography/layout issue: the headline wrapped to three lines and the copy/upload columns drifted from the source. The desktop grid was widened to 1280px, the copy column was fixed at 590px, and the display size was tuned to keep the intended two-line lockup.
-2. The second pass had one P2 vertical-rhythm issue: the upload panel and hero ending sat about 35–40px above the source, compressing the CTA and trust-point spacing. Desktop hero height, panel offset, and section margins were adjusted to match the selected frame.
-3. Final desktop, tablet, and mobile passes show no remaining P0, P1, or P2 issues. Navigation interactions work, the console has no errors, and all tested viewports have zero horizontal overflow.
+## Follow-up Polish
 
-## Follow-up polish
-
-- No P3 item is required for this release.
+The browser-local fallback is intentionally a prototype convenience, not production identity security. Production deployment still requires valid `VITE_FIREBASE_*` configuration.
 
 final result: passed

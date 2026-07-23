@@ -28,9 +28,15 @@ Every released PDF tool must have its own simple landing page using the current 
 
 The editor’s PDFArrow wordmark is a labeled button that returns to `/app/dashboard`. The dashboard remains available to anonymous local users; account-only sections may still request sign-in. Keep the dashboard deliberately simple: blue PDFArrow branding, a short upload-or-blank hero, three essential task choices, recent documents, restrained navigation, and no promotional side rail, statistics wall, fake folder creation, or competing AI/template/activity cards on the home screen.
 
+For the next dashboard redesign, do not use a blue-dominant SaaS visual system, pale-blue feature tiles, gradient icon boxes, oversized upload drop zones, or generic card-grid composition. Explore a cleaner premium neutral direction with restrained accent color, editorial typography, precise alignment, and denser professional document-management patterns; keep any legacy PDFArrow blue limited to the existing logo until the selected concept establishes the final brand treatment.
+
 Authentication and lazy-loading transitions use PDFArrow’s DM Sans and Funnel Display typography, the blue document mark, concise status copy, a compact centered white card, and reduced-motion-safe progress. Do not use condensed display fonts, tiny all-caps brand pills, or vague filler copy on loading screens.
 
 The login screen should feel professional and document-first: use a restrained workspace preview, calm navy/blue surfaces, clear sign-in hierarchy, and explicit browser-processing reassurance. Avoid playful handwritten type, cloud imagery, or oversized promotional visuals in authentication.
+
+Keep the authentication layout inspired by a classic centered sign-in card: obvious email/password hierarchy, one restrained social sign-in option, generous breathing room, and an original PDFArrow document-workspace panel rather than copying another PDF product's branding or decoration.
+
+Match authentication to the selected Editorial Monochrome dashboard: white and neutral-gray surfaces, charcoal copy, oxblood primary actions, fine dividers, square restrained radii, compact DM Sans UI, and a serif page title. When Firebase is unavailable in the local prototype, email authentication must fall back to an explicit browser-local session instead of disabling the form.
 
 The Draw tool opens one compact floating settings bar below the primary toolbar. It must expose direct black, blue, red, orange, green, and purple choices, a working custom color picker, five readable pen-size presets, and a fine-size slider without clipping, overlapping, or duplicating controls elsewhere in the same bar.
 

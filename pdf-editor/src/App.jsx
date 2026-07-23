@@ -83,6 +83,7 @@ import { beginToolOperation, fileSizeBucket, pageCountBucket, trackProductEvent,
 import { AuthRequiredModal } from "./components/editor/AuthRequiredModal.jsx";
 import { AccountDeletionCard } from "./components/app/AccountDeletionCard.jsx";
 import { BrandWordmark } from "./components/public/BrandWordmark.jsx";
+import { PageMetadata } from "./components/public/PageMetadata.jsx";
 import { isAnalyticsOwner } from "./config/adminAccess.js";
 import { createSecurePdfShare, revokeSecurePdfShare } from "./sharing/securePdfSharing.js";
 import { createSigningRequestUrl } from "./signing/signingRequest.js";
@@ -5810,6 +5811,23 @@ function LandingPage({ fileInputRef, onUpload, onSelectFiles, onLogin }) {
 function AuthPage({ mode, setMode, onBack, backLabel = "Back to home", onComplete, onPasswordReset, authReady, isFirebaseConfigured, routeNotice = "" }) {
   const isSignup = mode === "signup";
   const isPasswordReset = mode === "forgot-password";
+  const authMetadata = isSignup
+    ? {
+        title: "Create Your PDFArrow Account",
+        description: "Create a PDFArrow account to keep optional cloud history and workspace preferences together.",
+        canonicalUrl: ROUTE_PATHS.signup,
+      }
+    : isPasswordReset
+      ? {
+          title: "Reset Your PDFArrow Password",
+          description: "Request a PDFArrow password reset and return to your document workspace.",
+          canonicalUrl: ROUTE_PATHS.forgotPassword,
+        }
+      : {
+          title: "Sign In to PDFArrow",
+          description: "Sign in to continue to your PDFArrow document workspace.",
+          canonicalUrl: ROUTE_PATHS.login,
+        };
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -5820,10 +5838,6 @@ function AuthPage({ mode, setMode, onBack, backLabel = "Back to home", onComplet
   const submitAuth = async (event) => {
     event.preventDefault();
     setNotice("");
-    if (!isFirebaseConfigured) {
-      setError("Sign-in is temporarily unavailable while the secure connection is being set up.");
-      return;
-    }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
       setError("Enter a valid email to continue.");
       return;
@@ -5833,7 +5847,7 @@ function AuthPage({ mode, setMode, onBack, backLabel = "Back to home", onComplet
       setIsSubmitting(true);
       const result = await onPasswordReset(email);
       setIsSubmitting(false);
-      if (result?.ok) setNotice("Password reset email sent.");
+      if (result?.ok) setNotice(result.notice || "Password reset email sent.");
       else setError(result?.error || "Could not send a password reset email.");
       return;
     }
@@ -5850,10 +5864,6 @@ function AuthPage({ mode, setMode, onBack, backLabel = "Back to home", onComplet
 
   const submitGoogleAuth = async () => {
     setNotice("");
-    if (!isFirebaseConfigured) {
-      setError("Sign-in is temporarily unavailable while the secure connection is being set up.");
-      return;
-    }
     setError("");
     setIsSubmitting(true);
     const result = await onComplete({ provider: "google" });
@@ -5868,13 +5878,15 @@ function AuthPage({ mode, setMode, onBack, backLabel = "Back to home", onComplet
   };
 
   return (
-    <main className="auth-shell">
+    <>
+      <PageMetadata {...authMetadata} noIndex />
+      <main className="auth-shell">
       <section className="auth-showcase" aria-label="PDFArrow product preview">
-        <button type="button" className="auth-showcase-brand" onClick={onBack} aria-label="PDFArrow home"><BrandWordmark /></button>
+        <button type="button" className="auth-showcase-brand" onClick={onBack} aria-label="PDFArrow home"><BrandWordmark logo /></button>
         <div className="auth-showcase-copy">
-          <span>Your PDF workspace</span>
-          <h1>A focused place to finish important documents.</h1>
-          <p>Edit, sign, organize, and export without bouncing between disconnected tools.</p>
+          <span>PDFArrow workspace</span>
+          <h1>Your documents, ready when you are.</h1>
+          <p>Edit, sign, organize, and export important PDFs from one focused workspace.</p>
           <ul className="auth-showcase-points">
             <li><CheckCircle2 size={18} /> Continue your work across devices with optional cloud history.</li>
             <li><CheckCircle2 size={18} /> Keep editing, signing, and page tools in one workspace.</li>
@@ -5892,22 +5904,17 @@ function AuthPage({ mode, setMode, onBack, backLabel = "Back to home", onComplet
       </section>
       <section className="auth-card" aria-label={isSignup ? "Create account" : isPasswordReset ? "Reset password" : "Log in"}>
         <header className="auth-card-header">
-          <button type="button" className="auth-mark auth-realpdf-brand" onClick={onBack} aria-label="PDFArrow home"><BrandWordmark /></button>
+          <button type="button" className="auth-mark auth-realpdf-brand" onClick={onBack} aria-label="PDFArrow home"><BrandWordmark logo /></button>
           <button type="button" className="auth-back" onClick={onBack}>{backLabel}</button>
         </header>
-        <h2>{isSignup ? "Create your workspace" : isPasswordReset ? "Reset your password" : "Welcome back"}</h2>
-        <p className="auth-intro">{isSignup ? "Create an account to keep optional cloud history and workspace preferences together." : isPasswordReset ? "Enter the email associated with your account and we will send a reset link." : "Sign in to access your optional cloud history and saved workspace settings."}</p>
+        <h2>{isSignup ? "Create your workspace" : isPasswordReset ? "Reset your password" : "Sign in to PDFArrow"}</h2>
+        <p className="auth-intro">{isSignup ? "Create an account to keep optional cloud history and workspace preferences together." : isPasswordReset ? "Enter the email associated with your account and we will send a reset link." : "Welcome back. Sign in to continue to your document workspace."}</p>
         {routeNotice && <div className="auth-notice">{routeNotice}</div>}
-        {!isFirebaseConfigured && (
-          <div className="auth-error">
-            Sign-in is temporarily unavailable while the secure connection is being set up.
-          </div>
-        )}
-        {!isPasswordReset && (
+        {!isFirebaseConfigured && <div className="auth-local-mode"><Lock size={15} aria-hidden="true" /><span>Local browser workspace — your session stays on this device.</span></div>}
+        {!isPasswordReset && isFirebaseConfigured && (
           <>
-            <button type="button" className="sso-button google-button" onClick={submitGoogleAuth} disabled={!authReady || isSubmitting || !isFirebaseConfigured}>
-              <span aria-hidden="true">G</span>
-              Sign in with Google
+            <button type="button" className="sso-button google-button" onClick={submitGoogleAuth} disabled={!authReady || isSubmitting}>
+              Continue with Google
             </button>
             <div className="auth-divider"><span /> Or continue with <span /></div>
           </>
@@ -5934,18 +5941,18 @@ function AuthPage({ mode, setMode, onBack, backLabel = "Back to home", onComplet
           )}
           {error && <div className="auth-error">{error}</div>}
           {notice && <div className="auth-notice">{notice}</div>}
-          <button type="submit" className="auth-submit" disabled={!authReady || isSubmitting || !isFirebaseConfigured}>
+          <button type="submit" className="auth-submit" disabled={!authReady || isSubmitting}>
             {isSubmitting ? "Connecting..." : isSignup ? "Create account" : isPasswordReset ? "Send reset email" : "Sign in"}
           </button>
         </form>
         <div className="auth-security-note"><Lock size={15} aria-hidden="true" /><span>Your PDF processing stays in your browser for supported tools.</span></div>
-        <p className="auth-privacy">Review our <button type="button">Privacy Notice</button>.</p>
         <div className="auth-switch">
           <span>{isSignup ? "Already have an account?" : isPasswordReset ? "Remembered your password?" : "New to PDFArrow?"}</span>
           <button type="button" onClick={isPasswordReset ? () => setMode("login") : switchMode}>{isSignup ? "Sign in" : isPasswordReset ? "Back to login" : "Create an account"}</button>
         </div>
       </section>
-    </main>
+      </main>
+    </>
   );
 }
 
@@ -6387,11 +6394,11 @@ export function UploadLanding({
       : "Good evening";
 
   const primaryNav = [
-    { label: "Dashboard", section: "Home", icon: Home },
+    { label: "Home", section: "Home", icon: Home },
     { label: "Documents", icon: FileText },
     { label: "Signatures", icon: PenLine },
     { label: "Templates", icon: Grid2X2 },
-    { label: "All features", section: "Features", icon: Sparkles },
+    { label: "All tools", section: "Features", icon: Sparkles },
     ...(isAnalyticsOwner(currentUser) ? [{ label: "Analytics", icon: ChartNoAxesColumnIncreasing }] : []),
   ];
 
@@ -6634,16 +6641,14 @@ export function UploadLanding({
 
   const renderDashboardLibraryList = () => dashboardLibraryRows.length ? (
     <div className="dashboard-library-table">
-      <div className="dashboard-library-row dashboard-library-head"><span>Name</span><span>Pages</span><span>Size</span><span>Last edited</span><span>Status</span><span /><span /></div>
+      <div className="dashboard-library-row dashboard-library-head"><span>Name</span><span>Size</span><span>Last opened</span><span>Status</span><span /></div>
       {dashboardLibraryRows.map((documentRecord) => {
-        const status = documentRecord.status || "Edited";
+        const status = documentRecord.status || "Viewed";
         return <article key={documentRecord.id} className="dashboard-library-row">
           <button type="button" className="dashboard-library-name" onClick={() => onOpenDocument(documentRecord)}><span>{renderDocumentPreview(documentRecord)}</span><strong>{documentRecord.name}</strong></button>
-          <span>{documentRecord.pageCount || documentRecord.pages?.length || 1}</span>
           <span>{documentRecord.size ? formatBytes(documentRecord.size) : "Local"}</span>
           <span>{formatDashboardRelativeDate(documentRecord.updatedAt)}</span>
           <span><em>{status}</em></span>
-          <button type="button" className={`dashboard-favorite-button ${documentRecord.favorite ? "is-favorite" : ""}`} aria-label={documentRecord.favorite ? `Remove ${documentRecord.name} from favorites` : `Add ${documentRecord.name} to favorites`} aria-pressed={!!documentRecord.favorite} onClick={() => onToggleFavorite(documentRecord)}><Star size={16} fill={documentRecord.favorite ? "currentColor" : "none"} /></button>
           {renderDashboardDocumentMenu(documentRecord)}
         </article>;
       })}
@@ -6822,55 +6827,41 @@ export function UploadLanding({
     }
 
     return (
-      <div className="dashboard-premium-home">
-        <section
-          className={`dashboard-premium-welcome ${isDraggingFile ? "is-dragging" : ""} ${isUploading ? "is-uploading" : ""}`}
-          onDragEnter={(event) => { event.preventDefault(); setIsDraggingFile(true); }}
-          onDragOver={(event) => { event.preventDefault(); setIsDraggingFile(true); }}
-          onDragLeave={(event) => { if (event.currentTarget === event.target) setIsDraggingFile(false); }}
-          onDrop={onDropFile}
-        >
-          <img src={`${import.meta.env.BASE_URL}dashboard/continue-header-motif.png`} alt="" aria-hidden="true" />
-          <span>{dashboardGreeting}, {dashboardFirstName}</span>
-          <h1>{isDraggingFile ? "Drop your PDF to open it" : "Continue where you left off"}</h1>
-          <p>{isUploading ? `${uploadStage.status}: ${uploadStage.fileName}` : "Open recent work or start a new PDF task."}</p>
+      <div
+        className={`dashboard-premium-home dashboard-editorial-home ${isDraggingFile ? "is-dragging" : ""}`}
+        onDragEnter={(event) => { event.preventDefault(); setIsDraggingFile(true); }}
+        onDragOver={(event) => { event.preventDefault(); setIsDraggingFile(true); }}
+        onDragLeave={(event) => { if (event.currentTarget === event.target) setIsDraggingFile(false); }}
+        onDrop={onDropFile}
+      >
+        <section className={`dashboard-editorial-commandbar ${isUploading ? "is-uploading" : ""}`} aria-label="PDF actions">
+          <button type="button" className="dashboard-editorial-upload" onClick={onSelectFiles}><Upload size={18} /> {isDraggingFile ? "Drop PDF here" : "Upload PDF"}</button>
+          <button type="button" onClick={onBlankPage}><FilePlus2 size={18} /> Blank PDF</button>
+          <i aria-hidden="true" />
+          <button type="button" onClick={onSelectFiles}><PenLine size={19} /> Edit a PDF</button>
+          <button type="button" onClick={() => setActiveSection("Signatures")}><Stamp size={19} /> Sign a PDF</button>
+          <button type="button" onClick={onSelectFiles}><Grid2X2 size={19} /> Organize pages</button>
+          {isUploading && <span className="dashboard-editorial-progress">{uploadStage.status}: {uploadStage.fileName}</span>}
           {uploadError && <p className="upload-error">{uploadError}</p>}
         </section>
 
-        <section className="dashboard-recent-work" aria-labelledby="dashboard-recent-title">
-          <header><h2 id="dashboard-recent-title">Recently opened</h2><button type="button" onClick={() => setActiveSection("Documents")}>View all <ChevronRight size={15} /></button></header>
-          {renderRecentDashboardCards()}
-        </section>
-
-        <section className="dashboard-premium-actions" aria-label="Quick PDF tasks">
-          <button type="button" onClick={onSelectFiles}><span><PenLine size={23} /></span><div><strong>Edit a PDF</strong><small>Change text, add notes, and export</small></div><ChevronRight size={17} /></button>
-          <button type="button" onClick={() => setActiveSection("Signatures")}><span><Stamp size={23} /></span><div><strong>Sign a PDF</strong><small>Add a signature, initials, or date</small></div><ChevronRight size={17} /></button>
-          <button type="button" onClick={onSelectFiles}><span><Grid2X2 size={23} /></span><div><strong>Organize pages</strong><small>Reorder, rotate, duplicate, or delete</small></div><ChevronRight size={17} /></button>
-        </section>
-
-        <section className="dashboard-premium-library" aria-labelledby="dashboard-library-title">
-          <header className="dashboard-library-toolbar">
-            <h2 id="dashboard-library-title">All documents</h2>
-            <label className="dashboard-library-search"><Search size={16} /><span className="sr-only">Search documents</span><input type="search" value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} placeholder="Search documents..." /></label>
-            <button type="button" className={dashboardFilter === "favorites" ? "is-active" : ""} aria-pressed={dashboardFilter === "favorites"} onClick={() => setDashboardFilter((value) => value === "favorites" ? "all" : "favorites")}><Filter size={16} /> {dashboardFilter === "favorites" ? "Favorites" : "Filter"}</button>
-            <label className="dashboard-library-sort"><span className="sr-only">Sort documents</span><select value={dashboardSort} onChange={(event) => setDashboardSort(event.target.value)}><option value="recent">Sort: Last edited</option><option value="name">Sort: Name</option></select><ChevronDown size={14} /></label>
-            <div className="dashboard-view-toggle" aria-label="Document view">
-              <button type="button" className={dashboardView === "list" ? "is-active" : ""} aria-label="List view" aria-pressed={dashboardView === "list"} onClick={() => setDashboardView("list")}><List size={18} /></button>
-              <button type="button" className={dashboardView === "grid" ? "is-active" : ""} aria-label="Grid view" aria-pressed={dashboardView === "grid"} onClick={() => setDashboardView("grid")}><Grid2X2 size={17} /></button>
-            </div>
+        <section className="dashboard-premium-library dashboard-editorial-library" aria-labelledby="dashboard-library-title">
+          <header>
+            <h2 id="dashboard-library-title">Recent</h2>
+            <button type="button" onClick={() => setActiveSection("Documents")}>View all documents <ChevronRight size={15} /></button>
           </header>
-          {dashboardView === "list" ? renderDashboardLibraryList() : renderDashboardLibraryGrid()}
-          <footer><span>Showing {dashboardLibraryRows.length} of {filteredDocuments.length} document{filteredDocuments.length === 1 ? "" : "s"}</span><button type="button" onClick={() => onNavigate(ROUTE_PATHS.features)}>Explore every PDFArrow feature <ChevronRight size={15} /></button></footer>
+          {renderDashboardLibraryList()}
+          <footer><span>{dashboardLibraryRows.length} document{dashboardLibraryRows.length === 1 ? "" : "s"}</span></footer>
         </section>
       </div>
     );
   };
 
   return (
-    <main className="upload-shell lumin-home">
+    <main className="upload-shell lumin-home dashboard-editorial-theme">
       <input ref={fileInputRef} className="hidden-input" type="file" accept="application/pdf" onChange={onUpload} />
       <aside className="lumin-home-rail">
-        <button type="button" className="dashboard-brand" aria-label="PDFArrow dashboard" onClick={() => setActiveSection("Home")}><BrandWordmark /></button>
+        <button type="button" className="dashboard-brand" aria-label="PDFArrow dashboard" onClick={() => setActiveSection("Home")}><BrandWordmark logo /></button>
         <nav className="upload-nav" aria-label="Primary">
           {primaryNav.map(({ label, section: navSection = label, icon: Icon, badge }) => (
             <button key={label} type="button" className={navSection === activeSection ? "is-active" : ""} onClick={() => setActiveSection(navSection)}>
@@ -6888,14 +6879,14 @@ export function UploadLanding({
 
       <section className="upload-main">
         <header className="upload-topbar">
+          {activeSection === "Home" && <h1 className="dashboard-editorial-title">Documents</h1>}
           <label className="lumin-search">
             <Search size={18} />
-            <input type="search" placeholder="Search documents, templates, or tools..." value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} />
+            <input type="search" placeholder="Search documents" value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} />
             <kbd>⌘ K</kbd>
           </label>
           <div className="upload-top-actions">
-            <button type="button" className="dashboard-top-upload" onClick={onSelectFiles}><Upload size={18} /> Upload PDF</button>
-            {activeSection === "Home" && <button type="button" className="dashboard-top-blank" onClick={onBlankPage}><FilePlus2 size={17} /> Blank PDF</button>}
+            {activeSection !== "Home" && <button type="button" className="dashboard-top-upload" onClick={onSelectFiles}><Upload size={18} /> Upload PDF</button>}
             <button type="button" className="top-avatar" aria-haspopup="dialog" aria-expanded={openPanel === "account"} onClick={() => setOpenPanel(openPanel === "account" ? null : "account")}><span>{userInitials}</span><i /><strong>{dashboardAccountName}</strong><ChevronDown size={15} /></button>
             {openPanel && (
               <div className={`workspace-popover ${openPanel === "account" ? "account-menu-popover" : ""}`} role={openPanel === "account" ? "dialog" : undefined} aria-label={openPanel === "account" ? "Account menu" : undefined}>
