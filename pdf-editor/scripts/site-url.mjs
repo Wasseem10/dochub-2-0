@@ -1,4 +1,6 @@
-const FALLBACK_PRODUCTION_URL = "https://dochub-2-0.vercel.app";
+// Keep generated canonicals, sitemap URLs, and robots.txt correct even when a
+// deploy environment variable has not been configured yet.
+const FALLBACK_PRODUCTION_URL = "https://www.pdfarrow.com";
 
 /** @param {string} value */
 function withProtocol(value) {
