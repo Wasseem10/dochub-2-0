@@ -17,6 +17,27 @@ import { auth, db, googleProvider, isFirebaseConfigured, storage } from "../fire
 import { trackProductEvent } from "../analytics/productAnalytics.js";
 import { AuthContext } from "./AuthContext.jsx";
 
+const LOCAL_AUTH_STORAGE_KEY = "pdfarrow.local-auth-user.v1";
+
+function readLocalAuthUser() {
+  try {
+    return JSON.parse(window.localStorage.getItem(LOCAL_AUTH_STORAGE_KEY) || "null");
+  } catch {
+    return null;
+  }
+}
+
+function createLocalAuthUser({ email, name = "" }) {
+  const normalizedEmail = email.trim().toLowerCase();
+  return {
+    uid: `local:${normalizedEmail}`,
+    email: normalizedEmail,
+    name: name.trim() || normalizedEmail.split("@")[0] || "Local user",
+    photoURL: "",
+    providers: ["local"],
+  };
+}
+
 export function mapFirebaseUser(user) {
   if (!user) return null;
   const fallbackName = user.email?.split("@")[0] || "Workspace owner";
@@ -76,6 +97,7 @@ export default function FirebaseAuthProvider({ children }) {
 
   useEffect(() => {
     if (!auth) {
+      setCurrentUser(readLocalAuthUser());
       setAuthReady(true);
       return undefined;
     }
@@ -91,7 +113,18 @@ export default function FirebaseAuthProvider({ children }) {
     currentUser,
     isFirebaseConfigured,
     async authenticate({ mode, email, password, name, provider }) {
-      if (!auth) return { ok: false, error: "Firebase is not configured yet. Add the VITE_FIREBASE_* env vars first." };
+      if (!auth) {
+        if (provider === "google") return { ok: false, error: "Google sign-in requires cloud authentication. Use email sign-in for this local workspace." };
+        const user = createLocalAuthUser({ email, name });
+        try {
+          window.localStorage.setItem(LOCAL_AUTH_STORAGE_KEY, JSON.stringify(user));
+        } catch {
+          return { ok: false, error: "This browser blocked local workspace storage. Allow site storage and try again." };
+        }
+        trackProductEvent(mode === "signup" ? "account_signed_up" : "account_logged_in", { authMethod: "local" });
+        setCurrentUser(user);
+        return { ok: true, user };
+      }
       try {
         const credential = provider === "google"
           ? await signInWithPopup(auth, googleProvider)
@@ -114,8 +147,8 @@ export default function FirebaseAuthProvider({ children }) {
       }
     },
     async resetPassword(email) {
-      if (!auth) return { ok: false, error: "Firebase is not configured yet. Add the VITE_FIREBASE_* env vars first." };
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) return { ok: false, error: "Enter a valid email address first." };
+      if (!auth) return { ok: true, notice: "Local browser workspaces do not require password recovery. Return to sign in to continue." };
       try {
         await sendPasswordResetEmail(auth, email.trim());
         return { ok: true };
@@ -124,6 +157,15 @@ export default function FirebaseAuthProvider({ children }) {
       }
     },
     async deleteAccount({ password = "" } = {}) {
+      if (!auth && currentUser?.providers?.includes("local")) {
+        try {
+          window.localStorage.removeItem(LOCAL_AUTH_STORAGE_KEY);
+        } catch {
+          // Clearing the in-memory session still signs the local user out.
+        }
+        setCurrentUser(null);
+        return { ok: true };
+      }
       const firebaseUser = auth?.currentUser;
       if (!firebaseUser) return { ok: false, error: "Sign in before deleting your account." };
       try {
@@ -146,6 +188,13 @@ export default function FirebaseAuthProvider({ children }) {
     },
     async logout() {
       if (auth) await signOut(auth);
+      else {
+        try {
+          window.localStorage.removeItem(LOCAL_AUTH_STORAGE_KEY);
+        } catch {
+          // Clearing the in-memory session still signs the local user out.
+        }
+      }
       setCurrentUser(null);
     },
   }), [authReady, currentUser]);
