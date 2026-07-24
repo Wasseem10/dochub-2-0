@@ -1,68 +1,65 @@
 # Landing Page Design QA
 
-## Comparison target
+- Source visual truth: `work/design-references/landing-upload-tray-selected-2026-07-24.png`
+- Desktop implementation: `work/design-qa/landing-desktop-final.png`
+- Mobile implementation: `work/design-qa/landing-mobile-390x844-final.png`
+- Desktop comparison: `work/design-qa/landing-desktop-comparison-final.png`
+- Mobile comparison: `work/design-qa/landing-mobile-comparison-final.png`
+- State: anonymous landing page, idle upload state, navigation closed
 
-- Source visual truth: `C:\Users\wasse\OneDrive\Desktop\pdf-editor\design-evidence\landing-playful-selected.png`
-- Browser-rendered implementation: `C:\Users\wasse\OneDrive\Desktop\pdf-editor\design-evidence\landing-playful-implementation-final.png`
-- Full-view comparison: `C:\Users\wasse\OneDrive\Desktop\pdf-editor\design-evidence\landing-playful-comparison-final.jpg`
-- Focused comparison: `C:\Users\wasse\OneDrive\Desktop\pdf-editor\design-evidence\landing-playful-focused-comparison.jpg`
-- Route: `/`
-- State: initial landing hero, upload idle, tools menu closed
-
-## Viewport and normalization
+## Capture normalization
 
 - Source pixels: 1487 × 1058.
-- Implementation pixels and CSS viewport: 1265 × 712.
-- Device scale factor: 1.
-- Normalization: the source was cropped from the top to the implementation aspect ratio, then resized to 1265 × 712 with Lanczos resampling. Browser chrome was excluded from both sides.
+- Desktop viewport request: 1440 × 1024 CSS px at device scale factor 1. The in-app browser capture is 1425 × 1013 px after its scrollbar/surface inset. The source was resized to that exact capture size for the combined comparison.
+- Mobile viewport request: 390 × 844 CSS px at device scale factor 1. The in-app browser capture is 375 × 811 px after its scrollbar/surface inset.
+- The desktop comparison uses the same full first-screen crop and idle state.
+- The source does not include a phone frame, so the mobile comparison evaluates the selected design language and the explicit responsive requirement rather than claiming a 1:1 mobile source.
 
-## Evidence reviewed
+## Full-view comparison evidence
 
-### Full view
+The desktop implementation preserves the source hierarchy and anatomy: compact wordmark navigation, centered two-line DM Sans headline, coral underline, concise supporting copy, four colored task tabs, a tactile ivory upload tray with visible paperclip and coral cord, a large blush drop target, and three bottom trust signals. The generated background asset matches the source's warm-white stationery rendering and keeps the center clear for accessible live controls.
 
-The final side-by-side comparison confirms the selected two-column composition, hero proportions, paper-stack placement, headline wrapping, coral upload affordance, trust strip, navigation density, and warm ivory/coral/lilac/marigold palette. The complete upload panel remains the dominant action.
+The mobile implementation is intentionally recomposed rather than cropped. It uses a compact logo-and-menu header, controlled three-line heading, four equal task tabs, a fully visible portrait tray and drop target, reduced edge stationery, and all three trust signals within the first screen.
 
-### Focused regions
+## Focused-region comparison evidence
 
-The focused comparison checks the left copy block and the right upload workspace at readable scale. The serif display face, handwritten eyebrow, paragraph width, trust-row spacing, dashed coral boundary, upload icon, warm PDF illustration, layered paper tabs, and decorative paper texture all preserve the selected visual hierarchy.
+- Header: PDFArrow's supplied logo is displayed through the cropped wordmark treatment. Desktop navigation and the coral file CTA match the source hierarchy; mobile replaces the hidden links with a 42px menu control.
+- Upload tray: the tray and paperclip are raster assets rather than CSS approximations. The interactive button sits within the generated blush tray interior and retains hover, focus, drag, error, busy, and progress states.
+- Typography: DM Sans 600 provides the same compact geometric headline character. Body copy uses DM Sans 400 at a readable 18px desktop and 14px mobile.
+- Task tabs and trust strip: source order, accent roles, icon-plus-label anatomy, and divider rhythm are preserved. Mobile reduces detail without removing the task choices or promise labels.
+
+## Findings
+
+No actionable P0, P1, or P2 differences remain.
+
+- P3: The generated desktop tray begins slightly lower than the supplied reference. This is acceptable because it gives the headline and support copy more breathing room while keeping the complete upload interaction and trust strip visible.
+- P3: The mobile trust descriptions are omitted below 540px, leaving the three promise labels and icons. This is an intentional density reduction for the requested phone layout.
 
 ## Required fidelity surfaces
 
-- Fonts and typography: passed. Georgia provides the selected editorial serif character and optical weight; DM Sans remains the compact product UI face; Caveat is limited to the eyebrow. Wrapping and hierarchy match the visual target.
-- Spacing and layout rhythm: passed. The headline and upload panel align at the selected desktop proportions, and the trust strip follows the source vertical rhythm. Existing tablet and mobile breakpoints retain a centered, full-width upload workflow without overlap.
-- Colors and visual tokens: passed. The landing surface is no longer blue-dominant. Coral, marigold, raspberry, lilac, ivory, and charcoal are consistently mapped; blue remains limited to the existing logo.
-- Image quality and asset fidelity: passed. The paper-craft backdrop and warm PDF illustration are real raster assets generated for the selected direction. The document cutout has validated transparency and no visible green fringe.
-- Copy and content: passed. Product copy, trust statements, navigation, and upload labels remain coherent and match the selected concept.
-- Icons and interaction states: passed. Existing library icons remain aligned. Tools menu open/close was exercised, the full upload button is present as one semantic control, and no browser errors were logged.
-- Accessibility: passed. The upload surface remains a native button with an accessible label, keyboard activation, busy state, focus treatment, and reduced-motion rules.
+- Fonts and typography: passed. DM Sans family, weight, line height, wrapping, and hierarchy are aligned with the source.
+- Spacing and layout rhythm: passed. Desktop proportions and mobile stacking are balanced with no horizontal overflow or hidden primary controls.
+- Colors and visual tokens: passed. Warm white, blush, coral, lilac, yellow, and pink are used consistently; PDFArrow blue remains isolated to the supplied logo.
+- Image quality and asset fidelity: passed. Separate high-resolution desktop and portrait raster assets preserve the paper, tray, paperclip, cord, and stationery art direction without stretching.
+- Copy and content: passed. Product naming is PDFArrow, the source headline and support copy are preserved, and no-sign-in/private/no-watermark promises remain visible.
+
+## Interaction and console checks
+
+- Hero upload target opens the native single-file picker by pointer interaction.
+- The upload target is a native button and includes explicit Enter/Space handling.
+- Mobile navigation opens and closes successfully.
+- Edit, Sign, Organize, and Convert tabs are real route links.
+- Browser console: no errors or warnings on a clean final load.
+- Production build, TypeScript check, editorial audit, sitemap generation, and prerender completed successfully.
 
 ## Comparison history
 
-### Pass 1
-
-- [P2] Upload workspace sat too far right and the hero copy started too high relative to the selected mock.
-  - Fix: tightened the desktop grid gap, aligned the upload panel to the paper stack, shifted the hero content to the selected vertical rhythm, and matched the trust-row spacing.
-  - Post-fix evidence: `landing-playful-implementation-final.png`.
-
-### Pass 2
-
-- [P2] The first implementation lacked the colored paper tabs and reused the cooler old PDF illustration.
-  - Fix: generated a revised paper-craft backdrop with raspberry and marigold tabs, generated a warm cream/coral document illustration, removed its chroma key, and replaced the old asset.
-  - Post-fix evidence: `landing-playful-focused-comparison.jpg`.
-
-### Pass 3
-
-- No actionable P0, P1, or P2 findings remain.
-
-## Primary interactions tested
-
-- Tools menu opens and closes from the header.
-- The main upload surface is present as one full-panel button.
-- Upload selection and drag/drop handlers were preserved unchanged.
-- Browser console errors: 0.
+1. Initial desktop capture showed the generated background asset behind the hero stacking context, leaving the tray invisible (P1). The artwork moved to an explicit responsive CSS background; the next capture showed the complete tray, cord, paperclips, and edge stationery.
+2. Initial phone capture clipped the trust strip below the first screen (P2). The portrait hero height and stage proportions were tightened; the final 390 × 844 capture shows the complete heading, tabs, tray, upload control, and trust row.
+3. A clean final browser tab was loaded after hot-module replacement produced stale development warnings. The clean load reports no console errors or warnings.
 
 ## Follow-up polish
 
-- [P3] A separate narrow mobile screenshot was not captured because the selected in-app browser surface exposes the active desktop viewport. Responsive CSS was reviewed at the existing 1060 px, 760 px, and 540 px breakpoints.
+- If desired, shift the desktop tray artwork upward by roughly 24–32px for even closer source alignment.
 
 final result: passed

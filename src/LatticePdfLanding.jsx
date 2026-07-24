@@ -8,7 +8,10 @@ import FileText from "lucide-react/dist/esm/icons/file-text.mjs";
 import Grid3X3 from "lucide-react/dist/esm/icons/grid-3x3.mjs";
 import LockKeyhole from "lucide-react/dist/esm/icons/lock-keyhole.mjs";
 import Menu from "lucide-react/dist/esm/icons/menu.mjs";
+import PencilLine from "lucide-react/dist/esm/icons/pencil-line.mjs";
+import RefreshCw from "lucide-react/dist/esm/icons/refresh-cw.mjs";
 import ShieldCheck from "lucide-react/dist/esm/icons/shield-check.mjs";
+import Signature from "lucide-react/dist/esm/icons/signature.mjs";
 import Upload from "lucide-react/dist/esm/icons/upload.mjs";
 import X from "lucide-react/dist/esm/icons/x.mjs";
 import { BrandWordmark } from "./components/public/BrandWordmark.jsx";
@@ -57,6 +60,13 @@ const taskLanes = [
     route: "/pdf-to-word",
     cta: "Convert a PDF",
   },
+];
+
+const heroTasks = [
+  { label: "Edit", route: ROUTE_PATHS.editPdf, icon: PencilLine, tone: "coral" },
+  { label: "Sign", route: ROUTE_PATHS.signPdf, icon: Signature, tone: "lilac" },
+  { label: "Organize", route: "/organize-pdf", icon: Grid3X3, tone: "yellow" },
+  { label: "Convert", route: "/pdf-to-jpg", icon: RefreshCw, tone: "pink" },
 ];
 
 const footerToolGroups = [
@@ -205,6 +215,12 @@ function Dropzone({ choose, dragging, setDragging, isUploading, uploadError, upl
     aria-disabled={isUploading}
     aria-busy={isUploading}
     onClick={openFilePicker}
+    onKeyDown={(event) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        openFilePicker();
+      }
+    }}
     onDragEnter={(event) => { event.preventDefault(); setDragging(true); }}
     onDragOver={(event) => { event.preventDefault(); event.dataTransfer.dropEffect = "copy"; }}
     onDragLeave={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setDragging(false); }}
@@ -212,8 +228,7 @@ function Dropzone({ choose, dragging, setDragging, isUploading, uploadError, upl
   >
     <span className="freepdf-upload-icon"><Upload size={26} /></span>
     <span className="freepdf-dropzone-title">{dragging ? "Drop your PDF here" : isUploading ? "Opening your PDF…" : "Drop your PDF here"}</span>
-    <span className="freepdf-dropzone-copy">or choose a file from your device</span>
-    <img className="freepdf-drop-file-art" src={asset("hero-pdf-document-playful-v1.webp")} alt="" width="512" height="512" decoding="async" />
+    <span className="freepdf-dropzone-copy">or <strong>choose a file</strong> from your device</span>
     <span className="freepdf-upload-status" aria-live="polite">{uploadError ? <span role="alert">{uploadError}</span> : isUploading ? <><span className="freepdf-upload-status-copy">{uploadStage.status}{uploadStage.fileName ? ` · ${uploadStage.fileName}` : ""}</span><span className="freepdf-upload-progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow={uploadStage.percent || 0}><span style={{ width: `${uploadStage.percent || 0}%` }} /></span></> : null}</span>
   </button>;
 }
@@ -268,22 +283,24 @@ export function LatticePdfLanding({ fileInputRef, onUpload, onSelectFiles, onDro
     <SiteHeader onChoose={choose} />
 
     <section className="freepdf-hero">
-      <div className="freepdf-hero-backdrop" aria-hidden="true"><HomepageImage fileName="hero-paper-confetti-v1.png" alt="" width="1536" height="1024" sizes="100vw" eager /></div>
       <div className="freepdf-hero-layout">
         <div className="freepdf-hero-copy">
-          <span className="freepdf-eyebrow">More than just editing</span>
-          <h1>Every PDF task,<br />finally in one place.</h1>
+          <h1>Every PDF task,<br />finally in <span>one place.</span></h1>
           <p>Edit, sign, organize, and convert your PDFs without subscriptions, watermarks, or a maze of different apps.</p>
-          <section className="freepdf-trust-strip" aria-label="PDFArrow promises">
-            <div><LockKeyhole size={22} /><span><strong>Private by design</strong><small>Your file stays private</small></span></div>
-            <div><ShieldCheck size={22} /><span><strong>No watermark</strong><small>Clean results, always</small></span></div>
-            <div><Clock3 size={22} /><span><strong>Start right away</strong><small>No account needed</small></span></div>
-          </section>
         </div>
 
         <div className="freepdf-product-stage">
+          <nav className="freepdf-hero-task-tabs" aria-label="Popular PDF tasks">
+            {heroTasks.map(({ label, route, icon: Icon, tone }) => <Link className={`freepdf-hero-task-tab is-${tone}`} key={label} to={route}><Icon size={18} aria-hidden="true" /><span>{label}</span></Link>)}
+          </nav>
           <Dropzone choose={choose} dragging={dragging} setDragging={setDragging} isUploading={isUploading} uploadError={uploadError} uploadStage={uploadStage} onDropFiles={onDropFiles} onUpload={onUpload} />
         </div>
+
+        <section className="freepdf-trust-strip" aria-label="PDFArrow promises">
+          <div><span className="freepdf-trust-icon is-coral"><LockKeyhole size={23} /></span><span><strong>Private by design</strong><small>Your file stays private</small></span></div>
+          <div><span className="freepdf-trust-icon is-lilac"><ShieldCheck size={23} /></span><span><strong>No watermark</strong><small>Clean results, always</small></span></div>
+          <div><span className="freepdf-trust-icon is-yellow"><Clock3 size={23} /></span><span><strong>Start right away</strong><small>No account needed</small></span></div>
+        </section>
       </div>
     </section>
 
