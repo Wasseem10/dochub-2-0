@@ -220,7 +220,6 @@ const referencePrimaryTools = [
   { id: "image", label: "Image", icon: ImageIcon },
   { id: "stamp", label: "Stamp", icon: Stamp },
   { id: "link", label: "Link", icon: Link },
-  { id: "checkbox", label: "Check", icon: Check },
   { id: "note", label: "Note", icon: StickyNote },
 ];
 
@@ -1821,6 +1820,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     drawStroke: 4,
     highlightColor: colors.yellow,
     highlightOpacity: 0.62,
+    highlightThickness: "medium",
     shapeColor: colors.blue,
     shapeStroke: 3,
     whiteoutOpacity: 1,
@@ -3458,7 +3458,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
         x: clamp(point.x, 0, 0.82),
         y: clamp(point.y, 0, 0.96),
         w: 0.16,
-        h: 0.024,
+        h: ({ thin: 0.016, medium: 0.024, thick: 0.036 })[toolSettings.highlightThickness] || 0.024,
         color: toolSettings.highlightColor,
         opacity: toolSettings.highlightOpacity,
         rotation: 0,
@@ -3885,7 +3885,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
         x: clamp(item.x - 0.003, 0, 0.99),
         y: clamp(item.y + item.h * 0.08, 0, 0.99),
         w: clamp(item.w + 0.006, 0.02, 1 - item.x),
-        h: clamp(item.h * 0.78, 0.012, 0.12),
+        h: clamp(item.h * (({ thin: 0.58, medium: 0.78, thick: 1 })[toolSettings.highlightThickness] || 0.78), 0.012, 0.12),
         color: toolSettings.highlightColor,
         opacity: toolSettings.highlightOpacity,
         rotation: item.rotation || 0,
@@ -4774,12 +4774,11 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       <input ref={imageInputRef} className="hidden-input" type="file" accept="image/png,image/jpeg" onChange={onImageUpload} />
       {isOffline && <div className="editor-offline-banner" role="status">You are offline. Editing and local saves still work in this browser.</div>}
       <header className="file-header reference-file-header">
-        <div className="reference-brand-lockup">
-          <EditorBrandButton onDashboard={() => navigate(ROUTE_PATHS.dashboard)} />
-          <span className="reference-brand-divider" aria-hidden="true" />
+        <EditorBrandButton onDashboard={() => navigate(ROUTE_PATHS.dashboard)} />
+        <div className="reference-document-meta">
           <button type="button" className="reference-document-name" onClick={renameActiveDocument} title={`Rename ${fileName}`}>
-            <FileText size={19} aria-hidden="true" />
             <span>{fileName}</span>
+            <PenLine size={15} aria-hidden="true" />
           </button>
           <span className={`reference-save-state ${saveState === "unsaved" ? "is-unsaved" : ""}`}>
             <CheckCircle2 size={17} aria-hidden="true" />
@@ -4789,7 +4788,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
         <div className="reference-header-actions" aria-label="Document actions">
           <button type="button" onClick={printPdf} disabled={isExporting}><Printer size={23} /><span>{isExporting ? "Preparing…" : "Print"}</span></button>
           <button type="button" aria-label={isExporting ? "Preparing PDF" : "Download"} onClick={exportPdf} disabled={isExporting}><Download size={23} /><span>{isExporting ? "Preparing…" : "Download"}</span></button>
-          <button type="button" className="reference-done-button" onClick={finishEditing}><span>Done</span></button>
+          <button type="button" className="reference-done-button" onClick={finishEditing}><span>Finish</span></button>
         </div>
       </header>
       <header className="file-header">
@@ -4978,7 +4977,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
                   setIsShapeMenuOpen(true);
                 }}
               >
-                <RectangleHorizontal size={23} /><span className="reference-shape-label">Shapes <ChevronDown size={11} /></span>
+                <Send size={23} /><span className="reference-shape-label">Arrow <ChevronDown size={11} /></span>
               </button>
               {isShapeMenuOpen && createPortal(
                 <div className="reference-shape-menu" role="menu" aria-label="Shape tools" style={{ top: shapeMenuPosition.top, left: shapeMenuPosition.left }}>
@@ -5220,7 +5219,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
               </div>
             ))}
           </div>
-          {isManagePagesOpen && <div className="thumbnail-footer" aria-label="Page actions">
+          <div className="thumbnail-footer" aria-label="Page actions">
             <button type="button" title="Delete page" aria-label="Delete page" onClick={deleteCurrentPage} disabled={pages.length <= 1}>
               <Trash2 size={18} strokeWidth={2.6} />
             </button>
@@ -5233,7 +5232,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
             <button type="button" title="Download PDF" aria-label="Download PDF" onClick={exportPdf} disabled={isExporting}>
               <Download size={19} strokeWidth={2.5} />
             </button>
-          </div>}
+          </div>
           <div className="saved-foot"><CheckCircle2 size={22} /> {saveStatusLabel}</div>
         </aside>
 
@@ -6136,13 +6135,37 @@ export function ToolSettingsPanel({ tool, settings, setSettings, selectedTextAnn
         <span className="settings-title highlight-settings-title">{tool === "textHighlight" ? "Text highlight" : "Highlight"}</span>
         <div className="highlight-setting-group highlight-color-field">
           <span>Color</span>
-          <ColorControl value={settings.highlightColor} onChange={(color) => update({ highlightColor: color })} />
+          <div className="highlight-preset-colors" role="group" aria-label="Highlight color">
+            {[
+              ["#a41234", "Oxblood"],
+              [colors.yellow, "Amber"],
+              ["#7d7a74", "Gray"],
+            ].map(([color, label]) => (
+              <button
+                key={color}
+                type="button"
+                className={settings.highlightColor.toLowerCase() === color ? "is-selected" : ""}
+                style={{ "--highlight-swatch": color }}
+                aria-label={`${label} highlight`}
+                aria-pressed={settings.highlightColor.toLowerCase() === color}
+                onClick={() => update({ highlightColor: color })}
+              />
+            ))}
+          </div>
         </div>
         <label className="highlight-setting-group highlight-opacity-field">
           <span>Opacity</span>
           <input aria-label="Highlight opacity" type="range" min="25" max="95" value={opacityPercent} onChange={(event) => update({ highlightOpacity: Number(event.target.value) / 100 })} />
         </label>
         <output className="highlight-opacity-output" aria-live="polite">{opacityPercent}%</output>
+        <label className="highlight-setting-group highlight-thickness-field">
+          <span>Thickness</span>
+          <select aria-label="Highlight thickness" value={settings.highlightThickness} onChange={(event) => update({ highlightThickness: event.target.value })}>
+            <option value="thin">Thin</option>
+            <option value="medium">Medium</option>
+            <option value="thick">Thick</option>
+          </select>
+        </label>
       </div>
     );
   }

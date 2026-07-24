@@ -16,6 +16,7 @@ import "./features-page.css";
 import "./seo-category.css";
 import "./editorial-resources.css";
 import "./dashboard-editorial.css";
+import "./editor-editorial.css";
 import { installProductionMonitoring } from "./monitoring/productionMonitoring.js";
 
 installProductionMonitoring();
