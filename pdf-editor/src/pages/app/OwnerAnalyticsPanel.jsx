@@ -49,13 +49,22 @@ function formatDuration(milliseconds) {
   return milliseconds < 1000 ? `${milliseconds} ms` : `${(milliseconds / 1000).toFixed(milliseconds < 10_000 ? 1 : 0)} s`;
 }
 
-export function OwnerAnalyticsPanel() {
+function formatSignInTime(value) {
+  if (!value) return "Not recorded";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Not recorded";
+  return new Intl.DateTimeFormat("en", { dateStyle: "medium", timeStyle: "short" }).format(date);
+}
+
+export function OwnerAnalyticsPanel({ searchQuery = "" }) {
   const [events, setEvents] = useState([]);
   const [range, setRange] = useState("30d");
   const [status, setStatus] = useState("loading");
   const [message, setMessage] = useState("");
   const [supportRequests, setSupportRequests] = useState([]);
   const [serverCounts, setServerCounts] = useState(null);
+  const [signInProfiles, setSignInProfiles] = useState([]);
+  const [identityMessage, setIdentityMessage] = useState("");
 
   const loadAnalytics = useCallback(async () => {
     if (!db) {
@@ -73,6 +82,13 @@ export function OwnerAnalyticsPanel() {
         ? query(analyticsCollection, where("clientOccurredAt", ">=", rangeStart), orderBy("clientOccurredAt", "desc"), limit(5000))
         : query(analyticsCollection, orderBy("clientOccurredAt", "desc"), limit(5000));
       const supportQuery = query(collection(db, "supportRequests"), orderBy("clientCreatedAt", "desc"), limit(250));
+      const identityQuery = query(collection(db, "authUserProfiles"), orderBy("lastSignInAt", "desc"), limit(250));
+      const identityProfiles = getDocs(identityQuery)
+        .then((identitySnapshot) => ({
+          rows: identitySnapshot.docs.map((profileDocument) => ({ id: profileDocument.id, ...profileDocument.data() })),
+          error: null,
+        }))
+        .catch((error) => ({ rows: [], error }));
       const countEvent = async (name, authMethod = null) => {
         const constraints = [where("name", "==", name)];
         if (authMethod) constraints.push(where("properties.authMethod", "==", authMethod));
@@ -93,13 +109,20 @@ export function OwnerAnalyticsPanel() {
         countEvent("slow_operation"),
         countEvent("page_viewed"),
       ]).catch(() => null);
-      const [snapshot, supportSnapshot, countValues] = await Promise.all([
+      const [snapshot, supportSnapshot, countValues, identityResult] = await Promise.all([
         getDocs(eventQuery),
         getDocs(supportQuery),
         aggregateCounts,
+        identityProfiles,
       ]);
       setEvents(snapshot.docs.map((eventDocument) => ({ id: eventDocument.id, ...eventDocument.data() })));
       setSupportRequests(supportSnapshot.docs.map((requestDocument) => ({ id: requestDocument.id, ...requestDocument.data() })));
+      setSignInProfiles(identityResult.rows);
+      setIdentityMessage(identityResult.error?.code === "permission-denied"
+        ? "Deploy the owner-only authUserProfiles Firestore rule to begin listing sign-in identities."
+        : identityResult.error
+          ? "Sign-in identities could not be loaded right now."
+          : "");
       if (countValues) {
         const [signups, logins, googleSignups, googleLogins, uploads, downloads, clientErrors, unhandledRejections, failedExports, slowOperations, pageViews] = countValues;
         setServerCounts({
@@ -140,6 +163,12 @@ export function OwnerAnalyticsPanel() {
   const landingPages = useMemo(() => groupAnalyticsProperty(filteredEvents, "landingPath"), [filteredEvents]);
   const toolQuality = useMemo(() => createToolQualityScorecard(filteredEvents), [filteredEvents]);
   const diagnosticEvents = filteredEvents.filter((event) => ["client_error", "unhandled_rejection", "slow_operation", "export_failed"].includes(event.name)).slice(0, 10);
+  const normalizedIdentityQuery = searchQuery.trim().toLowerCase();
+  const visibleSignInProfiles = useMemo(() => signInProfiles.filter((profile) => {
+    if (!normalizedIdentityQuery) return true;
+    return [profile.displayName, profile.email, profile.provider]
+      .some((value) => String(value || "").toLowerCase().includes(normalizedIdentityQuery));
+  }), [normalizedIdentityQuery, signInProfiles]);
   const updateSupportStatus = async (requestId, statusValue) => {
     await updateDoc(doc(db, "supportRequests", requestId), { status: statusValue });
     setSupportRequests((items) => items.map((item) => item.id === requestId ? { ...item, status: statusValue } : item));
@@ -155,17 +184,15 @@ export function OwnerAnalyticsPanel() {
     { label: "Google sign-ins", value: displayedMetrics.googleAuth, detail: "Google account authentications", icon: Users, tone: "coral" },
     { label: "Documents opened", value: displayedMetrics.uploads, detail: "PDFs opened in the editor", icon: FileText, tone: "blue" },
     { label: "PDFs downloaded", value: displayedMetrics.downloads, detail: `${displayedMetrics.conversionRate}% of opened documents`, icon: Download, tone: "green" },
-    { label: "Recent active users", value: displayedMetrics.activeUsers, detail: "Unique users in the loaded activity feed", icon: Users, tone: "purple" },
-    { label: "Organic page views", value: displayedMetrics.organicVisits, detail: `${displayedMetrics.organicRate}% of measured public page views`, icon: Gauge, tone: "green" },
   ];
 
   return (
     <section className="owner-analytics" aria-labelledby="analytics-title">
       <header className="owner-analytics-head">
         <div>
-          <span>Owner-only</span>
-          <h1 id="analytics-title">PDFArrow analytics</h1>
-          <p>Private product usage metrics. PDF names and document contents are never collected.</p>
+          <span>Owner workspace</span>
+          <h2 id="analytics-title">Workspace overview</h2>
+          <p>Private operational metrics and account sign-ins. PDF names and document contents are never collected.</p>
         </div>
         <div className="owner-analytics-actions">
           <label>
@@ -194,6 +221,27 @@ export function OwnerAnalyticsPanel() {
           </article>
         ))}
       </div>
+
+      <article className="owner-analytics-activity owner-auth-ledger">
+        <div className="owner-analytics-section-title">
+          <div><h2>Sign-in activity</h2><p>Owner-only Firebase account directory, updated when an account signs in</p></div>
+          <strong>{visibleSignInProfiles.length.toLocaleString()} account{visibleSignInProfiles.length === 1 ? "" : "s"}</strong>
+        </div>
+        {identityMessage && <div className="owner-identity-notice" role="status">{identityMessage}</div>}
+        {visibleSignInProfiles.length ? (
+          <div className="owner-auth-table" role="table" aria-label="Sign-in activity">
+            <div className="owner-auth-row is-head" role="row"><span>Name</span><span>Email</span><span>Method</span><span>Last sign-in</span></div>
+            {visibleSignInProfiles.map((profile) => (
+              <div className="owner-auth-row" role="row" key={profile.id}>
+                <strong>{profile.displayName || "PDFArrow user"}</strong>
+                <a href={`mailto:${profile.email}`}>{profile.email}</a>
+                <span><i className={`is-${profile.provider}`} />{profile.provider === "google" ? "Google" : "Email and password"}</span>
+                <time dateTime={profile.lastSignInAt}>{formatSignInTime(profile.lastSignInAt)}</time>
+              </div>
+            ))}
+          </div>
+        ) : <div className="owner-analytics-empty"><LogIn size={24} /><strong>{normalizedIdentityQuery ? "No matching sign-ins" : "No sign-in identities recorded yet"}</strong><p>{normalizedIdentityQuery ? "Try another name, email, or provider." : "Existing accounts appear here after their next successful Firebase sign-in."}</p></div>}
+      </article>
 
       <div className="owner-analytics-grid">
         <article className="owner-analytics-chart">

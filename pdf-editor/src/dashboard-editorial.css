@@ -335,6 +335,91 @@
 .dashboard-editorial-library > footer { min-height: 54px !important; padding: 0 44px !important; color: #777 !important; }
 .dashboard-editorial-theme :focus-visible { outline: 3px solid rgba(161, 18, 45, .28) !important; outline-offset: 2px !important; }
 
+.dashboard-editorial-documents {
+  min-height: 100%;
+  background: #fff;
+}
+
+.dashboard-documents-toolbar {
+  display: flex;
+  min-height: 88px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 15px 44px;
+  border-bottom: 1px solid var(--editorial-line);
+}
+
+.dashboard-documents-toolbar > div:first-child strong {
+  display: block;
+  color: #292929;
+  font-size: 15px;
+  font-weight: 650;
+}
+
+.dashboard-documents-toolbar > div:first-child small {
+  display: block;
+  margin-top: 5px;
+  color: #858585;
+  font-size: 11px;
+}
+
+.dashboard-documents-toolbar > div:last-child {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dashboard-documents-toolbar button,
+.dashboard-documents-toolbar label {
+  display: inline-flex;
+  height: 40px;
+  align-items: center;
+  gap: 7px;
+  padding: 0 13px;
+  border: 1px solid #d7d7d4;
+  border-radius: 2px;
+  background: #fff;
+  color: #424242;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.dashboard-documents-toolbar button { cursor: pointer; }
+.dashboard-documents-toolbar button:hover,
+.dashboard-documents-toolbar button.is-active { border-color: #c9a0a8; background: #f7eff1; color: var(--editorial-accent); }
+.dashboard-documents-toolbar button.is-primary { border-color: var(--editorial-accent); background: var(--editorial-accent); color: #fff; }
+.dashboard-documents-toolbar button.is-primary:hover { border-color: var(--editorial-accent-dark); background: var(--editorial-accent-dark); color: #fff; }
+
+.dashboard-documents-toolbar label {
+  position: relative;
+  min-width: 152px;
+  padding: 0;
+}
+
+.dashboard-documents-toolbar select {
+  width: 100%;
+  height: 100%;
+  padding: 0 31px 0 12px;
+  border: 0;
+  outline: 0;
+  appearance: none;
+  background: transparent;
+  color: #424242;
+  cursor: pointer;
+  font: inherit;
+}
+
+.dashboard-documents-toolbar label > svg {
+  position: absolute;
+  right: 10px;
+  pointer-events: none;
+}
+
+.dashboard-documents-table { padding-top: 24px; }
+.dashboard-documents-table > .dashboard-premium-empty { margin: 0 44px !important; }
+
 .dashboard-tools-directory {
   min-height: 100%;
   background: #fff;
@@ -632,8 +717,10 @@
   .dashboard-editorial-theme .dashboard-all-tools-icon { width: 20px; }
   .dashboard-editorial-theme .upload-topbar { grid-template-columns: 190px minmax(280px, 1fr) auto !important; padding-inline: 28px !important; }
   .dashboard-editorial-commandbar,
-  .dashboard-editorial-library > header { padding-inline: 28px; }
+  .dashboard-editorial-library > header,
+  .dashboard-documents-toolbar { padding-inline: 28px; }
   .dashboard-editorial-theme .dashboard-library-table { margin-inline: 28px; }
+  .dashboard-documents-table > .dashboard-premium-empty { margin-inline: 28px !important; }
   .dashboard-editorial-commandbar > button { padding-inline: 12px; }
   .dashboard-editorial-theme .dashboard-library-row { grid-template-columns: minmax(300px, 1.3fr) 80px minmax(160px, .7fr) 80px 36px !important; }
   .dashboard-tools-intro,
@@ -664,6 +751,10 @@
   .dashboard-editorial-theme .dashboard-library-row > span:nth-child(4) { display: none; }
   .dashboard-editorial-theme .dashboard-library-name { grid-template-columns: 58px minmax(0, 1fr) !important; gap: 14px !important; }
   .dashboard-editorial-theme .dashboard-library-name > span { width: 58px !important; height: 78px !important; }
+  .dashboard-documents-toolbar { align-items: flex-start; padding: 18px 20px; flex-direction: column; }
+  .dashboard-documents-toolbar > div:last-child { width: 100%; flex-wrap: wrap; }
+  .dashboard-documents-toolbar > div:last-child > * { flex: 1 1 140px; justify-content: center; }
+  .dashboard-documents-table > .dashboard-premium-empty { margin-inline: 20px !important; }
   .dashboard-tools-intro { min-height: 102px; padding-inline: 20px; }
   .dashboard-tools-layout { display: block; padding: 0 20px 46px; }
   .dashboard-tool-categories {
@@ -707,6 +798,7 @@
   .dashboard-tool-row { grid-template-columns: 30px minmax(0, 1fr) 16px; }
   .dashboard-tool-row > em { display: none; }
   .dashboard-tool-group > header p { display: none; }
+  .dashboard-documents-toolbar > div:last-child > * { flex-basis: 100%; }
 }
 
 /* Authentication inherits the selected Editorial Monochrome workspace. */

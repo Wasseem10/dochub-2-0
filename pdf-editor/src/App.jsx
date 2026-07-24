@@ -6668,7 +6668,7 @@ export function UploadLanding({
     </div>
   );
 
-  const renderDashboardLibraryList = () => dashboardLibraryRows.length ? (
+  const renderDashboardLibraryList = (showEmptyAction = true) => dashboardLibraryRows.length ? (
     <div className="dashboard-library-table">
       <div className="dashboard-library-row dashboard-library-head"><span>Name</span><span>Size</span><span>Last opened</span><span>Status</span><span /></div>
       {dashboardLibraryRows.map((documentRecord) => {
@@ -6683,7 +6683,7 @@ export function UploadLanding({
       })}
     </div>
   ) : (
-    <div className="dashboard-premium-empty dashboard-library-empty"><span><FileText size={25} /></span><div><strong>{normalizedQuery || dashboardFilter === "favorites" ? "No documents match these filters" : "No documents yet"}</strong><small>{normalizedQuery || dashboardFilter === "favorites" ? "Clear the search or show all documents." : "Upload a PDF and it will appear here."}</small></div>{!normalizedQuery && dashboardFilter === "all" && <button type="button" onClick={onSelectFiles}>Upload PDF</button>}</div>
+    <div className="dashboard-premium-empty dashboard-library-empty"><span><FileText size={25} /></span><div><strong>{normalizedQuery || dashboardFilter === "favorites" ? "No documents match these filters" : "No documents yet"}</strong><small>{normalizedQuery || dashboardFilter === "favorites" ? "Clear the search or show all documents." : "Upload a PDF and it will appear here."}</small></div>{showEmptyAction && !normalizedQuery && dashboardFilter === "all" && <button type="button" onClick={onSelectFiles}>Upload PDF</button>}</div>
   );
 
   const renderDashboardLibraryGrid = () => dashboardLibraryRows.length ? (
@@ -6716,12 +6716,35 @@ export function UploadLanding({
   const renderWorkspaceSection = () => {
     if (activeSection === "Documents") {
       return (
-        <section className="document-library">
-          <div className="library-head">
-            <h2>Documents</h2>
-            <button type="button" className="library-action" onClick={onSelectFiles}><Upload size={17} /> Upload</button>
+        <section className="dashboard-editorial-documents" aria-label="Document library">
+          <header className="dashboard-documents-toolbar">
+            <div>
+              <strong>{dashboardLibraryRows.length} document{dashboardLibraryRows.length === 1 ? "" : "s"}</strong>
+              <small>Files saved to this workspace, ordered for quick access.</small>
+            </div>
+            <div>
+              <button
+                type="button"
+                className={dashboardFilter === "favorites" ? "is-active" : ""}
+                aria-pressed={dashboardFilter === "favorites"}
+                onClick={() => setDashboardFilter((value) => value === "favorites" ? "all" : "favorites")}
+              >
+                <Star size={15} fill={dashboardFilter === "favorites" ? "currentColor" : "none"} /> Favorites
+              </button>
+              <label>
+                <span className="sr-only">Sort documents</span>
+                <select value={dashboardSort} onChange={(event) => setDashboardSort(event.target.value)}>
+                  <option value="recent">Recently opened</option>
+                  <option value="name">Document name</option>
+                </select>
+                <ChevronDown size={14} aria-hidden="true" />
+              </label>
+              <button type="button" className="is-primary" onClick={onSelectFiles}><Upload size={16} /> Upload PDF</button>
+            </div>
+          </header>
+          <div className="dashboard-documents-table">
+            {renderDashboardLibraryList(false)}
           </div>
-          {renderDocumentTable(filteredDocuments)}
         </section>
       );
     }
@@ -6909,7 +6932,7 @@ export function UploadLanding({
     }
 
     if (activeSection === "Analytics" && isAnalyticsOwner(currentUser)) {
-      return <OwnerAnalyticsPanel />;
+      return <OwnerAnalyticsPanel searchQuery={searchQuery} />;
     }
 
     if (["Trash", "Billing", "Team", "Integrations"].includes(activeSection)) {
@@ -6997,15 +7020,15 @@ export function UploadLanding({
       </aside>
 
       <section className="upload-main">
-        <header className="upload-topbar">
-          {(activeSection === "Home" || activeSection === "Features") && <h1 className="dashboard-editorial-title">{activeSection === "Features" ? "All tools" : "Documents"}</h1>}
+        <header className={`upload-topbar is-${activeSection.toLowerCase().replaceAll(" ", "-")}`}>
+          {["Home", "Documents", "Features", "Analytics"].includes(activeSection) && <h1 className="dashboard-editorial-title">{{ Home: "Documents", Documents: "Documents", Features: "All tools", Analytics: "Analytics" }[activeSection]}</h1>}
           <label className="lumin-search">
             <Search size={18} />
-            <input type="search" placeholder={activeSection === "Features" ? `Search ${releasedDashboardTools.length} tools` : "Search documents"} value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} />
+            <input type="search" placeholder={activeSection === "Features" ? `Search ${releasedDashboardTools.length} tools` : activeSection === "Analytics" ? "Search sign-ins" : "Search documents"} value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} />
             <kbd>⌘ K</kbd>
           </label>
           <div className="upload-top-actions">
-            {activeSection !== "Home" && activeSection !== "Features" && <button type="button" className="dashboard-top-upload" onClick={onSelectFiles}><Upload size={18} /> Upload PDF</button>}
+            {!["Home", "Documents", "Features", "Analytics"].includes(activeSection) && <button type="button" className="dashboard-top-upload" onClick={onSelectFiles}><Upload size={18} /> Upload PDF</button>}
             <button type="button" className="top-avatar" aria-haspopup="dialog" aria-expanded={openPanel === "account"} onClick={() => setOpenPanel(openPanel === "account" ? null : "account")}><span>{userInitials}</span><i /><strong>{dashboardAccountName}</strong><ChevronDown size={15} /></button>
             {openPanel && (
               <div className={`workspace-popover ${openPanel === "account" ? "account-menu-popover" : ""}`} role={openPanel === "account" ? "dialog" : undefined} aria-label={openPanel === "account" ? "Account menu" : undefined}>

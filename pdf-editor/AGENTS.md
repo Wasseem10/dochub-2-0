@@ -32,7 +32,13 @@ For the next dashboard redesign, do not use a blue-dominant SaaS visual system, 
 
 The dashboard left navigation follows the selected July 23, 2026 Quiet Editorial Rail: a continuous warm-white surface, compact charcoal rows, one slim oxblood active spine, Analytics separated as an owner utility, and Trash plus Help anchored at the bottom. Use a restrained four-circle catalog icon for All tools; do not restore the playful sparkle icon or blue selected-row styling.
 
+The owner Analytics page must use the same Editorial Monochrome dashboard shell and dense document-management rhythm, including the shared searchable top bar, flat metric strips, fine dividers, compact controls, and oxblood-only emphasis. Keep an owner-only sign-in directory that clearly identifies the account name, email, Google versus email/password method, and Firebase last sign-in time; do not add this identity data to anonymous product analytics events.
+
+Before finishing any implementation change in this prototype, commit the scoped work and push it to the configured GitHub branch so the connected live deployment can update.
+
 The dashboard All tools action stays inside the Editorial Monochrome app shell at `/app/tools`. Keep the persistent Quiet Editorial Rail, serif page title, neutral catalog rows, oxblood selection and actions, compact category filtering, and one shared tool search. Do not send dashboard users to the older blue marketing-style Features page.
+
+Documents and owner Analytics use the same Editorial Monochrome app shell as Home and All tools. Documents uses a flat compact library with neutral rows and oxblood actions; Analytics uses a dense neutral metric ledger and square divided report sections. Do not restore blue upload buttons, colorful metric tiles, rounded SaaS cards, or shadow-heavy panels on either route.
 
 Authentication and lazy-loading transitions use PDFArrow’s DM Sans and Funnel Display typography, the blue document mark, concise status copy, a compact centered white card, and reduced-motion-safe progress. Do not use condensed display fonts, tiny all-caps brand pills, or vague filler copy on loading screens.
 

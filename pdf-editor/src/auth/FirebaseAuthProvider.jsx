@@ -16,6 +16,7 @@ import {
 import { auth, db, googleProvider, isFirebaseConfigured, storage } from "../firebase.js";
 import { trackProductEvent } from "../analytics/productAnalytics.js";
 import { AuthContext } from "./AuthContext.jsx";
+import { syncAuthUserProfile } from "./authUserProfile.js";
 
 const LOCAL_AUTH_STORAGE_KEY = "pdfarrow.local-auth-user.v1";
 
@@ -72,6 +73,7 @@ async function purgeUserData(userId) {
     const snapshot = await getDocs(query(collection(db, collectionName), where("actorId", "==", userId)));
     for (const record of snapshot.docs) await deleteDoc(record.ref);
   }
+  if (db) await deleteDoc(doc(db, "authUserProfiles", userId));
   try {
     Object.keys(window.localStorage).filter((key) => key.includes(userId)).forEach((key) => window.localStorage.removeItem(key));
   } catch {
@@ -105,6 +107,11 @@ export default function FirebaseAuthProvider({ children }) {
     return onAuthStateChanged(auth, (user) => {
       setCurrentUser(mapFirebaseUser(user));
       setAuthReady(true);
+      if (user) {
+        syncAuthUserProfile(user).catch((error) => {
+          if (import.meta.env.DEV) console.warn("[PDFArrow auth] Could not update the owner sign-in ledger", error?.code || error?.message);
+        });
+      }
     });
   }, []);
 

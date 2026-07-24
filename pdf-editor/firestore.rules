@@ -50,6 +50,41 @@ service cloud.firestore {
       allow read, create, update, delete: if isSignedIn() && request.auth.uid == userId;
     }
 
+    match /authUserProfiles/{userId} {
+      allow create, update: if isSignedIn()
+        && request.auth.uid == userId
+        && request.resource.data.keys().hasAll([
+          "uid",
+          "email",
+          "displayName",
+          "provider",
+          "lastSignInAt",
+          "updatedAt"
+        ])
+        && request.resource.data.keys().hasOnly([
+          "uid",
+          "email",
+          "displayName",
+          "provider",
+          "lastSignInAt",
+          "updatedAt"
+        ])
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.email == request.auth.token.email
+        && request.resource.data.email is string
+        && request.resource.data.email.size() <= 160
+        && request.resource.data.displayName is string
+        && request.resource.data.displayName.size() <= 120
+        && request.resource.data.provider in ["google", "email"]
+        && request.resource.data.lastSignInAt is string
+        && request.resource.data.lastSignInAt.size() <= 40
+        && request.resource.data.updatedAt == request.time;
+      allow read: if isAnalyticsOwner()
+        || (isSignedIn() && request.auth.uid == userId);
+      allow delete: if isAnalyticsOwner()
+        || (isSignedIn() && request.auth.uid == userId);
+    }
+
     match /shareLinks/{token} {
       allow get: if (resource.data.status == "active" && resource.data.expiresAt > request.time)
         || (isSignedIn() && resource.data.ownerId == request.auth.uid);
