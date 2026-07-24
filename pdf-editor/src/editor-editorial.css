@@ -223,6 +223,10 @@ main.editor-shell .reference-shape-tool > .reference-toolbar-button {
 
 main.editor-shell > .tool-settings,
 main.editor-shell > .text-format-settings {
+  position: relative !important;
+  inset: auto !important;
+  grid-row: 3 !important;
+  align-self: center !important;
   justify-self: center !important;
   width: min(1000px, calc(100vw - 300px)) !important;
   max-width: min(1000px, calc(100vw - 300px)) !important;
@@ -235,6 +239,7 @@ main.editor-shell > .text-format-settings {
   background: var(--editorial-paper) !important;
   box-shadow: 0 5px 14px rgba(44, 40, 35, 0.06) !important;
   color: var(--editorial-ink) !important;
+  transform: none !important;
 }
 
 main.editor-shell .settings-title,
@@ -296,8 +301,17 @@ main.editor-shell .text-format-settings select {
 main.editor-shell .workspace,
 main.editor-shell .workspace.pages-collapsed,
 main.editor-shell .workspace.is-managing-pages {
+  grid-row: 3 / -1 !important;
   grid-template-columns: 144px minmax(0, 1fr) !important;
+  min-height: 0 !important;
+  height: auto !important;
   background: var(--editorial-canvas) !important;
+}
+
+main.editor-shell.has-tool-settings .workspace,
+main.editor-shell.has-tool-settings .workspace.pages-collapsed,
+main.editor-shell.has-tool-settings .workspace.is-managing-pages {
+  grid-row: 4 / -1 !important;
 }
 
 main.editor-shell .workspace.pages-collapsed {
