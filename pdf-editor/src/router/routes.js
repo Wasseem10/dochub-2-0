@@ -1,19 +1,19 @@
 import { ROUTE_PATHS } from "./routePaths.js";
 
 export const PUBLIC_PLACEHOLDER_ROUTES = [
-  [ROUTE_PATHS.features, "Features", "Explore the FixThatPDF workspace and the tools that are currently available."],
-  [ROUTE_PATHS.pricing, "Pricing", "FixThatPDF plans are still being prepared. No checkout or paid plan is active yet."],
-  [ROUTE_PATHS.business, "FixThatPDF for business", "A focused document workspace for teams that edit and review PDFs."],
+  [ROUTE_PATHS.features, "Features", "Explore the PDFArrow workspace and the tools that are currently available."],
+  [ROUTE_PATHS.pricing, "Pricing", "PDFArrow plans are still being prepared. No checkout or paid plan is active yet."],
+  [ROUTE_PATHS.business, "PDFArrow for business", "A focused document workspace for teams that edit and review PDFs."],
   [ROUTE_PATHS.enterprise, "Enterprise", "Enterprise administration and access controls are currently in development."],
   [ROUTE_PATHS.security, "Security", "Learn what the current browser workspace supports and where additional safeguards are planned."],
   [ROUTE_PATHS.templates, "Templates", "Reusable production templates are currently in development."],
-  [ROUTE_PATHS.developers, "Developers", "The FixThatPDF developer platform and API are currently in development."],
+  [ROUTE_PATHS.developers, "Developers", "The PDFArrow developer platform and API are currently in development."],
   [ROUTE_PATHS.integrations, "Integrations", "External storage and workflow integrations are currently in development."],
   [ROUTE_PATHS.contactSales, "Contact sales", "Sales-assisted plans are not available yet. Product updates will appear here."],
   [ROUTE_PATHS.help, "Help center", "Upload, edit, organize, sign locally, and export PDFs using the existing workspace."],
-  [ROUTE_PATHS.dataRetention, "Data retention", "See exactly what FixThatPDF stores, where it is stored, and how to remove it."],
-  [ROUTE_PATHS.privacy, "Privacy", "FixThatPDF privacy documentation is being prepared for the production service."],
-  [ROUTE_PATHS.terms, "Terms", "FixThatPDF service terms are being prepared before public production launch."],
+  [ROUTE_PATHS.dataRetention, "Data retention", "See exactly what PDFArrow stores, where it is stored, and how to remove it."],
+  [ROUTE_PATHS.privacy, "Privacy", "PDFArrow privacy documentation is being prepared for the production service."],
+  [ROUTE_PATHS.terms, "Terms", "PDFArrow service terms are being prepared before public production launch."],
 ].map(([path, title, description]) => ({ path, title, description, status: "Available as an information page" }));
 
 export const FEATURE_PLACEHOLDER_ROUTES = [
@@ -23,12 +23,13 @@ export const FEATURE_PLACEHOLDER_ROUTES = [
   [ROUTE_PATHS.signPdf, "Sign PDF", "Signatures can be placed in the editor. Secure signature-request workflows are in development."],
   [ROUTE_PATHS.pdfToWord, "PDF to Word", "Layout-preserving PDF to Word conversion is currently in development."],
   [ROUTE_PATHS.jpgToPdf, "JPG to PDF", "A dedicated image-to-PDF workflow is currently in development."],
-  [ROUTE_PATHS.ocrPdf, "OCR PDF", "OCR for scanned PDFs is currently in development."],
+  [ROUTE_PATHS.ocrPdf, "OCR PDF", "Recognize printed text in six languages locally and download a searchable PDF plus TXT."],
   [ROUTE_PATHS.aiPdf, "AI PDF", "Document AI features are currently in development and do not return fake results."],
 ].map(([path, title, description]) => ({ path, title, description, status: "Coming soon" }));
 
 export const APP_ROUTE_SECTIONS = Object.freeze({
   [ROUTE_PATHS.dashboard]: "Home",
+  [ROUTE_PATHS.appTools]: "Features",
   [ROUTE_PATHS.documents]: "Documents",
   [ROUTE_PATHS.appTemplates]: "Templates",
   [ROUTE_PATHS.signatures]: "Signatures",

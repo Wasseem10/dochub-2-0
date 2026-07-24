@@ -69,7 +69,7 @@ export function OpenDocumentConversionPage({ tool }) {
     setStatus("converting"); setProgress(8); setError("");
     trackProductEvent("export_started", { toolId: tool.id });
     try {
-      const baseName = file.name.replace(/\.[^.]+$/, "") || "fixthatpdf-document";
+      const baseName = file.name.replace(/\.[^.]+$/, "") || "pdfarrow-document";
       const output = await convertOpenDocumentToPdf(tool.id, bytes, { title: baseName, onProgress: ({ completed, total }) => setProgress(Math.round(10 + completed / total * 82)) });
       setProgress(100);
       downloadPdf(output, `${baseName}.pdf`, tool.id);

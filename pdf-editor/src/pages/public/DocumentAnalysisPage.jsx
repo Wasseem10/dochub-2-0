@@ -33,19 +33,19 @@ import { createPdfFromPlainText, textContentToPlainText } from "../../tools/text
 
 const QUESTION_TOOLS = new Set(["ai-pdf", "chat-with-pdf", "ask-pdf"]);
 const MODES = Object.freeze({
-  "ai-pdf": { icon: Bot, heading: "Ask for source-grounded help", detail: "FixThatPDF retrieves the strongest matching passages from the PDF and cites their pages. It does not invent an answer beyond the source text.", action: "Find cited passages" },
+  "ai-pdf": { icon: Bot, heading: "Ask for source-grounded help", detail: "PDFArrow retrieves the strongest matching passages from the PDF and cites their pages. It does not invent an answer beyond the source text.", action: "Find cited passages" },
   "chat-with-pdf": { icon: MessageSquareText, heading: "Keep a private document conversation", detail: "Ask multiple questions in this tab. Every response is a set of exact, page-cited source passages; conversation text is not uploaded or saved.", action: "Ask document" },
   "summarize-pdf": { icon: Sparkles, heading: "Create an extractive page-cited summary", detail: "Important source sentences are ranked by document terms, reduced for repetition, and kept in document order. No model-generated facts are added.", action: "Create cited summary" },
-  "translate-pdf": { icon: Languages, heading: "Translate with your browser's local language model", detail: "Compatible Chrome browsers can download and run an on-device Translator model. The source PDF is never sent to FixThatPDF or a translation server.", action: "Translate document" },
+  "translate-pdf": { icon: Languages, heading: "Translate with your browser's local language model", detail: "Compatible Chrome browsers can download and run an on-device Translator model. The source PDF is never sent to PDFArrow or a translation server.", action: "Translate document" },
   "extract-data-from-pdf": { icon: Database, heading: "Extract structured fields with page references", detail: "Detect email addresses, phone numbers, dates, money, percentages, and label-value lines, then download JSON or CSV for review.", action: "Extract document data" },
   "ask-pdf": { icon: MessageSquareText, heading: "Find where the PDF answers your question", detail: "Question terms are matched against document sentences and numbers. The result shows exact passages with page citations instead of a generated answer.", action: "Find answer sources" },
   "ai-question-generator": { icon: Sparkles, heading: "Generate review questions from real sentences", detail: "Important document terms and figures become questions with exact source-sentence answer keys and page citations.", action: "Generate questions" },
   "contract-analyzer": { icon: FileCheck2, heading: "Surface clauses that deserve human review", detail: "Detect obligation, termination, confidentiality, liability, date, and money language with source pages. This is document organization, not legal advice.", action: "Analyze contract" },
-  "resume-analyzer": { icon: FileText, heading: "Check resume structure and evidence", detail: "Review sections, contact details, skills, action verbs, bullets, and quantified results. FixThatPDF does not rank candidates or infer protected traits.", action: "Analyze resume" },
+  "resume-analyzer": { icon: FileText, heading: "Check resume structure and evidence", detail: "Review sections, contact details, skills, action verbs, bullets, and quantified results. PDFArrow does not rank candidates or infer protected traits.", action: "Analyze resume" },
 });
 
 const LANGUAGES = [
-  ["es", "Spanish"], ["fr", "French"], ["de", "German"], ["it", "Italian"], ["pt", "Portuguese"], ["ja", "Japanese"], ["ko", "Korean"], ["zh", "Chinese"],
+  ["en", "English"], ["es", "Spanish"], ["fr", "French"], ["de", "German"], ["it", "Italian"], ["pt", "Portuguese"], ["ja", "Japanese"], ["ko", "Korean"], ["zh", "Chinese"],
 ];
 
 async function loadPdfRenderer() {
@@ -70,7 +70,7 @@ function CitedList({ items, keyName = "sentence" }) {
 }
 
 function AnalysisResult({ toolId, result, conversation }) {
-  if (QUESTION_TOOLS.has(toolId)) return <div className="analysis-conversation">{conversation.map((turn, index) => <article key={index}><header><strong>You</strong><p>{turn.question}</p></header><div><strong>FixThatPDF sources</strong>{turn.passages.length ? <CitedList items={turn.passages} /> : <p>No passage shared enough specific terms with that question. Try using names, dates, or wording found in the document.</p>}</div></article>)}</div>;
+  if (QUESTION_TOOLS.has(toolId)) return <div className="analysis-conversation">{conversation.map((turn, index) => <article key={index}><header><strong>You</strong><p>{turn.question}</p></header><div><strong>PDFArrow sources</strong>{turn.passages.length ? <CitedList items={turn.passages} /> : <p>No passage shared enough specific terms with that question. Try using names, dates, or wording found in the document.</p>}</div></article>)}</div>;
   if (!result) return null;
   if (toolId === "summarize-pdf") return <CitedList items={result} />;
   if (toolId === "ai-question-generator") return <ol className="analysis-question-list">{result.map((item, index) => <li key={index}><strong>{item.question}</strong><p>{item.answer}</p><span>Answer source · Page {item.pageNumber}</span></li>)}</ol>;
@@ -87,6 +87,7 @@ export function DocumentAnalysisPage({ tool }) {
   const [file, setFile] = useState(null);
   const [pages, setPages] = useState([]);
   const [query, setQuery] = useState("");
+  const [sourceLanguage, setSourceLanguage] = useState("en");
   const [targetLanguage, setTargetLanguage] = useState("es");
   const [result, setResult] = useState(null);
   const [conversation, setConversation] = useState([]);
@@ -143,7 +144,7 @@ export function DocumentAnalysisPage({ tool }) {
       else if (tool.id === "ai-question-generator") nextResult = generateDocumentQuestions(pages, 10);
       else if (tool.id === "contract-analyzer") nextResult = analyzeContract(pages);
       else if (tool.id === "resume-analyzer") nextResult = analyzeResume(pages);
-      else if (tool.id === "translate-pdf") nextResult = await translateDocumentText(fullText, { sourceLanguage: "en", targetLanguage, onProgress: ({ completed, total }) => setProgress(Math.round(completed / total * 96)) });
+      else if (tool.id === "translate-pdf") nextResult = await translateDocumentText(fullText, { sourceLanguage, targetLanguage, onProgress: ({ completed, total }) => setProgress(Math.round(completed / total * 96)) });
       setResult(nextResult || null); setProgress(100); setStatus("complete");
       trackProductEvent("export_succeeded", { toolId: tool.id });
     } catch (analysisError) {
@@ -169,14 +170,18 @@ export function DocumentAnalysisPage({ tool }) {
     {!file ? <section className="analysis-upload" onDragOver={(event) => event.preventDefault()} onDrop={(event) => { event.preventDefault(); void choose(event.dataTransfer.files?.[0]); }}><input ref={inputRef} type="file" accept="application/pdf,.pdf" onChange={(event) => { void choose(event.target.files?.[0]); event.target.value = ""; }} /><span><Upload size={27} /></span><h2>Choose a text-based PDF</h2><p>Valid, unencrypted PDFs up to 20 MB and 100 pages. Image-only scans need OCR first.</p><button type="button" onClick={() => inputRef.current?.click()}>Choose a PDF</button></section> : <div className="analysis-workspace"><aside className="analysis-source-card"><FileText size={24} /><h2>{file.name}</h2><p>{formatBytes(file.size)} · {pages.length} page{pages.length === 1 ? "" : "s"}</p><ul><li><Check size={15} /> {fullText.length.toLocaleString()} extracted characters</li><li><Check size={15} /> Source page citations retained</li><li><Check size={15} /> No document-content logging</li></ul><button type="button" onClick={() => inputRef.current?.click()}><Upload size={16} /> Replace PDF</button><input ref={inputRef} type="file" accept="application/pdf,.pdf" onChange={(event) => { void choose(event.target.files?.[0]); event.target.value = ""; }} /></aside>
       <section className="analysis-main-card"><header><span><ModeIcon size={22} /></span><div><h2>{mode.heading}</h2><p>{mode.detail}</p></div></header>
         {QUESTION_TOOLS.has(tool.id) && <div className="analysis-question-box"><label htmlFor="document-question">Question about this PDF</label><div><textarea id="document-question" rows="3" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Example: What is the payment deadline?" /><button type="button" disabled={status === "analyzing"} onClick={run}><Send size={18} /> Ask</button></div></div>}
-        {tool.id === "translate-pdf" && <label className="analysis-language"><span>Translate English document text to</span><select value={targetLanguage} onChange={(event) => setTargetLanguage(event.target.value)}>{LANGUAGES.map(([code, label]) => <option key={code} value={code}>{label}</option>)}</select><small>Translation works only when this language pair is available through the browser's on-device Translator API.</small></label>}
+        {tool.id === "translate-pdf" && <div className="analysis-language"><div className="analysis-language-pair"><label><span>Document language</span><select aria-label="Document language" value={sourceLanguage} onChange={(event) => {
+          const nextSource = event.target.value;
+          setSourceLanguage(nextSource);
+          if (nextSource === targetLanguage) setTargetLanguage(nextSource === "en" ? "es" : "en");
+        }}>{LANGUAGES.map(([code, label]) => <option key={code} value={code}>{label}</option>)}</select></label><label><span>Translate to</span><select aria-label="Translate to" value={targetLanguage} onChange={(event) => setTargetLanguage(event.target.value)}>{LANGUAGES.map(([code, label]) => <option key={code} value={code} disabled={code === sourceLanguage}>{label}</option>)}</select></label></div><small>Choose the PDF's current language and a different target language. Translation works only when that language pair is available through the browser's on-device Translator API.</small></div>}
         {!QUESTION_TOOLS.has(tool.id) && <button className="analysis-primary" type="button" disabled={status === "analyzing"} onClick={run}>{status === "analyzing" ? <><LoaderCircle className="is-spinning" size={18} /> Working… {progress}%</> : <><Sparkles size={18} /> {mode.action}</>}</button>}
         {status === "analyzing" && <div className="analysis-progress"><i style={{ width: `${progress}%` }} /></div>}{error && <div className="conversion-error" role="alert">{error}</div>}
         <AnalysisResult toolId={tool.id} result={result} conversation={conversation} />
         {(result || conversation.length > 0) && <div className="analysis-downloads">{tool.id === "translate-pdf" ? <><button type="button" onClick={downloadTranslatedPdf}><Download size={16} /> Download translated PDF</button><button type="button" onClick={() => download(result, "text/plain", `${baseName}-translated.txt`, tool.id)}><Download size={16} /> Download TXT</button></> : tool.id === "extract-data-from-pdf" ? <><button type="button" onClick={() => download(JSON.stringify(result, null, 2), "application/json", `${baseName}-data.json`, tool.id)}><Download size={16} /> Download JSON</button><button type="button" onClick={() => download(documentDataCsv(result), "text/csv", `${baseName}-data.csv`, tool.id)}><Download size={16} /> Download CSV</button></> : <button type="button" onClick={() => download(reportText, "text/plain", `${baseName}-${tool.id}.txt`, tool.id)}><Download size={16} /> Download report</button>}</div>}
       </section></div>}
     {status === "reading" && <div className="analysis-reading"><LoaderCircle className="is-spinning" size={18} /> Extracting document text… {progress}%</div>}{error && !file && <div className="conversion-error" role="alert">{error}</div>}
-    <section className="analysis-disclosure"><h2>What “AI” means in this private workflow</h2><p>FixThatPDF uses deterministic local document intelligence for retrieval, extractive summaries, field detection, questions, contract organization, and resume structure. It returns source text and page citations instead of sending your PDF to a generative model. Translation is separate and uses a compatible browser's on-device Translator model. Always review results against the PDF.</p></section>
+    <section className="analysis-disclosure"><h2>What “AI” means in this private workflow</h2><p>PDFArrow uses deterministic local document intelligence for retrieval, extractive summaries, field detection, questions, contract organization, and resume structure. It returns source text and page citations instead of sending your PDF to a generative model. Translation is separate and uses a compatible browser's on-device Translator model. Always review results against the PDF.</p></section>
     <ToolGuideContent tool={tool} />
   </main>;
 }

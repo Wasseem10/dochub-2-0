@@ -8,7 +8,7 @@ export function WorkflowUnavailablePage({ kind }) {
       <section className="route-state-card" aria-labelledby="workflow-unavailable-title">
         <span className="route-status-pill">Secure {kind} unavailable</span>
         <h1 id="workflow-unavailable-title">This {kind} link cannot be opened</h1>
-        <p>FixThatPDF does not expose documents through client-generated links. This link is invalid, expired, or waiting for the secure token service planned for a later backend milestone.</p>
+        <p>PDFArrow does not expose documents through client-generated links. This link is invalid, expired, or waiting for the secure token service planned for a later backend milestone.</p>
         <small>Reference: {token || "missing token"}</small>
         <div className="route-state-actions"><Link to={ROUTE_PATHS.home}>Go to homepage</Link></div>
       </section>

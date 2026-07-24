@@ -57,7 +57,7 @@ export const TOOL_CATEGORIES = Object.freeze([
 ]);
 
 const PARTIAL_EDITOR_LIMIT = "This workflow opens the current browser editor. Supported edits are flattened during export, and source formatting or interactive PDF features may not be preserved.";
-const COMING_SOON_LIMIT = "This tool is not implemented yet. FixThatPDF does not upload or process files for this workflow today.";
+const COMING_SOON_LIMIT = "This tool is not implemented yet. PDFArrow does not upload or process files for this workflow today.";
 const DEDICATED_CONVERTER_IDS = new Set(["pdf-to-word", "pdf-to-excel", "pdf-to-powerpoint", "pdf-to-jpg", "pdf-to-png", "pdf-to-txt", "pdf-to-html", "word-to-pdf", "excel-to-pdf", "powerpoint-to-pdf", "html-to-pdf", "jpg-to-pdf", "png-to-pdf", "txt-to-pdf", "rtf-to-pdf", "odt-to-pdf", "odp-to-pdf", "ods-to-pdf", "epub-to-pdf", "zip-to-pdf", "ocr-pdf", "pdf-scanner", "scan-to-pdf", "image-to-searchable-pdf", "ai-pdf", "chat-with-pdf", "summarize-pdf", "translate-pdf", "extract-data-from-pdf", "ask-pdf", "ai-question-generator", "contract-analyzer", "resume-analyzer", "compare-pdf", "document-version-comparison"]);
 const DEDICATED_PAGE_TOOL_IDS = new Set(["merge-pdf", "split-pdf", "rotate-pdf", "delete-pdf-pages", "extract-pdf-pages", "reorder-pdf-pages", "organize-pdf", "add-page-numbers", "watermark-pdf", "crop-pdf", "compress-pdf", "redact-pdf", "unlock-pdf", "flatten-pdf", "remove-pdf-password"]);
 
@@ -67,7 +67,7 @@ const definitions = [
   ["annotate-pdf", "Annotate PDF", "Highlight, draw, add shapes, whiteout areas, and place local comments on PDF pages.", "edit-view", "highlight", "available", ["application/pdf"], ["application/pdf"], "Supported annotations are flattened into the downloaded PDF so they remain visible in standard readers. Shared comment threads are a separate collaboration workflow."],
   ["pdf-reader", "PDF Reader", "Open a PDF in the browser, move between pages, zoom, and search extracted text.", "edit-view", "reader", "available", ["application/pdf"], [], "Supports valid, unencrypted PDFs up to 50 MB and 500 pages with progressive rendering. Search indexes pages after they render; image-only pages require OCR."],
   ["fill-pdf", "Fill PDF", "Place text, checkboxes, dates, initials, and signature content on a PDF.", "edit-view", "form", "available", ["application/pdf"], ["application/pdf"], "Completed values are flattened into the exported PDF for consistent display in standard readers."],
-  ["pdf-form-filler", "PDF Form Filler", "Detect supported PDF form widgets, enter responses, and export a completed PDF.", "edit-view", "form", "available", ["application/pdf"], ["application/pdf"], "Text and checkbox AcroForm widgets are detected and completed as flattened output. Dynamic XFA forms are outside this browser workflow."],
+  ["pdf-form-filler", "PDF Form Filler", "Detect supported PDF form widgets, enter responses, and export a completed PDF.", "edit-view", "form", "available", ["application/pdf"], ["application/pdf"], "Text, checkbox, radio-button, dropdown, and list AcroForm widgets are detected. Native fields are updated when the source structure can be preserved; rebuilt pages use flattened output. Dynamic XFA forms are outside this browser workflow."],
   ["crop-pdf", "Crop PDF", "Trim page boundaries to keep only the area you need.", "edit-view", "crop", "available", ["application/pdf"], ["application/pdf"], "Browser cropping sets accurate PDF page bounds on selected pages. Original content is preserved outside the visible page box and can be recovered from the source file."],
   ["watermark-pdf", "Watermark PDF", "Apply text or image marks across selected PDF pages.", "edit-view", "watermark", "available", ["application/pdf", "image/png", "image/jpeg"], ["application/pdf"], "Browser watermarking keeps original PDF pages intact and supports text or PNG/JPG marks, selected pages, position, tiling, opacity, rotation, and scale. Encrypted PDFs are not supported."],
   ["add-page-numbers", "Add Page Numbers", "Place consistent page numbers in headers or footers across a PDF.", "edit-view", "numbers", "available", ["application/pdf"], ["application/pdf"], "Browser page numbering supports valid, unencrypted PDFs up to 50 MB and 200 pages, with six header and footer positions."],
@@ -82,10 +82,10 @@ const definitions = [
   ["reorder-pdf-pages", "Reorder PDF Pages", "Drag page thumbnails into a new order and download the reorganized PDF.", "organize", "reorder", "available", ["application/pdf"], ["application/pdf"], "Browser organization supports valid, unencrypted PDFs up to 50 MB and 200 output pages."],
   ["organize-pdf", "Organize PDF", "Reorder, rotate, duplicate, and delete PDF pages with undo.", "organize", "pages", "available", ["application/pdf"], ["application/pdf"], "Browser organization supports valid, unencrypted PDFs up to 50 MB and 200 output pages."],
 
-  ["compress-pdf", "Compress PDF", "Reduce image-heavy PDFs while balancing visual quality and file size.", "compress", "compress", "available", ["application/pdf"], ["application/pdf"], "Browser compression re-renders pages as JPEGs, preserving their visual appearance but flattening selectable text, links, forms, and layers. The app only offers a download when the result is smaller."],
+  ["compress-pdf", "Compress PDF", "Batch reduce PDFs with measured savings, visual previews, and honest quality modes.", "compress", "compress", "available", ["application/pdf"], ["application/pdf", "application/zip"], "Compress up to 20 PDFs at once. Balanced and Lossless cleanup preserve selectable text, links, form fields, vectors, and page structure. Maximum reduction flattens pages only when explicitly selected. Every result includes measured savings and a first-page comparison, and larger outputs are never presented as successful."],
 
-  ["pdf-to-word", "PDF to Word", "Convert PDF content into an editable or visually faithful Word document.", "from-pdf", "word", "available", ["application/pdf"], ["application/vnd.openxmlformats-officedocument.wordprocessingml.document"], "Editable conversion preserves page breaks, text order, indentation, spacing, common font styling, and page proportions. Visual fidelity mode preserves the original page appearance. Browser conversion supports valid, unencrypted PDFs up to 20 MB and 50 pages; scanned documents need OCR before editable text can be recovered."],
-  ["pdf-to-excel", "PDF to Excel", "Extract tables and structured values from a PDF into an Excel workbook.", "from-pdf", "sheet", "available", ["application/pdf"], ["application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"], "Browser conversion supports valid, unencrypted PDFs up to 25 MB and 100 pages. Each PDF page becomes a worksheet; visual lines and horizontal gaps guide row and cell grouping, so complex tables should be reviewed after download."],
+  ["pdf-to-word", "PDF to Word", "Convert PDF content into an editable, OCR-recovered, or visually faithful Word document.", "from-pdf", "word", "available", ["application/pdf"], ["application/vnd.openxmlformats-officedocument.wordprocessingml.document"], "Editable conversion preserves page breaks, text order, indentation, spacing, common font styling, and tab-aligned columns. Scanned PDF mode performs local OCR in six languages on image-only pages. Visual fidelity mode preserves the original page appearance. Browser conversion supports valid, unencrypted PDFs up to 20 MB and 50 pages; OCR mode supports up to 24 pages."],
+  ["pdf-to-excel", "PDF to Excel", "Extract aligned tables and typed values from text or scanned PDFs into an Excel workbook.", "from-pdf", "sheet", "available", ["application/pdf"], ["application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"], "Browser conversion supports valid, unencrypted PDFs up to 25 MB and 100 pages. Choose one sheet or one sheet per page. Column alignment, numeric/date/currency types, headers, filters, and local OCR for scanned PDFs are included; OCR is limited to 24 pages and complex tables should still be reviewed."],
   ["pdf-to-powerpoint", "PDF to PowerPoint", "Turn PDF pages into an editable or image-based presentation.", "from-pdf", "slides", "available", ["application/pdf"], ["application/vnd.openxmlformats-officedocument.presentationml.presentation"], "Browser conversion supports valid, unencrypted PDFs up to 25 MB and 100 pages. Each PDF page becomes a high-resolution image slide, preserving appearance but not reconstructing editable source objects."],
   ["pdf-to-jpg", "PDF to JPG", "Render selected PDF pages as individual JPG images.", "from-pdf", "image", "available", ["application/pdf"], ["image/jpeg", "application/zip"], "Browser conversion supports valid, unencrypted PDFs up to 50 MB and 100 pages. Complex transparency is flattened into JPG output."],
   ["pdf-to-png", "PDF to PNG", "Render selected PDF pages as individual lossless PNG images.", "from-pdf", "image", "available", ["application/pdf"], ["image/png", "application/zip"], "Browser conversion supports valid, unencrypted PDFs up to 50 MB and 100 pages. Higher resolutions use more memory."],
@@ -107,7 +107,7 @@ const definitions = [
   ["zip-to-pdf", "ZIP to PDF", "Create one PDF from supported files contained in a ZIP archive.", "to-pdf", "archive", "available", ["application/zip"], ["application/pdf"], "Browser conversion safely combines supported PDF, image, text, HTML, RTF, ODT, ODP, ODS, and EPUB files in filename order. Encrypted archives, nested ZIPs, executables, and unsupported files are ignored; output is limited to 200 pages."],
 
   ["sign-pdf", "Sign PDF", "Place your own typed, drawn, or uploaded signature on a PDF.", "sign", "signature", "available", ["application/pdf", "image/png", "image/jpeg"], ["application/pdf"], "This is a self-signing workflow. Recipient invitations, identity verification, signing order, and completion certificates belong to Request Signatures."],
-  ["request-signatures", "Request Signatures", "Place signer fields, export a signing copy, and hand it off with your device's share sheet.", "sign", "send", "available", ["application/pdf"], ["application/pdf"], "Local signing-copy handoff is available. Hosted signing links, reminders, signing status, identity verification, and audit certificates are not implemented."],
+  ["request-signatures", "Request Signatures", "Place required fields and send a secure, expiring link for browser-based signing.", "sign", "send", "available", ["application/pdf"], ["application/pdf"], "Signed-in owners can create a revocable single-signer link with typed or drawn signatures, required fields, signed-PDF download, and a device-generated SHA-256 completion receipt. Automated reminders, signing order, identity verification, and independent digital certificates are not included."],
   ["add-initials", "Add Initials", "Create typed initials, place them on a PDF, and include them in the exported file.", "sign", "initials", "available", ["application/pdf"], ["application/pdf"], "Initials are self-attested visual content and are flattened into the exported PDF."],
   ["add-date-fields", "Add Date Fields", "Place the current date or editable date text on a PDF.", "sign", "calendar", "available", ["application/pdf"], ["application/pdf"], "Date content is editable before export and is flattened into the downloaded PDF for consistent display."],
 
@@ -116,7 +116,7 @@ const definitions = [
   ["flatten-pdf", "Flatten PDF", "Combine annotations and form appearances into regular page content.", "protect", "layers", "available", ["application/pdf"], ["application/pdf"], "Browser flattening supports valid, unencrypted PDFs up to 25 MB and 50 pages. It rebuilds pages from pixels, preserving appearance while removing selectable text, forms, links, layers, attachments, metadata, and accessibility tags."],
   ["remove-pdf-password", "Remove PDF Password", "Remove a password from a PDF when you know the current password and have permission.", "protect", "unlock", "available", ["application/pdf"], ["application/pdf"], "Browser decryption requires the current open password and authorization to modify the document. Certificate-encrypted PDFs and password recovery are not supported."],
 
-  ["ocr-pdf", "OCR PDF", "Recognize English text on scanned PDF pages so it can be searched or copied.", "ocr-scan", "scan", "available", ["application/pdf"], ["application/pdf", "text/plain"], "Browser OCR supports unencrypted PDFs up to 12 MB and 12 pages. It downloads an English recognition model, processes pages locally, and creates a searchable image PDF plus TXT; handwriting and low-quality scans may need correction."],
+  ["ocr-pdf", "OCR PDF", "Recognize printed text in six languages on scanned PDF pages so it can be searched or copied.", "ocr-scan", "scan", "available", ["application/pdf"], ["application/pdf", "text/plain"], "Browser OCR supports unencrypted PDFs up to 20 MB and 24 pages. It downloads the selected English, Spanish, French, German, Italian, or Portuguese model, processes pages locally, and creates a searchable image PDF plus TXT; handwriting and low-quality scans may need correction."],
   ["pdf-scanner", "PDF Scanner", "Capture paper pages with a camera and assemble them into a PDF.", "ocr-scan", "camera", "available", ["image/jpeg", "image/png"], ["application/pdf"], "Camera capture requires HTTPS and browser permission. The browser workflow supports up to 30 pages with manual rotation, ordering, and grayscale cleanup; automatic edge cropping and perspective correction are not included."],
   ["scan-to-pdf", "Scan to PDF", "Turn scanned page images into an ordered PDF.", "ocr-scan", "scan", "available", ["image/jpeg", "image/png"], ["application/pdf"], "Browser conversion supports up to 30 JPG or PNG pages, 20 MB each, with ordering, rotation, and optional grayscale contrast cleanup. Automatic edge cropping and perspective correction are not included."],
   ["image-to-searchable-pdf", "Image to Searchable PDF", "Create a PDF from images and add a searchable OCR text layer.", "ocr-scan", "search", "available", ["image/jpeg", "image/png"], ["application/pdf"], "Browser OCR supports up to 30 JPG or PNG pages and recognizes English locally. Handwriting, complex layouts, and low-quality photos may need correction; verify important names and numbers."],
@@ -149,7 +149,7 @@ const CATEGORY_BY_ID = new Map(TOOL_CATEGORIES.map((category) => [category.id, c
 const categoryContent = {
   "edit-view": {
     benefit: "Work directly on familiar PDF pages without rebuilding the document from scratch.",
-    steps: ["Open the PDF in the FixThatPDF editor.", "Choose the supported editing or viewing control you need.", "Review the result and export a new PDF when ready."],
+    steps: ["Open the PDF in the PDFArrow editor.", "Choose the supported editing or viewing control you need.", "Review the result and export a new PDF when ready."],
     uses: ["Correcting a document before delivery", "Marking up a draft for personal review", "Completing a form-like document"],
   },
   organize: {
@@ -252,7 +252,7 @@ function buildBaseTool([slug, name, shortDescription, category, icon, status, su
     route,
     name,
     shortDescription,
-    longDescription: `${shortDescription} ${isUsable ? hasDedicatedWorkflow ? "Use the dedicated FixThatPDF workflow and review the downloaded result carefully." : "Use the supported workflow in the current FixThatPDF editor and review the exported result carefully." : "The page explains the intended workflow without pretending that file processing is available."}`,
+    longDescription: `${shortDescription} ${isUsable ? hasDedicatedWorkflow ? "Use the dedicated PDFArrow workflow and review the downloaded result carefully." : "Use the supported workflow in the current PDFArrow editor and review the exported result carefully." : "The page explains the intended workflow without pretending that file processing is available."}`,
     category,
     categoryName: categoryRecord.name,
     icon,
@@ -265,8 +265,8 @@ function buildBaseTool([slug, name, shortDescription, category, icon, status, su
     workflowType: isDedicatedConverter ? "converter" : isDedicatedPageTool ? "page-tool" : isUsable ? "editor" : "information",
     currentLimitations: currentLimitations || (isUsable ? PARTIAL_EDITOR_LIMIT : COMING_SOON_LIMIT),
     availabilityLabel,
-    seoTitle: `${name} Online | FixThatPDF`,
-    metaDescription: `${shortDescription} See current availability, supported formats, and limitations in FixThatPDF.`,
+    seoTitle: `${name} Online | PDFArrow`,
+    metaDescription: `${shortDescription} See current availability, supported formats, and limitations in PDFArrow.`,
     heroHeadline: `${name} online, with private browser processing`,
     heroSubheadline: shortDescription,
     benefits: [content.benefit, `Inputs: ${inputLabel}.`, `Outputs: ${outputLabel}.`],
@@ -281,10 +281,10 @@ function buildBaseTool([slug, name, shortDescription, category, icon, status, su
     })[slug] || content.uses,
     faqEntries: [
       { question: `What does ${name} do?`, answer: shortDescription },
-      { question: `Is ${name} available in FixThatPDF today?`, answer: `${availabilityLabel}. ${currentLimitations}` },
+      { question: `Is ${name} available in PDFArrow today?`, answer: `${availabilityLabel}. ${currentLimitations}` },
       { question: `What should I verify after using ${name}?`, answer: isUsable ? `Open the downloaded ${outputLabel} result, compare important content with the source, and do not share it until the output has been reviewed.` : "No file is processed today. Use the related available editor workflows shown on this page, and return when this tool is implemented." },
     ],
-    privacySummary: isUsable ? "Choosing a file starts the supported FixThatPDF workflow. Review the page-specific privacy note before processing sensitive documents." : "This page does not accept or process a file today.",
+    privacySummary: isUsable ? "Choosing a file starts the supported PDFArrow workflow. Review the page-specific privacy note before processing sensitive documents." : "This page does not accept or process a file today.",
     verificationChecklist: [`Open the downloaded ${outputLabel} result in a compatible application.`, "Compare important text, images, formatting, and page order with the source.", "Keep the source file until the result has been verified."],
     troubleshooting: [
       { question: `Why might ${name} reject a file?`, answer: `The file must match the supported input format and current limits shown on this page. Encrypted PDFs are not accepted unless the workflow specifically removes a known password.` },
@@ -369,4 +369,4 @@ export function validateToolRegistry(tools = TOOL_REGISTRY) {
 }
 
 const registryErrors = validateToolRegistry();
-if (registryErrors.length) throw new Error(`Invalid FixThatPDF tool registry:\n${registryErrors.join("\n")}`);
+if (registryErrors.length) throw new Error(`Invalid PDFArrow tool registry:\n${registryErrors.join("\n")}`);

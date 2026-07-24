@@ -210,13 +210,13 @@ export async function createPdfFromWorkbook(workbook, { title = "Spreadsheet" } 
           });
           y -= rowHeight;
         });
-        page.drawText(`FixThatPDF · ${title}`, { x: margin, y: 18, size: 7.5, font: regular, color: rgb(0.48, 0.53, 0.62) });
+        page.drawText(`PDFArrow · ${title}`, { x: margin, y: 18, size: 7.5, font: regular, color: rgb(0.48, 0.53, 0.62) });
       }
     });
   });
   pdf.setTitle(pdfText(title));
-  pdf.setCreator("FixThatPDF");
-  pdf.setProducer("FixThatPDF browser spreadsheet conversion");
+  pdf.setCreator("PDFArrow");
+  pdf.setProducer("PDFArrow browser spreadsheet conversion");
   return pdf.save();
 }
 
@@ -326,8 +326,8 @@ export async function createPdfFromPresentation(presentation, { title = "Present
     }
   }
   pdf.setTitle(pdfText(title));
-  pdf.setCreator("FixThatPDF");
-  pdf.setProducer("FixThatPDF browser presentation conversion");
+  pdf.setCreator("PDFArrow");
+  pdf.setProducer("PDFArrow browser presentation conversion");
   return pdf.save();
 }
 

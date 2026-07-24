@@ -13,14 +13,14 @@ test("core tools reject malformed PDFs and remain ready for a replacement", asyn
   }
 });
 
-test("PDF to Word sends image-only documents to visual fidelity or OCR", async ({ page }) => {
+test("PDF to Word automatically offers editable OCR for image-only documents", async ({ page }) => {
   const document = await PDFDocument.create();
   document.addPage([612, 792]);
   await page.goto(appPath("/pdf-to-word"));
   await page.locator('input[type="file"]').setInputFiles({ name: "scan.pdf", mimeType: "application/pdf", buffer: Buffer.from(await document.save()) });
   await expect(page.getByText(/0 text lines found/)).toBeVisible();
-  await page.getByRole("button", { name: "Download DOCX" }).click();
-  await expect(page.getByRole("alert")).toContainText(/Visual fidelity.*OCR/i);
+  await expect(page.getByLabel("Conversion mode")).toHaveValue("ocr");
+  await expect(page.getByLabel("Document language")).toHaveValue("eng");
   await page.getByLabel("Conversion mode").selectOption("visual");
   await expect(page.getByRole("button", { name: "Download DOCX" })).toBeEnabled();
 });

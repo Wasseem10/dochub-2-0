@@ -1,6 +1,6 @@
 {
-  "name": "FixThatPDF",
-  "short_name": "FixThatPDF",
+  "name": "PDFArrow",
+  "short_name": "PDFArrow",
   "description": "Browser-based tools for editing, organizing, converting, signing, and reviewing PDFs.",
   "start_url": "/",
   "display": "standalone",

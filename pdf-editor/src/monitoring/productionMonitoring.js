@@ -1,6 +1,6 @@
 import { trackProductEvent } from "../analytics/productAnalytics.js";
 
-const REPORTED_KEY = "fixthatpdf_reported_diagnostics";
+const REPORTED_KEY = "pdfarrow_reported_diagnostics";
 
 export function diagnosticCategory(value) {
   const text = String(value || "").toLowerCase();
@@ -38,8 +38,8 @@ function reportOnce(name, properties) {
 }
 
 export function installProductionMonitoring() {
-  if (typeof window === "undefined" || window.__fixThatPdfMonitoringInstalled) return () => {};
-  window.__fixThatPdfMonitoringInstalled = true;
+  if (typeof window === "undefined" || window.__pdfArrowMonitoringInstalled) return () => {};
+  window.__pdfArrowMonitoringInstalled = true;
   const onError = (event) => reportOnce("client_error", { errorCategory: diagnosticCategory(event.error?.name || event.message), operation: "window_error", route: safeRoute() });
   const onRejection = (event) => reportOnce("unhandled_rejection", { errorCategory: diagnosticCategory(event.reason?.name || event.reason?.message || event.reason), operation: "promise_rejection", route: safeRoute() });
   const reportNavigation = () => {
@@ -55,6 +55,6 @@ export function installProductionMonitoring() {
     window.removeEventListener("error", onError);
     window.removeEventListener("unhandledrejection", onRejection);
     window.removeEventListener("load", reportNavigation);
-    window.__fixThatPdfMonitoringInstalled = false;
+    window.__pdfArrowMonitoringInstalled = false;
   };
 }

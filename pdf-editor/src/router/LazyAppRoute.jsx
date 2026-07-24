@@ -6,7 +6,7 @@ const LazyApp = lazy(() => import("../App.jsx").then((module) => ({ default: mod
 const LazyFirebaseAuthProvider = lazy(() => import("../auth/FirebaseAuthProvider.jsx"));
 
 function LoadingBoundary({ children }) {
-  return <Suspense fallback={<AuthLoadingScreen label="Opening FixThatPDF" />}>{children}</Suspense>;
+  return <Suspense fallback={<AuthLoadingScreen label="Opening PDFArrow" />}>{children}</Suspense>;
 }
 
 export function LazyAppContent(props) {

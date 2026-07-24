@@ -5,7 +5,7 @@ export default Object.freeze([
     "output": "A reopened PDF with the corrected date, two placed initials, and every untouched page preserved",
     "result": "1/1 styled-text round-trip fixture exported, reopened, and retained its detected style",
     "method": "Browser regression checks text detection, placement, history, export, and parseable reopen",
-    "demoAlt": "Before and after demonstration of a date correction and initials placed in the FixThatPDF editor"
+    "demoAlt": "Before and after demonstration of a date correction and initials placed in the PDFArrow editor"
   },
   {
     "toolId": "merge-pdf",

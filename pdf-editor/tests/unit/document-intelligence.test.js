@@ -53,4 +53,18 @@ describe("private document intelligence", () => {
     expect(translated).toContain("ES:Payment due.");
     expect(destroyed).toBe(true);
   });
+
+  it("supports translating a non-English source document into English", async () => {
+    let requestedPair;
+    globalThis.Translator = {
+      availability: async () => "available",
+      create: async (options) => {
+        requestedPair = options;
+        return { translate: async (text) => `EN:${text}`, destroy() {} };
+      },
+    };
+    const translated = await translateDocumentText("Pago pendiente.", { sourceLanguage: "es", targetLanguage: "en" });
+    expect(requestedPair).toEqual({ sourceLanguage: "es", targetLanguage: "en" });
+    expect(translated).toBe("EN:Pago pendiente.");
+  });
 });

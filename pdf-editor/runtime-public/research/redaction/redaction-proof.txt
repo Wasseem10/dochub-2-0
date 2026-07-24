@@ -1,4 +1,4 @@
-FixThatPDF redaction verification proof
+PDFArrow redaction verification proof
 Generated: 2026-07-21
 
 Before sample contains fictional secret in extracted text: True

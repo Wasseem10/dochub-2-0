@@ -1,3 +1,4 @@
+// Keep the existing local database identifier so returning users retain drafts.
 const DATABASE_NAME = "fixthatpdf-editor-sessions";
 const DATABASE_VERSION = 1;
 const STORE_NAME = "sessions";

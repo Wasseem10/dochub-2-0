@@ -1,5 +1,5 @@
 {
-  "benchmark": "FixThatPDF Q3 2026 browser PDF conversion and fidelity benchmark",
+  "benchmark": "PDFArrow Q3 2026 browser PDF conversion and fidelity benchmark",
   "testedAt": "2026-07-21",
   "status": "passed",
   "coreToolCount": 21,

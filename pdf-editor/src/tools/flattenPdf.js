@@ -25,8 +25,8 @@ export async function flattenPdfBytes(sourceBytes, options = {}) {
 
   const output = await PDFDocument.create();
   output.setTitle("Flattened document");
-  output.setCreator("FixThatPDF");
-  output.setProducer("FixThatPDF browser flattening");
+  output.setCreator("PDFArrow");
+  output.setProducer("PDFArrow browser flattening");
   const renderScale = options.renderScale || FLATTEN_PDF_LIMITS.renderScale;
 
   for (let pageNumber = 1; pageNumber <= source.numPages; pageNumber += 1) {

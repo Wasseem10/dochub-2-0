@@ -14,6 +14,12 @@ const actionContent = {
     primary: "Sign in to continue",
     secondary: "Continue editing",
   },
+  "signature-request": {
+    title: "Create a secure signing request",
+    description: "Sign in to store the source PDF securely and create a revocable link for the recipient.",
+    primary: "Sign in to create request",
+    secondary: "Continue editing",
+  },
 };
 
 export function AuthRequiredModal({ action = "save", onClose, onSignIn }) {

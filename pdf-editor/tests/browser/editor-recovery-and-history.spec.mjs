@@ -17,6 +17,16 @@ async function editorFixture() {
   return Buffer.from(await pdf.save());
 }
 
+async function progressiveFixture() {
+  const pdf = await PDFDocument.create();
+  const font = await pdf.embedFont(StandardFonts.Helvetica);
+  for (let pageNumber = 1; pageNumber <= 3; pageNumber += 1) {
+    const page = pdf.addPage([612, 792]);
+    page.drawText(`PROGRESSIVE PAGE ${pageNumber}`, { x: 72, y: 680, size: 20, font });
+  }
+  return Buffer.from(await pdf.save());
+}
+
 async function extractedText(bytes) {
   const document = await pdfjsLib.getDocument({ data: new Uint8Array(bytes), disableWorker: true, verbosity: 0 }).promise;
   const pages = [];
@@ -37,10 +47,11 @@ test("existing-text edits undo, redo, autosave, survive reload, and export", asy
   });
 
   const detected = page.locator(".detected-text-item").filter({ hasText: "ORIGINAL ACCOUNT TOTAL" });
+  await page.getByRole("button", { name: "Edit Text", exact: true }).click();
   await detected.click();
   const content = detected.locator(".detected-text-content");
   await content.fill("UPDATED ACCOUNT TOTAL 42000");
-  await expect(page.getByText("Unsaved changes").first()).toBeVisible();
+  await expect(page.locator(".reference-save-state")).toContainText("Unsaved changes");
   await page.getByRole("button", { name: "Download", exact: true }).focus();
 
   const undo = page.getByRole("button", { name: "Undo", exact: true });
@@ -52,8 +63,8 @@ test("existing-text edits undo, redo, autosave, survive reload, and export", asy
   await redo.click();
   await expect(page.locator(".detected-text-item").filter({ hasText: "UPDATED ACCOUNT TOTAL 42000" })).toBeVisible();
 
-  await expect(page.getByText("Unsaved changes").first()).toBeVisible();
-  await expect(page.getByText("Saved in this browser").first()).toBeVisible({ timeout: 5_000 });
+  await expect(page.locator(".reference-save-state")).toContainText("Unsaved changes");
+  await expect(page.locator(".reference-save-state")).toContainText("Saved in this browser", { timeout: 5_000 });
   const editorUrl = page.url();
   await page.reload();
   await expect(page).toHaveURL(editorUrl);
@@ -115,9 +126,20 @@ test("mobile editor collapses thumbnails, keeps tools reachable, fits the page, 
   await expect(thumbnails).toHaveAttribute("aria-expanded", "false");
   const toolbar = page.getByRole("region", { name: "PDF editing toolbar" });
   await expect(toolbar).toBeVisible();
-  const check = page.getByRole("button", { name: "Check", exact: true });
-  await check.scrollIntoViewIfNeeded();
+  const toolbarLayout = await toolbar.evaluate((element) => ({
+    clientWidth: element.clientWidth,
+    scrollWidth: element.scrollWidth,
+  }));
+  expect(toolbarLayout.scrollWidth, `toolbar should fit within ${toolbarLayout.clientWidth}px`).toBeLessThanOrEqual(toolbarLayout.clientWidth + 1);
+
+  const moreTools = toolbar.getByRole("button", { name: "More", exact: true });
+  await expect(moreTools).toBeVisible();
+  await moreTools.click();
+  const compactToolsMenu = page.getByRole("menu", { name: "More editing tools" });
+  await expect(compactToolsMenu).toBeVisible();
+  const check = compactToolsMenu.getByRole("menuitem", { name: "Check", exact: true });
   await check.click();
+  await expect(compactToolsMenu).toBeHidden();
 
   const surface = page.locator(".page-surface");
   await expect(surface).toBeVisible();
@@ -141,4 +163,18 @@ test("editor rejects a corrupted PDF with a recoverable explanation", async ({ p
   });
   await expect(page.getByText(/corrupted or invalid/i)).toBeVisible();
   await expect(page.getByRole("button", { name: "Upload from your device" })).toBeVisible();
+});
+
+test("progressive pages finish rendering instead of remaining on an endless loader", async ({ page }) => {
+  await page.goto(appPath("/edit-pdf"));
+  await page.locator('input[type="file"]').first().setInputFiles({
+    name: "progressive-three-pages.pdf",
+    mimeType: "application/pdf",
+    buffer: await progressiveFixture(),
+  });
+  await expect(page.locator(".page-thumbnail-item")).toHaveCount(3);
+  await page.getByRole("button", { name: /Page 3\./ }).click();
+  await expect(page.getByRole("img", { name: "PDF page 3" })).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByRole("status", { name: /PDF page 3/ })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Reload page" })).toHaveCount(0);
 });

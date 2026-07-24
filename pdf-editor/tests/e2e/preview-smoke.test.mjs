@@ -109,7 +109,7 @@ for (const path of directRoutes) {
     const response = await fetch(previewUrl(path), { headers: { accept: "text/html" } });
     const html = await response.text();
     assert.equal(response.status, 200);
-    assert.match(html, /<title>[^<]*FixThatPDF<\/title>/);
+    assert.match(html, /<title>[^<]*PDFArrow<\/title>/);
     assert.match(html, /<div id="root">/);
   });
 }
@@ -133,13 +133,13 @@ for (const [path, expectedHeading, expectedDetail] of [
   ["/guides/redact-pdf-safely", "prove sensitive text is gone", "Extraction proof"],
   ["/guides/ocr-quality", "Choose OCR settings", "Recommended OCR approach"],
   ["/templates", "templates you can actually edit", "Small-business invoice"],
-  ["/architecture", "How FixThatPDF processes documents", "Local document processing"],
+  ["/architecture", "How PDFArrow processes documents", "Local document processing"],
 ]) {
   test(`prerendered resource ${path} publishes accountable original content`, async () => {
     const html = await readFile(`dist${path}.html`, "utf8");
     assert.match(html, new RegExp(expectedHeading, "i"));
     assert.match(html, new RegExp(expectedDetail, "i"));
-    assert.match(html, /FixThatPDF Product Engineering/);
+    assert.match(html, /PDFArrow Product Engineering/);
     assert.match(html, /dateModified/);
     assert.match(html, /og:image:width" content="1200"/);
     assert.match(html, /application\/ld\+json/);

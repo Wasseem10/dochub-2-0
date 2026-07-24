@@ -93,6 +93,14 @@ export function applyNativePdfFormAnnotation(pdfDoc, annotation) {
     else field.uncheck();
     return true;
   }
+  if (annotation.type === "radio" && annotation.selected && typeof field.select === "function") {
+    field.select(String(annotation.optionValue || annotation.content || ""));
+    return true;
+  }
+  if (annotation.type === "choice" && typeof field.select === "function") {
+    field.select(String(annotation.content || ""));
+    return true;
+  }
   if (annotation.type === "field" && typeof field.setText === "function") {
     field.setText(String(annotation.content || ""));
     return true;

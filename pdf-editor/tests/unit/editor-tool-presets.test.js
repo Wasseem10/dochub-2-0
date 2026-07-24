@@ -16,14 +16,15 @@ describe("editor tool launch presets", () => {
     });
   });
 
-  it("opens the intended editor control and gives text editing a useful scanned-PDF fallback", () => {
+  it("opens the intended editor control while keeping the general editor neutral", () => {
     expect(resolveEditorActiveTool("annotate-pdf", 12)).toBe("highlight");
     expect(resolveEditorActiveTool("fill-pdf", 12)).toBe("field");
     expect(resolveEditorActiveTool("add-initials", 12)).toBe("initials");
     expect(resolveEditorActiveTool("request-signatures", 12)).toBe("field");
     expect(resolveEditorActiveTool("protect-pdf", 12)).toBe("select");
-    expect(resolveEditorActiveTool("edit-pdf", 12)).toBe("editText");
-    expect(resolveEditorActiveTool("edit-pdf", 0)).toBe("text");
+    expect(resolveEditorActiveTool("edit-pdf", 12)).toBe("select");
+    expect(resolveEditorActiveTool("edit-pdf", 0)).toBe("select");
+    expect(resolveEditorActiveTool("unknown-tool", 12)).toBe("select");
     expect(resolveEditorActiveTool("review-pdf", 12)).toBe("highlight");
     expect(resolveEditorActiveTool("comment-on-pdf", 12)).toBe("comment");
     expect(getEditorToolPreset("comment-on-pdf")?.openComments).toBe(true);

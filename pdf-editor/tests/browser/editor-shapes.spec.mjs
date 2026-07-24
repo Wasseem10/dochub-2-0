@@ -5,8 +5,17 @@ import { PDFDocument } from "pdf-lib";
 const appPath = (path) => process.env.GITHUB_ACTIONS === "true" ? `/dochub-2-0${path}` : path;
 
 async function chooseShape(page, name) {
-  await page.getByRole("button", { name: "Shapes", exact: true }).click();
-  const menu = page.getByRole("menu", { name: "Shape tools" });
+  const shapes = page.getByRole("button", { name: "Shapes", exact: true });
+  if (await shapes.isVisible()) {
+    await shapes.click();
+    const menu = page.getByRole("menu", { name: "Shape tools" });
+    await expect(menu).toBeVisible();
+    await menu.getByRole("menuitem", { name, exact: true }).click();
+    return;
+  }
+
+  await page.getByRole("button", { name: "More", exact: true }).click();
+  const menu = page.getByRole("menu", { name: "More editing tools" });
   await expect(menu).toBeVisible();
   await menu.getByRole("menuitem", { name, exact: true }).click();
 }
@@ -23,12 +32,22 @@ async function drawShape(page, startRatio, endRatio) {
 test("Shapes toolbar draws arrow, line, circle, and rectangle into the exported PDF", async ({ page }, testInfo) => {
   await page.goto(appPath("/edit-pdf"));
   await page.getByRole("button", { name: "Start with a blank page" }).click();
-  await expect(page.getByRole("button", { name: "Shapes", exact: true })).toBeVisible();
-
-  await page.getByRole("button", { name: "Shapes", exact: true }).click();
-  const menu = page.getByRole("menu", { name: "Shape tools" });
-  expect((await menu.getByRole("menuitem").allTextContents()).map((label) => label.trim())).toEqual(["Arrow", "Line", "Circle", "Rectangle"]);
-  await menu.getByRole("menuitem", { name: "Arrow", exact: true }).click();
+  const isMobile = testInfo.project.name.includes("android") || testInfo.project.name.includes("iphone");
+  if (isMobile) {
+    await page.getByRole("button", { name: "More", exact: true }).click();
+    const menu = page.getByRole("menu", { name: "More editing tools" });
+    await expect(menu).toBeVisible();
+    for (const name of ["Arrow", "Line", "Circle", "Rectangle"]) {
+      await expect(menu.getByRole("menuitem", { name, exact: true })).toBeVisible();
+    }
+    await menu.getByRole("menuitem", { name: "Arrow", exact: true }).click();
+  } else {
+    await expect(page.getByRole("button", { name: "Shapes", exact: true })).toBeVisible();
+    await page.getByRole("button", { name: "Shapes", exact: true }).click();
+    const menu = page.getByRole("menu", { name: "Shape tools" });
+    expect((await menu.getByRole("menuitem").allTextContents()).map((label) => label.trim())).toEqual(["Arrow", "Line", "Circle", "Rectangle"]);
+    await menu.getByRole("menuitem", { name: "Arrow", exact: true }).click();
+  }
   await drawShape(page, { x: 0.32, y: 0.25 }, { x: 0.12, y: 0.14 });
   const arrow = page.locator(".annotation.line-box.arrow-line:not(.drafting)");
   await expect(arrow).toHaveCount(1);

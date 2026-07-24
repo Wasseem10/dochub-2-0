@@ -22,12 +22,12 @@
   "rewrites": [
     {
       "source": "/app/(.*)",
-      "destination": "/index.html"
+      "destination": "/"
     },
-    { "source": "/login", "destination": "/index.html" },
-    { "source": "/signup", "destination": "/index.html" },
-    { "source": "/forgot-password", "destination": "/index.html" },
-    { "source": "/share/(.*)", "destination": "/index.html" },
-    { "source": "/sign/(.*)", "destination": "/index.html" }
+    { "source": "/login", "destination": "/" },
+    { "source": "/signup", "destination": "/" },
+    { "source": "/forgot-password", "destination": "/" },
+    { "source": "/share/(.*)", "destination": "/" },
+    { "source": "/sign/(.*)", "destination": "/" }
   ]
 }

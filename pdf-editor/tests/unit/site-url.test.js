@@ -11,6 +11,6 @@ describe("SEO site URL resolution", () => {
   });
 
   it("never falls back to localhost for a production build", () => {
-    expect(resolveSiteUrl({})).toBe("https://dochub-2-0.vercel.app");
+    expect(resolveSiteUrl({})).toBe("https://www.pdfarrow.com");
   });
 });

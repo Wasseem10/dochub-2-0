@@ -25,15 +25,15 @@ export function ToolDirectoryPage() {
   return (
     <main className="tools-directory">
       <PageMetadata
-        title="All PDF Tools | FixThatPDF"
-        description="Browse 68 FixThatPDF tools for editing, organizing, converting, signing, protecting, scanning, reviewing, and understanding PDFs—with accurate availability labels."
+        title="All PDF Tools | PDFArrow"
+        description="Browse 68 PDFArrow tools for editing, organizing, converting, signing, protecting, scanning, reviewing, and understanding PDFs—with accurate availability labels."
         canonicalUrl="/tools"
-        schemas={[{ "@context": "https://schema.org", "@type": "CollectionPage", name: "FixThatPDF PDF tools", url: absoluteSiteUrl("/tools"), mainEntity: { "@type": "ItemList", numberOfItems: TOOL_REGISTRY.length, itemListElement: TOOL_REGISTRY.map((tool, index) => ({ "@type": "ListItem", position: index + 1, name: tool.name, url: absoluteSiteUrl(tool.route) })) } }]}
+        schemas={[{ "@context": "https://schema.org", "@type": "CollectionPage", name: "PDFArrow PDF tools", url: absoluteSiteUrl("/tools"), mainEntity: { "@type": "ItemList", numberOfItems: TOOL_REGISTRY.length, itemListElement: TOOL_REGISTRY.map((tool, index) => ({ "@type": "ListItem", position: index + 1, name: tool.name, url: absoluteSiteUrl(tool.route) })) } }]}
       />
       <section className="tools-directory-hero">
         <span className="public-eyebrow">Complete PDF toolkit</span>
         <h1>Find the right PDF tool.<br />Know exactly what works.</h1>
-        <p>Browse every FixThatPDF workflow in one place. Available editor tools open the real workflow; unfinished tools are clearly marked and never pretend to process a file.</p>
+        <p>Browse every PDFArrow workflow in one place. Available editor tools open the real workflow; unfinished tools are clearly marked and never pretend to process a file.</p>
         <div className="tools-search-row">
           <label className="tools-search">
             <Search size={21} />

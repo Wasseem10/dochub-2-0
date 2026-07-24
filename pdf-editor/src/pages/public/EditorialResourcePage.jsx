@@ -20,8 +20,8 @@ function pageSchemas(page) {
     dateModified: page.reviewedIso,
     datePublished: "2026-07-21",
     mainEntityOfPage: absoluteSiteUrl(page.path),
-    author: { "@type": "Organization", name: "FixThatPDF", url: absoluteSiteUrl("/") },
-    publisher: { "@type": "Organization", name: "FixThatPDF", url: absoluteSiteUrl("/") },
+    author: { "@type": "Organization", name: "PDFArrow", url: absoluteSiteUrl("/") },
+    publisher: { "@type": "Organization", name: "PDFArrow", url: absoluteSiteUrl("/") },
   };
   const breadcrumbSchema = {
     "@context": "https://schema.org",
@@ -91,7 +91,7 @@ function EditorialMatrix({ matrix }) {
 export function EditorialResourcePage({ page }) {
   return (
     <main className={`editorial-page editorial-${page.kind}`}>
-      <PageMetadata title={page.seoTitle} description={page.metaDescription} canonicalUrl={page.path} schemas={pageSchemas(page)} socialImageAlt={`${page.title} — original FixThatPDF resource`} />
+      <PageMetadata title={page.seoTitle} description={page.metaDescription} canonicalUrl={page.path} schemas={pageSchemas(page)} socialImageAlt={`${page.title} — original PDFArrow resource`} />
       <nav className="editorial-breadcrumbs" aria-label="Breadcrumb"><Link to={ROUTE_PATHS.resources}>Resources</Link><span>/</span><span aria-current="page">{page.eyebrow}</span></nav>
 
       <header className="editorial-hero">

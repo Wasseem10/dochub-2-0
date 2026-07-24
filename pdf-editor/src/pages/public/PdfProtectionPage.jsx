@@ -105,7 +105,7 @@ export function PdfProtectionPage({ tool }) {
       <button className="conversion-primary-action" type="button" disabled={!file || status === "working" || (!isFlatten && (!password || !authorized))} onClick={processPdf}>{status === "working" ? <><LoaderCircle className="is-spinning" size={18} /> Processing locally…</> : <><Download size={18} /> {actionText}</>}</button>
       {status === "complete" && <p className="conversion-success">Your new PDF was downloaded. Open it once to verify it.</p>}
     </aside></div>
-    <section className="conversion-privacy-note"><ShieldCheck size={19} /><div><strong>Your PDF and password stay on this device</strong><p>FixThatPDF performs this operation in your browser. Passwords and document contents are never included in analytics.</p></div></section>
+    <section className="conversion-privacy-note"><ShieldCheck size={19} /><div><strong>Your PDF and password stay on this device</strong><p>PDFArrow performs this operation in your browser. Passwords and document contents are never included in analytics.</p></div></section>
     <ToolGuideContent tool={tool} />
   </main>;
 }

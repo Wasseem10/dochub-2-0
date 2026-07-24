@@ -1,5 +1,5 @@
 const PRESETS = Object.freeze({
-  "edit-pdf": { activeTool: "editText", fallbackTool: "text", label: "Edit PDF" },
+  "edit-pdf": { activeTool: "select", label: "Edit PDF" },
   "annotate-pdf": { activeTool: "highlight", label: "Annotate PDF" },
   "pdf-reader": { activeTool: "select", label: "PDF Reader" },
   "fill-pdf": { activeTool: "field", label: "Fill PDF" },
@@ -21,7 +21,7 @@ export function getEditorToolPreset(toolId) {
 
 export function resolveEditorActiveTool(toolId, detectedTextCount = 0) {
   const preset = getEditorToolPreset(toolId);
-  if (!preset) return detectedTextCount > 0 ? "editText" : "select";
+  if (!preset) return "select";
   if (preset.activeTool === "editText" && detectedTextCount === 0) return preset.fallbackTool || "text";
   return preset.activeTool;
 }

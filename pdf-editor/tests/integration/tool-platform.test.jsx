@@ -46,7 +46,7 @@ describe("public PDF tool platform", () => {
     const renderer = await render(<FeaturesPage />);
     const text = textOf(renderer.root);
     expect(text).toContain("Every feature you need to finish a PDF.");
-    expect(text).toContain("All working FixThatPDF features");
+    expect(text).toContain("All working PDFArrow features");
     expect(text).toContain("PDF to Excel");
     expect(text).toContain("PowerPoint to PDF");
     expect(text).toContain("OCR PDF");
@@ -102,7 +102,7 @@ describe("public PDF tool platform", () => {
     expect(textOf(editor.root).includes("No login required to download")).toBe(true);
     expect(textOf(editor.root).includes("How to use Sign PDF safely")).toBe(true);
     expect(textOf(editor.root).includes("Is this a digital certificate signature?")).toBe(true);
-    expect(editor.root.findAllByProps({ role: "button" })).toHaveLength(1);
+    expect(editor.root.findAllByType("button")).toHaveLength(1);
     await unmount(editor);
 
     const protect = await render(<EditorToolUploadPage toolId="protect-pdf" fileInputRef={{ current: null }} onUpload={() => {}} onDropFiles={() => {}} uploadError="" uploadStage={{ status: "idle" }} />);
@@ -139,9 +139,9 @@ describe("public PDF tool platform", () => {
   it("renders complete browser workspaces for Office conversions", async () => {
     const toWord = await render(<OfficeConversionPage tool={TOOL_BY_ID.get("pdf-to-word")} />);
     expect(toWord.root.findAllByType("input").some((input) => input.props.type === "file" && input.props.accept.includes("application/pdf"))).toBe(true);
-    expect(toWord.root.findAllByType("option").map((option) => textOf(option))).toEqual(["Editable text", "Visual fidelity"]);
-    expect(textOf(toWord.root).includes("page breaks, indentation, vertical spacing")).toBe(true);
-    expect(textOf(toWord.root).includes("Why is scanned text missing?")).toBe(true);
+    expect(toWord.root.findAllByType("option").map((option) => textOf(option))).toEqual(["Editable layout", "Scanned PDF — editable OCR", "Visual fidelity"]);
+    expect(textOf(toWord.root).includes("tab-aligned columns and table rows")).toBe(true);
+    expect(textOf(toWord.root).includes("Can I convert a scanned PDF?")).toBe(true);
     await unmount(toWord);
 
     const toPdf = await render(<OfficeConversionPage tool={TOOL_BY_ID.get("word-to-pdf")} />);
@@ -298,9 +298,9 @@ describe("public PDF tool platform", () => {
     await unmount(crop);
 
     const compress = await render(<PdfPageToolPage tool={TOOL_BY_ID.get("compress-pdf")} />);
-    expect(textOf(compress.root).includes("Make image-heavy PDFs lighter")).toBe(true);
+    expect(textOf(compress.root).includes("Make PDFs lighter")).toBe(true);
     expect(textOf(compress.root).includes("Download compressed PDF")).toBe(true);
-    expect(textOf(compress.root).includes("Why can’t I select text afterward?")).toBe(true);
+    expect(textOf(compress.root).includes("Will compression keep text and forms?")).toBe(true);
     await unmount(compress);
   });
 

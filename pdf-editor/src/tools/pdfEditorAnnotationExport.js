@@ -21,7 +21,7 @@ export async function drawFlattenedInputAnnotation({
   pickPdfFont,
   embedDataUrlImage,
 }) {
-  const supported = new Set(["checkbox", "field", "text", "signature", "initials"]);
+  const supported = new Set(["checkbox", "radio", "choice", "field", "text", "signature", "initials"]);
   if (!supported.has(annotation.type)) return false;
   const { width, height } = page.getSize();
   const color = colorFromHex(annotation.color);
@@ -36,6 +36,25 @@ export async function drawFlattenedInputAnnotation({
       page.drawLine({ start: { x: x + markWidth * 0.08, y: y + markHeight * 0.48 }, end: { x: x + markWidth * 0.36, y: y + markHeight * 0.18 }, thickness, color, opacity: annotation.opacity });
       page.drawLine({ start: { x: x + markWidth * 0.36, y: y + markHeight * 0.18 }, end: { x: x + markWidth * 0.92, y: y + markHeight * 0.82 }, thickness, color, opacity: annotation.opacity });
     }
+    return true;
+  }
+
+  if (annotation.type === "radio") {
+    const markWidth = annotation.w * width;
+    const markHeight = annotation.h * height;
+    const x = annotation.x * width;
+    const y = height - annotation.y * height - markHeight;
+    const radius = Math.max(2, Math.min(markWidth, markHeight) / 2);
+    page.drawCircle({ x: x + markWidth / 2, y: y + markHeight / 2, size: radius, borderColor: color, borderWidth: 1.2, opacity: annotation.opacity });
+    if (annotation.selected) page.drawCircle({ x: x + markWidth / 2, y: y + markHeight / 2, size: radius * 0.48, color, opacity: annotation.opacity });
+    return true;
+  }
+
+  if (annotation.type === "choice") {
+    const x = annotation.x * width;
+    const y = height - annotation.y * height - annotation.h * height;
+    page.drawRectangle({ x, y, width: annotation.w * width, height: annotation.h * height, borderColor: color, borderWidth: 1.2, opacity: annotation.opacity });
+    if (String(annotation.content || "").trim()) page.drawText(String(annotation.content), { x: x + 7, y: y + Math.max(7, annotation.h * height * 0.32), size: annotation.fontSize || 11, font: helvetica, color, opacity: annotation.opacity });
     return true;
   }
 

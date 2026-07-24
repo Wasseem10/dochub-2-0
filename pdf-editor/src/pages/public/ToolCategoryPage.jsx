@@ -16,7 +16,7 @@ export function ToolCategoryPage({ categoryPage }) {
     {
       "@context": "https://schema.org",
       "@type": "CollectionPage",
-      name: categoryPage.seoTitle.replace(" | FixThatPDF", ""),
+      name: categoryPage.seoTitle.replace(" | PDFArrow", ""),
       description: categoryPage.metaDescription,
       url: canonicalUrl,
       mainEntity: {

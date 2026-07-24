@@ -154,7 +154,7 @@ export function TemplateBuilderPage({ tool }) {
       </div>
       <aside className="template-preview-card"><header><div><strong>Live PDF preview</strong><span>US Letter · searchable text</span></div><span>Review before use</span></header><div className="template-preview-scroll" style={{ "--template-accent": accentCss }}><Preview toolId={tool.id} values={values} items={items} /></div></aside>
     </section>
-    <section className="template-builder-disclosure"><h2>Built for an honest public workflow</h2><p>The generated file is a real searchable PDF. FixThatPDF does not send field content to analytics, provide legal advice, validate employment decisions, collect signatures, or file invoices for you.</p></section>
+    <section className="template-builder-disclosure"><h2>Built for an honest public workflow</h2><p>The generated file is a real searchable PDF. PDFArrow does not send field content to analytics, provide legal advice, validate employment decisions, collect signatures, or file invoices for you.</p></section>
     <ToolGuideContent tool={tool} />
   </main>;
 }

@@ -1,8 +1,15 @@
-export function BrandWordmark({ className = "" }) {
+export function BrandWordmark({ className = "", logo = false }) {
+  const classes = ["brand-wordmark", logo && "brand-wordmark--logo", className]
+    .filter(Boolean)
+    .join(" ");
+
   return (
-    <span className={`brand-wordmark ${className}`.trim()} aria-hidden="true">
-      <span className="brand-wordmark-name">FixThat</span>
-      <span className="brand-wordmark-pdf">PDF</span>
+    <span className={classes} aria-hidden="true">
+      {logo ? (
+        <img className="brand-wordmark-logo" src="/pdfarrow-logo.png" alt="" />
+      ) : (
+        <span className="brand-wordmark-name">PDF<span className="brand-wordmark-arrow">Arrow</span></span>
+      )}
     </span>
   );
 }
