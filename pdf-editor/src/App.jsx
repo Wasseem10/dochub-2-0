@@ -1692,7 +1692,7 @@ function ProfessionalAnnotation({ annotation, selected, zoom, activeTool, pageWi
   if (annotation.type === "draw") {
     const points = (annotation.points || []).map((point) => `${((point.x - liveFrame.x) / liveFrame.w) * 100},${((point.y - liveFrame.y) / liveFrame.h) * 100}`).join(" ");
     return (
-      <div className={`annotation ink-annotation ${selected ? "is-selected" : ""}`} style={commonStyle} onPointerDown={dragStart}>
+      <div className={`annotation ink-annotation ${selected ? "is-selected" : ""}`} style={commonStyle} onPointerDown={activeTool === "draw" ? undefined : dragStart}>
         <svg viewBox="0 0 100 100" preserveAspectRatio="none"><polyline points={points} fill="none" stroke={annotation.color} strokeWidth={Math.max(0.4, annotation.strokeWidth || 3)} vectorEffect="non-scaling-stroke" strokeLinecap="round" strokeLinejoin="round" opacity={annotation.opacity} /></svg>
         {controls}
       </div>
@@ -3835,11 +3835,18 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
           endX: shapeDraft.endX,
           endY: shapeDraft.endY,
         } : {}),
-      };
+    };
     commitAnnotations([...annotations, finalized]);
     setDraft(null);
+    if (finalized.type === "draw") {
+      // Keep the pen ready for the next stroke. Selecting each completed stroke
+      // makes the transform controls cover nearby handwriting between strokes.
+      setSelectedId(null);
+      setTool("draw");
+      return;
+    }
     setSelectedId(finalized.id);
-    setTool(finalized.type === "draw" ? "draw" : "select");
+    setTool("select");
   };
 
   const undo = () => {

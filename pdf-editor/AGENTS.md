@@ -66,6 +66,8 @@ The homepage ending must stay clean, bright, and utility-led: remove the redunda
 
 The Draw tool opens one compact floating settings bar below the primary toolbar. It must expose direct black, blue, red, orange, green, and purple choices, a working custom color picker, five readable pen-size presets, and a fine-size slider without clipping, overlapping, or duplicating controls elsewhere in the same bar.
 
+While Draw is active, newly completed strokes must remain unselected so transform handles never interrupt handwriting between pen strokes. Existing strokes remain movable only after switching away from Draw.
+
 The Translate PDF workflow must let users choose the document's source language and must include English as a translation target. Do not assume every uploaded document starts in English, and never allow the source and target language to remain identical.
 
 Every editor Print control must print the generated edited PDF itself, never the surrounding editor interface, toolbars, sidebars, or browser page chrome.
