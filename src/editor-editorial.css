@@ -1,14 +1,14 @@
 /* Precision Review Studio — selected July 23, 2026 editor direction. */
 main.editor-shell.editor-shell {
-  --editorial-ink: #242321;
-  --editorial-muted: #77736d;
-  --editorial-line: #ddd9d2;
+  --editorial-ink: #17243a;
+  --editorial-muted: #66758a;
+  --editorial-line: #d8e4f2;
   --editorial-paper: #fff;
-  --editorial-warm-white: #fbfaf7;
-  --editorial-canvas: #ece9e3;
-  --editorial-oxblood: #a41234;
-  --editorial-oxblood-dark: #870b28;
-  --editorial-rose: #f7e8eb;
+  --editorial-warm-white: #f8fbff;
+  --editorial-canvas: #eef5ff;
+  --editorial-oxblood: #2f6fe8;
+  --editorial-oxblood-dark: #2058c6;
+  --editorial-rose: #e7f1ff;
   --reference-blue: var(--editorial-oxblood);
   --reference-blue-dark: var(--editorial-oxblood-dark);
   grid-template-rows: 58px 112px minmax(0, 1fr) !important;
@@ -109,8 +109,8 @@ main.editor-shell .reference-header-actions > button {
 }
 
 main.editor-shell .reference-header-actions > button:hover {
-  background: #f4f2ee !important;
-  color: #11110f !important;
+  background: #eef6ff !important;
+  color: #17243a !important;
 }
 
 main.editor-shell .reference-header-actions > button svg {
@@ -171,8 +171,8 @@ main.editor-shell .reference-toolbar-button svg {
 
 main.editor-shell .reference-toolbar-button:hover {
   border: 0 !important;
-  background: #f3f1ed !important;
-  color: #11110f !important;
+  background: #eef6ff !important;
+  color: #17243a !important;
 }
 
 main.editor-shell .reference-toolbar-button.is-active {
@@ -302,7 +302,7 @@ main.editor-shell .workspace,
 main.editor-shell .workspace.pages-collapsed,
 main.editor-shell .workspace.is-managing-pages {
   grid-row: 3 / -1 !important;
-  grid-template-columns: 144px minmax(0, 1fr) !important;
+  grid-template-columns: 176px minmax(0, 1fr) !important;
   min-height: 0 !important;
   height: auto !important;
   background: var(--editorial-canvas) !important;
@@ -330,7 +330,7 @@ main.editor-shell .workspace.is-managing-pages .pages-panel {
   inset: auto !important;
   z-index: 20 !important;
   display: flex !important;
-  width: 144px !important;
+  width: 176px !important;
   height: 100% !important;
   border-right: 1px solid var(--editorial-line) !important;
   background: var(--editorial-warm-white) !important;
@@ -344,14 +344,14 @@ main.editor-shell .pages-panel.is-collapsed {
 main.editor-shell .thumbnail-list,
 main.editor-shell .thumbnail-list.grid {
   gap: 18px !important;
-  padding: 20px 24px 18px !important;
+  padding: 18px 32px 18px !important;
   background: var(--editorial-warm-white) !important;
 }
 
 main.editor-shell .thumbnail,
 main.editor-shell .thumbnail-list.grid .thumbnail {
   position: relative !important;
-  width: 92px !important;
+  width: 112px !important;
   min-height: 0 !important;
   gap: 7px !important;
 }
@@ -360,7 +360,7 @@ main.editor-shell .thumbnail::before {
   position: absolute;
   top: 0;
   bottom: 24px;
-  left: -17px;
+  left: -16px;
   width: 3px;
   background: transparent;
   content: "";
@@ -371,16 +371,16 @@ main.editor-shell .thumbnail.is-selected::before {
 }
 
 main.editor-shell .thumbnail-preview {
-  width: 72px !important;
-  border: 1px solid #dedad3 !important;
+  width: 112px !important;
+  border: 1px solid #d6e3f1 !important;
   border-radius: 0 !important;
-  box-shadow: 0 2px 6px rgba(47, 43, 38, 0.12) !important;
+  box-shadow: 0 2px 6px rgba(42, 76, 120, 0.12) !important;
 }
 
 main.editor-shell .thumbnail.is-selected .thumbnail-preview {
   border: 1px solid var(--editorial-oxblood) !important;
   border-radius: 0 !important;
-  box-shadow: 0 0 0 1px rgba(164, 18, 52, 0.08) !important;
+  box-shadow: 0 0 0 1px rgba(47, 111, 232, 0.12) !important;
 }
 
 main.editor-shell .thumbnail-label,
@@ -391,7 +391,7 @@ main.editor-shell .thumbnail.is-selected .thumbnail-label {
   padding: 0 !important;
   border-radius: 0 !important;
   background: transparent !important;
-  color: #67635d !important;
+  color: #66758a !important;
   font-size: 12px !important;
   font-weight: 500 !important;
   line-height: 1.2 !important;
@@ -413,7 +413,7 @@ main.editor-shell .thumbnail-footer button {
 }
 
 main.editor-shell .thumbnail-footer button:hover {
-  background: #f1eee9 !important;
+  background: #eef6ff !important;
   color: var(--editorial-oxblood) !important;
 }
 
@@ -428,19 +428,19 @@ main.editor-shell .document-stage {
 }
 
 main.editor-shell .page-surface {
-  border: 1px solid #d4d0c8 !important;
-  box-shadow: 0 8px 20px rgba(48, 43, 36, 0.12), 0 1px 3px rgba(48, 43, 36, 0.08) !important;
+  border: 1px solid #d6e3f1 !important;
+  box-shadow: 0 8px 20px rgba(42, 76, 120, 0.12), 0 1px 3px rgba(42, 76, 120, 0.08) !important;
 }
 
 main.editor-shell .status-bar {
-  left: calc(50% + 72px) !important;
+  left: calc(50% + 88px) !important;
   bottom: 16px !important;
   height: 50px !important;
   padding: 0 9px !important;
   border: 1px solid var(--editorial-line) !important;
   border-radius: 20px !important;
   background: rgba(255, 255, 255, 0.98) !important;
-  box-shadow: 0 7px 18px rgba(47, 43, 38, 0.11) !important;
+  box-shadow: 0 7px 18px rgba(42, 76, 120, 0.11) !important;
 }
 
 main.editor-shell .page-nav {
@@ -458,7 +458,7 @@ main.editor-shell .page-nav .page-nav-zoom {
 
 main.editor-shell .page-nav button:hover,
 main.editor-shell .page-nav .page-nav-zoom:hover {
-  background: #f2efea !important;
+  background: #eef6ff !important;
   color: var(--editorial-oxblood) !important;
 }
 
@@ -484,7 +484,7 @@ main.editor-shell .page-nav input {
   min-width: 48px !important;
   height: 34px !important;
   border-radius: 4px !important;
-  background: #f1efeb !important;
+  background: #eef6ff !important;
   color: var(--editorial-ink) !important;
   caret-color: var(--editorial-oxblood) !important;
   font-size: 14px !important;
@@ -499,7 +499,7 @@ main.editor-shell .page-nav .page-nav-total {
 
 main.editor-shell .annotation.is-selected {
   border-color: var(--editorial-oxblood) !important;
-  outline-color: rgba(164, 18, 52, 0.15) !important;
+  outline-color: rgba(47, 111, 232, 0.18) !important;
 }
 
 main.editor-shell .resize-control,
