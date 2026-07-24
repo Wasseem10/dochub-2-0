@@ -416,6 +416,124 @@ function readImageFile(file) {
   });
 }
 
+function createBlankDocumentThumbnail(documentRecord) {
+  const firstPage = documentRecord.pages?.[0] || {};
+  const pageWidth = Number(firstPage.width) || BASE_PAGE_WIDTH;
+  const pageHeight = Number(firstPage.height) || BASE_PAGE_HEIGHT;
+  const canvas = window.document.createElement("canvas");
+  canvas.width = 560;
+  canvas.height = Math.max(640, Math.round(canvas.width * (pageHeight / pageWidth)));
+  const context = canvas.getContext("2d");
+  if (!context) return "";
+
+  context.fillStyle = "#ffffff";
+  context.fillRect(0, 0, canvas.width, canvas.height);
+
+  const pageAnnotations = (documentRecord.annotations || []).filter((annotation) => Number(annotation.page || 0) === 0);
+  pageAnnotations.forEach((annotation) => {
+    const x = Number(annotation.x || 0) * canvas.width;
+    const y = Number(annotation.y || 0) * canvas.height;
+    const width = Math.max(1, Number(annotation.w || 0) * canvas.width);
+    const height = Math.max(1, Number(annotation.h || 0) * canvas.height);
+    const color = annotation.color || "#111827";
+    context.save();
+    context.globalAlpha = Number.isFinite(annotation.opacity) ? annotation.opacity : 1;
+
+    if (annotation.type === "highlight" || annotation.type === "whiteout") {
+      context.fillStyle = annotation.type === "highlight" ? color : "#ffffff";
+      context.fillRect(x, y, width, height);
+    } else if (annotation.type === "rectangle") {
+      context.strokeStyle = color;
+      context.lineWidth = Math.max(1, Number(annotation.strokeWidth || 2));
+      context.strokeRect(x, y, width, height);
+    } else if (annotation.type === "circle") {
+      context.strokeStyle = color;
+      context.lineWidth = Math.max(1, Number(annotation.strokeWidth || 2));
+      context.beginPath();
+      context.ellipse(x + width / 2, y + height / 2, width / 2, height / 2, 0, 0, Math.PI * 2);
+      context.stroke();
+    } else if (["text", "signature", "initials", "stamp", "link", "field", "choice"].includes(annotation.type)) {
+      const text = String(annotation.content || annotation.fieldName || annotation.url || "").trim();
+      if (text) {
+        const fontSize = Math.max(8, Math.min(44, Number(annotation.fontSize || 18) * (canvas.width / BASE_PAGE_WIDTH)));
+        context.fillStyle = color;
+        context.font = `${annotation.italic ? "italic " : ""}${annotation.bold ? "700 " : "500 "}${fontSize}px Arial, sans-serif`;
+        context.textBaseline = "top";
+        context.fillText(text, x, y, width);
+      }
+    }
+    context.restore();
+  });
+
+  return canvas.toDataURL("image/png");
+}
+
+function DashboardDocumentThumbnail({ documentRecord, compact = false }) {
+  const directImage = documentRecord.pages?.[0]?.image || "";
+  const [thumbnailUrl, setThumbnailUrl] = useState(directImage);
+  const [isLoading, setIsLoading] = useState(!directImage && !!documentRecord.pdfDataUrl);
+
+  useEffect(() => {
+    let isActive = true;
+    let loadingTask = null;
+    let pdfDocumentProxy = null;
+
+    if (directImage) {
+      setThumbnailUrl(directImage);
+      setIsLoading(false);
+      return undefined;
+    }
+
+    if (!documentRecord.pdfDataUrl) {
+      setThumbnailUrl(createBlankDocumentThumbnail(documentRecord));
+      setIsLoading(false);
+      return undefined;
+    }
+
+    setIsLoading(true);
+    setThumbnailUrl("");
+    (async () => {
+      try {
+        const bytes = await dataUrlToArrayBuffer(documentRecord.pdfDataUrl);
+        loadingTask = pdfjsLib.getDocument({ data: bytes.slice(0) });
+        pdfDocumentProxy = await loadingTask.promise;
+        const page = await pdfDocumentProxy.getPage(1);
+        const baseViewport = page.getViewport({ scale: 1 });
+        const targetWidth = compact ? 180 : 720;
+        const viewport = page.getViewport({ scale: Math.max(0.35, Math.min(1.4, targetWidth / baseViewport.width)) });
+        const canvas = window.document.createElement("canvas");
+        canvas.width = Math.ceil(viewport.width);
+        canvas.height = Math.ceil(viewport.height);
+        const context = canvas.getContext("2d", { alpha: false });
+        if (!context) throw new Error("Preview canvas unavailable.");
+        await page.render({ canvasContext: context, viewport }).promise;
+        if (isActive) setThumbnailUrl(canvas.toDataURL("image/jpeg", compact ? 0.76 : 0.88));
+      } catch {
+        if (isActive) setThumbnailUrl(createBlankDocumentThumbnail(documentRecord));
+      } finally {
+        if (isActive) setIsLoading(false);
+      }
+    })();
+
+    return () => {
+      isActive = false;
+      try { loadingTask?.destroy?.(); } catch { /* A completed preview task may already be released. */ }
+      try { pdfDocumentProxy?.destroy?.(); } catch { /* A completed preview document may already be released. */ }
+    };
+  }, [compact, directImage, documentRecord]);
+
+  if (thumbnailUrl) {
+    return <img src={thumbnailUrl} alt={`First page of ${documentRecord.name}`} />;
+  }
+
+  return (
+    <span className={`dashboard-document-placeholder ${isLoading ? "is-loading" : ""}`} aria-label={`${documentRecord.name} preview ${isLoading ? "loading" : "unavailable"}`}>
+      {isLoading ? <LoaderCircle className="is-spinning" size={compact ? 14 : 27} /> : <FileText size={compact ? 14 : 28} />}
+      {!compact && <small>{isLoading ? "Rendering preview" : `${documentRecord.pageCount || documentRecord.pages?.length || 1} page${(documentRecord.pageCount || documentRecord.pages?.length || 1) === 1 ? "" : "s"}`}</small>}
+    </span>
+  );
+}
+
 function downloadBlob(blob, name, toolId = "edit-pdf") {
   const url = URL.createObjectURL(blob);
   const anchor = window.document.createElement("a");
@@ -6658,10 +6776,8 @@ export function UploadLanding({
     </div>
   );
 
-  const renderDocumentPreview = (documentRecord) => documentRecord.pages?.[0]?.image ? (
-    <img src={documentRecord.pages[0].image} alt={`First page of ${documentRecord.name}`} />
-  ) : (
-    <span className="dashboard-document-placeholder"><FileText size={36} /><small>{documentRecord.pageCount || documentRecord.pages?.length || 1} page{(documentRecord.pageCount || documentRecord.pages?.length || 1) === 1 ? "" : "s"}</small></span>
+  const renderDocumentPreview = (documentRecord, compact = false) => (
+    <DashboardDocumentThumbnail documentRecord={documentRecord} compact={compact} />
   );
 
   const renderRecentDashboardCards = () => recentDashboardRows.length ? (
@@ -6670,7 +6786,7 @@ export function UploadLanding({
         <article key={documentRecord.id} className={`dashboard-recent-card is-tone-${quickActionDefinitions[index % quickActionDefinitions.length].tone}`}>
           <button type="button" className="dashboard-recent-preview" onClick={() => onOpenDocument(documentRecord)}>{renderDocumentPreview(documentRecord)}</button>
           <div className="dashboard-recent-card-footer">
-            <span className="dashboard-pdf-mark"><FileText size={17} /></span>
+            <span className="dashboard-file-type-mark" aria-label="PDF document">PDF</span>
             <button type="button" className="dashboard-recent-name" onClick={() => onOpenDocument(documentRecord)}><strong>{documentRecord.name}</strong><small>{formatDashboardRelativeDate(documentRecord.updatedAt)}</small></button>
             {renderDashboardDocumentMenu(documentRecord)}
           </div>
@@ -6691,7 +6807,7 @@ export function UploadLanding({
       {dashboardLibraryRows.map((documentRecord) => {
         const status = documentRecord.status || "Viewed";
         return <article key={documentRecord.id} className="dashboard-library-row">
-          <button type="button" className="dashboard-library-name" onClick={() => onOpenDocument(documentRecord)}><span>{renderDocumentPreview(documentRecord)}</span><strong>{documentRecord.name}</strong></button>
+          <button type="button" className="dashboard-library-name" onClick={() => onOpenDocument(documentRecord)}><span>{renderDocumentPreview(documentRecord, true)}</span><strong>{documentRecord.name}</strong></button>
           <span>{formatDashboardRelativeDate(documentRecord.updatedAt)}</span>
           <span><em>{status}</em></span>
           <span>{documentRecord.size ? formatBytes(documentRecord.size) : "Local"}</span>
