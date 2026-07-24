@@ -1,0 +1,594 @@
+/* Precision Review Studio — selected July 23, 2026 editor direction. */
+main.editor-shell.editor-shell {
+  --editorial-ink: #242321;
+  --editorial-muted: #77736d;
+  --editorial-line: #ddd9d2;
+  --editorial-paper: #fff;
+  --editorial-warm-white: #fbfaf7;
+  --editorial-canvas: #ece9e3;
+  --editorial-oxblood: #a41234;
+  --editorial-oxblood-dark: #870b28;
+  --editorial-rose: #f7e8eb;
+  --reference-blue: var(--editorial-oxblood);
+  --reference-blue-dark: var(--editorial-oxblood-dark);
+  grid-template-rows: 58px 112px minmax(0, 1fr) !important;
+  background: var(--editorial-canvas) !important;
+  color: var(--editorial-ink) !important;
+  font-family: "DM Sans", Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+}
+
+main.editor-shell.editor-shell.has-tool-settings,
+main.editor-shell.editor-shell.has-tool-settings.is-highlight-settings-mode {
+  grid-template-rows: 58px 112px 54px minmax(0, 1fr) !important;
+}
+
+main.editor-shell .reference-file-header {
+  box-sizing: border-box !important;
+  width: auto !important;
+  justify-self: stretch !important;
+  display: grid !important;
+  grid-template-columns: minmax(176px, 1fr) minmax(320px, auto) minmax(330px, 1fr) !important;
+  min-height: 58px !important;
+  height: 58px !important;
+  padding: 0 22px 0 26px !important;
+  border-bottom: 1px solid var(--editorial-line) !important;
+  background: var(--editorial-paper) !important;
+}
+
+main.editor-shell .reference-brand-name {
+  justify-self: start !important;
+  color: var(--editorial-ink) !important;
+}
+
+main.editor-shell .reference-brand-button:hover {
+  color: var(--editorial-oxblood) !important;
+}
+
+main.editor-shell .reference-document-meta {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+main.editor-shell .reference-document-name {
+  display: inline-flex !important;
+  max-width: min(360px, 32vw) !important;
+  height: 36px !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  color: var(--editorial-ink) !important;
+  font-family: Georgia, "Times New Roman", serif !important;
+  font-size: 16px !important;
+  font-weight: 500 !important;
+}
+
+main.editor-shell .reference-document-name svg {
+  width: 14px !important;
+  color: #6f6b65 !important;
+  stroke-width: 1.8 !important;
+}
+
+main.editor-shell .reference-save-state {
+  margin: 0 !important;
+  color: var(--editorial-muted) !important;
+  font-size: 11px !important;
+  font-weight: 500 !important;
+}
+
+main.editor-shell .reference-save-state svg {
+  width: 14px !important;
+  height: 14px !important;
+  color: #99948c !important;
+}
+
+main.editor-shell .reference-save-state.is-unsaved {
+  color: var(--editorial-oxblood) !important;
+}
+
+main.editor-shell .reference-header-actions {
+  justify-self: end !important;
+  gap: 4px !important;
+}
+
+main.editor-shell .reference-header-actions > button {
+  min-width: 76px !important;
+  height: 40px !important;
+  padding: 0 10px !important;
+  gap: 7px !important;
+  border: 0 !important;
+  border-radius: 3px !important;
+  background: transparent !important;
+  color: var(--editorial-ink) !important;
+  font-size: 12px !important;
+  font-weight: 650 !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+main.editor-shell .reference-header-actions > button:hover {
+  background: #f4f2ee !important;
+  color: #11110f !important;
+}
+
+main.editor-shell .reference-header-actions > button svg {
+  width: 19px !important;
+  height: 19px !important;
+  stroke-width: 1.85 !important;
+}
+
+main.editor-shell .reference-header-actions .reference-done-button {
+  width: 98px !important;
+  min-width: 98px !important;
+  margin-left: 8px !important;
+  border: 1px solid var(--editorial-oxblood-dark) !important;
+  border-radius: 3px !important;
+  background: var(--editorial-oxblood) !important;
+  color: #fff !important;
+  font-size: 13px !important;
+  box-shadow: none !important;
+}
+
+main.editor-shell .reference-header-actions .reference-done-button:hover {
+  background: var(--editorial-oxblood-dark) !important;
+}
+
+main.editor-shell .reference-tool-ribbon {
+  box-sizing: border-box !important;
+  justify-self: center !important;
+  align-self: center !important;
+  width: calc(100% - 92px) !important;
+  min-height: 94px !important;
+  height: 94px !important;
+  margin: 9px 0 !important;
+  padding: 8px 10px !important;
+  gap: 4px !important;
+  border: 1px solid var(--editorial-line) !important;
+  border-radius: 6px !important;
+  background: var(--editorial-paper) !important;
+  box-shadow: 0 8px 22px rgba(44, 40, 35, 0.09), 0 1px 2px rgba(44, 40, 35, 0.05) !important;
+}
+
+main.editor-shell .reference-toolbar-button {
+  min-width: 54px !important;
+  height: 76px !important;
+  gap: 7px !important;
+  padding: 5px 7px !important;
+  border: 0 !important;
+  border-radius: 5px !important;
+  color: var(--editorial-ink) !important;
+  font-size: 10.5px !important;
+  font-weight: 590 !important;
+}
+
+main.editor-shell .reference-toolbar-button svg {
+  width: 22px !important;
+  height: 22px !important;
+  stroke-width: 1.65 !important;
+}
+
+main.editor-shell .reference-toolbar-button:hover {
+  border: 0 !important;
+  background: #f3f1ed !important;
+  color: #11110f !important;
+}
+
+main.editor-shell .reference-toolbar-button.is-active {
+  border: 0 !important;
+  background: var(--editorial-rose) !important;
+  color: var(--editorial-oxblood) !important;
+  box-shadow: none !important;
+}
+
+main.editor-shell .reference-toolbar-button:focus-visible {
+  outline: 2px solid rgba(164, 18, 52, 0.3) !important;
+  outline-offset: 1px !important;
+}
+
+main.editor-shell .reference-select-tool {
+  display: none !important;
+}
+
+main.editor-shell .reference-history-tools,
+main.editor-shell .reference-content-tools,
+main.editor-shell .reference-markup-tools,
+main.editor-shell .reference-annotation-tools {
+  padding-right: 8px !important;
+  border-right: 1px solid var(--editorial-line) !important;
+}
+
+main.editor-shell .reference-primary-tools,
+main.editor-shell .reference-markup-tools,
+main.editor-shell .reference-annotation-tools {
+  padding-left: 4px !important;
+}
+
+main.editor-shell .reference-secondary-tools {
+  margin-left: auto !important;
+  padding-left: 10px !important;
+  border-left: 0 !important;
+}
+
+main.editor-shell .reference-shape-tool {
+  width: 62px !important;
+  flex-basis: 62px !important;
+}
+
+main.editor-shell .reference-shape-tool > .reference-toolbar-button {
+  width: 62px !important;
+  min-width: 62px !important;
+}
+
+main.editor-shell > .tool-settings,
+main.editor-shell > .text-format-settings {
+  justify-self: center !important;
+  width: min(1000px, calc(100vw - 300px)) !important;
+  max-width: min(1000px, calc(100vw - 300px)) !important;
+  min-height: 50px !important;
+  height: 50px !important;
+  margin: 0 auto 4px !important;
+  padding: 0 16px !important;
+  border: 1px solid var(--editorial-line) !important;
+  border-radius: 3px !important;
+  background: var(--editorial-paper) !important;
+  box-shadow: 0 5px 14px rgba(44, 40, 35, 0.06) !important;
+  color: var(--editorial-ink) !important;
+}
+
+main.editor-shell .settings-title,
+main.editor-shell .highlight-settings-title,
+main.editor-shell .text-settings-title {
+  color: var(--editorial-ink) !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+}
+
+main.editor-shell .highlight-settings-title {
+  background: var(--editorial-rose) !important;
+  color: var(--editorial-oxblood) !important;
+}
+
+main.editor-shell .highlight-preset-colors {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+main.editor-shell .highlight-preset-colors button {
+  width: 23px !important;
+  min-width: 23px !important;
+  height: 23px !important;
+  padding: 0 !important;
+  border: 2px solid #fff !important;
+  border-radius: 50% !important;
+  background: var(--highlight-swatch) !important;
+  box-shadow: 0 0 0 1px #c9c5bd !important;
+}
+
+main.editor-shell .highlight-preset-colors button.is-selected {
+  box-shadow: 0 0 0 2px var(--editorial-oxblood) !important;
+}
+
+main.editor-shell .highlight-opacity-field input[type="range"] {
+  accent-color: var(--editorial-oxblood) !important;
+}
+
+main.editor-shell .highlight-thickness-field select {
+  width: 92px !important;
+  height: 32px !important;
+  padding: 0 24px 0 8px !important;
+  border: 1px solid var(--editorial-line) !important;
+  background: #fff !important;
+  color: var(--editorial-ink) !important;
+  font: inherit !important;
+  font-size: 12px !important;
+}
+
+main.editor-shell .tool-settings button,
+main.editor-shell .tool-settings select,
+main.editor-shell .text-format-settings button,
+main.editor-shell .text-format-settings select {
+  border-radius: 3px !important;
+}
+
+main.editor-shell .workspace,
+main.editor-shell .workspace.pages-collapsed,
+main.editor-shell .workspace.is-managing-pages {
+  grid-template-columns: 144px minmax(0, 1fr) !important;
+  background: var(--editorial-canvas) !important;
+}
+
+main.editor-shell .workspace.pages-collapsed {
+  grid-template-columns: 0 minmax(0, 1fr) !important;
+}
+
+main.editor-shell .lumin-editor-rail,
+main.editor-shell .lumin-right-rail,
+main.editor-shell .inspector-wrap {
+  display: none !important;
+}
+
+main.editor-shell .pages-panel,
+main.editor-shell .workspace.is-managing-pages .pages-panel {
+  position: relative !important;
+  inset: auto !important;
+  z-index: 20 !important;
+  display: flex !important;
+  width: 144px !important;
+  height: 100% !important;
+  border-right: 1px solid var(--editorial-line) !important;
+  background: var(--editorial-warm-white) !important;
+  box-shadow: none !important;
+}
+
+main.editor-shell .pages-panel.is-collapsed {
+  display: none !important;
+}
+
+main.editor-shell .thumbnail-list,
+main.editor-shell .thumbnail-list.grid {
+  gap: 18px !important;
+  padding: 20px 24px 18px !important;
+  background: var(--editorial-warm-white) !important;
+}
+
+main.editor-shell .thumbnail,
+main.editor-shell .thumbnail-list.grid .thumbnail {
+  position: relative !important;
+  width: 92px !important;
+  min-height: 0 !important;
+  gap: 7px !important;
+}
+
+main.editor-shell .thumbnail::before {
+  position: absolute;
+  top: 0;
+  bottom: 24px;
+  left: -17px;
+  width: 3px;
+  background: transparent;
+  content: "";
+}
+
+main.editor-shell .thumbnail.is-selected::before {
+  background: var(--editorial-oxblood);
+}
+
+main.editor-shell .thumbnail-preview {
+  width: 72px !important;
+  border: 1px solid #dedad3 !important;
+  border-radius: 0 !important;
+  box-shadow: 0 2px 6px rgba(47, 43, 38, 0.12) !important;
+}
+
+main.editor-shell .thumbnail.is-selected .thumbnail-preview {
+  border: 1px solid var(--editorial-oxblood) !important;
+  border-radius: 0 !important;
+  box-shadow: 0 0 0 1px rgba(164, 18, 52, 0.08) !important;
+}
+
+main.editor-shell .thumbnail-label,
+main.editor-shell .thumbnail span.thumbnail-label,
+main.editor-shell .thumbnail.is-selected .thumbnail-label {
+  min-width: 0 !important;
+  height: auto !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  color: #67635d !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  line-height: 1.2 !important;
+}
+
+main.editor-shell .thumbnail.is-selected .thumbnail-label {
+  color: var(--editorial-oxblood) !important;
+}
+
+main.editor-shell .thumbnail-footer {
+  display: grid !important;
+  height: 48px !important;
+  border-top: 1px solid var(--editorial-line) !important;
+  background: var(--editorial-warm-white) !important;
+}
+
+main.editor-shell .thumbnail-footer button {
+  color: var(--editorial-ink) !important;
+}
+
+main.editor-shell .thumbnail-footer button:hover {
+  background: #f1eee9 !important;
+  color: var(--editorial-oxblood) !important;
+}
+
+main.editor-shell .canvas-column,
+main.editor-shell .document-stage {
+  background: var(--editorial-canvas) !important;
+  background-image: none !important;
+}
+
+main.editor-shell .document-stage {
+  padding: 22px 54px 92px !important;
+}
+
+main.editor-shell .page-surface {
+  border: 1px solid #d4d0c8 !important;
+  box-shadow: 0 8px 20px rgba(48, 43, 36, 0.12), 0 1px 3px rgba(48, 43, 36, 0.08) !important;
+}
+
+main.editor-shell .status-bar {
+  left: calc(50% + 72px) !important;
+  bottom: 16px !important;
+  height: 50px !important;
+  padding: 0 9px !important;
+  border: 1px solid var(--editorial-line) !important;
+  border-radius: 20px !important;
+  background: rgba(255, 255, 255, 0.98) !important;
+  box-shadow: 0 7px 18px rgba(47, 43, 38, 0.11) !important;
+}
+
+main.editor-shell .page-nav {
+  height: 48px !important;
+}
+
+main.editor-shell .page-nav button,
+main.editor-shell .page-nav .page-nav-zoom {
+  width: 34px !important;
+  min-width: 34px !important;
+  height: 34px !important;
+  border-radius: 4px !important;
+  color: var(--editorial-ink) !important;
+}
+
+main.editor-shell .page-nav button:hover,
+main.editor-shell .page-nav .page-nav-zoom:hover {
+  background: #f2efea !important;
+  color: var(--editorial-oxblood) !important;
+}
+
+main.editor-shell .page-nav .page-nav-zoom-select {
+  width: 88px !important;
+  min-width: 88px !important;
+  height: 34px !important;
+  padding: 0 26px 0 10px !important;
+  border: 1px solid var(--editorial-line) !important;
+  border-radius: 4px !important;
+  color: var(--editorial-ink) !important;
+  font-size: 14px !important;
+}
+
+main.editor-shell .page-nav .page-nav-divider {
+  height: 24px !important;
+  margin: 0 6px !important;
+  background: var(--editorial-line) !important;
+}
+
+main.editor-shell .page-nav input {
+  width: 48px !important;
+  min-width: 48px !important;
+  height: 34px !important;
+  border-radius: 4px !important;
+  background: #f1efeb !important;
+  color: var(--editorial-ink) !important;
+  caret-color: var(--editorial-oxblood) !important;
+  font-size: 14px !important;
+}
+
+main.editor-shell .page-nav .page-nav-total {
+  min-width: 38px !important;
+  height: 34px !important;
+  color: var(--editorial-ink) !important;
+  font-size: 14px !important;
+}
+
+main.editor-shell .annotation.is-selected {
+  border-color: var(--editorial-oxblood) !important;
+  outline-color: rgba(164, 18, 52, 0.15) !important;
+}
+
+main.editor-shell .resize-control,
+main.editor-shell .rotation-handle {
+  border-color: var(--editorial-oxblood) !important;
+}
+
+main.editor-shell .rotation-stem {
+  background: var(--editorial-oxblood) !important;
+}
+
+main.editor-shell .annotation-controls button:hover {
+  background: var(--editorial-rose) !important;
+  color: var(--editorial-oxblood) !important;
+}
+
+@media (max-width: 1180px) {
+  main.editor-shell .reference-tool-ribbon {
+    width: calc(100% - 28px) !important;
+    margin-inline: 0 !important;
+  }
+
+  main.editor-shell .reference-toolbar-button {
+    min-width: 50px !important;
+    padding-inline: 5px !important;
+    font-size: 9.5px !important;
+  }
+
+  main.editor-shell .reference-save-state span {
+    display: none !important;
+  }
+
+  main.editor-shell > .tool-settings,
+  main.editor-shell > .text-format-settings {
+    width: calc(100vw - 48px) !important;
+    max-width: calc(100vw - 48px) !important;
+  }
+}
+
+@media (max-width: 900px) {
+  main.editor-shell.editor-shell {
+    grid-template-rows: 56px 68px minmax(0, 1fr) !important;
+  }
+
+  main.editor-shell.editor-shell.has-tool-settings,
+  main.editor-shell.editor-shell.has-tool-settings.is-highlight-settings-mode {
+    grid-template-rows: 56px 68px 48px minmax(0, 1fr) !important;
+  }
+
+  main.editor-shell .reference-file-header {
+    grid-template-columns: minmax(116px, 1fr) auto !important;
+    min-height: 56px !important;
+    height: 56px !important;
+    padding-inline: 10px !important;
+  }
+
+  main.editor-shell .reference-document-meta {
+    display: none !important;
+  }
+
+  main.editor-shell .reference-tool-ribbon {
+    width: calc(100% - 12px) !important;
+    min-height: 62px !important;
+    height: 62px !important;
+    margin: 3px 0 !important;
+    padding: 3px 5px !important;
+    border-radius: 5px !important;
+  }
+
+  main.editor-shell .reference-toolbar-button {
+    height: 54px !important;
+  }
+
+  main.editor-shell .workspace,
+  main.editor-shell .workspace.pages-collapsed,
+  main.editor-shell .workspace.is-managing-pages {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  main.editor-shell .pages-panel,
+  main.editor-shell .workspace.is-managing-pages .pages-panel {
+    position: absolute !important;
+    inset: 0 auto 0 0 !important;
+    width: min(82vw, 286px) !important;
+    z-index: 70 !important;
+    box-shadow: 12px 0 34px rgba(47, 43, 38, 0.16) !important;
+  }
+
+  main.editor-shell > .tool-settings,
+  main.editor-shell > .text-format-settings {
+    position: relative !important;
+    inset: auto !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    height: 48px !important;
+    margin: 0 !important;
+    border-right: 0 !important;
+    border-left: 0 !important;
+    border-radius: 0 !important;
+    overflow-x: auto !important;
+  }
+
+  main.editor-shell .status-bar {
+    left: 50% !important;
+  }
+}
