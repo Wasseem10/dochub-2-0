@@ -162,7 +162,7 @@ test("editor rejects a corrupted PDF with a recoverable explanation", async ({ p
     buffer: Buffer.from("this is not a PDF"),
   });
   await expect(page.getByText(/corrupted or invalid/i)).toBeVisible();
-  await expect(page.getByRole("button", { name: "Upload from your device" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Choose a PDF", exact: true })).toBeVisible();
 });
 
 test("progressive pages finish rendering instead of remaining on an endless loader", async ({ page }) => {

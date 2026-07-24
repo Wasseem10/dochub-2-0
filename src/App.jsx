@@ -226,6 +226,10 @@ const referencePrimaryTools = [
 
 const compactEditorTools = [
   { id: "select", label: "Select", icon: MousePointer2 },
+  { id: "checkbox", label: "Check", icon: Check },
+  { id: "field", label: "Text field", icon: FilePlus2 },
+  { id: "date", label: "Date", icon: CalendarDays },
+  { id: "initials", label: "Initials", icon: Type },
   { id: "draw", label: "Draw", icon: Paintbrush },
   { id: "erase", label: "Erase", icon: Eraser },
   { id: "arrow", label: "Arrow", icon: Send },
@@ -4743,7 +4747,6 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
         setSignatureModalMode(requestedTool === "add-initials" ? "initials" : "signature");
         setSignatureModalOpen(true);
       }
-      if (requestedTool === "request-signatures") setSignatureRequestModalOpen(true);
       if (requestedTool === "protect-pdf") setProtectModalOpen(true);
     }
 
@@ -4756,7 +4759,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     } else if (postAuthAction === "signature-request") {
       setSignatureRequestModalOpen(true);
     } else if (preset) {
-      showToast(`${preset.label} tools are ready.`);
+      showToast(preset.guidance || `${preset.label} tools are ready.`);
     }
 
     if (preset || postAuthAction) navigate(currentLocationPath(location), { replace: true, state: null });
@@ -4915,6 +4918,12 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
         <div className="reference-header-actions" aria-label="Document actions">
           <button type="button" onClick={printPdf} disabled={isExporting}><Printer size={23} /><span>{isExporting ? "Preparing…" : "Print"}</span></button>
           <button type="button" aria-label={isExporting ? "Preparing PDF" : "Download"} onClick={exportPdf} disabled={isExporting}><Download size={23} /><span>{isExporting ? "Preparing…" : "Download"}</span></button>
+          {publicTool === "share-pdf" && (
+            <button type="button" aria-label="Share PDF" onClick={openShareSettings}><Share2 size={23} /><span>Share</span></button>
+          )}
+          {publicTool === "request-signatures" && (
+            <button type="button" aria-label="Request signature" onClick={() => setSignatureRequestModalOpen(true)}><Send size={23} /><span>Request</span></button>
+          )}
           <button type="button" className="reference-done-button" onClick={finishEditing}><span>Finish</span></button>
         </div>
       </header>
@@ -5361,7 +5370,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
             <button type="button" title="Add page" aria-label="Add page" onClick={addBlankPage}>
               <FilePlus2 size={20} strokeWidth={2.4} />
             </button>
-            <button type="button" title="Download PDF" aria-label="Download PDF" onClick={exportPdf} disabled={isExporting}>
+            <button type="button" title="Export PDF from page rail" aria-label="Export PDF from page rail" onClick={exportPdf} disabled={isExporting}>
               <Download size={19} strokeWidth={2.5} />
             </button>
           </div>

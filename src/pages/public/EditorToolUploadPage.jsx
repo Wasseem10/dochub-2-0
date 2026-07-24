@@ -22,6 +22,7 @@ const UPLOAD_COPY = Object.freeze({
   "add-initials": ["Add initials to a PDF", "Create your initials once, place them anywhere, and download the completed PDF."],
   "add-date-fields": ["Add date fields to a PDF", "Place today’s date or enter a custom date wherever the document needs it."],
   "request-signatures": ["Request signatures on a PDF", "Place required fields, create an expiring link, and let one recipient sign and download the completed PDF securely in their browser."],
+  "share-pdf": ["Share a PDF securely", "Review your PDF, sign in when you are ready, and create a revocable read-only link."],
   "protect-pdf": ["Protect a PDF with a password", "Apply local AES-256 encryption and download a password-protected copy."],
   "review-pdf": ["Review a PDF online", "Highlight, draw, add shapes, and keep a complete local review trail in one workspace."],
   "comment-on-pdf": ["Comment on a PDF online", "Place comment threads on any page, add replies, resolve feedback, and export the reviewed PDF."],
@@ -37,6 +38,7 @@ const DROP_ACTION = Object.freeze({
   "add-initials": "add initials",
   "add-date-fields": "add dates",
   "request-signatures": "prepare for signatures",
+  "share-pdf": "share",
   "protect-pdf": "protect",
   "review-pdf": "review",
   "comment-on-pdf": "comment on",
@@ -48,6 +50,7 @@ export function EditorToolUploadPage({ toolId, fileInputRef, onUpload, onDropFil
   const tool = TOOL_BY_ID.get(toolId) || TOOL_BY_ID.get("edit-pdf");
   const [headline, subheadline] = UPLOAD_COPY[tool.id] || [tool.name, tool.shortDescription];
   const isUploading = Boolean(uploadStage?.status && !["idle", "complete", "error"].includes(uploadStage.status));
+  const requiresAccountForCloudAction = ["request-signatures", "share-pdf"].includes(tool.id);
 
   const openPicker = () => {
     if (!isUploading) fileInputRef.current?.click();
@@ -124,7 +127,7 @@ export function EditorToolUploadPage({ toolId, fileInputRef, onUpload, onDropFil
 
         <div className="editor-tool-trust-row" aria-label="Upload information">
           <span><Lock size={16} /> Your file stays in your browser</span>
-          <span><CheckCircle2 size={16} /> No account required</span>
+          <span><CheckCircle2 size={16} /> {requiresAccountForCloudAction ? "Sign in required to create a link" : "No account required"}</span>
           <span><ShieldCheck size={16} /> No file uploads to our servers</span>
         </div>
       </section>
