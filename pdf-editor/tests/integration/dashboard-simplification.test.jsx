@@ -21,10 +21,10 @@ describe("simplified dashboard navigation", () => {
       renderer = TestRenderer.create(<EditorBrandButton onDashboard={onDashboard} />);
     });
 
-    const button = renderer.root.findByProps({ "aria-label": "Back to FixThatPDF dashboard" });
+    const button = renderer.root.findByProps({ "aria-label": "Back to PDFArrow dashboard" });
     await act(async () => button.props.onClick());
     expect(onDashboard).toHaveBeenCalledOnce();
-    expect(textOf(button)).toBe("FixThatPDF");
+    expect(textOf(button)).toBe("PDFArrow");
     await act(async () => renderer.unmount());
   });
 
@@ -62,13 +62,13 @@ describe("simplified dashboard navigation", () => {
     });
 
     const text = textOf(renderer.root);
-    expect(text).toContain("Continue where you left off");
-    expect(text).toContain("Recently opened");
+    expect(text).toContain("Documents");
+    expect(text).toContain("Recent");
     expect(text).toContain("Edit a PDF");
     expect(text).toContain("Sign a PDF");
     expect(text).toContain("Organize pages");
-    expect(text).toContain("All documents");
-    expect(text).toContain("All features");
+    expect(text).toContain("Blank PDF");
+    expect(text).toContain("All tools");
     expect(text).not.toContain("AI Assistant");
     expect(text).not.toContain("Recent Activity");
     expect(text).not.toContain("Total Documents");
@@ -78,9 +78,106 @@ describe("simplified dashboard navigation", () => {
     await act(async () => uploadButton.props.onClick());
     expect(onSelectFiles).toHaveBeenCalledOnce();
 
-    const brand = renderer.root.findByProps({ "aria-label": "FixThatPDF dashboard" });
+    const brand = renderer.root.findByProps({ "aria-label": "PDFArrow dashboard" });
     await act(async () => brand.props.onClick());
     expect(onNavigate).toHaveBeenCalledWith(ROUTE_PATHS.dashboard);
+
+    const allToolsButton = renderer.root.findAllByType("button").find((button) => textOf(button) === "All tools");
+    await act(async () => allToolsButton.props.onClick());
+    expect(onNavigate).toHaveBeenCalledWith(ROUTE_PATHS.appTools);
+    await act(async () => renderer.unmount());
+  });
+
+  it("renders the working tool directory inside the editorial dashboard shell", async () => {
+    const onNavigate = vi.fn();
+    let renderer;
+    await act(async () => {
+      renderer = TestRenderer.create(
+        <UploadLanding
+          section="Features"
+          onNavigate={onNavigate}
+          fileInputRef={{ current: null }}
+          onUpload={() => {}}
+          onSelectFiles={() => {}}
+          onDropFile={() => {}}
+          onBlankPage={() => {}}
+          uploadError=""
+          uploadStage={{ status: "idle", fileName: "" }}
+          isDraggingFile={false}
+          setIsDraggingFile={() => {}}
+          documents={[]}
+          onOpenDocument={() => {}}
+          onRenameDocument={() => {}}
+          onDeleteDocument={() => {}}
+          onDuplicateDocument={() => {}}
+          onDownloadDocument={() => {}}
+          onToggleFavorite={() => {}}
+          onMoveDocument={() => {}}
+          currentUser={null}
+          onLogout={() => {}}
+        />,
+      );
+    });
+
+    const text = textOf(renderer.root);
+    expect(text).toContain("All tools");
+    expect(text).toContain("Categories");
+    expect(text).toContain("Edit and view");
+    expect(text).toContain("Edit PDF");
+    expect(text).toContain("Browser-first");
+
+    const editPdfButton = renderer.root.findAllByType("button").find((button) => textOf(button).includes("Edit PDFChange selected text overlays"));
+    await act(async () => editPdfButton.props.onClick());
+    expect(onNavigate).toHaveBeenCalledWith(ROUTE_PATHS.editPdf);
+    await act(async () => renderer.unmount());
+  });
+
+  it("renders documents as a compact editorial library", async () => {
+    const onSelectFiles = vi.fn();
+    let renderer;
+    await act(async () => {
+      renderer = TestRenderer.create(
+        <UploadLanding
+          section="Documents"
+          onNavigate={() => {}}
+          fileInputRef={{ current: null }}
+          onUpload={() => {}}
+          onSelectFiles={onSelectFiles}
+          onDropFile={() => {}}
+          onBlankPage={() => {}}
+          uploadError=""
+          uploadStage={{ status: "idle", fileName: "" }}
+          isDraggingFile={false}
+          setIsDraggingFile={() => {}}
+          documents={[]}
+          onOpenDocument={() => {}}
+          onRenameDocument={() => {}}
+          onDeleteDocument={() => {}}
+          onDuplicateDocument={() => {}}
+          onDownloadDocument={() => {}}
+          onToggleFavorite={() => {}}
+          onMoveDocument={() => {}}
+          currentUser={{ uid: "user-1", name: "Wasseem" }}
+          onLogout={() => {}}
+        />,
+      );
+    });
+
+    const text = textOf(renderer.root);
+    expect(text).toContain("Documents");
+    expect(text).toContain("0 documents");
+    expect(text).toContain("Favorites");
+    expect(text).toContain("Recently opened");
+    expect(text).not.toContain("Upload your first PDF");
+
+    const favoritesButton = renderer.root.findAllByType("button").find((button) => textOf(button).includes("Favorites"));
+    expect(favoritesButton.props["aria-pressed"]).toBe(false);
+    await act(async () => favoritesButton.props.onClick());
+    expect(renderer.root.findAllByType("button").find((button) => textOf(button).includes("Favorites")).props["aria-pressed"]).toBe(true);
+
+    const uploadButton = renderer.root.findAllByType("button").find((button) => textOf(button).includes("Upload PDF"));
+    await act(async () => uploadButton.props.onClick());
+    expect(onSelectFiles).toHaveBeenCalledOnce();
     await act(async () => renderer.unmount());
   });
 });

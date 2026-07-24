@@ -1,44 +1,49 @@
-# Open Horizon Hero Design QA
+# Design QA — Editorial Analytics
 
-- Source visual truth: `/Users/wasseemdabbas/.codex/generated_images/019f7d99-682c-7551-8036-1bae63d2a1df/exec-d9249e38-30a1-4cae-a267-a1e545721678.png`
-- Desktop implementation screenshot: `/tmp/fixthatpdf-open-horizon-pass3.png`
-- Mobile implementation screenshot: `/tmp/fixthatpdf-open-horizon-mobile.png`
-- Full comparison evidence: `/tmp/fixthatpdf-open-horizon-comparison.png`
-- Focused comparison evidence: `/tmp/fixthatpdf-open-horizon-focused.png`
-- Desktop viewport: 1440 × 1024
-- Tablet viewport: 768 × 1024
-- Mobile viewport: 390 × 844
-- State: landing hero at rest; desktop Tools menu and mobile navigation exercised
-- Browser console errors: none
+- Source visual truth: `C:\Users\wasse\OneDrive\Desktop\pdf-editor\design-evidence\analytics-source-dashboard-2026-07-23.png`
+- Browser-rendered implementation: `C:\Users\wasse\OneDrive\Desktop\pdf-editor\design-evidence\analytics-implementation-2026-07-23.png`
+- Full-view comparison: `C:\Users\wasse\OneDrive\Desktop\pdf-editor\design-evidence\analytics-dashboard-comparison-2026-07-23.png`
+- URL: `http://127.0.0.1:4173/app/analytics`
+- Browser viewport: 1280 × 720 CSS px, device scale factor 1
+- Source pixels: 1280 × 720
+- Implementation pixels: 1280 × 720
+- Density normalization: none; both captures use the same browser surface, viewport, and device density.
+- State: authenticated owner account. The dashboard source shows the empty document library; the Analytics implementation shows the empty Firebase/analytics state. Content differs intentionally, while the shared shell, density, controls, and hierarchy are the comparison target.
 
-## Full-view comparison evidence
+## Findings
 
-The source and implementation were normalized to the same 1440 × 1024 frame and placed side by side. The implementation preserves the selected direction: white FixThatPDF header, airy blue-white horizon, left-aligned two-line promise, primary upload action, three trust points, and a large functional upload workspace on the right.
+No actionable P0, P1, or P2 differences remain.
 
-## Focused region comparison evidence
+- Fonts and typography: the shared Georgia page title and compact DM Sans interface hierarchy match the dashboard source. Analytics section headings use the same restrained UI weight instead of introducing a second oversized display title.
+- Spacing and layout rhythm: the 266px Quiet Editorial rail, 104px top bar, aligned search field, account control, 44px content inset, flat command strip, and thin module boundaries match the dashboard frame. The Analytics metrics and identity ledger preserve the dashboard’s dense horizontal document-management rhythm.
+- Colors and visual tokens: warm-white and white surfaces, charcoal copy, neutral hairlines, and oxblood-only emphasis match the source. There are no blue metric tiles, gradients, rounded SaaS cards, or shadow-heavy panels.
+- Image quality and asset fidelity: the official cropped PDFArrow logo and existing outline icon system are unchanged. Analytics introduces no new raster or decorative assets.
+- Copy and content: the page clearly distinguishes operational metrics from the owner-only sign-in directory. The directory exposes name, email, Google versus email/password method, and Firebase last-sign-in time while stating that document content is not collected.
 
-The focused comparison crops both designs to the complete hero region. It confirms the selected visual hierarchy and proportions without the page below affecting judgment. The coded hero uses original generated background and PDF-document assets instead of CSS artwork or placeholder boxes.
+## Functional Verification
 
-## Required fidelity surfaces
+- Time-period selection changes successfully.
+- Refresh remains enabled and reloads the Analytics queries.
+- The shared search field filters the sign-in directory by name, email, or provider and shows a clear no-match state.
+- Sign-in identity normalization is covered for Google and email/password providers.
+- Personal identity stays in the owner-only `authUserProfiles` collection rather than the anonymous product analytics event stream.
+- Browser console errors checked: none.
+- TypeScript check passed.
+- Focused unit, route, auth, analytics, and dashboard suites passed: 30 tests.
 
-- Fonts and typography: The existing DM Sans and Caveat product typefaces are retained. The headline is a stable two-line lockup at desktop size, with matching medium weight, tight display tracking, and a readable 1.01 line height.
-- Spacing and layout: The 1280px desktop grid uses a 590px copy column, 48px gap, and 642px upload workspace. Browser geometry measured the final upload panel at 642 × 520 and confirmed the hero ends at 899px, closely matching the selected direction.
-- Colors and tokens: The existing cobalt action color is preserved while the hero adopts the selected white, powder-blue, and distant-horizon palette. Text contrast remains strong on the generated image.
-- Image quality: The responsive hero background is served as 640px and 1200px WebP sources with a PNG fallback. The PDF illustration is a transparent PNG sized for the panel without scaling halos or masking artifacts.
-- Copy and content: The approved homepage promise is preserved. Upload guidance is concise, and the trust points reinforce privacy, watermark-free output, and immediate use.
-- Icons: Existing Lucide upload, lock, shield, clock, grid, and navigation icons remain aligned to the product icon system. The decorative document artwork is an image asset, not custom SVG or CSS art.
-- States and interactions: The real PDF input and drag-and-drop target remain connected. Tools opens on click, closes on Escape, and restores focus to the trigger. Mobile navigation opens, focuses its first link, and closes on Escape.
-- Accessibility: The primary actions remain semantic buttons with visible focus styling. The upload region keeps its accessible label, decorative imagery has empty alt text, and the page has no horizontal overflow.
-- Responsiveness: At 768px and 390px the hero stacks cleanly, the CTA becomes full-width on mobile, the upload panel remains usable, and `scrollWidth` equals `innerWidth`.
+## Focused Comparison
 
-## Findings and comparison history
+A separate crop was not needed because the full 1280 × 720 side-by-side comparison keeps the shared top bar, navigation rail, metric strip, sign-in ledger, typography, borders, and empty state readable at native density.
 
-1. Initial coded pass had one P2 typography/layout issue: the headline wrapped to three lines and the copy/upload columns drifted from the source. The desktop grid was widened to 1280px, the copy column was fixed at 590px, and the display size was tuned to keep the intended two-line lockup.
-2. The second pass had one P2 vertical-rhythm issue: the upload panel and hero ending sat about 35–40px above the source, compressing the CTA and trust-point spacing. Desktop hero height, panel offset, and section margins were adjusted to match the selected frame.
-3. Final desktop, tablet, and mobile passes show no remaining P0, P1, or P2 issues. Navigation interactions work, the console has no errors, and all tested viewports have zero horizontal overflow.
+## Comparison History
 
-## Follow-up polish
+1. Captured the current dashboard at 1280 × 720 as the source for shell geometry, typography, spacing, and visual tokens.
+2. Rebuilt the Analytics top area around the same searchable header, flat command strip, five-column metric ledger, and fine-divider content modules.
+3. Added the owner-only sign-in ledger as the first primary data table and captured the implementation at the same viewport.
+4. The normalized side-by-side comparison found no remaining actionable P0/P1/P2 mismatch.
 
-- No P3 item is required for this release.
+## Follow-up Polish
+
+- P3: production data will make the identity ledger denser than the verified empty state; its long-email truncation and responsive stacking are implemented but should be observed again after real accounts populate the collection.
 
 final result: passed

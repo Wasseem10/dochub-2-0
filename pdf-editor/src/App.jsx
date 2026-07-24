@@ -4,7 +4,6 @@ import Mail from "lucide-react/dist/esm/icons/mail.mjs";
 import LogOut from "lucide-react/dist/esm/icons/log-out.mjs";
 import ChevronRight from "lucide-react/dist/esm/icons/chevron-right.mjs";
 import ChevronLeft from "lucide-react/dist/esm/icons/chevron-left.mjs";
-import Sparkles from "lucide-react/dist/esm/icons/sparkles.mjs";
 import Plug from "lucide-react/dist/esm/icons/plug.mjs";
 import CreditCard from "lucide-react/dist/esm/icons/credit-card.mjs";
 import ArrowDownToLine from "lucide-react/dist/esm/icons/arrow-down-to-line.mjs";
@@ -83,8 +82,12 @@ import { beginToolOperation, fileSizeBucket, pageCountBucket, trackProductEvent,
 import { AuthRequiredModal } from "./components/editor/AuthRequiredModal.jsx";
 import { AccountDeletionCard } from "./components/app/AccountDeletionCard.jsx";
 import { BrandWordmark } from "./components/public/BrandWordmark.jsx";
+import { PageMetadata } from "./components/public/PageMetadata.jsx";
 import { isAnalyticsOwner } from "./config/adminAccess.js";
+import { ToolIcon } from "./tools/ToolIcon.jsx";
+import { TOOL_CATEGORIES, TOOL_REGISTRY } from "./tools/toolRegistry.js";
 import { createSecurePdfShare, revokeSecurePdfShare } from "./sharing/securePdfSharing.js";
+import { createSigningRequestUrl } from "./signing/signingRequest.js";
 import { OwnerAnalyticsPanel } from "./pages/app/OwnerAnalyticsPanel.jsx";
 import { LatticePdfLanding } from "./LatticePdfLanding.jsx";
 import { EditorRouteStatePage } from "./pages/app/EditorRouteStatePage.jsx";
@@ -92,6 +95,7 @@ import { EditorToolUploadPage } from "./pages/public/EditorToolUploadPage.jsx";
 import { resolveEditorDocument } from "./router/editorRouteState.js";
 import { currentLocationPath, editorPath, publicEditorDocumentPath, publicEditorPath, ROUTE_PATHS } from "./router/routePaths.js";
 import { getEditorToolPreset, resolveEditorActiveTool } from "./tools/editorToolPresets.js";
+import { calculateEditorFitZoom, EDITOR_ZOOM_MODE, editorZoomLabel } from "./tools/editorZoom.js";
 import { claimGuestDocument, editorActionNeedsAccount, GUEST_OWNER_ID, recoverDocumentAsGuest, resolveEditorStorageOwnerId } from "./tools/guestDocumentSession.js";
 import { clearEditorSession, loadEditorSession, saveEditorSession } from "./tools/editorSessionStore.js";
 import { loadLocalDocuments, saveLocalDocuments } from "./tools/localDocumentStore.js";
@@ -109,11 +113,13 @@ import { annotationPatchFromFrame, framesEqual, getAnnotationFrame, moveFrame, n
 import { circleFrameFromDrag, directedLineFrameFromPoints, directedLineSvgGeometry, ensureDirectedLineLength, getDirectedLineEndpoints, normalizeCircleFrame, resizeCircleFrame } from "./tools/editorShapeGeometry.js";
 import { normalizedPointerInRect } from "./tools/editorPointerCoordinates.js";
 import { createTextAnnotation, estimateTextAnnotationSize, normalizeEditorText, shouldDiscardTextAnnotation } from "./tools/editorTextObjects.js";
-import { detectedTextBaseline, resolveDetectedTextStyle, sampleDetectedTextBackground, standardPdfFontVariant } from "./tools/editorDetectedText.js";
+import { detectedTextBaseline, detectedTextRotation, layoutDetectedText, resolveDetectedTextStyle, sampleDetectedTextBackground, standardPdfFontVariant } from "./tools/editorDetectedText.js";
+import { recoverPdfPageRender, withPdfPageDeadline } from "./tools/editorPageRecovery.js";
 import { canSaveEditorSignature } from "./tools/editorSignature.js";
 import { duplicateEditorPageState, rotateEditorPageRecord } from "./tools/editorPageOrganizer.js";
 import { applyNativePdfFormAnnotation, createEditorExportDocument } from "./tools/pdfEditorPageExport.js";
 import { sanitizeReplacedPdfBytes } from "./tools/pdfExportSanitizer.js";
+import { closePdfPrintTarget, createPdfPrintTarget, renderPdfDocumentForPrint } from "./tools/pdfPrint.js";
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
   "pdfjs-dist/build/pdf.worker.mjs",
@@ -130,7 +136,7 @@ const MIN_EDITOR_ZOOM = 40;
 const ZOOM_PRESETS = [40, 50, 60, 80, 90, 100, 120, 140, 160];
 
 function usesMobileEditorLayout() {
-  return typeof window !== "undefined" && window.matchMedia("(max-width: 820px)").matches;
+  return typeof window !== "undefined" && window.matchMedia("(max-width: 900px)").matches;
 }
 
 const colors = {
@@ -216,6 +222,17 @@ const referencePrimaryTools = [
   { id: "link", label: "Link", icon: Link },
   { id: "checkbox", label: "Check", icon: Check },
   { id: "note", label: "Note", icon: StickyNote },
+];
+
+const compactEditorTools = [
+  { id: "select", label: "Select", icon: MousePointer2 },
+  { id: "draw", label: "Draw", icon: Paintbrush },
+  { id: "erase", label: "Erase", icon: Eraser },
+  { id: "arrow", label: "Arrow", icon: Send },
+  { id: "line", label: "Line", icon: Minus },
+  { id: "rectangle", label: "Rectangle", icon: RectangleHorizontal },
+  { id: "circle", label: "Circle", icon: Circle },
+  ...referencePrimaryTools.slice(5),
 ];
 
 function makeId(prefix) {
@@ -425,6 +442,12 @@ function normalizeHexColor(value) {
   return `#${clean.toLowerCase()}`;
 }
 
+function fallbackStandardPdfText(value) {
+  return Array.from(String(value || ""), (character) => (
+    character.codePointAt(0) >= 32 && character.codePointAt(0) <= 255 ? character : "?"
+  )).join("");
+}
+
 function pointerToNormalized(event, pageElement) {
   const drawingSurface = pageElement.querySelector(".annotation-layer") || pageElement;
   return normalizedPointerInRect(event, drawingSurface.getBoundingClientRect());
@@ -523,7 +546,7 @@ function extractDetectedTextItems(textContent, viewport, pageRecord, pageIndex) 
         bold: textStyle.bold,
         italic: textStyle.italic,
         color: colors.black,
-        rotation: 0,
+        rotation: detectedTextRotation(item.transform),
         source: "pdf-text-layer",
         confidence: 1,
         isEdited: false,
@@ -625,68 +648,139 @@ function pendingPdfPageRecord(index) {
 }
 
 async function renderPdfEditorPage(documentProxy, sourcePageIndex, outputPageIndex = sourcePageIndex) {
-  const page = await documentProxy.getPage(sourcePageIndex + 1);
-  const [textContent, pdfAnnotations] = await Promise.all([
-    page.getTextContent(),
-    page.getAnnotations({ intent: "display" }),
-  ]);
-  const pageText = textContent.items.map((item) => item.str).join(" ").replace(/\s+/g, " ").trim();
-  const textViewport = page.getViewport({ scale: 1 });
-  const viewport = page.getViewport({ scale: 1.35 });
-  const canvas = window.document.createElement("canvas");
-  const context = canvas.getContext("2d", { alpha: false });
-  canvas.width = Math.ceil(viewport.width);
-  canvas.height = Math.ceil(viewport.height);
-  context.fillStyle = "#ffffff";
-  context.fillRect(0, 0, canvas.width, canvas.height);
-  await page.render({ canvasContext: context, viewport, background: "#ffffff" }).promise;
-  const displayWidth = BASE_PAGE_WIDTH;
-  const displayHeight = Math.round(BASE_PAGE_WIDTH * (viewport.height / viewport.width));
-  const pageRecord = {
-    id: makeId("page"),
-    number: outputPageIndex + 1,
-    originalIndex: sourcePageIndex,
-    pdfWidth: textViewport.width,
-    pdfHeight: textViewport.height,
-    width: displayWidth,
-    height: displayHeight,
-    image: canvas.toDataURL("image/png"),
-    text: pageText,
-    source: "pdf",
-    hasDetectedText: pageText.length > 0,
-    isHydrated: true,
-    renderStatus: "ready",
-  };
-  const detectedItems = extractDetectedTextItems(textContent, textViewport, pageRecord, outputPageIndex)
-    .map((item) => ({
-      ...item,
-      backgroundColor: sampleDetectedTextBackground(context, canvas.width, canvas.height, item),
-    }));
-  return {
-    pageRecord,
-    detectedItems,
-    detectedFormFields: extractPdfFormAnnotations(pdfAnnotations, textViewport, outputPageIndex, makeId),
-  };
+  let page;
+  let renderTask;
+  const work = (async () => {
+    page = await documentProxy.getPage(sourcePageIndex + 1);
+    const [textContent, pdfAnnotations] = await Promise.all([
+      page.getTextContent(),
+      page.getAnnotations({ intent: "display" }),
+    ]);
+    const pageText = textContent.items.map((item) => item.str).join(" ").replace(/\s+/g, " ").trim();
+    const textViewport = page.getViewport({ scale: 1 });
+    const viewport = page.getViewport({ scale: 1.35 });
+    const canvas = window.document.createElement("canvas");
+    const context = canvas.getContext("2d", { alpha: false });
+    canvas.width = Math.ceil(viewport.width);
+    canvas.height = Math.ceil(viewport.height);
+    context.fillStyle = "#ffffff";
+    context.fillRect(0, 0, canvas.width, canvas.height);
+    renderTask = page.render({ canvasContext: context, viewport, background: "#ffffff" });
+    await renderTask.promise;
+    const displayWidth = BASE_PAGE_WIDTH;
+    const displayHeight = Math.round(BASE_PAGE_WIDTH * (viewport.height / viewport.width));
+    const pageRecord = {
+      id: makeId("page"),
+      number: outputPageIndex + 1,
+      originalIndex: sourcePageIndex,
+      pdfWidth: textViewport.width,
+      pdfHeight: textViewport.height,
+      width: displayWidth,
+      height: displayHeight,
+      image: canvas.toDataURL("image/png"),
+      text: pageText,
+      source: "pdf",
+      hasDetectedText: pageText.length > 0,
+      isHydrated: true,
+      renderStatus: "ready",
+    };
+    const detectedItems = extractDetectedTextItems(textContent, textViewport, pageRecord, outputPageIndex)
+      .map((item) => ({
+        ...item,
+        backgroundColor: sampleDetectedTextBackground(context, canvas.width, canvas.height, item),
+      }));
+    return {
+      pageRecord,
+      detectedItems,
+      detectedFormFields: extractPdfFormAnnotations(pdfAnnotations, textViewport, outputPageIndex, makeId),
+    };
+  })();
+  try {
+    return await withPdfPageDeadline(work, {
+      label: `Page ${sourcePageIndex + 1}`,
+      onTimeout: () => renderTask?.cancel?.(),
+    });
+  } finally {
+    page?.cleanup?.();
+  }
 }
 
-async function renderPdfPageForReplacement(documentProxy, sourcePageIndex) {
-  const page = await documentProxy.getPage(sourcePageIndex + 1);
-  const pageSize = page.getViewport({ scale: 1 });
-  const maxPixels = 12_000_000;
-  const scale = Math.max(1.5, Math.min(2.5, Math.sqrt(maxPixels / Math.max(1, pageSize.width * pageSize.height))));
-  const viewport = page.getViewport({ scale });
-  const canvas = window.document.createElement("canvas");
-  canvas.width = Math.ceil(viewport.width);
-  canvas.height = Math.ceil(viewport.height);
-  const context = canvas.getContext("2d", { alpha: false });
-  context.fillStyle = "#ffffff";
-  context.fillRect(0, 0, canvas.width, canvas.height);
-  await page.render({ canvasContext: context, viewport, background: "#ffffff" }).promise;
-  return {
-    image: canvas.toDataURL("image/png"),
-    pdfWidth: pageSize.width,
-    pdfHeight: pageSize.height,
-  };
+function createDetectedTextBackgroundPatch(context, canvasWidth, canvasHeight, item) {
+  if (!context || !canvasWidth || !canvasHeight || !item) return null;
+  const padding = Math.max(3, Math.round(Math.min(canvasWidth, canvasHeight) * 0.004));
+  const left = Math.max(0, Math.floor(item.x * canvasWidth) - padding);
+  const top = Math.max(0, Math.floor(item.y * canvasHeight) - padding);
+  const right = Math.min(canvasWidth, Math.ceil((item.x + item.w) * canvasWidth) + padding);
+  const bottom = Math.min(canvasHeight, Math.ceil((item.y + item.h) * canvasHeight) + padding);
+  const width = right - left;
+  const height = bottom - top;
+  if (width < 2 || height < 2 || width * height > 1_800_000) return null;
+  try {
+    const source = context.getImageData(left, top, width, height);
+    const patchCanvas = window.document.createElement("canvas");
+    patchCanvas.width = width;
+    patchCanvas.height = height;
+    const patchContext = patchCanvas.getContext("2d", { alpha: false });
+    const patch = patchContext.createImageData(width, height);
+    const pixel = (x, y, channel) => source.data[(Math.max(0, Math.min(height - 1, y)) * width + Math.max(0, Math.min(width - 1, x))) * 4 + channel];
+    for (let y = 0; y < height; y += 1) {
+      const yRatio = height <= 1 ? 0 : y / (height - 1);
+      for (let x = 0; x < width; x += 1) {
+        const xRatio = width <= 1 ? 0 : x / (width - 1);
+        const target = (y * width + x) * 4;
+        for (let channel = 0; channel < 3; channel += 1) {
+          const vertical = pixel(x, 0, channel) * (1 - yRatio) + pixel(x, height - 1, channel) * yRatio;
+          const horizontal = pixel(0, y, channel) * (1 - xRatio) + pixel(width - 1, y, channel) * xRatio;
+          patch.data[target + channel] = Math.round((vertical + horizontal) / 2);
+        }
+        patch.data[target + 3] = 255;
+      }
+    }
+    patchContext.putImageData(patch, 0, 0);
+    return {
+      image: patchCanvas.toDataURL("image/png"),
+      x: left / canvasWidth,
+      y: top / canvasHeight,
+      w: width / canvasWidth,
+      h: height / canvasHeight,
+    };
+  } catch {
+    return null;
+  }
+}
+
+async function renderPdfPageForReplacement(documentProxy, sourcePageIndex, editedItems = []) {
+  let page;
+  let renderTask;
+  const work = (async () => {
+    page = await documentProxy.getPage(sourcePageIndex + 1);
+    const pageSize = page.getViewport({ scale: 1 });
+    const maxPixels = 12_000_000;
+    const scale = Math.max(1.5, Math.min(2.5, Math.sqrt(maxPixels / Math.max(1, pageSize.width * pageSize.height))));
+    const viewport = page.getViewport({ scale });
+    const canvas = window.document.createElement("canvas");
+    canvas.width = Math.ceil(viewport.width);
+    canvas.height = Math.ceil(viewport.height);
+    const context = canvas.getContext("2d", { alpha: false });
+    context.fillStyle = "#ffffff";
+    context.fillRect(0, 0, canvas.width, canvas.height);
+    renderTask = page.render({ canvasContext: context, viewport, background: "#ffffff" });
+    await renderTask.promise;
+    return {
+      image: canvas.toDataURL("image/png"),
+      pdfWidth: pageSize.width,
+      pdfHeight: pageSize.height,
+      textPatches: new Map(editedItems.map((item) => [item.id, createDetectedTextBackgroundPatch(context, canvas.width, canvas.height, item)])),
+    };
+  })();
+  try {
+    return await withPdfPageDeadline(work, {
+      label: `Export page ${sourcePageIndex + 1}`,
+      onTimeout: () => renderTask?.cancel?.(),
+    });
+  } finally {
+    page?.cleanup?.();
+  }
 }
 
 function samplePages() {
@@ -841,11 +935,21 @@ function BlankDocument() {
   return <div className="blank-doc" aria-label="Blank PDF page" />;
 }
 
-function PdfPageLoading({ pageNumber, compact = false }) {
+function PdfPageLoading({ pageNumber, compact = false, recovering = false }) {
   return (
-    <div className={`pdf-page-loading ${compact ? "is-compact" : ""}`} role="status" aria-label={`Loading PDF page ${pageNumber}`}>
+    <div className={`pdf-page-loading ${compact ? "is-compact" : ""}`} role="status" aria-label={`${recovering ? "Recovering" : "Loading"} PDF page ${pageNumber}`}>
       <LoaderCircle size={compact ? 16 : 28} />
-      {!compact && <><strong>Loading page {pageNumber}</strong><span>Large documents render pages as you open them.</span></>}
+      {!compact && <><strong>{recovering ? "Recovering" : "Loading"} page {pageNumber}</strong><span>{recovering ? "The page renderer restarted from your saved PDF." : "Large documents render pages as you open them."}</span></>}
+    </div>
+  );
+}
+
+function PdfPageUnavailable({ pageNumber, compact = false, onRetry }) {
+  return (
+    <div className={`pdf-page-unavailable ${compact ? "is-compact" : ""}`} role="alert">
+      <FileText size={compact ? 16 : 28} />
+      {!compact && <><strong>Page {pageNumber} needs to reload</strong><span>The PDF is still safe in this browser.</span></>}
+      <button type="button" onClick={onRetry}>{compact ? "Retry" : "Reload page"}</button>
     </div>
   );
 }
@@ -1072,6 +1176,15 @@ function Annotation({ annotation, selected, zoom, onSelect, onDrag, onResize, on
     );
   }
 
+  if (annotation.type === "radio") {
+    return (
+      <div className={`annotation radio-field ${selected ? "is-selected" : ""}`} style={{ ...commonStyle, "--checkbox-color": annotation.color }} onPointerDown={dragStart} onDoubleClick={(event) => { event.stopPropagation(); onUpdate(annotation.id, { selected: true }); }} role="radio" aria-checked={Boolean(annotation.selected)} aria-label={annotation.fieldName || "PDF radio option"} title="Double-click to select">
+        {annotation.selected && <span className="radio-mark" aria-hidden="true" />}
+        {selected && <span className="resize-handle" onPointerDown={resizeStart} />}
+      </div>
+    );
+  }
+
   if (annotation.type === "rectangle" || annotation.type === "circle") {
     return (
       <div
@@ -1139,10 +1252,15 @@ function Annotation({ annotation, selected, zoom, onSelect, onDrag, onResize, on
     );
   }
 
-  if (annotation.type === "field") {
+  if (annotation.type === "field" || annotation.type === "choice") {
     return (
       <div className={`annotation fillable-field ${selected ? "is-selected" : ""}`} style={{ ...commonStyle, "--field-color": annotation.color }} onPointerDown={dragStart}>
-        <input
+        {annotation.type === "choice" ? <select
+          aria-label={annotation.fieldName || "PDF choice field"}
+          value={annotation.content || ""}
+          onPointerDown={(event) => { event.stopPropagation(); onSelect(annotation.id); }}
+          onChange={(event) => onUpdate(annotation.id, { content: event.target.value })}
+        ><option value="">Choose an option</option>{(annotation.options || []).map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select> : <input
           aria-label={annotation.fieldName || "PDF text field"}
           value={annotation.content || ""}
           placeholder={annotation.fieldName || "Enter text"}
@@ -1151,7 +1269,7 @@ function Annotation({ annotation, selected, zoom, onSelect, onDrag, onResize, on
             onSelect(annotation.id);
           }}
           onChange={(event) => onUpdate(annotation.id, { content: event.target.value })}
-        />
+        />}
         {selected && <span className="resize-handle" onPointerDown={resizeStart} />}
       </div>
     );
@@ -1475,6 +1593,11 @@ function ProfessionalAnnotation({ annotation, selected, zoom, activeTool, pageWi
     );
   }
 
+
+  if (annotation.type === "radio") {
+    return <div className={`annotation radio-field ${selected ? "is-selected" : ""}`} style={{ ...commonStyle, "--checkbox-color": annotation.color }} onPointerDown={dragStart} onDoubleClick={(event) => { event.stopPropagation(); onUpdate(annotation.id, { selected: true }); }} role="radio" aria-checked={Boolean(annotation.selected)} aria-label={annotation.fieldName || "PDF radio option"} title="Double-click to select">{annotation.selected && <span className="radio-mark" aria-hidden="true" />}{controls}</div>;
+  }
+
   if (annotation.type === "rectangle" || annotation.type === "circle") {
     return <div className={`annotation shape ${annotation.type} ${selected ? "is-selected" : ""}`} style={{ ...commonStyle, borderColor: annotation.color, borderWidth: `${Math.max(1, annotation.strokeWidth || 2)}px`, backgroundColor: annotation.fillColor || "transparent" }} onPointerDown={dragStart}>{controls}</div>;
   }
@@ -1561,10 +1684,10 @@ function ProfessionalAnnotation({ annotation, selected, zoom, activeTool, pageWi
 
   if (annotation.type === "image") return <div className={`annotation image-annotation ${selected ? "is-selected" : ""}`} style={commonStyle} onPointerDown={dragStart}><img src={annotation.imageDataUrl} alt={annotation.content || "Inserted image"} />{controls}</div>;
 
-  if (annotation.type === "field") {
+  if (annotation.type === "field" || annotation.type === "choice") {
     return (
       <div className={`annotation fillable-field ${selected ? "is-selected" : ""}`} style={{ ...commonStyle, "--field-color": annotation.color }} onPointerDown={dragStart}>
-        <input aria-label={annotation.fieldName || "PDF text field"} value={annotation.content || ""} placeholder={annotation.fieldName || "Enter text"} onPointerDown={(event) => { event.stopPropagation(); onSelect(annotation.id); }} onChange={(event) => onUpdate(annotation.id, { content: event.target.value, updatedAt: nowIso() })} />
+        {annotation.type === "choice" ? <select aria-label={annotation.fieldName || "PDF choice field"} value={annotation.content || ""} onPointerDown={(event) => { event.stopPropagation(); onSelect(annotation.id); }} onChange={(event) => onUpdate(annotation.id, { content: event.target.value, updatedAt: nowIso() })}><option value="">Choose an option</option>{(annotation.options || []).map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select> : <input aria-label={annotation.fieldName || "PDF text field"} value={annotation.content || ""} placeholder={annotation.fieldName || "Enter text"} onPointerDown={(event) => { event.stopPropagation(); onSelect(annotation.id); }} onChange={(event) => onUpdate(annotation.id, { content: event.target.value, updatedAt: nowIso() })} />}
         {controls}
       </div>
     );
@@ -1585,7 +1708,7 @@ export function EditorBrandButton({ onDashboard }) {
       className="reference-brand-name reference-brand-button"
       onClick={onDashboard}
       title="Back to dashboard"
-      aria-label="Back to FixThatPDF dashboard"
+      aria-label="Back to PDFArrow dashboard"
     >
       <BrandWordmark />
     </button>
@@ -1608,8 +1731,11 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   const fileInputRef = useRef(null);
   const sourceFileRef = useRef(null);
   const pdfDocumentRef = useRef(null);
+  const pdfDocumentLoadingRef = useRef(null);
+  const pdfBytesRef = useRef(null);
   const pdfHydrationTokenRef = useRef(0);
   const pdfPageHydrationTasksRef = useRef(new Map());
+  const pdfPageRenderGenerationRef = useRef(new Map());
   const pagesRef = useRef([]);
   const authHandoffStartedRef = useRef(false);
   const appendFileInputRef = useRef(null);
@@ -1617,11 +1743,11 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   const moreMenuRef = useRef(null);
   const zoomMenuRef = useRef(null);
   const shapeMenuRef = useRef(null);
+  const compactToolsMenuRef = useRef(null);
   const canvasColumnRef = useRef(null);
   const publicDocumentRecoveryRef = useRef(new Set());
   const trackedDocumentOpenRef = useRef(new Set());
   const pendingLandingFileConsumedRef = useRef(false);
-  const mobileFitDocumentRef = useRef("");
   const lastPagePointRef = useRef({ x: 0.52, y: 0.28 });
   const editorClipboardRef = useRef(null);
   const detectedTextEditHistoryRef = useRef(new Map());
@@ -1640,6 +1766,9 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   const [selectedId, setSelectedId] = useState(null);
   const [selectedDetectedTextId, setSelectedDetectedTextId] = useState(null);
   const [zoom, setZoom] = useState(100);
+  const [zoomMode, setZoomMode] = useState(() => (
+    usesMobileEditorLayout() ? EDITOR_ZOOM_MODE.FIT_WIDTH : EDITOR_ZOOM_MODE.CUSTOM
+  ));
   const [saved, setSaved] = useState(true);
   const [saveState, setSaveState] = useState("saved");
   const [isOffline, setIsOffline] = useState(() => typeof navigator !== "undefined" && !navigator.onLine);
@@ -1670,6 +1799,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
   const [isZoomMenuOpen, setIsZoomMenuOpen] = useState(false);
   const [isShapeMenuOpen, setIsShapeMenuOpen] = useState(false);
+  const [isCompactToolsMenuOpen, setIsCompactToolsMenuOpen] = useState(false);
   const [shapeMenuPosition, setShapeMenuPosition] = useState({ top: 0, left: 0 });
   const [isManagePagesOpen, setIsManagePagesOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -1696,24 +1826,64 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     whiteoutOpacity: 1,
   });
 
+  const ensurePdfDocumentProxy = useCallback(async () => {
+    if (pdfDocumentRef.current) return pdfDocumentRef.current;
+    if (pdfDocumentLoadingRef.current) return pdfDocumentLoadingRef.current;
+    const sourceBytes = pdfBytesRef.current;
+    if (!sourceBytes) return null;
+
+    const loading = pdfjsLib.getDocument({ data: sourceBytes.slice(0) }).promise;
+    pdfDocumentLoadingRef.current = loading;
+    try {
+      const documentProxy = await loading;
+      pdfDocumentRef.current = documentProxy;
+      return documentProxy;
+    } finally {
+      pdfDocumentLoadingRef.current = null;
+    }
+  }, []);
+
   const hydratePdfPageAt = useCallback(async (targetIndex) => {
-    const documentProxy = pdfDocumentRef.current;
     const token = pdfHydrationTokenRef.current;
+    const generation = pdfPageRenderGenerationRef.current.get(targetIndex) || 0;
     const pageRecord = pagesRef.current[targetIndex];
-    if (!documentProxy || !pageRecord || pageRecord.source !== "pdf" || pageRecord.image) return;
+    if (!pageRecord || pageRecord.source !== "pdf" || pageRecord.image) return;
     if (pdfPageHydrationTasksRef.current.has(targetIndex)) return pdfPageHydrationTasksRef.current.get(targetIndex);
 
     const sourcePageIndex = Number.isInteger(pageRecord.originalIndex) ? pageRecord.originalIndex : targetIndex;
-    if (sourcePageIndex < 0 || sourcePageIndex >= documentProxy.numPages) return;
+    if (sourcePageIndex < 0) return;
 
-    const task = (async () => {
+    let task;
+    let attemptProxy = null;
+    task = (async () => {
       setPages((items) => items.map((page, index) => (
-        index === targetIndex ? { ...page, renderStatus: "loading" } : page
+        index === targetIndex ? { ...page, renderStatus: "loading", renderAttempts: 0 } : page
       )));
-      const rendered = await renderPdfEditorPage(documentProxy, sourcePageIndex, targetIndex);
-      if (token !== pdfHydrationTokenRef.current) return;
+      const rendered = await recoverPdfPageRender(async () => {
+        attemptProxy = pdfDocumentRef.current || await ensurePdfDocumentProxy();
+        if (!attemptProxy || sourcePageIndex >= attemptProxy.numPages) throw new Error("The saved PDF page is unavailable.");
+        return renderPdfEditorPage(attemptProxy, sourcePageIndex, targetIndex);
+      }, {
+        onAttemptFailed: async (_error, attempt, maximumAttempts) => {
+          if (token !== pdfHydrationTokenRef.current || generation !== (pdfPageRenderGenerationRef.current.get(targetIndex) || 0)) return;
+          if (pdfDocumentRef.current === attemptProxy) {
+            pdfDocumentRef.current = null;
+            pdfDocumentLoadingRef.current = null;
+          }
+          try { await attemptProxy?.destroy?.(); } catch { /* A released worker may already be closed. */ }
+          if (attempt < maximumAttempts) {
+            setPages((items) => items.map((page, index) => (
+              index === targetIndex ? { ...page, renderStatus: "recovering", renderAttempts: attempt } : page
+            )));
+          }
+        },
+      });
+      if (
+        token !== pdfHydrationTokenRef.current
+        || generation !== (pdfPageRenderGenerationRef.current.get(targetIndex) || 0)
+      ) return;
       setPages((items) => items.map((page, index) => (
-        index === targetIndex ? { ...page, ...rendered.pageRecord, id: page.id || rendered.pageRecord.id } : page
+        index === targetIndex ? { ...page, ...rendered.pageRecord, id: page.id || rendered.pageRecord.id, renderAttempts: 0 } : page
       )));
       setDetectedTextItems((items) => {
         const savedPageItems = items.filter((item) => item.pageNumber === targetIndex);
@@ -1724,16 +1894,21 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
         return savedFormFields.length ? items : [...items, ...rendered.detectedFormFields];
       });
     })().catch(() => {
-      if (token !== pdfHydrationTokenRef.current) return;
+      if (
+        token !== pdfHydrationTokenRef.current
+        || generation !== (pdfPageRenderGenerationRef.current.get(targetIndex) || 0)
+      ) return;
       setPages((items) => items.map((page, index) => (
-        index === targetIndex ? { ...page, renderStatus: "error" } : page
+        index === targetIndex ? { ...page, renderStatus: "error", renderAttempts: 2 } : page
       )));
     }).finally(() => {
-      pdfPageHydrationTasksRef.current.delete(targetIndex);
+      if (pdfPageHydrationTasksRef.current.get(targetIndex) === task) {
+        pdfPageHydrationTasksRef.current.delete(targetIndex);
+      }
     });
     pdfPageHydrationTasksRef.current.set(targetIndex, task);
     return task;
-  }, []);
+  }, [ensurePdfDocumentProxy]);
 
   const selected = useMemo(() => annotations.find((annotation) => annotation.id === selectedId), [annotations, selectedId]);
   const selectedDetectedText = useMemo(() => detectedTextItems.find((item) => item.id === selectedDetectedTextId), [detectedTextItems, selectedDetectedTextId]);
@@ -1751,10 +1926,32 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   const zoomOptions = useMemo(() => (
     Array.from(new Set([...ZOOM_PRESETS, zoom])).sort((a, b) => a - b)
   ), [zoom]);
+  const zoomDisplayLabel = editorZoomLabel(zoomMode, zoom);
+
+  const setCustomZoom = useCallback((nextZoom) => {
+    setZoomMode(EDITOR_ZOOM_MODE.CUSTOM);
+    setZoom((currentZoom) => clamp(
+      typeof nextZoom === "function" ? nextZoom(currentZoom) : nextZoom,
+      MIN_EDITOR_ZOOM,
+      160,
+    ));
+  }, []);
+
+  const selectZoom = useCallback((selection) => {
+    if (selection === EDITOR_ZOOM_MODE.FIT_WIDTH || selection === EDITOR_ZOOM_MODE.FIT_PAGE) {
+      setZoomMode(selection);
+      return;
+    }
+    setCustomZoom(Number(selection));
+  }, [setCustomZoom]);
 
   useEffect(() => {
     pagesRef.current = pages;
   }, [pages]);
+
+  useEffect(() => {
+    pdfBytesRef.current = pdfBytes;
+  }, [pdfBytes]);
 
   useEffect(() => {
     if (editorRouteState !== "ready" || currentPage?.source !== "pdf") return undefined;
@@ -1773,12 +1970,13 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
 
   useEffect(() => {
     if (typeof window === "undefined") return undefined;
-    const mobileLayout = window.matchMedia("(max-width: 820px)");
+    const mobileLayout = window.matchMedia("(max-width: 900px)");
     const handleLayoutChange = (event) => {
       if (event.matches) {
         setIsPagesCollapsed(true);
-      } else if (mobileFitDocumentRef.current) {
-        mobileFitDocumentRef.current = "";
+        setZoomMode(EDITOR_ZOOM_MODE.FIT_WIDTH);
+      } else {
+        setZoomMode(EDITOR_ZOOM_MODE.CUSTOM);
         setZoom(100);
       }
     };
@@ -1787,18 +1985,42 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   }, []);
 
   useLayoutEffect(() => {
-    if (!currentPage || editorRouteState !== "ready" || !usesMobileEditorLayout()) return undefined;
-    const fitKey = `${activeDocumentId || "document"}:${currentPage.width}x${currentPage.height}`;
-    if (mobileFitDocumentRef.current === fitKey) return undefined;
-    mobileFitDocumentRef.current = fitKey;
-    setIsPagesCollapsed(true);
-    const animationFrame = window.requestAnimationFrame(() => {
-      const availableWidth = Math.max(240, (canvasColumnRef.current?.clientWidth || window.innerWidth) - 24);
-      const fittedZoom = Math.round((availableWidth / (currentPage.width * EDITOR_PAGE_SCALE)) * 100);
-      setZoom(clamp(fittedZoom, MIN_EDITOR_ZOOM, 100));
-    });
-    return () => window.cancelAnimationFrame(animationFrame);
-  }, [activeDocumentId, currentPage, editorRouteState]);
+    if (!currentPage || editorRouteState !== "ready" || zoomMode === EDITOR_ZOOM_MODE.CUSTOM) return undefined;
+    const canvasColumn = canvasColumnRef.current;
+    if (!canvasColumn) return undefined;
+
+    let animationFrame = 0;
+    const updateFittedZoom = () => {
+      window.cancelAnimationFrame(animationFrame);
+      animationFrame = window.requestAnimationFrame(() => {
+        const fittedZoom = calculateEditorFitZoom({
+          mode: zoomMode,
+          pageWidth: currentPage.width,
+          pageHeight: currentPage.height,
+          containerWidth: canvasColumn.clientWidth || window.innerWidth,
+          containerHeight: canvasColumn.clientHeight || window.innerHeight,
+          pageScale: EDITOR_PAGE_SCALE,
+          minZoom: MIN_EDITOR_ZOOM,
+          maxZoom: 160,
+          horizontalPadding: usesMobileEditorLayout() ? 24 : 120,
+          verticalPadding: usesMobileEditorLayout() ? 96 : 140,
+        });
+        setZoom(fittedZoom);
+      });
+    };
+
+    updateFittedZoom();
+    const resizeObserver = typeof ResizeObserver === "function" ? new ResizeObserver(updateFittedZoom) : null;
+    resizeObserver?.observe(canvasColumn);
+    window.addEventListener("orientationchange", updateFittedZoom);
+    window.addEventListener("resize", updateFittedZoom);
+    return () => {
+      window.cancelAnimationFrame(animationFrame);
+      resizeObserver?.disconnect();
+      window.removeEventListener("orientationchange", updateFittedZoom);
+      window.removeEventListener("resize", updateFittedZoom);
+    };
+  }, [currentPage, editorRouteState, zoomMode]);
 
   useEffect(() => {
     if (!activeDocumentId || editorRouteState !== "ready" || !pages.length) return;
@@ -2060,7 +2282,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
         },
       }) : null;
       let cloudSaveStatus = "local";
-      if (claimedDocument && ["save", "share"].includes(intent) && isCloudPersistenceConfigured) {
+      if (claimedDocument && ["save", "share", "signature-request"].includes(intent) && isCloudPersistenceConfigured) {
         try {
           await uploadDocumentRecordToCloud(user.uid, claimedDocument);
           cloudSaveStatus = "synced";
@@ -2277,7 +2499,12 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     if (!current) return;
     const changed = Object.entries(patch).some(([key, value]) => current[key] !== value);
     if (!changed) return;
-    commitAnnotations(annotations.map((item) => (item.id === id ? { ...item, ...patch } : item)));
+    commitAnnotations(annotations.map((item) => {
+      if (current.type === "radio" && patch.selected && item.type === "radio" && item.fieldName === current.fieldName) {
+        return item.id === id ? { ...item, ...patch } : { ...item, selected: false };
+      }
+      return item.id === id ? { ...item, ...patch } : item;
+    }));
   };
 
   const updateDetectedTextItem = (id, patch) => {
@@ -2489,6 +2716,25 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     };
   }, [isShapeMenuOpen]);
 
+  useEffect(() => {
+    if (!isCompactToolsMenuOpen) return undefined;
+
+    const closeCompactToolsMenu = (event) => {
+      if (event?.type === "keydown" && event.key !== "Escape") return;
+      if (event?.type === "pointerdown" && compactToolsMenuRef.current?.contains(event.target)) return;
+      setIsCompactToolsMenuOpen(false);
+    };
+
+    window.addEventListener("pointerdown", closeCompactToolsMenu);
+    window.addEventListener("keydown", closeCompactToolsMenu);
+    window.addEventListener("resize", closeCompactToolsMenu);
+    return () => {
+      window.removeEventListener("pointerdown", closeCompactToolsMenu);
+      window.removeEventListener("keydown", closeCompactToolsMenu);
+      window.removeEventListener("resize", closeCompactToolsMenu);
+    };
+  }, [isCompactToolsMenuOpen]);
+
   const selectPdfFile = () => {
     fileInputRef.current?.click();
   };
@@ -2514,9 +2760,9 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       intent,
       guestDocumentId: activeDocumentId,
       publicTool,
-      notice: intent === "share"
-        ? "Sign in to save this document before creating a persistent sharing link."
-        : "Your document is safe in this browser. Sign in to save it to your FixThatPDF account.",
+      notice: intent === "share" || intent === "signature-request"
+        ? `Sign in to save this document before creating a persistent ${intent === "signature-request" ? "signing" : "sharing"} link.`
+        : "Your document is safe in this browser. Sign in to save it to your PDFArrow account.",
     });
   };
 
@@ -2542,7 +2788,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       navigate(editorPath(claimedDocument.id), { state: { publicTool, postAuthAction: "save" } });
       return true;
     }
-    showToast("Saved to your FixThatPDF workspace.");
+    showToast("Saved to your PDFArrow workspace.");
     return true;
   };
 
@@ -2578,7 +2824,17 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
 
   const parsePdfFile = async (file, { startPercent = 18, endPercent = 80, stagePrefix = "Rendering page", progressive = true } = {}) => {
     const buffer = await file.arrayBuffer();
-    const document = await pdfjsLib.getDocument({ data: buffer.slice(0) }).promise;
+    let document = await pdfjsLib.getDocument({ data: buffer.slice(0) }).promise;
+    const renderPageWithRecovery = (targetPageIndex) => recoverPdfPageRender(async () => (
+      renderPdfEditorPage(document, targetPageIndex)
+    ), {
+      onAttemptFailed: async (_error, attempt, maximumAttempts) => {
+        try { await document?.destroy?.(); } catch { /* The failed renderer may already be closed. */ }
+        if (attempt < maximumAttempts) {
+          document = await pdfjsLib.getDocument({ data: buffer.slice(0) }).promise;
+        }
+      },
+    });
     if (document.numPages > MAX_PDF_EDITOR_PAGES) {
       await document.destroy?.();
       throw new Error(`The editor supports up to ${MAX_PDF_EDITOR_PAGES} pages per PDF.`);
@@ -2593,7 +2849,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
           percent: Math.round(startPercent + ((pageIndex + 1) / document.numPages) * (endPercent - startPercent)),
           fileName: file.name,
         });
-        const rendered = await renderPdfEditorPage(document, pageIndex);
+        const rendered = await renderPageWithRecovery(pageIndex);
         loadedPages.push(rendered.pageRecord);
         detectedItems.push(...rendered.detectedItems);
         detectedFormFields.push(...rendered.detectedFormFields);
@@ -2606,7 +2862,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       percent: Math.round(startPercent + (endPercent - startPercent) * 0.7),
       fileName: file.name,
     });
-    const firstPage = await renderPdfEditorPage(document, 0);
+    const firstPage = await renderPageWithRecovery(0);
     const loadedPages = Array.from({ length: document.numPages }, (_, index) => pendingPdfPageRecord(index));
     loadedPages[0] = firstPage.pageRecord;
     setUploadStage({
@@ -2648,6 +2904,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       pdfHydrationTokenRef.current += 1;
       pdfDocumentRef.current = documentProxy;
       pdfPageHydrationTasksRef.current.clear();
+      pdfPageRenderGenerationRef.current.clear();
 
       setUploadStage({ status: "Saving workspace copy", percent: 88, fileName: file.name });
       const stamp = nowIso();
@@ -2683,6 +2940,8 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       setSelectedId(null);
       setSelectedDetectedTextId(null);
       setTool(resolveEditorActiveTool(publicTool, detectedItems.length));
+      setZoomMode(usesMobileEditorLayout() ? EDITOR_ZOOM_MODE.FIT_WIDTH : EDITOR_ZOOM_MODE.CUSTOM);
+      setZoom(100);
       setSaved(true);
       setSaveState("saved");
       setLastSavedAt(stamp);
@@ -2690,7 +2949,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       showToast(detectedFormFields.length
         ? `Found ${detectedFormFields.length} fillable field${detectedFormFields.length === 1 ? "" : "s"}.`
         : detectedItems.length
-          ? `Smart Edit detected ${detectedItems.length} text item${detectedItems.length === 1 ? "" : "s"}.`
+          ? `Found ${detectedItems.length} editable text item${detectedItems.length === 1 ? "" : "s"}. Choose Edit Text when you need them.`
           : "This looks scanned. OCR is not enabled in this browser build yet.");
       navigate(isPublicEditor ? publicEditorDocumentPath(publicTool, documentRecord.id) : editorPath(documentRecord.id), { state: { publicTool } });
       window.setTimeout(() => setUploadStage({ status: "idle", percent: 0, fileName: "" }), 900);
@@ -2763,7 +3022,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       setSelectedId(null);
       setSelectedDetectedTextId(null);
       setIsPagesCollapsed(false);
-      setTool(appendedDetectedItems.length ? "editText" : "select");
+      setTool("select");
       markUnsaved();
       setUploadStage({ status: "complete", percent: 100, fileName: file.name });
       showToast(`Appended ${appendedPages.length} page${appendedPages.length === 1 ? "" : "s"} from ${file.name}.`);
@@ -2997,6 +3256,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     try { await pdfDocumentRef.current?.destroy?.(); } catch { /* Continue reopening the saved PDF. */ }
     pdfHydrationTokenRef.current += 1;
     pdfPageHydrationTasksRef.current.clear();
+    pdfPageRenderGenerationRef.current.clear();
     pdfDocumentRef.current = sourceBytes
       ? await pdfjsLib.getDocument({ data: sourceBytes.slice(0) }).promise
       : null;
@@ -3009,10 +3269,11 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     setPageIndex(clamp(session?.pageIndex || 0, 0, Math.max(0, documentPages.length - 1)));
     setUndoStack(session?.undoStack || []);
     setRedoStack(session?.redoStack || []);
-    setSelectedId(session?.selectedId || null);
-    setSelectedDetectedTextId(session?.selectedDetectedTextId || null);
-    setTool(session?.tool || "select");
-    setZoom(session?.zoom || 100);
+    setSelectedId(null);
+    setSelectedDetectedTextId(null);
+    setTool("select");
+    setZoomMode(usesMobileEditorLayout() ? EDITOR_ZOOM_MODE.FIT_WIDTH : EDITOR_ZOOM_MODE.CUSTOM);
+    setZoom(usesMobileEditorLayout() ? 100 : session?.zoom || 100);
     if (session?.toolSettings) {
       setToolSettings((settings) => ({
         ...settings,
@@ -3134,7 +3395,11 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   const onPagePointerDown = (event) => {
     event.currentTarget.focus({ preventScroll: true });
     if (currentPage?.source === "pdf" && !currentPage.image) {
-      showToast(currentPage.renderStatus === "error" ? "This page could not be rendered. Try opening the PDF again." : "This page is still loading.");
+      showToast(currentPage.renderStatus === "error"
+        ? "This page could not be rendered. Choose Reload page to try again."
+        : currentPage.renderStatus === "recovering"
+          ? "The page renderer restarted from your saved PDF."
+          : "This page is still loading.");
       return;
     }
     lastPagePointRef.current = pointerToNormalized(event, event.currentTarget);
@@ -3207,6 +3472,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     }
 
     if (tool === "field") {
+      const isSignatureRequest = publicTool === "request-signatures";
       addAnnotation({
         id: makeId("field"),
         type: "field",
@@ -3216,7 +3482,9 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
         w: 0.28,
         h: 0.055,
         content: "",
-        fieldName: "Text field",
+        fieldName: isSignatureRequest ? "Signature" : "Text field",
+        requestFieldType: isSignatureRequest ? "signature" : "text",
+        required: true,
         color: colors.blue,
         fontSize: 12,
         opacity: 1,
@@ -3583,17 +3851,6 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     return true;
   };
 
-  const fitPageToWidth = () => {
-    const availableWidth = (canvasColumnRef.current?.clientWidth || 0) - 96;
-    if (!currentPage?.width || availableWidth <= 0) {
-      setZoom(100);
-      return;
-    }
-    const nextZoom = Math.round((availableWidth / (currentPage.width * EDITOR_PAGE_SCALE)) * 100);
-    setZoom(clamp(nextZoom, MIN_EDITOR_ZOOM, 160));
-    showToast("Fit page to width.");
-  };
-
   const updateDetectedTextContent = (id, element) => {
     beginDetectedTextEdit(id);
     const pageRect = element.closest(".page-surface")?.getBoundingClientRect();
@@ -3836,7 +4093,10 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
         const pageRecord = pages[changedPageIndex];
         if (!pageRecord || pageRecord.source !== "pdf" || !exportDocumentProxy) continue;
         const sourcePageIndex = Number.isInteger(pageRecord.originalIndex) ? pageRecord.originalIndex : changedPageIndex;
-        rebuiltPages.set(changedPageIndex, await renderPdfPageForReplacement(exportDocumentProxy, sourcePageIndex));
+        const editedItems = detectedTextItems.filter((item) => (
+          item.pageNumber === changedPageIndex && (item.isEdited || item.isDeleted)
+        ));
+        rebuiltPages.set(changedPageIndex, await renderPdfPageForReplacement(exportDocumentProxy, sourcePageIndex, editedItems));
       }
     } finally {
       if (destroyExportDocumentProxy) await exportDocumentProxy?.destroy?.();
@@ -3924,29 +4184,61 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       const font = pickPdfFont(item.fontFamily, item.bold, item.italic);
       const color = hexToRgb(item.color || colors.black);
       const backgroundColor = hexToRgb(normalizeHexColor(item.backgroundColor) || "#ffffff");
-
-      page.drawRectangle({
-        x: Math.max(0, x - 1.5),
-        y: Math.max(0, y - 1.5),
-        width: Math.min(width - x + 1.5, boxWidth + 3),
-        height: Math.min(height - y + 1.5, boxHeight + 3),
-        color: backgroundColor,
-        opacity: 1,
-        borderOpacity: 0,
-      });
+      const backgroundPatch = rebuiltPages.get(item.pageNumber)?.textPatches?.get(item.id);
+      const backgroundImage = backgroundPatch?.image
+        ? await embedDataUrlImage(pdfDoc, backgroundPatch.image)
+        : null;
+      if (backgroundImage) {
+        const patchX = backgroundPatch.x * width;
+        const patchY = height - (backgroundPatch.y + backgroundPatch.h) * height;
+        page.drawImage(backgroundImage, {
+          x: patchX,
+          y: patchY,
+          width: backgroundPatch.w * width,
+          height: backgroundPatch.h * height,
+        });
+      } else {
+        page.drawRectangle({
+          x: Math.max(0, x - 1.5),
+          y: Math.max(0, y - 1.5),
+          width: Math.min(width - x + 1.5, boxWidth + 3),
+          height: Math.min(height - y + 1.5, boxHeight + 3),
+          color: backgroundColor,
+          opacity: 1,
+          borderOpacity: 0,
+        });
+      }
 
       if (!item.isDeleted && String(item.currentText || "").trim()) {
-        const baseline = detectedTextBaseline(item, height, boxHeight, fontSize);
-        String(item.currentText || "").split("\n").forEach((line, index) => {
-          page.drawText(line, {
+        const layout = layoutDetectedText(item.currentText, {
+          fontSize,
+          minimumFontSize: 4,
+          maximumWidth: Math.max(4, boxWidth - 3),
+          maximumHeight: Math.max(4, boxHeight - 2),
+          measure: (value, size) => {
+            try {
+              return font.widthOfTextAtSize(value, size);
+            } catch {
+              return String(value || "").length * size * 0.52;
+            }
+          },
+        });
+        const baseline = detectedTextBaseline(item, height, boxHeight, layout.fontSize);
+        layout.lines.forEach((line, index) => {
+          const options = {
             x: x + 1.5,
-            y: baseline - index * fontSize * 1.18,
-            size: fontSize,
+            y: baseline - index * layout.lineHeight,
+            size: layout.fontSize,
             font,
             color,
             opacity: 1,
             rotate: degrees(Number(item.rotation || 0)),
-          });
+          };
+          try {
+            page.drawText(line, options);
+          } catch {
+            page.drawText(fallbackStandardPdfText(line), options);
+          }
         });
       }
     }
@@ -4191,27 +4483,72 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     }
   };
 
-  const prepareSignatureRequest = async ({ recipient, message }) => {
+  const printPdf = async () => {
+    const printTarget = createPdfPrintTarget();
+    if (!printTarget) {
+      showToast("Print could not be prepared. Please choose Print again.");
+      return;
+    }
+    const exported = await exportPdf({ download: false, showResult: false, analytics: false });
+    if (!exported) {
+      closePdfPrintTarget(printTarget);
+      return;
+    }
+    try {
+      const printableDocument = await pdfjsLib.getDocument({ data: exported.bytes.slice(0) }).promise;
+      await renderPdfDocumentForPrint(printTarget, printableDocument);
+      showToast("The PDF was sent to your printer dialog.");
+    } catch (error) {
+      closePdfPrintTarget(printTarget);
+      console.error("PDF print preparation failed", error);
+      showToast("Print preparation failed. Download the PDF and try again.");
+    }
+  };
+
+  const retryPdfPage = (targetIndex) => {
+    pdfPageRenderGenerationRef.current.set(targetIndex, (pdfPageRenderGenerationRef.current.get(targetIndex) || 0) + 1);
+    pdfPageHydrationTasksRef.current.delete(targetIndex);
+    setPages((items) => items.map((page, index) => (
+      index === targetIndex ? { ...page, image: "", isHydrated: false, renderStatus: "pending", renderAttempts: 0 } : page
+    )));
+    window.setTimeout(() => { void hydratePdfPageAt(targetIndex); }, 0);
+  };
+
+  const prepareSignatureRequest = async ({ recipientName, recipient, message, expirationDays }) => {
+    if (!(await requireAuthenticationForEditorAction("signature-request"))) {
+      setSignatureRequestModalOpen(false);
+      return null;
+    }
+    const requestFields = annotations.filter((annotation) => ["field", "checkbox"].includes(annotation.type)).map((annotation, index) => ({
+      id: annotation.id,
+      page: annotation.page,
+      x: annotation.x,
+      y: annotation.y,
+      w: annotation.w,
+      h: annotation.h,
+      type: annotation.type === "checkbox" ? "checkbox" : annotation.requestFieldType || "text",
+      label: annotation.fieldName || `Field ${index + 1}`,
+      required: annotation.required !== false,
+    }));
+    if (!requestFields.length) throw new Error("Place at least one field on the PDF before creating the request.");
     const exported = await exportPdf({ download: false, showResult: false });
     if (!exported) throw new Error("The signing copy could not be created.");
-    const shareFile = new File([exported.blob], exported.name, { type: "application/pdf" });
-    const shareData = {
-      title: `Signature requested: ${fileName}`,
-      text: message || `Please review and sign ${fileName}.`,
-      files: [shareFile],
-    };
-
-    if (navigator.share && navigator.canShare?.(shareData)) {
-      await navigator.share(shareData);
-      showToast("Signing copy handed off to your share app.");
-    } else {
-      downloadBlob(exported.blob, exported.name);
-      const subject = encodeURIComponent(`Signature requested: ${fileName}`);
-      const body = encodeURIComponent(`${message || `Please review and sign ${fileName}.`}\n\nThe signing copy was downloaded—attach it to this message before sending.`);
-      window.location.href = `mailto:${encodeURIComponent(recipient)}?subject=${subject}&body=${body}`;
-      showToast("Signing copy downloaded. Attach it to the email draft before sending.");
-    }
-    setSignatureRequestModalOpen(false);
+    const share = await createSecurePdfShare({ db, storage, userId: currentUser.uid, pdfBlob: exported.blob, fileName: exported.name, expirationDays });
+    const url = createSigningRequestUrl({
+      origin: window.location.origin,
+      token: share.token,
+      payload: {
+        requestId: share.token,
+        recipient: { name: recipientName, email: recipient },
+        requester: { name: currentUser.name || currentUser.email, email: currentUser.email },
+        message,
+        createdAt: new Date(),
+        expiresAt: share.expiresAt,
+        fields: requestFields,
+      },
+    });
+    showToast("Secure signing link created.");
+    return { ...share, url };
   };
 
   const protectDocument = async (password) => {
@@ -4289,6 +4626,8 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
         : "This document is now saved to your account.");
     } else if (postAuthAction === "share") {
       setShareModalOpen(true);
+    } else if (postAuthAction === "signature-request") {
+      setSignatureRequestModalOpen(true);
     } else if (preset) {
       showToast(`${preset.label} tools are ready.`);
     }
@@ -4298,6 +4637,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
 
   const activateReferenceTool = (nextTool) => {
     setIsShapeMenuOpen(false);
+    setIsCompactToolsMenuOpen(false);
     setSelectedDetectedTextId(null);
     if (nextTool === "image") {
       setTool("image");
@@ -4428,7 +4768,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   }
 
   return (
-    <main className={`editor-shell ${hasVisibleToolSettings ? "has-tool-settings" : ""} ${tool === "editText" ? "is-smart-text-mode" : ""} ${tool === "textHighlight" ? "is-text-highlight-mode" : ""} ${tool === "highlight" || tool === "textHighlight" ? "is-highlight-settings-mode" : ""}`}>
+    <main className={`editor-shell ${hasVisibleToolSettings ? "has-tool-settings" : ""} ${tool === "editText" ? "is-smart-text-mode" : ""} ${tool === "textHighlight" ? "is-text-highlight-mode" : ""} ${tool === "highlight" || tool === "textHighlight" ? "is-highlight-settings-mode" : ""} ${zoomMode === EDITOR_ZOOM_MODE.CUSTOM ? "is-custom-zoom" : "is-fit-zoom"}`}>
       <input ref={fileInputRef} className="hidden-input" type="file" accept="application/pdf" onChange={onUpload} />
       <input ref={appendFileInputRef} className="hidden-input" type="file" accept="application/pdf" onChange={onAppendUpload} />
       <input ref={imageInputRef} className="hidden-input" type="file" accept="image/png,image/jpeg" onChange={onImageUpload} />
@@ -4447,13 +4787,13 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
           </span>
         </div>
         <div className="reference-header-actions" aria-label="Document actions">
-          <button type="button" onClick={() => window.print()}><Printer size={23} /><span>Print</span></button>
+          <button type="button" onClick={printPdf} disabled={isExporting}><Printer size={23} /><span>{isExporting ? "Preparing…" : "Print"}</span></button>
           <button type="button" aria-label={isExporting ? "Preparing PDF" : "Download"} onClick={exportPdf} disabled={isExporting}><Download size={23} /><span>{isExporting ? "Preparing…" : "Download"}</span></button>
           <button type="button" className="reference-done-button" onClick={finishEditing}><span>Done</span></button>
         </div>
       </header>
       <header className="file-header">
-        <button type="button" className="editor-home-button" onClick={() => navigate(ROUTE_PATHS.home)} title="Back to FixThatPDF home" aria-label="Back to FixThatPDF home"><Home size={21} /></button>
+        <button type="button" className="editor-home-button" onClick={() => navigate(ROUTE_PATHS.home)} title="Back to PDFArrow home" aria-label="Back to PDFArrow home"><Home size={21} /></button>
         <button
           type="button"
           className="pdfnet-brand"
@@ -4473,7 +4813,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
           <button type="button" className="icon-button" onClick={() => setIsSearchOpen((value) => !value)} title="Search"><Search size={22} /></button>
           <button type="button" className="icon-button" onClick={undo} disabled={!undoStack.length} title="Undo"><Undo2 size={21} /></button>
           <button type="button" className="icon-button" onClick={redo} disabled={!redoStack.length} title="Redo"><Redo2 size={21} /></button>
-          <button className="toolbar-icon" type="button" onClick={() => setZoom((value) => clamp(value - 10, MIN_EDITOR_ZOOM, 160))} title="Zoom out">-</button>
+          <button className="toolbar-icon" type="button" onClick={() => setCustomZoom((value) => value - 10)} title="Zoom out">-</button>
           <div className="zoom-menu-wrap" ref={zoomMenuRef}>
             <button
               className={`toolbar-chip ${isZoomMenuOpen ? "is-active" : ""}`}
@@ -4483,30 +4823,49 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
               aria-expanded={isZoomMenuOpen}
               onClick={() => setIsZoomMenuOpen((value) => !value)}
             >
-              {zoom}% <ChevronDown size={15} />
+              {zoomDisplayLabel} <ChevronDown size={15} />
             </button>
             {isZoomMenuOpen && (
               <div className="zoom-preset-menu" role="menu" aria-label="Zoom presets">
+                {[
+                  [EDITOR_ZOOM_MODE.FIT_WIDTH, "Fit width"],
+                  [EDITOR_ZOOM_MODE.FIT_PAGE, "Fit page"],
+                ].map(([mode, label]) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    role="menuitemradio"
+                    aria-checked={zoomMode === mode}
+                    className={zoomMode === mode ? "is-selected" : ""}
+                    onClick={() => {
+                      selectZoom(mode);
+                      setIsZoomMenuOpen(false);
+                    }}
+                  >
+                    <span>{label}</span>
+                    <small>{mode === EDITOR_ZOOM_MODE.FIT_WIDTH ? "Use available width" : "Show the whole page"}</small>
+                  </button>
+                ))}
                 {zoomOptions.map((value) => (
                   <button
                     key={value}
                     type="button"
                     role="menuitemradio"
-                    aria-checked={zoom === value}
-                    className={zoom === value ? "is-selected" : ""}
+                    aria-checked={zoomMode === EDITOR_ZOOM_MODE.CUSTOM && zoom === value}
+                    className={zoomMode === EDITOR_ZOOM_MODE.CUSTOM && zoom === value ? "is-selected" : ""}
                     onClick={() => {
-                      setZoom(value);
+                      setCustomZoom(value);
                       setIsZoomMenuOpen(false);
                     }}
                   >
                     <span>{value}%</span>
-                    {value === 100 ? <small>Actual size</small> : value === 80 ? <small>Comfort view</small> : !ZOOM_PRESETS.includes(value) ? <small>Fit width</small> : null}
+                    {value === 100 ? <small>Actual size</small> : value === 80 ? <small>Comfort view</small> : null}
                   </button>
                 ))}
               </div>
             )}
           </div>
-          <button className="toolbar-icon" type="button" onClick={() => setZoom((value) => clamp(value + 10, MIN_EDITOR_ZOOM, 160))} title="Zoom in">+</button>
+          <button className="toolbar-icon" type="button" onClick={() => setCustomZoom((value) => value + 10)} title="Zoom in">+</button>
         </div>
         <div className="header-actions">
           <div className="more-menu-wrap" ref={moreMenuRef}>
@@ -4552,7 +4911,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
                   setIsMoreMenuOpen(false);
                 }}><Share2 size={16} /> Share settings</button>
                 <button type="button" role="menuitem" onClick={() => {
-                  window.print();
+                  printPdf();
                   setIsMoreMenuOpen(false);
                 }}><Printer size={16} /> Print document</button>
                 <button type="button" role="menuitem" onClick={() => {
@@ -4586,6 +4945,9 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
 
         <div className="reference-primary-tools" role="toolbar" aria-label="Editing tools">
           <div className="reference-content-tools">
+            <button type="button" className={`reference-toolbar-button reference-select-tool ${tool === "select" ? "is-active" : ""}`} aria-pressed={tool === "select"} onClick={() => activateReferenceTool("select")}>
+              <MousePointer2 size={23} /><span>Select</span>
+            </button>
             {referencePrimaryTools.slice(0, 3).map(({ id, label, icon: Icon }) => (
               <button key={id} type="button" className={`reference-toolbar-button ${tool === id ? "is-active" : ""}`} aria-pressed={tool === id} onClick={() => activateReferenceTool(id)}>
                 <Icon size={23} /><span>{label}</span>
@@ -4657,6 +5019,51 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
             setIsManagePagesOpen((value) => !value);
             setIsPagesCollapsed(false);
           }}><PanelsTopLeft size={23} /><span>Manage pages</span></button>
+        </div>
+
+        <div className="reference-compact-tools" ref={compactToolsMenuRef}>
+          <button
+            type="button"
+            className={`reference-toolbar-button reference-compact-tools-trigger ${isCompactToolsMenuOpen ? "is-active" : ""}`}
+            aria-haspopup="menu"
+            aria-expanded={isCompactToolsMenuOpen}
+            aria-controls="compact-editor-tools-menu"
+            onClick={() => {
+              setIsShapeMenuOpen(false);
+              setIsCompactToolsMenuOpen((value) => !value);
+            }}
+          >
+            <Grid2X2 size={23} /><span>More</span>
+          </button>
+          {isCompactToolsMenuOpen && (
+            <div id="compact-editor-tools-menu" className="reference-compact-tools-menu" role="menu" aria-label="More editing tools">
+              <div className="reference-compact-tools-grid">
+                {compactEditorTools.map(({ id, label, icon: Icon }) => (
+                  <button
+                    key={id}
+                    type="button"
+                    role="menuitem"
+                    className={tool === id || (id === "note" && tool === "comment") ? "is-active" : ""}
+                    onClick={() => activateReferenceTool(id)}
+                  >
+                    <Icon size={20} /><span>{label}</span>
+                  </button>
+                ))}
+              </div>
+              <div className="reference-compact-tools-footer">
+                <button type="button" role="menuitem" onClick={() => {
+                  setIsSearchOpen((value) => !value);
+                  setIsCommentsOpen(false);
+                  setIsCompactToolsMenuOpen(false);
+                }}><Search size={19} /><span>Search document</span></button>
+                <button type="button" role="menuitem" onClick={() => {
+                  setIsManagePagesOpen((value) => !value);
+                  setIsPagesCollapsed(false);
+                  setIsCompactToolsMenuOpen(false);
+                }}><PanelsTopLeft size={19} /><span>Manage pages</span></button>
+              </div>
+            </div>
+          )}
         </div>
       </section>
 
@@ -4796,7 +5203,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
               >
                 <div className="thumbnail-preview" style={{ "--thumbnail-aspect": `${page.width || BASE_PAGE_WIDTH} / ${page.height || BASE_PAGE_HEIGHT}` }}>
                   <div className="thumb-page">
-                    {page.image ? <img src={page.image} alt={`Page ${index + 1}`} /> : page.source === "pdf" ? <PdfPageLoading pageNumber={index + 1} compact /> : page.source === "blank" ? <BlankDocument /> : <SampleDocument pageIndex={index} />}
+                    {page.image ? <img src={page.image} alt={`Page ${index + 1}`} onError={() => retryPdfPage(index)} /> : page.source === "pdf" ? page.renderStatus === "error" ? <PdfPageUnavailable pageNumber={index + 1} compact onRetry={() => retryPdfPage(index)} /> : <PdfPageLoading pageNumber={index + 1} compact recovering={page.renderStatus === "recovering"} /> : page.source === "blank" ? <BlankDocument /> : <SampleDocument pageIndex={index} />}
                   </div>
                 </div>
                 <span className="thumbnail-label">{index + 1}</span>
@@ -4841,7 +5248,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
               onPointerUp={onPagePointerUp}
               onPointerCancel={onPagePointerUp}
             >
-              {currentPage.image ? <img className="pdf-image" src={currentPage.image} alt={`PDF page ${pageIndex + 1}`} /> : currentPage.source === "pdf" ? <PdfPageLoading pageNumber={pageIndex + 1} /> : currentPage.source === "blank" ? <BlankDocument /> : <SampleDocument pageIndex={pageIndex} />}
+              {currentPage.image ? <img className="pdf-image" src={currentPage.image} alt={`PDF page ${pageIndex + 1}`} onError={() => retryPdfPage(pageIndex)} /> : currentPage.source === "pdf" ? currentPage.renderStatus === "error" ? <PdfPageUnavailable pageNumber={pageIndex + 1} onRetry={() => retryPdfPage(pageIndex)} /> : <PdfPageLoading pageNumber={pageIndex + 1} recovering={currentPage.renderStatus === "recovering"} /> : currentPage.source === "blank" ? <BlankDocument /> : <SampleDocument pageIndex={pageIndex} />}
               {currentPage.source === "pdf" && currentPage.isHydrated !== false && !pageDetectedTextItems.length && !currentPage.text?.trim() && (
                 <div className="ocr-state">
                   <ScanText size={16} />
@@ -5009,7 +5416,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
               onSave={saveDocumentToAccount}
               onExport={exportPdf}
               onShare={openShareSettings}
-              onPrint={() => window.print()}
+              onPrint={printPdf}
               onSignatureModal={() => { setSignatureModalMode("signature"); setSignatureModalOpen(true); }}
             />
           )}
@@ -5026,7 +5433,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
           }}><MessageSquare size={24} /></button>
           <span />
           <button type="button" title="Download" onClick={exportPdf}><Download size={25} /></button>
-          <button type="button" title="Print" onClick={() => window.print()}><Printer size={25} /></button>
+          <button type="button" title="Print" onClick={printPdf} disabled={isExporting}><Printer size={25} /></button>
           <button type="button" title="Share link" onClick={openShareSettings}><Share2 size={25} /></button>
           <span />
           <button type="button" title="Add page" onClick={addBlankPage}><Plus size={25} /></button>
@@ -5059,25 +5466,29 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       <footer className="status-bar">
         <div />
         <div className="page-nav" aria-label="Zoom and page navigation">
-          <button className="page-nav-zoom" type="button" onClick={() => setZoom((value) => clamp(value - 10, MIN_EDITOR_ZOOM, 160))} title="Zoom out" aria-label="Zoom out"><Minus size={21} strokeWidth={2.6} /></button>
-          <select className="page-nav-zoom-select" value={zoom} onChange={(event) => setZoom(Number(event.target.value))} aria-label="Zoom level">
+          <button className="page-nav-zoom" type="button" onClick={() => setCustomZoom((value) => value - 10)} title="Zoom out" aria-label="Zoom out"><Minus size={21} strokeWidth={2.6} /></button>
+          <select className="page-nav-zoom-select" value={zoomMode === EDITOR_ZOOM_MODE.CUSTOM ? String(zoom) : zoomMode} onChange={(event) => selectZoom(event.target.value)} aria-label="Zoom mode or level">
+            <option value={EDITOR_ZOOM_MODE.FIT_WIDTH}>Fit width</option>
+            <option value={EDITOR_ZOOM_MODE.FIT_PAGE}>Fit page</option>
             {zoomOptions.map((value) => <option key={value} value={value}>{value}%</option>)}
           </select>
-          <button className="page-nav-zoom" type="button" onClick={() => setZoom((value) => clamp(value + 10, MIN_EDITOR_ZOOM, 160))} title="Zoom in" aria-label="Zoom in"><Plus size={22} strokeWidth={2.6} /></button>
+          <button className="page-nav-zoom" type="button" onClick={() => setCustomZoom((value) => value + 10)} title="Zoom in" aria-label="Zoom in"><Plus size={22} strokeWidth={2.6} /></button>
           <span className="page-nav-divider" aria-hidden="true" />
-          <button type="button" onClick={() => setPageIndex(0)} title="First page" aria-label="First page"><ChevronLeft size={25} strokeWidth={2.4} /></button>
+          <button className="page-nav-first" type="button" onClick={() => setPageIndex(0)} title="First page" aria-label="First page"><ChevronLeft size={25} strokeWidth={2.4} /></button>
           <input aria-label="Current page" inputMode="numeric" min="1" max={pages.length} value={pageIndex + 1} onChange={(event) => setPageIndex(clamp(Number(event.target.value) - 1 || 0, 0, pages.length - 1))} />
           <span className="page-nav-total">/ {pages.length}</span>
           <button type="button" onClick={() => setPageIndex((value) => clamp(value - 1, 0, pages.length - 1))} title="Previous page" aria-label="Previous page"><ChevronUp size={25} strokeWidth={2.4} /></button>
           <button type="button" onClick={() => setPageIndex((value) => clamp(value + 1, 0, pages.length - 1))} title="Next page" aria-label="Next page"><ChevronDown size={25} strokeWidth={2.4} /></button>
-          <button type="button" onClick={() => setPageIndex(pages.length - 1)} title="Last page" aria-label="Last page"><ChevronRight size={25} strokeWidth={2.4} /></button>
+          <button className="page-nav-last" type="button" onClick={() => setPageIndex(pages.length - 1)} title="Last page" aria-label="Last page"><ChevronRight size={25} strokeWidth={2.4} /></button>
         </div>
         <div className="status-tools">
-          <button type="button" onClick={() => setZoom((value) => clamp(value - 10, MIN_EDITOR_ZOOM, 160))}>-</button>
-          <select value={zoom} onChange={(event) => setZoom(Number(event.target.value))}>
+          <button type="button" onClick={() => setCustomZoom((value) => value - 10)}>-</button>
+          <select value={zoomMode === EDITOR_ZOOM_MODE.CUSTOM ? String(zoom) : zoomMode} onChange={(event) => selectZoom(event.target.value)}>
+            <option value={EDITOR_ZOOM_MODE.FIT_WIDTH}>Fit width</option>
+            <option value={EDITOR_ZOOM_MODE.FIT_PAGE}>Fit page</option>
             {zoomOptions.map((value) => <option key={value} value={value}>{value}%</option>)}
           </select>
-          <button type="button" onClick={() => setZoom((value) => clamp(value + 10, MIN_EDITOR_ZOOM, 160))}>+</button>
+          <button type="button" onClick={() => setCustomZoom((value) => value + 10)}>+</button>
           <span>X: 612.3</span>
           <span>Y: 792.1</span>
         </div>
@@ -5401,6 +5812,23 @@ function LandingPage({ fileInputRef, onUpload, onSelectFiles, onLogin }) {
 function AuthPage({ mode, setMode, onBack, backLabel = "Back to home", onComplete, onPasswordReset, authReady, isFirebaseConfigured, routeNotice = "" }) {
   const isSignup = mode === "signup";
   const isPasswordReset = mode === "forgot-password";
+  const authMetadata = isSignup
+    ? {
+        title: "Create Your PDFArrow Account",
+        description: "Create a PDFArrow account to keep optional cloud history and workspace preferences together.",
+        canonicalUrl: ROUTE_PATHS.signup,
+      }
+    : isPasswordReset
+      ? {
+          title: "Reset Your PDFArrow Password",
+          description: "Request a PDFArrow password reset and return to your document workspace.",
+          canonicalUrl: ROUTE_PATHS.forgotPassword,
+        }
+      : {
+          title: "Sign In to PDFArrow",
+          description: "Sign in to continue to your PDFArrow document workspace.",
+          canonicalUrl: ROUTE_PATHS.login,
+        };
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -5411,10 +5839,6 @@ function AuthPage({ mode, setMode, onBack, backLabel = "Back to home", onComplet
   const submitAuth = async (event) => {
     event.preventDefault();
     setNotice("");
-    if (!isFirebaseConfigured) {
-      setError("Sign-in is temporarily unavailable while the secure connection is being set up.");
-      return;
-    }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
       setError("Enter a valid email to continue.");
       return;
@@ -5424,7 +5848,7 @@ function AuthPage({ mode, setMode, onBack, backLabel = "Back to home", onComplet
       setIsSubmitting(true);
       const result = await onPasswordReset(email);
       setIsSubmitting(false);
-      if (result?.ok) setNotice("Password reset email sent.");
+      if (result?.ok) setNotice(result.notice || "Password reset email sent.");
       else setError(result?.error || "Could not send a password reset email.");
       return;
     }
@@ -5441,10 +5865,6 @@ function AuthPage({ mode, setMode, onBack, backLabel = "Back to home", onComplet
 
   const submitGoogleAuth = async () => {
     setNotice("");
-    if (!isFirebaseConfigured) {
-      setError("Sign-in is temporarily unavailable while the secure connection is being set up.");
-      return;
-    }
     setError("");
     setIsSubmitting(true);
     const result = await onComplete({ provider: "google" });
@@ -5459,32 +5879,43 @@ function AuthPage({ mode, setMode, onBack, backLabel = "Back to home", onComplet
   };
 
   return (
-    <main className="auth-shell">
-      <section className="auth-showcase" aria-label="FixThatPDF product preview">
-        <button type="button" className="auth-showcase-brand" onClick={onBack} aria-label="FixThatPDF home"><BrandWordmark /></button>
+    <>
+      <PageMetadata {...authMetadata} noIndex />
+      <main className="auth-shell">
+      <section className="auth-showcase" aria-label="PDFArrow product preview">
+        <button type="button" className="auth-showcase-brand" onClick={onBack} aria-label="PDFArrow home"><BrandWordmark logo /></button>
         <div className="auth-showcase-copy">
-          <span>Every PDF task</span>
-          <h1>Pick up right where you left off.</h1>
-          <p>Edit, sign, organize, and export in the same focused workspace.</p>
+          <span>PDFArrow workspace</span>
+          <h1>Your documents, ready when you are.</h1>
+          <p>Edit, sign, organize, and export important PDFs from one focused workspace.</p>
+          <ul className="auth-showcase-points">
+            <li><CheckCircle2 size={18} /> Continue your work across devices with optional cloud history.</li>
+            <li><CheckCircle2 size={18} /> Keep editing, signing, and page tools in one workspace.</li>
+            <li><CheckCircle2 size={18} /> Download polished PDFs without a PDFArrow watermark.</li>
+          </ul>
         </div>
-        <img src={`${import.meta.env.BASE_URL}homepage/hero-product-stage.png`} alt="FixThatPDF upload workspace preview" />
+        <div className="auth-showcase-preview" aria-hidden="true">
+          <div className="auth-preview-topbar"><span /><span /><span /><strong>Quarterly report.pdf</strong><em>Ready to review</em></div>
+          <div className="auth-preview-body">
+            <aside><span className="is-active" /><span /><span /><span /></aside>
+            <article><small>PDFARROW</small><h3>Quarterly operations review</h3><p /><p /><p /><div><span /><span /><span /></div></article>
+            <section><b>Document status</b><span>3 edits saved</span><span>Ready to export</span></section>
+          </div>
+        </div>
       </section>
       <section className="auth-card" aria-label={isSignup ? "Create account" : isPasswordReset ? "Reset password" : "Log in"}>
-        <button type="button" className="auth-back" onClick={onBack}>{backLabel}</button>
-        <button type="button" className="auth-mark auth-realpdf-brand" onClick={onBack} aria-label="FixThatPDF home"><BrandWordmark /></button>
-        <h2>{isSignup ? "Create your workspace" : isPasswordReset ? "Reset your password" : "Welcome back"}</h2>
-        <p className="auth-intro">{isSignup ? "Start editing, signing, and organizing PDFs in one focused place." : isPasswordReset ? "Enter your account email and we will send the existing Firebase reset flow." : "Sign in to continue working with your PDFs."}</p>
+        <header className="auth-card-header">
+          <button type="button" className="auth-mark auth-realpdf-brand" onClick={onBack} aria-label="PDFArrow home"><BrandWordmark logo /></button>
+          <button type="button" className="auth-back" onClick={onBack}>{backLabel}</button>
+        </header>
+        <h2>{isSignup ? "Create your workspace" : isPasswordReset ? "Reset your password" : "Sign in to PDFArrow"}</h2>
+        <p className="auth-intro">{isSignup ? "Create an account to keep optional cloud history and workspace preferences together." : isPasswordReset ? "Enter the email associated with your account and we will send a reset link." : "Welcome back. Sign in to continue to your document workspace."}</p>
         {routeNotice && <div className="auth-notice">{routeNotice}</div>}
-        {!isFirebaseConfigured && (
-          <div className="auth-error">
-            Sign-in is temporarily unavailable while the secure connection is being set up.
-          </div>
-        )}
-        {!isPasswordReset && (
+        {!isFirebaseConfigured && <div className="auth-local-mode"><Lock size={15} aria-hidden="true" /><span>Local browser workspace — your session stays on this device.</span></div>}
+        {!isPasswordReset && isFirebaseConfigured && (
           <>
-            <button type="button" className="sso-button google-button" onClick={submitGoogleAuth} disabled={!authReady || isSubmitting || !isFirebaseConfigured}>
-              <span aria-hidden="true">G</span>
-              Sign in with Google
+            <button type="button" className="sso-button google-button" onClick={submitGoogleAuth} disabled={!authReady || isSubmitting}>
+              Continue with Google
             </button>
             <div className="auth-divider"><span /> Or continue with <span /></div>
           </>
@@ -5511,17 +5942,29 @@ function AuthPage({ mode, setMode, onBack, backLabel = "Back to home", onComplet
           )}
           {error && <div className="auth-error">{error}</div>}
           {notice && <div className="auth-notice">{notice}</div>}
-          <button type="submit" className="auth-submit" disabled={!authReady || isSubmitting || !isFirebaseConfigured}>
-            {isSubmitting ? "Connecting..." : isSignup ? "Create account" : isPasswordReset ? "Send reset email" : "Sign in with password"}
+          <button type="submit" className="auth-submit" disabled={!authReady || isSubmitting}>
+            {isSubmitting ? "Connecting..." : isSignup ? "Create account" : isPasswordReset ? "Send reset email" : "Sign in"}
           </button>
         </form>
-        <p className="auth-privacy">Check our <button type="button">Privacy Notice</button>.</p>
+        <div className="auth-security-note"><Lock size={15} aria-hidden="true" /><span>Your PDF processing stays in your browser for supported tools.</span></div>
         <div className="auth-switch">
-          <span>{isSignup ? "Already have an account?" : isPasswordReset ? "Remembered your password?" : "New to FixThatPDF?"}</span>
+          <span>{isSignup ? "Already have an account?" : isPasswordReset ? "Remembered your password?" : "New to PDFArrow?"}</span>
           <button type="button" onClick={isPasswordReset ? () => setMode("login") : switchMode}>{isSignup ? "Sign in" : isPasswordReset ? "Back to login" : "Create an account"}</button>
         </div>
       </section>
-    </main>
+      </main>
+    </>
+  );
+}
+
+function AllToolsNavIcon() {
+  return (
+    <span className="dashboard-all-tools-icon" aria-hidden="true">
+      <Circle size={8} strokeWidth={2.2} />
+      <Circle size={8} strokeWidth={2.2} />
+      <Circle size={8} strokeWidth={2.2} />
+      <Circle size={8} strokeWidth={2.2} />
+    </span>
   );
 }
 
@@ -5929,10 +6372,11 @@ export function UploadLanding({
     Billing: ROUTE_PATHS.settings,
     Team: ROUTE_PATHS.settings,
     Integrations: ROUTE_PATHS.settings,
-    Features: ROUTE_PATHS.features,
+    Features: ROUTE_PATHS.appTools,
   };
   const setActiveSection = (nextSection) => onNavigate(sectionPaths[nextSection] || ROUTE_PATHS.dashboard);
   const [searchQuery, setSearchQuery] = useState("");
+  const [toolCategoryFilter, setToolCategoryFilter] = useState("all");
   const suggestionView = "recent";
   const [openPanel, setOpenPanel] = useState(null);
   const [inviteEmail, setInviteEmail] = useState("");
@@ -5963,13 +6407,16 @@ export function UploadLanding({
       : "Good evening";
 
   const primaryNav = [
-    { label: "Dashboard", section: "Home", icon: Home },
+    { label: "Home", section: "Home", icon: Home },
     { label: "Documents", icon: FileText },
     { label: "Signatures", icon: PenLine },
     { label: "Templates", icon: Grid2X2 },
-    { label: "All features", section: "Features", icon: Sparkles },
-    ...(isAnalyticsOwner(currentUser) ? [{ label: "Analytics", icon: ChartNoAxesColumnIncreasing }] : []),
+    { label: "All tools", section: "Features", icon: AllToolsNavIcon },
   ];
+
+  const adminNav = isAnalyticsOwner(currentUser)
+    ? [{ label: "Analytics", icon: ChartNoAxesColumnIncreasing }]
+    : [];
 
   const utilityNav = [
     { label: "Trash", icon: Trash2 },
@@ -5989,6 +6436,19 @@ export function UploadLanding({
   ];
 
   const normalizedQuery = searchQuery.trim().toLowerCase();
+  const releasedDashboardTools = useMemo(
+    () => TOOL_REGISTRY.filter((tool) => tool.status !== "coming-soon"),
+    [],
+  );
+  const dashboardToolGroups = useMemo(() => TOOL_CATEGORIES.map((category) => ({
+    ...category,
+    tools: releasedDashboardTools.filter((tool) => (
+      tool.category === category.id
+      && (toolCategoryFilter === "all" || tool.category === toolCategoryFilter)
+      && (!normalizedQuery || `${tool.name} ${tool.shortDescription} ${tool.categoryName}`.toLowerCase().includes(normalizedQuery))
+    )),
+  })).filter((category) => category.tools.length), [normalizedQuery, releasedDashboardTools, toolCategoryFilter]);
+  const visibleDashboardToolCount = dashboardToolGroups.reduce((total, group) => total + group.tools.length, 0);
   const matchesSearch = (value) => !normalizedQuery || value.toLowerCase().includes(normalizedQuery);
   const userDocuments = currentUser?.uid
     ? documents.filter((documentRecord) => documentRecord.ownerId === currentUser.uid)
@@ -6208,24 +6668,22 @@ export function UploadLanding({
     </div>
   );
 
-  const renderDashboardLibraryList = () => dashboardLibraryRows.length ? (
+  const renderDashboardLibraryList = (showEmptyAction = true) => dashboardLibraryRows.length ? (
     <div className="dashboard-library-table">
-      <div className="dashboard-library-row dashboard-library-head"><span>Name</span><span>Pages</span><span>Size</span><span>Last edited</span><span>Status</span><span /><span /></div>
+      <div className="dashboard-library-row dashboard-library-head"><span>Name</span><span>Size</span><span>Last opened</span><span>Status</span><span /></div>
       {dashboardLibraryRows.map((documentRecord) => {
-        const status = documentRecord.status || "Edited";
+        const status = documentRecord.status || "Viewed";
         return <article key={documentRecord.id} className="dashboard-library-row">
           <button type="button" className="dashboard-library-name" onClick={() => onOpenDocument(documentRecord)}><span>{renderDocumentPreview(documentRecord)}</span><strong>{documentRecord.name}</strong></button>
-          <span>{documentRecord.pageCount || documentRecord.pages?.length || 1}</span>
           <span>{documentRecord.size ? formatBytes(documentRecord.size) : "Local"}</span>
           <span>{formatDashboardRelativeDate(documentRecord.updatedAt)}</span>
           <span><em>{status}</em></span>
-          <button type="button" className={`dashboard-favorite-button ${documentRecord.favorite ? "is-favorite" : ""}`} aria-label={documentRecord.favorite ? `Remove ${documentRecord.name} from favorites` : `Add ${documentRecord.name} to favorites`} aria-pressed={!!documentRecord.favorite} onClick={() => onToggleFavorite(documentRecord)}><Star size={16} fill={documentRecord.favorite ? "currentColor" : "none"} /></button>
           {renderDashboardDocumentMenu(documentRecord)}
         </article>;
       })}
     </div>
   ) : (
-    <div className="dashboard-premium-empty dashboard-library-empty"><span><FileText size={25} /></span><div><strong>{normalizedQuery || dashboardFilter === "favorites" ? "No documents match these filters" : "No documents yet"}</strong><small>{normalizedQuery || dashboardFilter === "favorites" ? "Clear the search or show all documents." : "Upload a PDF and it will appear here."}</small></div>{!normalizedQuery && dashboardFilter === "all" && <button type="button" onClick={onSelectFiles}>Upload PDF</button>}</div>
+    <div className="dashboard-premium-empty dashboard-library-empty"><span><FileText size={25} /></span><div><strong>{normalizedQuery || dashboardFilter === "favorites" ? "No documents match these filters" : "No documents yet"}</strong><small>{normalizedQuery || dashboardFilter === "favorites" ? "Clear the search or show all documents." : "Upload a PDF and it will appear here."}</small></div>{showEmptyAction && !normalizedQuery && dashboardFilter === "all" && <button type="button" onClick={onSelectFiles}>Upload PDF</button>}</div>
   );
 
   const renderDashboardLibraryGrid = () => dashboardLibraryRows.length ? (
@@ -6258,12 +6716,35 @@ export function UploadLanding({
   const renderWorkspaceSection = () => {
     if (activeSection === "Documents") {
       return (
-        <section className="document-library">
-          <div className="library-head">
-            <h2>Documents</h2>
-            <button type="button" className="library-action" onClick={onSelectFiles}><Upload size={17} /> Upload</button>
+        <section className="dashboard-editorial-documents" aria-label="Document library">
+          <header className="dashboard-documents-toolbar">
+            <div>
+              <strong>{dashboardLibraryRows.length} document{dashboardLibraryRows.length === 1 ? "" : "s"}</strong>
+              <small>Files saved to this workspace, ordered for quick access.</small>
+            </div>
+            <div>
+              <button
+                type="button"
+                className={dashboardFilter === "favorites" ? "is-active" : ""}
+                aria-pressed={dashboardFilter === "favorites"}
+                onClick={() => setDashboardFilter((value) => value === "favorites" ? "all" : "favorites")}
+              >
+                <Star size={15} fill={dashboardFilter === "favorites" ? "currentColor" : "none"} /> Favorites
+              </button>
+              <label>
+                <span className="sr-only">Sort documents</span>
+                <select value={dashboardSort} onChange={(event) => setDashboardSort(event.target.value)}>
+                  <option value="recent">Recently opened</option>
+                  <option value="name">Document name</option>
+                </select>
+                <ChevronDown size={14} aria-hidden="true" />
+              </label>
+              <button type="button" className="is-primary" onClick={onSelectFiles}><Upload size={16} /> Upload PDF</button>
+            </div>
+          </header>
+          <div className="dashboard-documents-table">
+            {renderDashboardLibraryList(false)}
           </div>
-          {renderDocumentTable(filteredDocuments)}
         </section>
       );
     }
@@ -6276,6 +6757,85 @@ export function UploadLanding({
             <button type="button" className="library-action" onClick={onBlankPage}><FilePlus2 size={17} /> Blank PDF</button>
           </div>
           {renderTemplateGrid()}
+        </section>
+      );
+    }
+
+    if (activeSection === "Features") {
+      return (
+        <section className="dashboard-tools-directory" aria-labelledby="dashboard-tools-title">
+          <header className="dashboard-tools-intro">
+            <div>
+              <p id="dashboard-tools-title">Choose a workflow and open it directly.</p>
+              <small>{releasedDashboardTools.length} working tools across {TOOL_CATEGORIES.length} focused categories. Supported document processing stays in your browser.</small>
+            </div>
+            <button type="button" onClick={onSelectFiles}><Upload size={17} /> Upload PDF</button>
+          </header>
+
+          <div className="dashboard-tools-layout">
+            <nav className="dashboard-tool-categories" aria-label="Tool categories">
+              <strong>Categories</strong>
+              <button
+                type="button"
+                className={toolCategoryFilter === "all" ? "is-active" : ""}
+                onClick={() => setToolCategoryFilter("all")}
+              >
+                <span>All tools</span>
+                <small>{releasedDashboardTools.length}</small>
+              </button>
+              {TOOL_CATEGORIES.map((category) => {
+                const categoryCount = releasedDashboardTools.filter((tool) => tool.category === category.id).length;
+                return (
+                  <button
+                    type="button"
+                    key={category.id}
+                    className={toolCategoryFilter === category.id ? "is-active" : ""}
+                    onClick={() => setToolCategoryFilter(category.id)}
+                  >
+                    <span>{category.name}</span>
+                    <small>{categoryCount}</small>
+                  </button>
+                );
+              })}
+              <div className="dashboard-tools-privacy"><Lock size={16} /><span><strong>Browser-first</strong><small>Your files stay local for supported tools.</small></span></div>
+            </nav>
+
+            <div className="dashboard-tools-catalog">
+              <div className="dashboard-tools-result-count">
+                <span>{visibleDashboardToolCount} result{visibleDashboardToolCount === 1 ? "" : "s"}</span>
+                {(normalizedQuery || toolCategoryFilter !== "all") && (
+                  <button type="button" onClick={() => { setSearchQuery(""); setToolCategoryFilter("all"); }}>Clear filters</button>
+                )}
+              </div>
+              {dashboardToolGroups.map((group) => (
+                <section className="dashboard-tool-group" key={group.id} aria-labelledby={`dashboard-tool-group-${group.id}`}>
+                  <header>
+                    <span><ToolIcon name={group.icon} size={18} /></span>
+                    <div><h2 id={`dashboard-tool-group-${group.id}`}>{group.name}</h2><p>{group.description}</p></div>
+                    <small>{group.tools.length}</small>
+                  </header>
+                  <div>
+                    {group.tools.map((tool) => (
+                      <button type="button" className="dashboard-tool-row" key={tool.id} onClick={() => onNavigate(tool.route)}>
+                        <span><ToolIcon name={tool.icon} size={18} /></span>
+                        <div><strong>{tool.name}</strong><small>{tool.shortDescription}</small></div>
+                        <em className={tool.status === "beta" ? "is-beta" : tool.status === "partial" ? "is-limited" : ""}>{tool.availabilityLabel}</em>
+                        <ChevronRight size={16} />
+                      </button>
+                    ))}
+                  </div>
+                </section>
+              ))}
+              {!dashboardToolGroups.length && (
+                <div className="dashboard-tools-empty">
+                  <Search size={23} />
+                  <h2>No tools match “{searchQuery}”</h2>
+                  <p>Try a task such as edit, sign, compress, OCR, or convert.</p>
+                  <button type="button" onClick={() => { setSearchQuery(""); setToolCategoryFilter("all"); }}>Clear search</button>
+                </div>
+              )}
+            </div>
+          </div>
         </section>
       );
     }
@@ -6372,13 +6932,13 @@ export function UploadLanding({
     }
 
     if (activeSection === "Analytics" && isAnalyticsOwner(currentUser)) {
-      return <OwnerAnalyticsPanel />;
+      return <OwnerAnalyticsPanel searchQuery={searchQuery} />;
     }
 
     if (["Trash", "Billing", "Team", "Integrations"].includes(activeSection)) {
       const sectionDetails = {
         Trash: [Trash2, "Deleted documents", "Files moved to trash will be available here before permanent removal."],
-        Billing: [CreditCard, "Plans and billing", "Manage your FixThatPDF plan, invoices, and payment details."],
+        Billing: [CreditCard, "Plans and billing", "Manage your PDFArrow plan, invoices, and payment details."],
         Team: [Users, "Workspace members", "Invite teammates and manage document collaboration access."],
         Integrations: [Plug, "Connected apps", "Connect cloud storage and workflow tools to your PDF workspace."],
       };
@@ -6398,55 +6958,41 @@ export function UploadLanding({
     }
 
     return (
-      <div className="dashboard-premium-home">
-        <section
-          className={`dashboard-premium-welcome ${isDraggingFile ? "is-dragging" : ""} ${isUploading ? "is-uploading" : ""}`}
-          onDragEnter={(event) => { event.preventDefault(); setIsDraggingFile(true); }}
-          onDragOver={(event) => { event.preventDefault(); setIsDraggingFile(true); }}
-          onDragLeave={(event) => { if (event.currentTarget === event.target) setIsDraggingFile(false); }}
-          onDrop={onDropFile}
-        >
-          <img src={`${import.meta.env.BASE_URL}dashboard/continue-header-motif.png`} alt="" aria-hidden="true" />
-          <span>{dashboardGreeting}, {dashboardFirstName}</span>
-          <h1>{isDraggingFile ? "Drop your PDF to open it" : "Continue where you left off"}</h1>
-          <p>{isUploading ? `${uploadStage.status}: ${uploadStage.fileName}` : "Open recent work or start a new PDF task."}</p>
+      <div
+        className={`dashboard-premium-home dashboard-editorial-home ${isDraggingFile ? "is-dragging" : ""}`}
+        onDragEnter={(event) => { event.preventDefault(); setIsDraggingFile(true); }}
+        onDragOver={(event) => { event.preventDefault(); setIsDraggingFile(true); }}
+        onDragLeave={(event) => { if (event.currentTarget === event.target) setIsDraggingFile(false); }}
+        onDrop={onDropFile}
+      >
+        <section className={`dashboard-editorial-commandbar ${isUploading ? "is-uploading" : ""}`} aria-label="PDF actions">
+          <button type="button" className="dashboard-editorial-upload" onClick={onSelectFiles}><Upload size={18} /> {isDraggingFile ? "Drop PDF here" : "Upload PDF"}</button>
+          <button type="button" onClick={onBlankPage}><FilePlus2 size={18} /> Blank PDF</button>
+          <i aria-hidden="true" />
+          <button type="button" onClick={onSelectFiles}><PenLine size={19} /> Edit a PDF</button>
+          <button type="button" onClick={() => setActiveSection("Signatures")}><Stamp size={19} /> Sign a PDF</button>
+          <button type="button" onClick={onSelectFiles}><Grid2X2 size={19} /> Organize pages</button>
+          {isUploading && <span className="dashboard-editorial-progress">{uploadStage.status}: {uploadStage.fileName}</span>}
           {uploadError && <p className="upload-error">{uploadError}</p>}
         </section>
 
-        <section className="dashboard-recent-work" aria-labelledby="dashboard-recent-title">
-          <header><h2 id="dashboard-recent-title">Recently opened</h2><button type="button" onClick={() => setActiveSection("Documents")}>View all <ChevronRight size={15} /></button></header>
-          {renderRecentDashboardCards()}
-        </section>
-
-        <section className="dashboard-premium-actions" aria-label="Quick PDF tasks">
-          <button type="button" onClick={onSelectFiles}><span><PenLine size={23} /></span><div><strong>Edit a PDF</strong><small>Change text, add notes, and export</small></div><ChevronRight size={17} /></button>
-          <button type="button" onClick={() => setActiveSection("Signatures")}><span><Stamp size={23} /></span><div><strong>Sign a PDF</strong><small>Add a signature, initials, or date</small></div><ChevronRight size={17} /></button>
-          <button type="button" onClick={onSelectFiles}><span><Grid2X2 size={23} /></span><div><strong>Organize pages</strong><small>Reorder, rotate, duplicate, or delete</small></div><ChevronRight size={17} /></button>
-        </section>
-
-        <section className="dashboard-premium-library" aria-labelledby="dashboard-library-title">
-          <header className="dashboard-library-toolbar">
-            <h2 id="dashboard-library-title">All documents</h2>
-            <label className="dashboard-library-search"><Search size={16} /><span className="sr-only">Search documents</span><input type="search" value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} placeholder="Search documents..." /></label>
-            <button type="button" className={dashboardFilter === "favorites" ? "is-active" : ""} aria-pressed={dashboardFilter === "favorites"} onClick={() => setDashboardFilter((value) => value === "favorites" ? "all" : "favorites")}><Filter size={16} /> {dashboardFilter === "favorites" ? "Favorites" : "Filter"}</button>
-            <label className="dashboard-library-sort"><span className="sr-only">Sort documents</span><select value={dashboardSort} onChange={(event) => setDashboardSort(event.target.value)}><option value="recent">Sort: Last edited</option><option value="name">Sort: Name</option></select><ChevronDown size={14} /></label>
-            <div className="dashboard-view-toggle" aria-label="Document view">
-              <button type="button" className={dashboardView === "list" ? "is-active" : ""} aria-label="List view" aria-pressed={dashboardView === "list"} onClick={() => setDashboardView("list")}><List size={18} /></button>
-              <button type="button" className={dashboardView === "grid" ? "is-active" : ""} aria-label="Grid view" aria-pressed={dashboardView === "grid"} onClick={() => setDashboardView("grid")}><Grid2X2 size={17} /></button>
-            </div>
+        <section className="dashboard-premium-library dashboard-editorial-library" aria-labelledby="dashboard-library-title">
+          <header>
+            <h2 id="dashboard-library-title">Recent</h2>
+            <button type="button" onClick={() => setActiveSection("Documents")}>View all documents <ChevronRight size={15} /></button>
           </header>
-          {dashboardView === "list" ? renderDashboardLibraryList() : renderDashboardLibraryGrid()}
-          <footer><span>Showing {dashboardLibraryRows.length} of {filteredDocuments.length} document{filteredDocuments.length === 1 ? "" : "s"}</span><button type="button" onClick={() => onNavigate(ROUTE_PATHS.features)}>Explore every FixThatPDF feature <ChevronRight size={15} /></button></footer>
+          {renderDashboardLibraryList()}
+          <footer><span>{dashboardLibraryRows.length} document{dashboardLibraryRows.length === 1 ? "" : "s"}</span></footer>
         </section>
       </div>
     );
   };
 
   return (
-    <main className="upload-shell lumin-home">
+    <main className="upload-shell lumin-home dashboard-editorial-theme">
       <input ref={fileInputRef} className="hidden-input" type="file" accept="application/pdf" onChange={onUpload} />
       <aside className="lumin-home-rail">
-        <button type="button" className="dashboard-brand" aria-label="FixThatPDF dashboard" onClick={() => setActiveSection("Home")}><BrandWordmark /></button>
+        <button type="button" className="dashboard-brand" aria-label="PDFArrow dashboard" onClick={() => setActiveSection("Home")}><BrandWordmark logo /></button>
         <nav className="upload-nav" aria-label="Primary">
           {primaryNav.map(({ label, section: navSection = label, icon: Icon, badge }) => (
             <button key={label} type="button" className={navSection === activeSection ? "is-active" : ""} onClick={() => setActiveSection(navSection)}>
@@ -6456,6 +7002,17 @@ export function UploadLanding({
             </button>
           ))}
         </nav>
+        {adminNav.length > 0 && (
+          <nav className="upload-nav dashboard-admin-nav" aria-label="Administration">
+            {adminNav.map(({ label, icon: Icon }) => (
+              <button key={label} type="button" className={label === activeSection ? "is-active" : ""} onClick={() => setActiveSection(label)}>
+                <Icon size={19} />
+                <span>{label}</span>
+              </button>
+            ))}
+          </nav>
+        )}
+        <div className="dashboard-rail-spacer" aria-hidden="true" />
         <nav className="upload-nav dashboard-utility-nav" aria-label="Document utilities">
           {utilityNav.map(({ label, icon: Icon }) => <button key={label} type="button" className={label === activeSection ? "is-active" : ""} onClick={() => setActiveSection(label)}><Icon size={19} /><span>{label}</span></button>)}
         </nav>
@@ -6463,15 +7020,15 @@ export function UploadLanding({
       </aside>
 
       <section className="upload-main">
-        <header className="upload-topbar">
+        <header className={`upload-topbar is-${activeSection.toLowerCase().replaceAll(" ", "-")}`}>
+          {["Home", "Documents", "Features", "Analytics"].includes(activeSection) && <h1 className="dashboard-editorial-title">{{ Home: "Documents", Documents: "Documents", Features: "All tools", Analytics: "Analytics" }[activeSection]}</h1>}
           <label className="lumin-search">
             <Search size={18} />
-            <input type="search" placeholder="Search documents, templates, or tools..." value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} />
+            <input type="search" placeholder={activeSection === "Features" ? `Search ${releasedDashboardTools.length} tools` : activeSection === "Analytics" ? "Search sign-ins" : "Search documents"} value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} />
             <kbd>⌘ K</kbd>
           </label>
           <div className="upload-top-actions">
-            <button type="button" className="dashboard-top-upload" onClick={onSelectFiles}><Upload size={18} /> Upload PDF</button>
-            {activeSection === "Home" && <button type="button" className="dashboard-top-blank" onClick={onBlankPage}><FilePlus2 size={17} /> Blank PDF</button>}
+            {!["Home", "Documents", "Features", "Analytics"].includes(activeSection) && <button type="button" className="dashboard-top-upload" onClick={onSelectFiles}><Upload size={18} /> Upload PDF</button>}
             <button type="button" className="top-avatar" aria-haspopup="dialog" aria-expanded={openPanel === "account"} onClick={() => setOpenPanel(openPanel === "account" ? null : "account")}><span>{userInitials}</span><i /><strong>{dashboardAccountName}</strong><ChevronDown size={15} /></button>
             {openPanel && (
               <div className={`workspace-popover ${openPanel === "account" ? "account-menu-popover" : ""}`} role={openPanel === "account" ? "dialog" : undefined} aria-label={openPanel === "account" ? "Account menu" : undefined}>
@@ -6595,7 +7152,19 @@ function Inspector({
             </label>
           )}
 
-          {selected.type === "field" && selected.source === "pdf-form" && (
+          {selected.type === "choice" && (
+            <label className="field"><span>Selected option</span><select value={selected.content || ""} onChange={(event) => updateAnnotation(selected.id, { content: event.target.value })}><option value="">Choose an option</option>{(selected.options || []).map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>
+          )}
+
+          {selected.type === "field" && selected.source !== "pdf-form" && (
+            <div className="request-field-settings">
+              <label className="field"><span>Field label</span><input value={selected.fieldName || ""} onChange={(event) => updateAnnotation(selected.id, { fieldName: event.target.value })} /></label>
+              <label className="field"><span>Request field type</span><select value={selected.requestFieldType || "text"} onChange={(event) => updateAnnotation(selected.id, { requestFieldType: event.target.value, fieldName: selected.fieldName === "Text field" ? ({ signature: "Signature", initials: "Initials", date: "Date", text: "Text field" }[event.target.value] || selected.fieldName) : selected.fieldName })}><option value="text">Text</option><option value="signature">Signature</option><option value="initials">Initials</option><option value="date">Date</option></select></label>
+              <label className="protection-authorization"><input type="checkbox" checked={selected.required !== false} onChange={(event) => updateAnnotation(selected.id, { required: event.target.checked })} /><span>Required before the recipient can finish</span></label>
+            </div>
+          )}
+
+          {["field", "checkbox", "radio", "choice"].includes(selected.type) && selected.source === "pdf-form" && (
             <div className="document-info form-field-info">
               <span>Detected PDF form field</span>
               <strong>{selected.fieldName || "Unnamed field"}</strong>
@@ -6986,7 +7555,7 @@ function SignatureModal({ defaultName, mode = "signature", onClose, onSave }) {
 
   const saveSignature = () => {
     if (mode === "initials" && !typedName.trim()) {
-      setError("Enter your name so FixThatPDF can create your initials.");
+      setError("Enter your name so PDFArrow can create your initials.");
       return;
     }
     if (tab === "upload" && !uploadedImage) {
@@ -7153,8 +7722,12 @@ function ShareModal({ fileName, onClose, onCreate, onRevoke, onExport }) {
 }
 
 function SignatureRequestModal({ fileName, onClose, onPrepare }) {
+  const [recipientName, setRecipientName] = useState("");
   const [recipient, setRecipient] = useState("");
   const [message, setMessage] = useState(`Please review and sign ${fileName}.`);
+  const [expirationDays, setExpirationDays] = useState(7);
+  const [request, setRequest] = useState(null);
+  const [copied, setCopied] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
@@ -7166,13 +7739,23 @@ function SignatureRequestModal({ fileName, onClose, onPrepare }) {
     setBusy(true);
     setError("");
     try {
-      await onPrepare({ recipient, message });
+      const created = await onPrepare({ recipientName, recipient, message, expirationDays });
+      if (created) setRequest(created);
     } catch (requestError) {
-      if (requestError?.name !== "AbortError") setError("The signing copy could not be shared. Try again or export it normally.");
+      if (requestError?.name !== "AbortError") setError(requestError?.message || "The signing request could not be created.");
     } finally {
       setBusy(false);
     }
   };
+
+  const copyRequest = async () => {
+    await navigator.clipboard.writeText(request.url);
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 1600);
+  };
+
+  const emailSubject = encodeURIComponent(`Signature requested: ${fileName}`);
+  const emailBody = request ? encodeURIComponent(`${message}\n\nOpen the secure signing link:\n${request.url}\n\nThis link expires ${request.expiresAt.toLocaleString()}.`) : "";
 
   return (
     <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="Request signatures">
@@ -7181,16 +7764,19 @@ function SignatureRequestModal({ fileName, onClose, onPrepare }) {
           <div><h2>Request a signature</h2><p>{fileName}</p></div>
           <button type="button" className="modal-close" onClick={onClose}><X size={18} /></button>
         </header>
-        <div className="workflow-modal-body">
-          <p>Place signature or text fields on the page first. This creates the current PDF and hands it to your device’s share sheet; no copy is uploaded to FixThatPDF.</p>
-          <label><span>Recipient email</span><input type="email" value={recipient} onChange={(event) => setRecipient(event.target.value)} placeholder="name@example.com" /></label>
+        <div className="workflow-modal-body signature-request-body">
+          {!request ? <>
+          <p>Create a revocable signing link with required fields. The recipient completes and downloads the signed PDF in their browser.</p>
+          <div className="signature-recipient-grid"><label><span>Recipient name</span><input value={recipientName} onChange={(event) => setRecipientName(event.target.value)} placeholder="Jordan Lee" /></label><label><span>Recipient email</span><input type="email" value={recipient} onChange={(event) => setRecipient(event.target.value)} placeholder="name@example.com" /></label></div>
           <label><span>Message</span><textarea value={message} onChange={(event) => setMessage(event.target.value)} rows="4" /></label>
-          <small>Local handoff does not provide reminders, completion tracking, identity checks, or an audit certificate.</small>
+          <label><span>Link expiration</span><select value={expirationDays} onChange={(event) => setExpirationDays(Number(event.target.value))}><option value={1}>1 day</option><option value={7}>7 days</option><option value={30}>30 days</option></select></label>
+          <small>The completed PDF stays on the recipient's device. The completion receipt includes a SHA-256 fingerprint but is not independent identity verification.</small>
+          </> : <section className="signature-request-created"><CheckCircle2 size={31} /><h3>Secure signing link ready</h3><p>Send this unique link to {recipientName || recipient}. It expires {request.expiresAt.toLocaleString()}.</p><div className="share-link-row"><input aria-label="Secure signing link" readOnly value={request.url} onFocus={(event) => event.target.select()} /><button type="button" onClick={copyRequest}><Copy size={15} /> {copied ? "Copied" : "Copy"}</button></div></section>}
           {error && <p className="workflow-error" role="alert">{error}</p>}
         </div>
         <footer>
-          <button type="button" className="modal-secondary" onClick={onClose}>Keep editing</button>
-          <button type="button" className="modal-primary" disabled={busy} onClick={prepare}><Send size={16} /> {busy ? "Preparing…" : "Prepare and share"}</button>
+          <button type="button" className="modal-secondary" onClick={onClose}>{request ? "Done" : "Keep editing"}</button>
+          {request ? <a className="modal-primary signature-email-link" href={`mailto:${encodeURIComponent(recipient)}?subject=${emailSubject}&body=${emailBody}`}><Mail size={16} /> Open email draft</a> : <button type="button" className="modal-primary" disabled={busy} onClick={prepare}><Send size={16} /> {busy ? "Creating secure link…" : "Create signing link"}</button>}
         </footer>
       </section>
     </div>
