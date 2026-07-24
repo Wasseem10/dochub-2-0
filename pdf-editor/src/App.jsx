@@ -5071,10 +5071,15 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
 
         <div className="reference-primary-tools" role="toolbar" aria-label="Editing tools">
           <div className="reference-content-tools">
+            {referencePrimaryTools.slice(0, 2).map(({ id, label, icon: Icon }) => (
+              <button key={id} type="button" className={`reference-toolbar-button ${tool === id ? "is-active" : ""}`} aria-pressed={tool === id} onClick={() => activateReferenceTool(id)}>
+                <Icon size={23} /><span>{label}</span>
+              </button>
+            ))}
             <button type="button" className={`reference-toolbar-button reference-select-tool ${tool === "select" ? "is-active" : ""}`} aria-pressed={tool === "select"} onClick={() => activateReferenceTool("select")}>
               <MousePointer2 size={23} /><span>Select</span>
             </button>
-            {referencePrimaryTools.slice(0, 3).map(({ id, label, icon: Icon }) => (
+            {referencePrimaryTools.slice(2, 3).map(({ id, label, icon: Icon }) => (
               <button key={id} type="button" className={`reference-toolbar-button ${tool === id ? "is-active" : ""}`} aria-pressed={tool === id} onClick={() => activateReferenceTool(id)}>
                 <Icon size={23} /><span>{label}</span>
               </button>
