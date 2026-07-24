@@ -6584,6 +6584,19 @@ export function UploadLanding({
     )),
   })).filter((category) => category.tools.length), [normalizedQuery, releasedDashboardTools, toolCategoryFilter]);
   const visibleDashboardToolCount = dashboardToolGroups.reduce((total, group) => total + group.tools.length, 0);
+  const popularDashboardToolIds = [
+    "edit-pdf", "merge-pdf", "compress-pdf", "annotate-pdf",
+    "fill-pdf", "split-pdf", "pdf-to-word", "summarize-pdf",
+    "pdf-to-jpg", "translate-pdf", "ocr-pdf", "sign-pdf",
+  ];
+  const popularDashboardTools = useMemo(() => popularDashboardToolIds
+    .map((id) => releasedDashboardTools.find((tool) => tool.id === id))
+    .filter(Boolean), [releasedDashboardTools]);
+  const popularDashboardToolIdSet = useMemo(
+    () => new Set(popularDashboardTools.map((tool) => tool.id)),
+    [popularDashboardTools],
+  );
+  const showPopularDashboardTools = toolCategoryFilter === "all" && !normalizedQuery;
   const matchesSearch = (value) => !normalizedQuery || value.toLowerCase().includes(normalizedQuery);
   const userDocuments = currentUser?.uid
     ? documents.filter((documentRecord) => documentRecord.ownerId === currentUser.uid)
@@ -6912,18 +6925,17 @@ export function UploadLanding({
 
     if (activeSection === "Features") {
       return (
-        <section className="dashboard-tools-directory" aria-labelledby="dashboard-tools-title">
+        <section className="dashboard-tools-directory dashboard-tools-colorful" aria-labelledby="dashboard-tools-title">
           <header className="dashboard-tools-intro">
             <div>
-              <p id="dashboard-tools-title">Choose a workflow and open it directly.</p>
-              <small>{releasedDashboardTools.length} working tools across {TOOL_CATEGORIES.length} focused categories. Supported document processing stays in your browser.</small>
+              <p id="dashboard-tools-title">Every PDF task, one clear place.</p>
+              <small>Choose a tool and get straight to work. Your supported files stay in your browser.</small>
             </div>
             <button type="button" onClick={onSelectFiles}><Upload size={17} /> Upload PDF</button>
           </header>
 
           <div className="dashboard-tools-layout">
             <nav className="dashboard-tool-categories" aria-label="Tool categories">
-              <strong>Categories</strong>
               <button
                 type="button"
                 className={toolCategoryFilter === "all" ? "is-active" : ""}
@@ -6946,35 +6958,55 @@ export function UploadLanding({
                   </button>
                 );
               })}
-              <div className="dashboard-tools-privacy"><Lock size={16} /><span><strong>Browser-first</strong><small>Your files stay local for supported tools.</small></span></div>
             </nav>
 
             <div className="dashboard-tools-catalog">
               <div className="dashboard-tools-result-count">
-                <span>{visibleDashboardToolCount} result{visibleDashboardToolCount === 1 ? "" : "s"}</span>
+                <span>{visibleDashboardToolCount} tools available</span>
                 {(normalizedQuery || toolCategoryFilter !== "all") && (
                   <button type="button" onClick={() => { setSearchQuery(""); setToolCategoryFilter("all"); }}>Clear filters</button>
                 )}
               </div>
-              {dashboardToolGroups.map((group) => (
-                <section className="dashboard-tool-group" key={group.id} aria-labelledby={`dashboard-tool-group-${group.id}`}>
-                  <header>
-                    <span><ToolIcon name={group.icon} size={18} /></span>
-                    <div><h2 id={`dashboard-tool-group-${group.id}`}>{group.name}</h2><p>{group.description}</p></div>
-                    <small>{group.tools.length}</small>
-                  </header>
-                  <div>
-                    {group.tools.map((tool) => (
-                      <button type="button" className="dashboard-tool-row" key={tool.id} onClick={() => onNavigate(tool.route)}>
-                        <span><ToolIcon name={tool.icon} size={18} /></span>
-                        <div><strong>{tool.name}</strong><small>{tool.shortDescription}</small></div>
-                        <em className={tool.status === "beta" ? "is-beta" : tool.status === "partial" ? "is-limited" : ""}>{tool.availabilityLabel}</em>
+              {showPopularDashboardTools && (
+                <section className="dashboard-tools-featured" aria-labelledby="dashboard-tools-featured-title">
+                  <header><div><p>Start here</p><h2 id="dashboard-tools-featured-title">Most popular PDF tools</h2></div></header>
+                  <div className="dashboard-tools-card-grid">
+                    {popularDashboardTools.map((tool, index) => (
+                      <button type="button" className={`dashboard-tool-card is-tone-${index % 8}`} key={tool.id} onClick={() => onNavigate(tool.route)}>
+                        <span><ToolIcon name={tool.icon} size={22} /></span>
+                        <strong>{tool.name}</strong>
                         <ChevronRight size={16} />
                       </button>
                     ))}
                   </div>
                 </section>
-              ))}
+              )}
+              <section className="dashboard-tools-more" aria-labelledby="dashboard-tools-more-title">
+                <header><div><p>{showPopularDashboardTools ? "Explore more" : "Matching tools"}</p><h2 id="dashboard-tools-more-title">{showPopularDashboardTools ? "More tools" : "All matching tools"}</h2></div></header>
+                {dashboardToolGroups.map((group) => {
+                  const tools = showPopularDashboardTools
+                    ? group.tools.filter((tool) => !popularDashboardToolIdSet.has(tool.id))
+                    : group.tools;
+                  if (!tools.length) return null;
+                  return (
+                    <section className="dashboard-tool-group" key={group.id} aria-labelledby={`dashboard-tool-group-${group.id}`}>
+                      <header>
+                        <span style={{ backgroundColor: group.accentColor }}><ToolIcon name={group.icon} size={17} /></span>
+                        <div><h3 id={`dashboard-tool-group-${group.id}`}>{group.name}</h3><p>{group.description}</p></div>
+                      </header>
+                      <div className="dashboard-tools-card-grid">
+                        {tools.map((tool, index) => (
+                          <button type="button" className={`dashboard-tool-card is-tone-${(index + 3) % 8}`} key={tool.id} onClick={() => onNavigate(tool.route)}>
+                            <span><ToolIcon name={tool.icon} size={22} /></span>
+                            <strong>{tool.name}</strong>
+                            <ChevronRight size={16} />
+                          </button>
+                        ))}
+                      </div>
+                    </section>
+                  );
+                })}
+              </section>
               {!dashboardToolGroups.length && (
                 <div className="dashboard-tools-empty">
                   <Search size={23} />
