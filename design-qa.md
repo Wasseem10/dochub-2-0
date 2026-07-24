@@ -48,6 +48,57 @@ final result: passed
 
 ---
 
+# Homepage expanded feature grid QA
+
+## Scope
+
+- Source visual truth: `C:\Users\wasse\AppData\Local\Temp\codex-clipboard-f112a703-fbfb-4c7c-ba67-4446f10658dc.png`
+- Route: `http://127.0.0.1:4173/?preview=popular-tools-grid`
+- Desktop viewport: 1440 × 900 at device scale 1
+- Mobile viewport: 390 × 844 at device scale 1
+- State: homepage Popular Tools section with all cards at rest
+
+## Evidence
+
+- Full-view comparison: `work/design-qa/homepage-features-comparison.png`
+- Desktop implementation: `work/design-qa/homepage-features-desktop.png`
+- Mobile implementation: `work/design-qa/homepage-features-mobile.png`
+- A focused region comparison was not needed because the reference and implementation both use large, isolated feature cards with readable typography and icons in the full-view evidence.
+
+## Findings
+
+- P0: none.
+- P1: none.
+- P2: none remain.
+
+The implementation intentionally preserves PDFArrow’s existing heading and clean card-grid structure while adopting the source reference’s denser five-across feature presentation. Ten core workflows are now visible: Merge, Compress, Edit, Convert, Split, Sign, Fill, Organize, OCR, and Protect.
+
+## Required fidelity surfaces
+
+- Fonts and typography: DM Sans remains consistent with the homepage. Card titles use a clear 16px/700 desktop hierarchy and descriptions use compact readable 13px copy; mobile sizes remain legible without clipping.
+- Spacing and layout rhythm: desktop uses two aligned rows of five equal-height cards. Mobile recomposes to two columns with practical spacing and no horizontal overflow.
+- Colors and tokens: the pale neutral section surface, white cards, navy copy, PDFArrow blue, and restrained coral, lilac, and yellow icon accents remain consistent with the approved homepage.
+- Image quality and asset fidelity: the reference uses line icons rather than raster imagery. The implementation uses the established product icon library at consistent optical size and stroke weight; no placeholder or handcrafted artwork is present.
+- Copy and content: every card uses one specific workflow name and one short plain-language outcome. All ten cards link to released PDFArrow routes.
+- Interaction and accessibility: cards are semantic links with visible hover/focus treatment. The full grid is keyboard reachable, and the mobile layout maintains two columns at 390px.
+
+## Comparison history
+
+- Pass 1: the new ten-card desktop and mobile captures matched the requested denser card pattern with no actionable P0, P1, or P2 issues, so no visual correction loop was required.
+
+## Verification
+
+- Browser console errors and warnings: none.
+- Mobile horizontal overflow: none.
+- Focused responsive browser test passed, including ten-card count and two-column mobile grid.
+- TypeScript check passed.
+- Unit and integration suite passed: 61 files, 225 tests.
+- Production build and 107-route prerender passed.
+
+final result: passed
+
+---
+
 # Homepage reference redesign QA
 
 ## Scope

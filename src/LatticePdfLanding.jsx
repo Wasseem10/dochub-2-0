@@ -20,7 +20,7 @@ import { PageMetadata } from "./components/public/PageMetadata.jsx";
 import { absoluteSiteUrl } from "./config/site.js";
 import { ROUTE_PATHS } from "./router/routePaths.js";
 import { ToolIcon } from "./tools/ToolIcon.jsx";
-import { POPULAR_TOOLS, TOOL_CATEGORIES, TOOL_REGISTRY } from "./tools/toolRegistry.js";
+import { TOOL_CATEGORIES, TOOL_REGISTRY } from "./tools/toolRegistry.js";
 
 const asset = (fileName) => `${import.meta.env.BASE_URL}homepage/${fileName}`;
 
@@ -69,6 +69,22 @@ const heroTasks = [
   { label: "Organize", route: "/organize-pdf", icon: Grid3X3, tone: "yellow" },
   { label: "Convert", route: "/pdf-to-jpg", icon: RefreshCw, tone: "blue" },
 ];
+
+const homepageFeatureTools = [
+  { id: "merge-pdf", description: "Combine multiple PDFs into one clean document.", tone: "blue" },
+  { id: "compress-pdf", description: "Reduce file size with clear quality options.", tone: "yellow" },
+  { id: "edit-pdf", description: "Add text, images, links, shapes, and more.", tone: "coral" },
+  { id: "pdf-to-word", name: "Convert PDF", description: "Move between PDF, Word, JPG, and more.", icon: "convert", tone: "lilac" },
+  { id: "split-pdf", description: "Separate pages into smaller PDF files.", tone: "blue" },
+  { id: "sign-pdf", description: "Add typed, drawn, or uploaded signatures.", tone: "lilac" },
+  { id: "fill-pdf", description: "Complete forms, dates, checks, and initials.", tone: "coral" },
+  { id: "organize-pdf", description: "Reorder, rotate, duplicate, or delete pages.", tone: "yellow" },
+  { id: "ocr-pdf", description: "Make scanned PDFs searchable and selectable.", tone: "blue" },
+  { id: "protect-pdf", description: "Add password protection before sharing.", tone: "lilac" },
+].map((entry) => {
+  const tool = TOOL_REGISTRY.find((candidate) => candidate.id === entry.id);
+  return tool ? { ...tool, ...entry } : null;
+}).filter(Boolean);
 
 const footerToolGroups = [
   {
@@ -237,8 +253,8 @@ function Dropzone({ choose, dragging, setDragging, isUploading, uploadError, upl
 
 function PopularTools() {
   return <section className="freepdf-section freepdf-tools-section" aria-labelledby="popular-tools-title">
-    <div className="freepdf-section-heading"><span>Popular tools</span><h2 id="popular-tools-title">Small tools for the jobs in between.</h2><p>Fast, focused workflows with limits shown before you upload.</p></div>
-    <div className="freepdf-tool-grid">{POPULAR_TOOLS.slice(0, 6).map((tool) => <Link key={tool.id} className="freepdf-tool-card" to={tool.route}><span className="freepdf-tool-icon"><ToolIcon name={tool.icon} size={22} /></span><div><h3>{tool.name}</h3><p>{tool.shortDescription}</p></div><ArrowRight size={18} aria-hidden="true" /></Link>)}</div>
+    <div className="freepdf-section-heading"><span>Popular tools</span><h2 id="popular-tools-title">Small tools for the jobs in between.</h2><p>Edit, sign, organize, convert, and finish PDFs with focused browser tools.</p></div>
+    <div className="freepdf-tool-grid">{homepageFeatureTools.map((tool) => <Link key={tool.id} className={`freepdf-tool-card is-${tool.tone}`} to={tool.route}><span className="freepdf-tool-icon"><ToolIcon name={tool.icon} size={26} /></span><div><h3>{tool.name}</h3><p>{tool.description}</p></div><ArrowRight size={17} aria-hidden="true" /></Link>)}</div>
     <Link className="freepdf-text-link" to={ROUTE_PATHS.tools}>Browse every PDF tool <ArrowRight size={16} /></Link>
   </section>;
 }
