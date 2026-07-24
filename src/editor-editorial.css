@@ -2,10 +2,10 @@
 main.editor-shell.editor-shell {
   --editorial-ink: #17243a;
   --editorial-muted: #66758a;
-  --editorial-line: #d8e4f2;
+  --editorial-line: #dfe4eb;
   --editorial-paper: #fff;
-  --editorial-warm-white: #f8fbff;
-  --editorial-canvas: #eef5ff;
+  --editorial-warm-white: #fff;
+  --editorial-canvas: #f5f6f8;
   --editorial-oxblood: #2f6fe8;
   --editorial-oxblood-dark: #2058c6;
   --editorial-rose: #e7f1ff;
@@ -38,6 +38,11 @@ main.editor-shell .reference-file-header {
 main.editor-shell .reference-brand-name {
   justify-self: start !important;
   color: var(--editorial-ink) !important;
+}
+
+main.editor-shell .reference-brand-name .brand-wordmark--logo {
+  width: 136px !important;
+  height: 34px !important;
 }
 
 main.editor-shell .reference-brand-button:hover {
@@ -109,7 +114,7 @@ main.editor-shell .reference-header-actions > button {
 }
 
 main.editor-shell .reference-header-actions > button:hover {
-  background: #eef6ff !important;
+  background: #f0f2f5 !important;
   color: #17243a !important;
 }
 
@@ -171,7 +176,7 @@ main.editor-shell .reference-toolbar-button svg {
 
 main.editor-shell .reference-toolbar-button:hover {
   border: 0 !important;
-  background: #eef6ff !important;
+  background: #f0f2f5 !important;
   color: #17243a !important;
 }
 
@@ -413,7 +418,7 @@ main.editor-shell .thumbnail-footer button {
 }
 
 main.editor-shell .thumbnail-footer button:hover {
-  background: #eef6ff !important;
+  background: #f0f2f5 !important;
   color: var(--editorial-oxblood) !important;
 }
 
@@ -458,7 +463,7 @@ main.editor-shell .page-nav .page-nav-zoom {
 
 main.editor-shell .page-nav button:hover,
 main.editor-shell .page-nav .page-nav-zoom:hover {
-  background: #eef6ff !important;
+  background: #f0f2f5 !important;
   color: var(--editorial-oxblood) !important;
 }
 
@@ -484,7 +489,7 @@ main.editor-shell .page-nav input {
   min-width: 48px !important;
   height: 34px !important;
   border-radius: 4px !important;
-  background: #eef6ff !important;
+  background: #f0f2f5 !important;
   color: var(--editorial-ink) !important;
   caret-color: var(--editorial-oxblood) !important;
   font-size: 14px !important;
