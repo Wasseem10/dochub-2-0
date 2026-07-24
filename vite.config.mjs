@@ -5,7 +5,7 @@ const githubPagesBase = process.env.GITHUB_ACTIONS === "true" ? "/dochub-2-0/" :
 
 export default defineConfig({
   base: githubPagesBase,
-  plugins: [react()],
+  plugins: [react({ jsxRuntime: "automatic" })],
   publicDir: "runtime-public",
   envPrefix: "VITE_",
   optimizeDeps: {
