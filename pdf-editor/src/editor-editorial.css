@@ -256,6 +256,21 @@ main.editor-shell > .text-format-settings {
   transform: none !important;
 }
 
+main.editor-shell > .tool-settings.draw-tool-settings {
+  position: relative !important;
+  top: auto !important;
+  right: auto !important;
+  bottom: auto !important;
+  left: auto !important;
+  box-sizing: border-box !important;
+  width: min(1000px, calc(100vw - 48px)) !important;
+  max-width: min(1000px, calc(100vw - 48px)) !important;
+  min-height: 50px !important;
+  height: 50px !important;
+  padding: 0 16px !important;
+  transform: none !important;
+}
+
 main.editor-shell .settings-title,
 main.editor-shell .highlight-settings-title,
 main.editor-shell .text-settings-title {
@@ -329,7 +344,11 @@ main.editor-shell.has-tool-settings .workspace.is-managing-pages {
 }
 
 main.editor-shell .workspace.pages-collapsed {
-  grid-template-columns: 0 minmax(0, 1fr) !important;
+  grid-template-columns: minmax(0, 1fr) !important;
+}
+
+main.editor-shell .workspace.pages-collapsed .canvas-column {
+  grid-column: 1 !important;
 }
 
 main.editor-shell .lumin-editor-rail,
@@ -615,6 +634,13 @@ main.editor-shell .annotation-controls button:hover {
     border-left: 0 !important;
     border-radius: 0 !important;
     overflow-x: auto !important;
+  }
+
+  main.editor-shell > .tool-settings.draw-tool-settings {
+    width: 100% !important;
+    max-width: 100% !important;
+    height: 48px !important;
+    padding-inline: 8px !important;
   }
 
   main.editor-shell .status-bar {

@@ -24,7 +24,7 @@ describe("simplified dashboard navigation", () => {
     const button = renderer.root.findByProps({ "aria-label": "Back to PDFArrow dashboard" });
     await act(async () => button.props.onClick());
     expect(onDashboard).toHaveBeenCalledOnce();
-    expect(textOf(button)).toBe("PDFArrow");
+    expect(button.props.title).toBe("Back to dashboard");
     await act(async () => renderer.unmount());
   });
 
@@ -121,12 +121,12 @@ describe("simplified dashboard navigation", () => {
 
     const text = textOf(renderer.root);
     expect(text).toContain("All tools");
-    expect(text).toContain("Categories");
+    expect(text).toContain("Most popular PDF tools");
     expect(text).toContain("Edit and view");
     expect(text).toContain("Edit PDF");
-    expect(text).toContain("Browser-first");
+    expect(text).toContain("Private by design");
 
-    const editPdfButton = renderer.root.findAllByType("button").find((button) => textOf(button).includes("Edit PDFChange selected text overlays"));
+    const editPdfButton = renderer.root.findAllByType("button").find((button) => textOf(button).trim() === "Edit PDF");
     await act(async () => editPdfButton.props.onClick());
     expect(onNavigate).toHaveBeenCalledWith(ROUTE_PATHS.editPdf);
     await act(async () => renderer.unmount());

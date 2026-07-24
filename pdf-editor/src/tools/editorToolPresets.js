@@ -7,7 +7,16 @@ const PRESETS = Object.freeze({
   "sign-pdf": { activeTool: "signature", label: "Sign PDF" },
   "add-initials": { activeTool: "initials", label: "Add Initials" },
   "add-date-fields": { activeTool: "date", label: "Add Date Fields" },
-  "request-signatures": { activeTool: "field", label: "Request Signatures" },
+  "request-signatures": {
+    activeTool: "field",
+    label: "Request Signatures",
+    guidance: "Place the required fields, then choose Request signature.",
+  },
+  "share-pdf": {
+    activeTool: "select",
+    label: "Share PDF",
+    guidance: "Review the document, then choose Share PDF to create a secure link.",
+  },
   "protect-pdf": { activeTool: "select", label: "Protect PDF" },
   "review-pdf": { activeTool: "highlight", label: "Review PDF", openComments: true },
   "comment-on-pdf": { activeTool: "comment", label: "Comment on PDF", openComments: true },
