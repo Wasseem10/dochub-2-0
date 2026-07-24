@@ -48,6 +48,56 @@ final result: passed
 
 ---
 
+# Homepage clean footer ending QA
+
+## Scope
+
+- Source visual truth: `C:\Users\wasse\.codex\generated_images\019f93f5-4ddf-7980-9635-7796e2a92e3f\exec-62fdec67-1956-4033-8ff1-dbe2379bb647.png` (selected option 1)
+- Route: `http://127.0.0.1:4173/?preview=footer-clean`
+- Desktop viewport: 1440 × 780 CSS px at device scale 1
+- Mobile viewport: 390 × 844 CSS px at device scale 1
+- State: homepage FAQ immediately above the new assurance row; footer at rest.
+
+## Evidence
+
+- Full-view comparison: `work/design-qa/homepage-ending-comparison-pass1.png`
+- Desktop implementation: `work/design-qa/homepage-ending-desktop-final.png`
+- Mobile assurance/footer views: `work/design-qa/homepage-ending-mobile-assurances-final.png` and `work/design-qa/homepage-ending-mobile-final.png`
+- The desktop source was normalized from 1704 × 921 px to 720 × 390 px beside the same-width rendered 1440 × 780 px capture normalized to 720 × 390 px. This preserves the intended bright, utility-led end-of-page composition while making the comparison readable in one artifact.
+
+## Findings
+
+- P0: none.
+- P1: none.
+- P2: none remain.
+
+The redundant final upload CTA and the dark oversized-wordmark footer are gone. The implementation now follows the selected visual hierarchy: three clear assurances separated by fine rules, a small PDFArrow logo and one-line promise, five legible navigation groups, and a restrained legal/language row. The implementation intentionally uses a shorter directory than the mock because it exposes only current PDFArrow destinations, preserving the selected mock's white space without inventing pages.
+
+## Required fidelity surfaces
+
+- Fonts and typography: DM Sans supplies compact, high-contrast labels and links. Footer labels use a firm 13px/750 hierarchy, links remain readable at 13px desktop and 12px mobile, and the legal row stays deliberately quiet.
+- Spacing and layout rhythm: the assurance row has equal three-column rhythm on desktop and recomposes to roomy stacked rows on mobile. The footer uses a calm brand-plus-directory grid, fine dividers, and a mobile two-column directory with no clipping.
+- Colors and visual tokens: white is the dominant surface; cool gray hairlines define structure; navy text preserves document-product clarity; PDFArrow blue appears only in the compact icons, wordmark, and interactive states.
+- Image quality and asset fidelity: the supplied PDFArrow logo is used through its cropped wordmark component. Product icons use the existing Lucide library at consistent line weights; no placeholder or handcrafted asset appears.
+- Copy and content: every visible footer destination maps to an existing PDFArrow route. The assurance copy is direct and supports the upload/product promise without repeating a call to action.
+
+## Comparison history
+
+- Pass 1: source and rendered footer were compared in one normalized image. The rendered footer matched the selected light utility structure; desktop and mobile captures confirmed the responsive reflow. No P0/P1/P2 visual correction was required.
+
+## Primary interactions tested
+
+- The homepage's dominant upload panel remained one accessible button; clicking it opened the native PDF file chooser.
+- Footer directory rendered five semantic navigation groups and 3 assurance items.
+- Desktop and mobile layouts were inspected for the closing area.
+- Browser console errors: none.
+- TypeScript check and production Vite build: passed.
+- Full Vitest suite: passed.
+
+final result: passed
+
+---
+
 # Homepage expanded feature grid QA
 
 ## Scope
