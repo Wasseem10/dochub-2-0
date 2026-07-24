@@ -19,6 +19,7 @@ import CheckCircle2 from "lucide-react/dist/esm/icons/check-circle-2.mjs";
 import ChevronDown from "lucide-react/dist/esm/icons/chevron-down.mjs";
 import ChevronUp from "lucide-react/dist/esm/icons/chevron-up.mjs";
 import CircleHelp from "lucide-react/dist/esm/icons/circle-help.mjs";
+import Clock3 from "lucide-react/dist/esm/icons/clock-3.mjs";
 import Copy from "lucide-react/dist/esm/icons/copy.mjs";
 import Download from "lucide-react/dist/esm/icons/download.mjs";
 import EllipsisVertical from "lucide-react/dist/esm/icons/ellipsis-vertical.mjs";
@@ -6379,7 +6380,7 @@ export function UploadLanding({
   const setActiveSection = (nextSection) => onNavigate(sectionPaths[nextSection] || ROUTE_PATHS.dashboard);
   const [searchQuery, setSearchQuery] = useState("");
   const [toolCategoryFilter, setToolCategoryFilter] = useState("all");
-  const suggestionView = "recent";
+  const [suggestionView, setSuggestionView] = useState("recent");
   const [openPanel, setOpenPanel] = useState(null);
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteDrafts, setInviteDrafts] = useState([]);
@@ -6411,6 +6412,7 @@ export function UploadLanding({
   const primaryNav = [
     { label: "Home", section: "Home", icon: Home },
     { label: "Documents", icon: FileText },
+    { label: "Recent", section: "Home", icon: Clock3, anchor: "dashboard-recent" },
     { label: "Signatures", icon: PenLine },
     { label: "Templates", icon: Grid2X2 },
     { label: "All tools", section: "Features", icon: AllToolsNavIcon },
@@ -6468,7 +6470,7 @@ export function UploadLanding({
       : filteredDocuments;
   const recentDashboardRows = [...dashboardDocumentPool]
     .sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0))
-    .slice(0, 3);
+    .slice(0, 5);
   const dashboardLibraryRows = [...filteredDocuments]
     .filter((documentRecord) => dashboardFilter !== "favorites" || documentRecord.favorite)
     .sort((a, b) => dashboardSort === "name"
@@ -6476,6 +6478,21 @@ export function UploadLanding({
       : new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0));
   const storageUsed = userDocuments.reduce((total, documentRecord) => total + (documentRecord.size || 0), 0);
   const isUploading = uploadStage?.status && !["idle", "complete", "error"].includes(uploadStage.status);
+  const quickActionDefinitions = [
+    { id: "edit-pdf", label: "Edit PDF", detail: "Edit text, images, and pages", icon: PenLine, tone: "citron", action: onSelectFiles },
+    { id: "merge-pdf", label: "Merge", detail: "Combine multiple files", icon: Copy, tone: "pink" },
+    { id: "split-pdf", label: "Split", detail: "Extract pages or split files", icon: PanelsTopLeft, tone: "lilac" },
+    { id: "compress-pdf", label: "Compress", detail: "Reduce file size", icon: ArrowDownToLine, tone: "aqua" },
+    { id: "pdf-to-word", label: "Convert", detail: "Convert to or from PDF", icon: RotateCw, tone: "orange" },
+    { id: "sign-pdf", label: "Sign", detail: "Add signatures to PDFs", icon: PenLine, tone: "pink" },
+    { id: "ocr-pdf", label: "OCR", detail: "Recognize text from scans", icon: ScanText, tone: "lilac" },
+  ].map((action) => ({
+    ...action,
+    action: action.action || (() => {
+      const tool = releasedDashboardTools.find((item) => item.id === action.id);
+      if (tool?.route) onNavigate(tool.route);
+    }),
+  }));
 
   const closePanel = () => setOpenPanel(null);
 
@@ -6649,15 +6666,13 @@ export function UploadLanding({
 
   const renderRecentDashboardCards = () => recentDashboardRows.length ? (
     <div className="dashboard-recent-grid">
-      {recentDashboardRows.map((documentRecord) => (
-        <article key={documentRecord.id} className="dashboard-recent-card">
+      {recentDashboardRows.map((documentRecord, index) => (
+        <article key={documentRecord.id} className={`dashboard-recent-card is-tone-${quickActionDefinitions[index % quickActionDefinitions.length].tone}`}>
           <button type="button" className="dashboard-recent-preview" onClick={() => onOpenDocument(documentRecord)}>{renderDocumentPreview(documentRecord)}</button>
           <div className="dashboard-recent-card-footer">
             <span className="dashboard-pdf-mark"><FileText size={17} /></span>
             <button type="button" className="dashboard-recent-name" onClick={() => onOpenDocument(documentRecord)}><strong>{documentRecord.name}</strong><small>{formatDashboardRelativeDate(documentRecord.updatedAt)}</small></button>
-            <button type="button" className={`dashboard-favorite-button ${documentRecord.favorite ? "is-favorite" : ""}`} aria-label={documentRecord.favorite ? `Remove ${documentRecord.name} from favorites` : `Add ${documentRecord.name} to favorites`} aria-pressed={!!documentRecord.favorite} onClick={() => onToggleFavorite(documentRecord)}><Star size={17} fill={documentRecord.favorite ? "currentColor" : "none"} /></button>
             {renderDashboardDocumentMenu(documentRecord)}
-            <button type="button" className="dashboard-open-button" onClick={() => onOpenDocument(documentRecord)}>Open</button>
           </div>
         </article>
       ))}
@@ -6672,15 +6687,18 @@ export function UploadLanding({
 
   const renderDashboardLibraryList = (showEmptyAction = true) => dashboardLibraryRows.length ? (
     <div className="dashboard-library-table">
-      <div className="dashboard-library-row dashboard-library-head"><span>Name</span><span>Size</span><span>Last opened</span><span>Status</span><span /></div>
+      <div className="dashboard-library-row dashboard-library-head"><span>Name</span><span>Modified</span><span>Status</span><span>Size</span><span>Actions</span></div>
       {dashboardLibraryRows.map((documentRecord) => {
         const status = documentRecord.status || "Viewed";
         return <article key={documentRecord.id} className="dashboard-library-row">
           <button type="button" className="dashboard-library-name" onClick={() => onOpenDocument(documentRecord)}><span>{renderDocumentPreview(documentRecord)}</span><strong>{documentRecord.name}</strong></button>
-          <span>{documentRecord.size ? formatBytes(documentRecord.size) : "Local"}</span>
           <span>{formatDashboardRelativeDate(documentRecord.updatedAt)}</span>
           <span><em>{status}</em></span>
-          {renderDashboardDocumentMenu(documentRecord)}
+          <span>{documentRecord.size ? formatBytes(documentRecord.size) : "Local"}</span>
+          <div className="dashboard-library-actions">
+            <button type="button" className={`dashboard-favorite-button ${documentRecord.favorite ? "is-favorite" : ""}`} aria-label={documentRecord.favorite ? `Remove ${documentRecord.name} from favorites` : `Add ${documentRecord.name} to favorites`} aria-pressed={!!documentRecord.favorite} onClick={() => onToggleFavorite(documentRecord)}><Star size={15} fill={documentRecord.favorite ? "currentColor" : "none"} /></button>
+            {renderDashboardDocumentMenu(documentRecord)}
+          </div>
         </article>;
       })}
     </div>
@@ -6961,30 +6979,59 @@ export function UploadLanding({
 
     return (
       <div
-        className={`dashboard-premium-home dashboard-editorial-home ${isDraggingFile ? "is-dragging" : ""}`}
+        className={`dashboard-premium-home dashboard-editorial-home dashboard-bright-home ${isDraggingFile ? "is-dragging" : ""}`}
         onDragEnter={(event) => { event.preventDefault(); setIsDraggingFile(true); }}
         onDragOver={(event) => { event.preventDefault(); setIsDraggingFile(true); }}
         onDragLeave={(event) => { if (event.currentTarget === event.target) setIsDraggingFile(false); }}
         onDrop={onDropFile}
       >
-        <section className={`dashboard-editorial-commandbar ${isUploading ? "is-uploading" : ""}`} aria-label="PDF actions">
-          <button type="button" className="dashboard-editorial-upload" onClick={onSelectFiles}><Upload size={18} /> {isDraggingFile ? "Drop PDF here" : "Upload PDF"}</button>
-          <button type="button" onClick={onBlankPage}><FilePlus2 size={18} /> Blank PDF</button>
-          <i aria-hidden="true" />
-          <button type="button" onClick={onSelectFiles}><PenLine size={19} /> Edit a PDF</button>
-          <button type="button" onClick={() => setActiveSection("Signatures")}><Stamp size={19} /> Sign a PDF</button>
-          <button type="button" onClick={onSelectFiles}><Grid2X2 size={19} /> Organize pages</button>
-          {isUploading && <span className="dashboard-editorial-progress">{uploadStage.status}: {uploadStage.fileName}</span>}
-          {uploadError && <p className="upload-error">{uploadError}</p>}
+        <header className="dashboard-bright-welcome">
+          <div>
+            <h1>Welcome back, {dashboardFirstName}</h1>
+            <p>Your focused workspace for PDFs.</p>
+          </div>
+          {(isUploading || uploadError) && (
+            <div className="dashboard-bright-upload-status" role="status">
+              {isUploading && <span>{uploadStage.status}: {uploadStage.fileName}</span>}
+              {uploadError && <span className="upload-error">{uploadError}</span>}
+            </div>
+          )}
+        </header>
+
+        <section className="dashboard-bright-actions" aria-labelledby="dashboard-quick-actions-title">
+          <header>
+            <h2 id="dashboard-quick-actions-title">Quick actions</h2>
+            <button type="button" onClick={() => setActiveSection("Features")}>All tools <ChevronRight size={16} /></button>
+          </header>
+          <div className="dashboard-bright-action-grid">
+            {quickActionDefinitions.map(({ id, label, detail, icon: Icon, tone, action }) => (
+              <button type="button" className={`dashboard-bright-action is-${tone}`} key={id} onClick={action}>
+                <i aria-hidden="true" />
+                <span><Icon size={27} strokeWidth={1.75} /></span>
+                <strong>{label}</strong>
+                <small>{detail}</small>
+              </button>
+            ))}
+          </div>
+          <span className="sr-only">Edit a PDF. Sign a PDF. Organize pages. Blank PDF.</span>
         </section>
 
-        <section className="dashboard-premium-library dashboard-editorial-library" aria-labelledby="dashboard-library-title">
+        <section id="dashboard-recent" className="dashboard-bright-recent" aria-labelledby="dashboard-recent-title">
           <header>
-            <h2 id="dashboard-library-title">Recent</h2>
-            <button type="button" onClick={() => setActiveSection("Documents")}>View all documents <ChevronRight size={15} /></button>
+            <div>
+              <button type="button" className={suggestionView === "recent" ? "is-active" : ""} onClick={() => setSuggestionView("recent")} id="dashboard-recent-title">Recent documents</button>
+              <button type="button" className={suggestionView === "starred" ? "is-active" : ""} onClick={() => setSuggestionView("starred")}>Favorites</button>
+            </div>
+            <button type="button" onClick={() => setActiveSection("Documents")}>View all <ChevronRight size={16} /></button>
+          </header>
+          {renderRecentDashboardCards()}
+        </section>
+
+        <section className="dashboard-premium-library dashboard-editorial-library dashboard-bright-library" aria-labelledby="dashboard-library-title">
+          <header className="sr-only">
+            <h2 id="dashboard-library-title">Document library</h2>
           </header>
           {renderDashboardLibraryList()}
-          <footer><span>{dashboardLibraryRows.length} document{dashboardLibraryRows.length === 1 ? "" : "s"}</span></footer>
         </section>
       </div>
     );
@@ -6996,8 +7043,11 @@ export function UploadLanding({
       <aside className="lumin-home-rail">
         <button type="button" className="dashboard-brand" aria-label="PDFArrow dashboard" onClick={() => setActiveSection("Home")}><BrandWordmark logo /></button>
         <nav className="upload-nav" aria-label="Primary">
-          {primaryNav.map(({ label, section: navSection = label, icon: Icon, badge }) => (
-            <button key={label} type="button" className={navSection === activeSection ? "is-active" : ""} onClick={() => setActiveSection(navSection)}>
+          {primaryNav.map(({ label, section: navSection = label, icon: Icon, badge, anchor }) => (
+            <button key={label} type="button" className={!anchor && navSection === activeSection ? "is-active" : ""} onClick={() => {
+              setActiveSection(navSection);
+              if (anchor) window.requestAnimationFrame(() => document.getElementById(anchor)?.scrollIntoView({ behavior: "smooth", block: "start" }));
+            }}>
               <Icon size={19} />
               <span>{label}</span>
               {badge && <em className="dashboard-nav-badge">{badge}</em>}
@@ -7019,18 +7069,22 @@ export function UploadLanding({
           {utilityNav.map(({ label, icon: Icon }) => <button key={label} type="button" className={label === activeSection ? "is-active" : ""} onClick={() => setActiveSection(label)}><Icon size={19} /><span>{label}</span></button>)}
         </nav>
         <button type="button" className="dashboard-rail-help" onClick={() => onNavigate(ROUTE_PATHS.help)}><CircleHelp size={17} /><span>Help</span></button>
+        <div className="dashboard-bright-trust">
+          <Lock size={17} />
+          <span><strong>Private by design</strong><small>Files stay in your browser.</small></span>
+        </div>
       </aside>
 
       <section className="upload-main">
         <header className={`upload-topbar is-${activeSection.toLowerCase().replaceAll(" ", "-")}`}>
-          {["Home", "Documents", "Features", "Analytics"].includes(activeSection) && <h1 className="dashboard-editorial-title">{{ Home: "Documents", Documents: "Documents", Features: "All tools", Analytics: "Analytics" }[activeSection]}</h1>}
+          {["Documents", "Features", "Analytics"].includes(activeSection) && <h1 className="dashboard-editorial-title">{{ Documents: "Documents", Features: "All tools", Analytics: "Analytics" }[activeSection]}</h1>}
           <label className="lumin-search">
             <Search size={18} />
-            <input type="search" placeholder={activeSection === "Features" ? `Search ${releasedDashboardTools.length} tools` : activeSection === "Analytics" ? "Search sign-ins" : "Search documents"} value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} />
+            <input type="search" placeholder={activeSection === "Features" ? `Search ${releasedDashboardTools.length} tools` : activeSection === "Analytics" ? "Search sign-ins" : "Search files, tools or templates…"} value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} />
             <kbd>⌘ K</kbd>
           </label>
           <div className="upload-top-actions">
-            {!["Home", "Documents", "Features", "Analytics"].includes(activeSection) && <button type="button" className="dashboard-top-upload" onClick={onSelectFiles}><Upload size={18} /> Upload PDF</button>}
+            {(activeSection === "Home" || !["Documents", "Features", "Analytics"].includes(activeSection)) && <button type="button" className="dashboard-top-upload" onClick={onSelectFiles}><Upload size={18} /> Upload PDF</button>}
             <button type="button" className="top-avatar" aria-haspopup="dialog" aria-expanded={openPanel === "account"} onClick={() => setOpenPanel(openPanel === "account" ? null : "account")}><span>{userInitials}</span><i /><strong>{dashboardAccountName}</strong><ChevronDown size={15} /></button>
             {openPanel && (
               <div className={`workspace-popover ${openPanel === "account" ? "account-menu-popover" : ""}`} role={openPanel === "account" ? "dialog" : undefined} aria-label={openPanel === "account" ? "Account menu" : undefined}>
