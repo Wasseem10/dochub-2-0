@@ -42,6 +42,8 @@ Before finishing any implementation change in this prototype, commit the scoped 
 
 The dashboard All tools action stays inside the Editorial Monochrome app shell at `/app/tools`. Keep the persistent Quiet Editorial Rail, serif page title, neutral catalog rows, oxblood selection and actions, compact category filtering, and one shared tool search. Do not send dashboard users to the older blue marketing-style Features page.
 
+On the Bright Editorial Desk dashboard, recent-document cards must render a real first-page thumbnail from the saved PDF whenever source bytes are available, including after a reload. Empty blank documents should still read as real white pages rather than generic placeholder tiles. Use clean DM Sans for the welcome greeting and keep document-type markers neutral; do not restore the red PDF file badge.
+
 Documents and owner Analytics use the same Editorial Monochrome app shell as Home and All tools. Documents uses a flat compact library with neutral rows and oxblood actions; Analytics uses a dense neutral metric ledger and square divided report sections. Do not restore blue upload buttons, colorful metric tiles, rounded SaaS cards, or shadow-heavy panels on either route.
 
 Authentication and lazy-loading transitions use PDFArrow’s DM Sans and Funnel Display typography, the blue document mark, concise status copy, a compact centered white card, and reduced-motion-safe progress. Do not use condensed display fonts, tiny all-caps brand pills, or vague filler copy on loading screens.
