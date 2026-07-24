@@ -48,7 +48,7 @@ The owner Analytics page must use the same Editorial Monochrome dashboard shell 
 
 Before finishing any implementation change in this prototype, commit the scoped work and push it to the configured GitHub branch so the connected live deployment can update.
 
-The dashboard All tools action stays inside the Editorial Monochrome app shell at `/app/tools`. Keep the persistent Quiet Editorial Rail, serif page title, neutral catalog rows, oxblood selection and actions, compact category filtering, and one shared tool search. Do not send dashboard users to the older blue marketing-style Features page.
+The dashboard All tools action stays inside the PDFArrow app shell at `/app/tools`. Keep the persistent navigation rail and shared tool search, but use a bright, easy-to-scan catalog inspired by Smallpdf: white three-column tool cards on a powder-blue canvas, clearly color-coded tool icons, a prominent Popular tools section, compact category chips, and grouped More tools below. Favor clear visual scanning over dense neutral list rows.
 
 On the Bright Editorial Desk dashboard, recent-document cards must render a real first-page thumbnail from the saved PDF whenever source bytes are available, including after a reload. Empty blank documents should still read as real white pages rather than generic placeholder tiles. Use clean DM Sans for the welcome greeting and keep document-type markers neutral; do not restore the red PDF file badge.
 

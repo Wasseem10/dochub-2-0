@@ -48,6 +48,49 @@ final result: passed
 
 ---
 
+# All Tools colorful catalog QA
+
+## Scope
+
+- Source visual truth: `C:\Users\wasse\AppData\Local\Temp\codex-clipboard-74cd8612-b69c-410d-8959-18c4e02e2be6.png` (Smallpdf reference)
+- Route: `http://127.0.0.1:4173/app/tools`
+- Implementation screenshot: `C:\Users\wasse\OneDrive\Desktop\pdf-editor\work\design-qa\all-tools-colorful-preview.png`
+- Full comparison evidence: `C:\Users\wasse\OneDrive\Desktop\pdf-editor\work\design-qa\all-tools-colorful-comparison.png`
+- Source pixels: 1543 × 885. Implementation pixels/CSS viewport: 1280 × 720 at device scale 1. The comparison normalizes both desktop views into a single 1836 × 662 artifact.
+- State: anonymous local workspace, All tools category selected.
+
+## Findings
+
+- P0: none.
+- P1: none.
+- P2: none.
+
+The source's scan-first structure is preserved: a pale-blue canvas, a twelve-card popular-tools grid, colored icon blocks, compact category controls, and a clearly separated More tools directory. PDFArrow retains its own branded navigation rail, account controls, and real tool routes rather than copying Smallpdf's surrounding product chrome.
+
+## Required fidelity surfaces
+
+- Fonts and typography: DM Sans creates a compact product UI hierarchy; tool cards use a readable 13px/760 title treatment and the section heading uses a stronger 20px/780 weight.
+- Spacing and layout rhythm: the desktop catalog has an 1110px centered content column, three equal card columns, 8px gutters, and distinct Popular/More section spacing. Category chips wrap cleanly before the card grid.
+- Colors and visual tokens: pale powder blue is the canvas; cards are white with pale blue borders. Eight vivid icon tones make task categories quickly distinguishable while blue remains the primary action color.
+- Image quality and asset fidelity: the supplied PDFArrow logo remains the real cropped wordmark. Existing `ToolIcon` assets are used consistently for each live tool; no placeholder card art is present.
+- Copy and content: popular cards are real released PDFArrow workflows and every card preserves its navigation action. Category filtering remains available.
+
+## Comparison history
+
+- Pass 1: compared the Smallpdf source and browser-rendered PDFArrow implementation side by side. The original dense rows were replaced with the requested colorful three-column card catalog. No actionable P0/P1/P2 mismatch remained after the first visual pass.
+
+## Primary interactions tested
+
+- Loaded `/app/tools` from a fresh local browser tab.
+- Selected the Organize category chip; the Matching tools state appeared exactly once.
+- Verified all featured card buttons were present in the browser DOM and point to the existing tool navigation workflow.
+- Browser console errors: none.
+- TypeScript check and production Vite build: passed.
+
+final result: passed
+
+---
+
 # Homepage clean footer ending QA
 
 ## Scope
