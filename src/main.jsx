@@ -20,6 +20,7 @@ import "./editor-editorial.css";
 import "./auth-reference.css";
 import "./dashboard-bright.css";
 import "./tool-landing-editorial.css";
+import "./homepage-reference.css";
 import { installProductionMonitoring } from "./monitoring/productionMonitoring.js";
 
 installProductionMonitoring();
