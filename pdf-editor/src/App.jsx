@@ -1829,7 +1829,7 @@ export function EditorBrandButton({ onDashboard }) {
       title="Back to dashboard"
       aria-label="Back to PDFArrow dashboard"
     >
-      <BrandWordmark />
+      <BrandWordmark logo />
     </button>
   );
 }
