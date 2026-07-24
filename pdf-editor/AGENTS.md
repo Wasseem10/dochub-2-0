@@ -28,6 +28,8 @@ The floating bottom zoom and page navigator follows the selected July 17, 2026 c
 
 New text boxes must open at a readable minimum size, auto-grow while typing, use Arial as the dependable default PDF font, save on blur, and keep one shared blue selection model with eight resize handles, rotation, keyboard nudging, deletion, and history. The contextual text bar must use clear labels and only operational font/style controls.
 
+While a text box has keyboard focus, hide its transform controls so the writing area stays unobstructed; restore them only after focus leaves the text.
+
 Manage Pages expands the persistent thumbnail rail into a labeled organizer with insert, duplicate, rotate, delete, drag reorder, keyboard reorder, and per-page quick actions. Signature and initials dialogs must disable empty saves and expose labeled controls and a typed keyboard-accessible alternative to drawing.
 
 Every released PDF tool must have its own simple landing page using the current landing page as its visual source of truth: DM Sans hero typography, blue `#2851eb` actions, white and powder-blue surfaces, and compact type. Keep one centered upload card as the dominant action. Do not use green, mint, or cream on tool landing pages. Secondary settings and explanatory content must not compete with the upload action before a file is chosen.

@@ -39,3 +39,18 @@ test("draw mode keeps the pen strip close and leaves completed strokes unselecte
   await expect(page.locator(".ink-annotation.is-selected")).toHaveCount(0);
   await expect(page.locator(".ink-annotation .annotation-controls")).toHaveCount(0);
 });
+
+test("new text stays readable while the cursor is active", async ({ page }) => {
+  await page.goto(appPath("/edit-pdf"));
+  await page.getByRole("button", { name: "Start with a blank page", exact: true }).click();
+  await page.getByRole("button", { name: "Add Text", exact: true }).click();
+
+  const pageSurface = page.locator(".page-surface");
+  const pageBox = await pageSurface.boundingBox();
+  expect(pageBox).not.toBeNull();
+  await page.mouse.click(pageBox.x + 90, pageBox.y + 110);
+
+  await expect(page.getByRole("textbox", { name: "Edit text box", exact: true })).toBeFocused();
+  await expect(page.locator(".text-box.is-selected .annotation-controls")).toHaveCount(0);
+  await expect(page.locator(".text-box.is-selected .resize-control")).toHaveCount(0);
+});

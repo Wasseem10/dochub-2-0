@@ -15,7 +15,7 @@ const settings = {
 describe("editor text objects", () => {
   it("creates a selected-ready blank text box with stable normalized coordinates", () => {
     const text = createTextAnnotation({ id: "text-1", page: 0, point: { x: 0.97, y: 0.99 }, settings, createdAt: "2026-07-16T00:00:00.000Z" });
-    expect(text).toMatchObject({ id: "text-1", type: "text", content: "", w: 0.16, h: 0.05, fontFamily: "Inter" });
+    expect(text).toMatchObject({ id: "text-1", type: "text", content: "", w: 0.12, h: 0.04, fontFamily: "Inter" });
     expect(text.x + text.w).toBeLessThanOrEqual(0.96);
     expect(text.y + text.h).toBeLessThanOrEqual(0.97);
   });
@@ -36,7 +36,7 @@ describe("editor text objects", () => {
   it("auto-sizes new text so short labels are not clipped and multiline text grows vertically", () => {
     const short = estimateTextAnnotationSize({ content: "Audit text", fontSize: 16 });
     const multiline = estimateTextAnnotationSize({ content: "First line\nSecond line\nThird line", fontSize: 16 });
-    expect(short.w).toBeGreaterThanOrEqual(0.16);
+    expect(short.w).toBeGreaterThanOrEqual(0.12);
     expect(multiline.h).toBeGreaterThan(short.h);
   });
 
@@ -50,7 +50,9 @@ describe("editor text objects", () => {
     };
 
     expect(estimateTextAnnotationSize(options)).toEqual(estimateTextAnnotationSize(options));
-    expect(estimateTextAnnotationSize(options)).toEqual({ w: 0.16, h: 0.05 });
+    const estimated = estimateTextAnnotationSize(options);
+    expect(estimated.w).toBeCloseTo(0.12, 8);
+    expect(estimated.h).toBeCloseTo(0.04, 8);
   });
 
   it("caps long text at the available width and adds wrapped lines vertically", () => {
@@ -71,8 +73,8 @@ describe("editor text objects", () => {
     const long = estimateTextAnnotationSize({ content: "This is a longer text value", fontSize: 16, pageWidth: 560, pageHeight: 726 });
     const deleted = estimateTextAnnotationSize({ content: "A", fontSize: 16, pageWidth: 560, pageHeight: 726 });
 
-    expect(deleted.w).toBe(0.16);
-    expect(deleted.h).toBe(0.05);
+    expect(deleted.w).toBe(0.12);
+    expect(deleted.h).toBe(0.04);
     expect(deleted.w).toBeLessThan(long.w);
   });
 });

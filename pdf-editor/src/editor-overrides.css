@@ -8382,6 +8382,12 @@ main.editor-shell .text-box.is-selected .text-content,
   min-width: 24px !important;
 }
 
+/* Let the writing area stay unobstructed while a new text box has focus. */
+main.editor-shell .text-box.is-editing::after,
+.editor-shell .text-box.is-editing::after {
+  display: none !important;
+}
+
 /* Unified professional object selection: one transform model for every annotation. */
 main.editor-shell .annotation.is-selected,
 .editor-shell .annotation.is-selected {
