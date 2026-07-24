@@ -150,6 +150,7 @@ main.editor-shell .reference-tool-ribbon {
   margin: 6px 0 !important;
   padding: 4px 7px !important;
   gap: 2px !important;
+  justify-content: center !important;
   border: 1px solid var(--editorial-line) !important;
   border-radius: 7px !important;
   background: var(--editorial-paper) !important;
@@ -210,10 +211,18 @@ main.editor-shell .reference-annotation-tools {
   padding-left: 3px !important;
 }
 
+main.editor-shell .reference-primary-tools {
+  flex: 0 0 auto !important;
+}
+
 main.editor-shell .reference-secondary-tools {
-  margin-left: auto !important;
+  margin-left: 0 !important;
   padding-left: 7px !important;
-  border-left: 0 !important;
+  border-left: 1px solid var(--editorial-line) !important;
+}
+
+main.editor-shell .reference-secondary-tools .reference-toolbar-button:last-child {
+  width: 56px !important;
 }
 
 main.editor-shell .reference-shape-tool {
@@ -525,6 +534,7 @@ main.editor-shell .annotation-controls button:hover {
   main.editor-shell .reference-tool-ribbon {
     width: calc(100% - 28px) !important;
     margin-inline: 0 !important;
+    justify-content: flex-start !important;
   }
 
   main.editor-shell .reference-toolbar-button {

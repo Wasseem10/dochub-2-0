@@ -22,7 +22,7 @@ The desktop editor’s post-upload screen must follow the July 16, 2026 PDF Help
 
 The selected July 23, 2026 editor redesign is Precision Review Studio (ideation option 2). Match the Editorial Monochrome dashboard with a slim centered-filename header, inset floating command bar, pure-white document canvas, a 176px white thumbnail rail, blue primary and active states, and a compact contextual settings strip directly beneath the command bar. Keep the page as the visual focus and retain the full functional editor toolset.
 
-The primary desktop editor toolbar is a slim 64px floating white rounded card on the light workspace, with compact icon-over-label buttons, subtle group dividers, soft shadow, and a pale PDFArrow-blue active state. Avoid a tall or bulky ribbon; retain only working PDFArrow actions.
+The primary desktop editor toolbar is a slim 64px floating white rounded card on the light workspace, with compact icon-over-label buttons, subtle group dividers, soft shadow, and a pale PDFArrow-blue active state. Center the full control group on desktop rather than splitting actions across the sides. Avoid a tall or bulky ribbon; retain only working PDFArrow actions.
 
 The floating bottom zoom and page navigator follows the selected July 17, 2026 compact rail concept: one low-profile white capsule, borderless Lucide controls, a bordered zoom select, a pale-blue current-page field, one subtle divider, and restrained shadow. Keep zoom out/in, zoom preset, first/previous/next/last page, current page, and total page count functional and aligned.
 
