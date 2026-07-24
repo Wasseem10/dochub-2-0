@@ -1,9 +1,12 @@
 import { useRef, useState } from "react";
+import { Link } from "react-router-dom";
+import ChevronRight from "lucide-react/dist/esm/icons/chevron-right.mjs";
 import CheckCircle2 from "lucide-react/dist/esm/icons/check-circle-2.mjs";
 import FileText from "lucide-react/dist/esm/icons/file-text.mjs";
+import Home from "lucide-react/dist/esm/icons/house.mjs";
 import Lock from "lucide-react/dist/esm/icons/lock.mjs";
+import ShieldCheck from "lucide-react/dist/esm/icons/shield-check.mjs";
 import Upload from "lucide-react/dist/esm/icons/upload.mjs";
-import Zap from "lucide-react/dist/esm/icons/zap.mjs";
 import { PageMetadata } from "../../components/public/PageMetadata.jsx";
 import { ToolGuideContent } from "../../components/public/ToolGuideContent.jsx";
 import { toolSeoSchemas } from "../../tools/toolSeoSchemas.js";
@@ -54,9 +57,16 @@ export function EditorToolUploadPage({ toolId, fileInputRef, onUpload, onDropFil
     <main className="editor-tool-upload-page">
       <PageMetadata title={tool.seoTitle} description={tool.metaDescription} canonicalUrl={tool.canonicalUrl} schemas={toolSeoSchemas(tool)} />
       <input ref={fileInputRef} className="sr-only" type="file" accept="application/pdf,.pdf" onChange={onUpload} />
+      <nav className="editor-tool-breadcrumbs" aria-label="Breadcrumb">
+        <Link to="/"><Home size={14} />Home</Link>
+        <ChevronRight size={14} />
+        <Link to="/tools">All tools</Link>
+        <ChevronRight size={14} />
+        <span aria-current="page">{tool.name}</span>
+      </nav>
       <section className="editor-tool-upload-hero">
         <div className="editor-tool-heading">
-          <h1>{headline}<em>.</em></h1>
+          <h1>{headline}</h1>
           <p>{subheadline} Free to use and ready in seconds.</p>
         </div>
 
@@ -64,6 +74,12 @@ export function EditorToolUploadPage({ toolId, fileInputRef, onUpload, onDropFil
           <div
             className={`editor-tool-dropzone ${dragging ? "is-dragging" : ""}`}
             onClick={openPicker}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                openPicker();
+              }
+            }}
             onDragEnter={(event) => {
               event.preventDefault();
               dropDepth.current += 1;
@@ -84,12 +100,15 @@ export function EditorToolUploadPage({ toolId, fileInputRef, onUpload, onDropFil
               setDragging(false);
               onDropFiles(event.dataTransfer.files);
             }}
+            role="button"
+            tabIndex={isUploading ? -1 : 0}
+            aria-label={`Choose a PDF to ${DROP_ACTION[tool.id] || "open"}`}
           >
             <span className="editor-tool-upload-icon"><Upload size={48} strokeWidth={1.8} /></span>
             <h2>{dragging ? "Drop your PDF to open it" : `Drop your PDF here to ${DROP_ACTION[tool.id] || "open"}`}</h2>
             <button type="button" disabled={isUploading} onClick={(event) => { event.stopPropagation(); openPicker(); }}>
-              {isUploading ? <Upload className="is-uploading" size={21} /> : <Zap size={21} fill="currentColor" />}
-              {isUploading ? "Opening your PDF..." : "Upload from your device"}
+              <FileText className={isUploading ? "is-uploading" : ""} size={19} />
+              {isUploading ? "Opening your PDF..." : "Choose a PDF"}
             </button>
             {tool.id === "edit-pdf" && onBlankPage && (
               <button type="button" className="editor-tool-blank-action" disabled={isUploading} onClick={(event) => { event.stopPropagation(); onBlankPage(); }}>
@@ -104,9 +123,9 @@ export function EditorToolUploadPage({ toolId, fileInputRef, onUpload, onDropFil
         </div>
 
         <div className="editor-tool-trust-row" aria-label="Upload information">
-          <span><Lock size={16} /> Private browser workspace</span>
-          <span><CheckCircle2 size={16} /> No account required to edit</span>
-          <span><FileText size={16} /> No login required to download</span>
+          <span><Lock size={16} /> Your file stays in your browser</span>
+          <span><CheckCircle2 size={16} /> No account required</span>
+          <span><ShieldCheck size={16} /> No file uploads to our servers</span>
         </div>
       </section>
       <ToolGuideContent tool={tool} />

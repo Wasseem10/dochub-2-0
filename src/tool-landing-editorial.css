@@ -1,0 +1,515 @@
+.editor-tool-upload-page {
+  --tool-blue: #2851eb;
+  --tool-ink: #101323;
+  --tool-body: #5e6678;
+  --tool-line: #e3e7f0;
+  --tool-powder: #eef3ff;
+  --tool-blush: #fff3f5;
+  min-height: calc(100vh - 68px);
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 22% 10%, rgba(230, 239, 255, .9), transparent 24rem),
+    radial-gradient(circle at 79% 15%, rgba(255, 236, 240, .72), transparent 22rem),
+    #fff;
+  color: var(--tool-ink);
+}
+
+.editor-tool-breadcrumbs {
+  display: flex;
+  width: min(1160px, calc(100% - 48px));
+  min-height: 58px;
+  align-items: center;
+  gap: 8px;
+  margin: 0 auto;
+  color: #7a8291;
+  font-size: 12px;
+}
+
+.editor-tool-breadcrumbs a {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.editor-tool-breadcrumbs a:hover { color: var(--tool-blue); }
+
+.editor-tool-upload-hero {
+  width: min(1050px, calc(100% - 48px));
+  padding: 48px 0 44px;
+}
+
+.editor-tool-heading h1 {
+  max-width: 920px;
+  color: var(--tool-ink);
+  font-family: "DM Sans", Inter, ui-sans-serif, system-ui, sans-serif;
+  font-size: clamp(46px, 5.25vw, 70px);
+  font-weight: 760;
+  letter-spacing: -.055em;
+  line-height: 1.02;
+}
+
+.editor-tool-heading p {
+  max-width: 720px;
+  margin-top: 17px;
+  color: var(--tool-body);
+  font-size: clamp(16px, 1.5vw, 19px);
+  line-height: 1.55;
+}
+
+.editor-tool-upload-frame {
+  width: 100%;
+  margin-top: 42px;
+  padding: 16px;
+  border: 1px solid rgba(40, 81, 235, .08);
+  border-radius: 22px;
+  background: rgba(255, 255, 255, .84);
+  box-shadow: 0 24px 62px rgba(74, 93, 151, .14), 0 3px 10px rgba(25, 32, 54, .04);
+  backdrop-filter: blur(14px);
+}
+
+.editor-tool-dropzone {
+  min-height: 360px;
+  gap: 14px;
+  padding: 44px 24px;
+  border: 1.5px dashed #88a2fa;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, .72);
+  outline: 0;
+}
+
+.editor-tool-dropzone:hover,
+.editor-tool-dropzone.is-dragging {
+  border-color: var(--tool-blue);
+  background: rgba(247, 249, 255, .96);
+  box-shadow: inset 0 0 0 4px rgba(40, 81, 235, .06);
+}
+
+.editor-tool-upload-icon {
+  width: 62px;
+  height: 62px;
+  border: 1px solid #cbd7ff;
+  border-radius: 16px;
+  background: var(--tool-powder);
+  color: var(--tool-blue);
+  box-shadow: 0 10px 24px rgba(40, 81, 235, .11);
+}
+
+.editor-tool-upload-icon svg { width: 31px; height: 31px; }
+
+.editor-tool-dropzone h2 {
+  margin: 7px 0 0;
+  color: var(--tool-ink);
+  font-size: clamp(24px, 2.1vw, 30px);
+  font-weight: 690;
+  letter-spacing: -.035em;
+}
+
+.editor-tool-dropzone button {
+  min-width: min(100%, 255px);
+  min-height: 52px;
+  margin-top: 2px;
+  border-radius: 11px;
+  background: var(--tool-blue);
+  color: #fff;
+  font-size: 15px;
+  box-shadow: 0 12px 25px rgba(40, 81, 235, .2);
+}
+
+.editor-tool-dropzone button:hover { background: #1e42d4; }
+.editor-tool-dropzone .editor-tool-blank-action { min-height: 40px; border-color: #d5dcf3; background: #fff; color: var(--tool-blue); }
+.editor-tool-dropzone p { color: #8a92a3; font-size: 13px; }
+.editor-tool-upload-progress span { background: var(--tool-blue); }
+
+.editor-tool-trust-row {
+  width: 100%;
+  justify-content: space-evenly;
+  gap: 18px;
+  margin-top: 27px;
+  color: #333a4b;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.editor-tool-trust-row svg { color: var(--tool-blue); }
+.editor-tool-upload-page :focus-visible { outline: 3px solid rgba(40, 81, 235, .58); outline-offset: 4px; }
+
+.editor-tool-upload-page .tool-guide-content {
+  display: grid;
+  width: min(1160px, calc(100% - 48px));
+  gap: 0;
+  margin: 0 auto;
+  padding: 18px 0 104px;
+  color: var(--tool-ink);
+}
+
+.editor-tool-upload-page .tool-guide-content h2,
+.editor-tool-upload-page .tool-guide-content h3,
+.editor-tool-upload-page .tool-guide-content p { margin-top: 0; }
+
+.tool-guide-simple-steps {
+  padding: 52px 0 68px;
+  text-align: center;
+}
+
+.tool-guide-simple-steps > h2,
+.tool-guide-workflow > h2,
+.tool-guide-related > h2 {
+  margin-bottom: 30px;
+  font-size: clamp(26px, 2.4vw, 34px);
+  font-weight: 720;
+  letter-spacing: -.04em;
+}
+
+.tool-guide-simple-steps > div {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 68px;
+}
+
+.tool-guide-simple-steps article {
+  position: relative;
+  display: grid;
+  justify-items: center;
+}
+
+.tool-guide-simple-steps article:not(:last-child)::after {
+  position: absolute;
+  top: 54px;
+  left: calc(100% + 8px);
+  width: 52px;
+  border-top: 1.5px dashed #8da6ff;
+  content: "";
+}
+
+.tool-guide-step-number {
+  position: absolute;
+  top: 13px;
+  left: calc(50% - 76px);
+  display: grid;
+  width: 27px;
+  height: 27px;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--tool-blue);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.tool-guide-step-icon {
+  display: grid;
+  width: 158px;
+  height: 108px;
+  place-items: center;
+  border-radius: 22px;
+  background: linear-gradient(145deg, #f8faff, #f1f4fc);
+  color: var(--tool-blue);
+}
+
+.tool-guide-simple-steps h3 {
+  margin: 15px 0 6px;
+  font-size: 16px;
+  font-weight: 720;
+  letter-spacing: -.02em;
+}
+
+.tool-guide-simple-steps p {
+  max-width: 255px;
+  margin-bottom: 0;
+  color: var(--tool-body);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.tool-guide-workflow {
+  padding: 64px 0 72px;
+  border-top: 1px solid var(--tool-line);
+  border-bottom: 1px solid var(--tool-line);
+}
+
+.tool-guide-workflow > h2 { text-align: center; }
+
+.tool-guide-workflow-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(340px, .85fr);
+  align-items: center;
+  gap: 64px;
+}
+
+.tool-guide-workflow figure {
+  position: relative;
+  margin: 0;
+  padding: 34px 0 0 34px;
+}
+
+.tool-guide-workflow figure::before {
+  position: absolute;
+  inset: 0 auto auto 0;
+  width: 142px;
+  height: 142px;
+  border: 1.5px dashed #86a2ff;
+  border-radius: 12px;
+  content: "";
+}
+
+.tool-guide-workflow img {
+  position: relative;
+  display: block;
+  width: 100%;
+  border: 1px solid #d5ddec;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 18px 45px rgba(54, 67, 109, .11);
+}
+
+.tool-guide-workflow-copy ol {
+  display: grid;
+  gap: 15px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tool-guide-workflow-copy li {
+  display: grid;
+  grid-template-columns: 28px 1fr;
+  align-items: start;
+  gap: 12px;
+}
+
+.tool-guide-workflow-copy li > span {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--tool-powder);
+  color: var(--tool-blue);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.tool-guide-workflow-copy li p {
+  margin: 4px 0 0;
+  color: #343b4c;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.tool-guide-workflow-copy aside {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 10px;
+  margin-top: 27px;
+  padding: 16px;
+  border-radius: 12px;
+  background: var(--tool-powder);
+  color: var(--tool-blue);
+}
+
+.tool-guide-workflow-copy aside p { margin: 0; color: #3c4d8d; font-size: 12px; line-height: 1.5; }
+
+.editor-tool-upload-page .tool-guide-related {
+  padding: 64px 0 70px;
+  border-bottom: 1px solid var(--tool-line);
+  text-align: center;
+}
+
+.editor-tool-upload-page .tool-guide-related > div {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 0;
+}
+
+.editor-tool-upload-page .tool-guide-related a {
+  position: relative;
+  display: grid;
+  min-height: 178px;
+  grid-template-columns: 1fr auto;
+  align-content: start;
+  gap: 15px 6px;
+  padding: 20px;
+  border: 1px solid var(--tool-line);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, .78);
+  color: var(--tool-ink);
+  text-align: left;
+  text-decoration: none;
+  transition: border-color .16s ease, box-shadow .16s ease, transform .16s ease;
+}
+
+.editor-tool-upload-page .tool-guide-related a:hover {
+  border-color: #b8c5f5;
+  box-shadow: 0 12px 25px rgba(40, 81, 235, .08);
+  transform: translateY(-2px);
+}
+
+.editor-tool-upload-page .tool-guide-related a > span {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  grid-column: 1 / -1;
+  place-items: center;
+  border-radius: 0;
+  background: transparent;
+  color: var(--tool-blue);
+}
+
+.editor-tool-upload-page .tool-guide-related a strong { font-size: 14px; }
+.editor-tool-upload-page .tool-guide-related a small { display: block; margin-top: 7px; color: var(--tool-body); font-size: 11px; line-height: 1.45; }
+.editor-tool-upload-page .tool-guide-related a > svg { align-self: end; color: var(--tool-blue); }
+
+.tool-guide-faq {
+  display: grid;
+  grid-template-columns: 300px minmax(0, 1fr);
+  gap: 76px;
+  padding: 72px 0 0;
+}
+
+.tool-guide-faq-intro h2 {
+  margin-bottom: 18px;
+  font-size: clamp(32px, 3.5vw, 48px);
+  font-weight: 760;
+  letter-spacing: -.055em;
+  line-height: 1.05;
+}
+
+.tool-guide-faq-intro p {
+  margin-bottom: 23px;
+  color: var(--tool-body);
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.tool-guide-faq-intro a {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--tool-blue);
+  font-size: 13px;
+  font-weight: 760;
+  text-decoration: none;
+}
+
+.tool-guide-faq-list {
+  overflow: hidden;
+  border: 1px solid var(--tool-line);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, .82);
+}
+
+.tool-guide-faq-list details + details { border-top: 1px solid var(--tool-line); }
+
+.tool-guide-faq-list summary {
+  position: relative;
+  display: grid;
+  min-height: 62px;
+  grid-template-columns: 1fr 22px;
+  align-items: center;
+  gap: 18px;
+  padding: 0 20px;
+  color: var(--tool-ink);
+  font-size: 14px;
+  font-weight: 650;
+  cursor: pointer;
+  list-style: none;
+}
+
+.tool-guide-faq-list summary::-webkit-details-marker { display: none; }
+.tool-guide-faq-list summary span::before,
+.tool-guide-faq-list summary span::after {
+  position: absolute;
+  top: 50%;
+  right: 22px;
+  width: 14px;
+  height: 1.5px;
+  background: var(--tool-blue);
+  content: "";
+  transform: translateY(-50%);
+}
+
+.tool-guide-faq-list summary span::after { transform: translateY(-50%) rotate(90deg); }
+.tool-guide-faq-list details[open] summary span::after { transform: translateY(-50%) rotate(0); }
+.tool-guide-faq-list details[open] summary { padding-top: 16px; }
+.tool-guide-faq-list details p { margin: 0; padding: 0 58px 20px 20px; color: var(--tool-body); font-size: 13px; line-height: 1.65; }
+
+@media (max-width: 900px) {
+  .editor-tool-breadcrumbs,
+  .editor-tool-upload-hero,
+  .editor-tool-upload-page .tool-guide-content { width: min(100% - 32px, 740px); }
+  .tool-guide-workflow-grid { grid-template-columns: 1fr; gap: 38px; }
+  .editor-tool-upload-page .tool-guide-related > div { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .tool-guide-faq { grid-template-columns: 240px 1fr; gap: 38px; }
+}
+
+@media (max-width: 640px) {
+  .editor-tool-breadcrumbs {
+    width: calc(100% - 28px);
+    min-height: 46px;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+
+  .editor-tool-upload-hero {
+    width: calc(100% - 28px);
+    padding: 36px 0 28px;
+  }
+
+  .editor-tool-heading h1 { font-size: clamp(38px, 11.5vw, 50px); line-height: 1.02; }
+  .editor-tool-heading p { max-width: 34ch; font-size: 15px; }
+  .editor-tool-upload-frame { margin-top: 30px; padding: 9px; border-radius: 18px; }
+  .editor-tool-dropzone { min-height: 330px; padding: 36px 17px; border-radius: 12px; }
+  .editor-tool-dropzone h2 { font-size: 22px; }
+  .editor-tool-dropzone button { width: 100%; min-width: 0; }
+  .editor-tool-trust-row { display: grid; width: fit-content; justify-content: start; margin: 23px auto 0; }
+
+  .editor-tool-upload-page .tool-guide-content {
+    width: calc(100% - 28px);
+    padding-bottom: 72px;
+  }
+
+  .tool-guide-simple-steps { padding: 42px 0 56px; }
+  .tool-guide-simple-steps > div { grid-template-columns: 1fr; gap: 34px; }
+  .tool-guide-simple-steps article:not(:last-child)::after { display: none; }
+  .tool-guide-step-icon { width: min(210px, 70vw); height: 100px; }
+  .tool-guide-step-number { left: calc(50% - min(105px, 35vw) - 8px); }
+  .tool-guide-simple-steps p { max-width: 300px; }
+
+  .tool-guide-workflow { padding: 50px 0 56px; }
+  .tool-guide-workflow > h2,
+  .tool-guide-related > h2,
+  .tool-guide-simple-steps > h2 { margin-bottom: 24px; font-size: 27px; }
+  .tool-guide-workflow figure { padding: 22px 0 0 16px; }
+  .tool-guide-workflow figure::before { width: 92px; height: 92px; }
+  .tool-guide-workflow-grid { gap: 30px; }
+
+  .editor-tool-upload-page .tool-guide-related { padding: 50px 0 54px; }
+  .editor-tool-upload-page .tool-guide-related > div {
+    grid-template-columns: 1fr;
+    gap: 9px;
+  }
+  .editor-tool-upload-page .tool-guide-related a {
+    min-height: 0;
+    grid-template-columns: 40px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 12px;
+    padding: 15px;
+  }
+  .editor-tool-upload-page .tool-guide-related a > span { grid-column: auto; }
+  .editor-tool-upload-page .tool-guide-related a small { margin-top: 4px; }
+
+  .tool-guide-faq { grid-template-columns: 1fr; gap: 28px; padding-top: 52px; }
+  .tool-guide-faq-intro h2 { max-width: 12ch; font-size: 38px; }
+  .tool-guide-faq-list summary { min-height: 64px; padding: 11px 48px 11px 16px; line-height: 1.35; }
+  .tool-guide-faq-list summary span::before,
+  .tool-guide-faq-list summary span::after { right: 17px; }
+  .tool-guide-faq-list details[open] summary { padding-top: 15px; }
+  .tool-guide-faq-list details p { padding: 0 42px 18px 16px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .editor-tool-upload-page .tool-guide-related a { transition: none; }
+}

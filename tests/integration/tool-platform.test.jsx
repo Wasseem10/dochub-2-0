@@ -97,10 +97,10 @@ describe("public PDF tool platform", () => {
     );
     expect(editor.root.findAllByType("input").some((input) => input.props.type === "file" && input.props.accept.includes("application/pdf"))).toBe(true);
     expect(textOf(editor.root).includes("Sign a PDF online")).toBe(true);
-    expect(textOf(editor.root).includes("Upload from your device")).toBe(true);
-    expect(textOf(editor.root).includes("No account required to edit")).toBe(true);
-    expect(textOf(editor.root).includes("No login required to download")).toBe(true);
-    expect(textOf(editor.root).includes("How to use Sign PDF safely")).toBe(true);
+    expect(textOf(editor.root).includes("Choose a PDF")).toBe(true);
+    expect(textOf(editor.root).includes("No account required")).toBe(true);
+    expect(textOf(editor.root).includes("No file uploads to our servers")).toBe(true);
+    expect(textOf(editor.root).includes("How to use Sign PDF")).toBe(true);
     expect(textOf(editor.root).includes("Is this a digital certificate signature?")).toBe(true);
     expect(editor.root.findAllByType("button")).toHaveLength(1);
     await unmount(editor);
