@@ -12,9 +12,9 @@ export function estimateTextAnnotationSize({
   lineHeight = 1.25,
   pageWidth = 760,
   pageHeight = 984,
-  minWidth = 0.16,
+  minWidth = 0.12,
   maxWidth = 0.78,
-  minHeight = 0.05,
+  minHeight = 0.04,
   maxHeight = 0.42,
   measureLine,
 } = {}) {

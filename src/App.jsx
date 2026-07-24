@@ -1457,6 +1457,7 @@ function ProfessionalAnnotation({ annotation, selected, zoom, activeTool, pageWi
   const textDraftRef = useRef(annotation.content || "");
   const lineGestureRef = useRef(null);
   const [liveLineAnnotation, setLiveLineAnnotation] = useState(null);
+  const [isTextEditing, setIsTextEditing] = useState(false);
   const initialFrame = () => annotation.type === "circle"
     ? normalizeCircleFrame(getAnnotationFrame(annotation), pageWidth, pageHeight)
     : getAnnotationFrame(annotation);
@@ -1525,7 +1526,7 @@ function ProfessionalAnnotation({ annotation, selected, zoom, activeTool, pageWi
       const nextFrame = kind === "resize"
         ? annotation.type === "circle"
           ? resizeCircleFrame(originFrame, handle, deltaX, deltaY, pageRect.width, pageRect.height)
-          : resizeFrame(originFrame, handle, deltaX, deltaY, annotation.type === "text" ? { minWidth: 0.16, minHeight: 0.05 } : undefined)
+          : resizeFrame(originFrame, handle, deltaX, deltaY, annotation.type === "text" ? { minWidth: 0.12, minHeight: 0.04 } : undefined)
         : kind === "rotate"
           ? { ...originFrame, rotation: rotationFromPointer(originFrame, pageRect, moveEvent.clientX, moveEvent.clientY, rotationOffset) }
           : moveFrame(originFrame, deltaX, deltaY);
@@ -1633,7 +1634,7 @@ function ProfessionalAnnotation({ annotation, selected, zoom, activeTool, pageWi
     transformOrigin: "center",
     "--annotation-counter-rotation": `${-(liveFrame.rotation || 0)}deg`,
   };
-  const controls = selected ? (
+  const controls = selected && !(annotation.type === "text" && isTextEditing) ? (
     <EditorSelectionControls
       onDelete={() => onDelete(annotation.id)}
       onMoveStart={dragStart}
@@ -1663,8 +1664,8 @@ function ProfessionalAnnotation({ annotation, selected, zoom, activeTool, pageWi
       lineHeight: annotation.lineHeight || 1.25,
       pageWidth: pageRect.width,
       pageHeight: pageRect.height,
-      maxWidth: clamp(0.98 - currentFrame.x, 0.16, 0.78),
-      maxHeight: clamp(0.98 - currentFrame.y, 0.05, 0.42),
+      maxWidth: clamp(0.98 - currentFrame.x, 0.12, 0.78),
+      maxHeight: clamp(0.98 - currentFrame.y, 0.04, 0.42),
       measureLine: context ? (line) => context.measureText(line || " ").width : undefined,
     });
     const nextFrame = {
@@ -1812,9 +1813,9 @@ function ProfessionalAnnotation({ annotation, selected, zoom, activeTool, pageWi
   }
 
   return (
-    <div className={`annotation text-box ${selected ? "is-selected" : ""}`} style={{ ...commonStyle, color: annotation.color, fontFamily: annotation.fontFamily || "Arial, Helvetica, sans-serif", fontSize: `${annotation.fontSize * textDisplayScale}px`, fontWeight: annotation.bold ? 700 : 500, fontStyle: annotation.italic ? "italic" : "normal", textDecoration: annotation.underline ? "underline" : "none", textAlign: annotation.textAlign || "left", lineHeight: annotation.lineHeight || 1.25 }} onPointerDown={dragStart}>
+    <div className={`annotation text-box ${selected ? "is-selected" : ""} ${isTextEditing ? "is-editing" : ""}`} style={{ ...commonStyle, color: annotation.color, fontFamily: annotation.fontFamily || "Arial, Helvetica, sans-serif", fontSize: `${annotation.fontSize * textDisplayScale}px`, fontWeight: annotation.bold ? 700 : 500, fontStyle: annotation.italic ? "italic" : "normal", textDecoration: annotation.underline ? "underline" : "none", textAlign: annotation.textAlign || "left", lineHeight: annotation.lineHeight || 1.25 }} onPointerDown={dragStart}>
       {controls}
-      <EditableTextContent ref={textContentRef} ariaLabel="Edit text box" className="text-content" editable={selected} spellCheck="false" value={annotation.content} onPointerDown={(event) => { event.stopPropagation(); onSelect(annotation.id); }} onChange={updateTextContent} onBlur={commitTextContent} />
+      <EditableTextContent ref={textContentRef} ariaLabel="Edit text box" className="text-content" editable={selected} spellCheck="false" value={annotation.content} onPointerDown={(event) => { event.stopPropagation(); onSelect(annotation.id); }} onFocus={() => setIsTextEditing(true)} onChange={updateTextContent} onBlur={() => { setIsTextEditing(false); commitTextContent(); }} />
     </div>
   );
 }
