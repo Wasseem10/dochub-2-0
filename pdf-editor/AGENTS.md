@@ -8,7 +8,7 @@ Before making substantial visual changes, use the Product Design plugin's `get-c
 
 When implementing from a selected generated mock, treat that image as the source of truth for layout, component anatomy, density, spacing, color, typography, visible content, and hierarchy.
 
-For the editor page rail, use a narrow 144px white thumbnail sidebar with compact 72px portrait previews, no cropping or stretching, a dark rounded selected outline, bare gray page numbers, and a four-button footer ordered trash, clockwise rotate, add page, then download. The top-left list button must toggle this rail and must not navigate to the dashboard.
+For the editor page rail, use a 176px white or powder-blue thumbnail sidebar with readable 112px portrait previews, no cropping or stretching, a light-blue selected outline, bare gray page numbers, and a four-button footer ordered trash, clockwise rotate, add page, then download. The top-left list button must toggle this rail and must not navigate to the dashboard.
 
 The product name is PDFArrow. The landing hero’s right column must remain a functional PDF drag-and-drop upload zone. Selecting or dropping a PDF should open the editor without first forcing authentication.
 
@@ -20,7 +20,7 @@ The homepage Popular Tools section should keep its simple card-grid structure ra
 
 The desktop editor’s post-upload screen must follow the July 16, 2026 PDF Help editor screenshot as its interaction and layout reference while preserving PDFArrow branding and original implementation. Use a clean document header, one horizontal primary toolbar with direct access to Thumbnails, Undo, Redo, Add Text, Edit Text, Sign, Arrow/shapes, Draw, Erase, Highlight, Text Highlight, Image, Stamp, Link, Note, Search, and Manage Pages, a toggleable white thumbnail rail, and a centered continuous document canvas. Do not restore the older six-mode left rail or contextual mode ribbon. Selected objects use one blue normalized transform model with eight resize handles, a rotation handle, keyboard deletion, and undo/redo; text boxes enter editing immediately, save on blur, and discard abandoned empty boxes. Every visible primary toolbar control must perform a real workflow; do not add disabled “coming soon” controls.
 
-The selected July 23, 2026 editor redesign is Precision Review Studio (ideation option 2). Match the Editorial Monochrome dashboard with a slim centered-filename header, inset floating command bar, warm stone document canvas, 144px warm-white thumbnail rail, oxblood active states, and a compact contextual settings strip directly beneath the command bar. Keep the page as the visual focus and retain the full functional editor toolset.
+The selected July 23, 2026 editor redesign is Precision Review Studio (ideation option 2). Match the Editorial Monochrome dashboard with a slim centered-filename header, inset floating command bar, powder-blue document canvas, a 176px white or powder-blue thumbnail rail, light-blue active states, and a compact contextual settings strip directly beneath the command bar. Keep the page as the visual focus and retain the full functional editor toolset.
 
 The primary desktop editor toolbar is a floating white rounded card on the light workspace, with compact icon-over-label buttons, subtle group dividers, soft shadow, and a pale PDFArrow-blue active state. Keep the control density and grouping aligned with the July 17, 2026 toolbar reference while retaining only working PDFArrow actions.
 
