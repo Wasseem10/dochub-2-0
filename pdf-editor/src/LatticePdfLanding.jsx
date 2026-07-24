@@ -3,17 +3,18 @@ import { Link } from "react-router-dom";
 import ArrowRight from "lucide-react/dist/esm/icons/arrow-right.mjs";
 import Check from "lucide-react/dist/esm/icons/check.mjs";
 import ChevronDown from "lucide-react/dist/esm/icons/chevron-down.mjs";
-import Clock3 from "lucide-react/dist/esm/icons/clock-3.mjs";
 import FileText from "lucide-react/dist/esm/icons/file-text.mjs";
+import Globe2 from "lucide-react/dist/esm/icons/globe-2.mjs";
 import Grid3X3 from "lucide-react/dist/esm/icons/grid-3x3.mjs";
-import LockKeyhole from "lucide-react/dist/esm/icons/lock-keyhole.mjs";
 import Menu from "lucide-react/dist/esm/icons/menu.mjs";
 import PencilLine from "lucide-react/dist/esm/icons/pencil-line.mjs";
 import RefreshCw from "lucide-react/dist/esm/icons/refresh-cw.mjs";
+import Rocket from "lucide-react/dist/esm/icons/rocket.mjs";
 import ShieldCheck from "lucide-react/dist/esm/icons/shield-check.mjs";
 import Signature from "lucide-react/dist/esm/icons/signature.mjs";
 import Upload from "lucide-react/dist/esm/icons/upload.mjs";
 import X from "lucide-react/dist/esm/icons/x.mjs";
+import Zap from "lucide-react/dist/esm/icons/zap.mjs";
 import { BrandWordmark } from "./components/public/BrandWordmark.jsx";
 import { PageMetadata } from "./components/public/PageMetadata.jsx";
 import { absoluteSiteUrl } from "./config/site.js";
@@ -66,7 +67,7 @@ const heroTasks = [
   { label: "Edit", route: ROUTE_PATHS.editPdf, icon: PencilLine, tone: "coral" },
   { label: "Sign", route: ROUTE_PATHS.signPdf, icon: Signature, tone: "lilac" },
   { label: "Organize", route: "/organize-pdf", icon: Grid3X3, tone: "yellow" },
-  { label: "Convert", route: "/pdf-to-jpg", icon: RefreshCw, tone: "pink" },
+  { label: "Convert", route: "/pdf-to-jpg", icon: RefreshCw, tone: "blue" },
 ];
 
 const footerToolGroups = [
@@ -164,13 +165,14 @@ function SiteHeader({ onChoose }) {
     ["Organize", "/organize-pdf"],
     ["Sign", ROUTE_PATHS.signPdf],
     ["Convert", "/pdf-to-jpg"],
+    ["Pricing", ROUTE_PATHS.pricing],
   ];
 
   return <header className="freepdf-header-shell">
     <div className="freepdf-header">
       <Brand />
       <nav className="freepdf-desktop-nav" aria-label="Primary navigation">
-        <button ref={toolsButtonRef} type="button" className={`freepdf-tools-trigger ${toolsOpen ? "is-open" : ""}`} aria-expanded={toolsOpen} aria-haspopup="true" aria-controls="freepdf-tools-menu" onClick={() => { setToolsOpen((value) => !value); setOpen(false); }}><Grid3X3 className="freepdf-tools-grid-icon" size={18} /> <span>Tools</span> <ChevronDown className="freepdf-tools-chevron" size={14} /></button>
+        <button ref={toolsButtonRef} type="button" className={`freepdf-tools-trigger ${toolsOpen ? "is-open" : ""}`} aria-expanded={toolsOpen} aria-haspopup="true" aria-controls="freepdf-tools-menu" onClick={() => { setToolsOpen((value) => !value); setOpen(false); }}><span>Tools</span> <ChevronDown className="freepdf-tools-chevron" size={14} /></button>
         {links.slice(1).map(([label, href]) => <Link key={label} to={href} onClick={() => setToolsOpen(false)}>{label}</Link>)}
       </nav>
       <div className="freepdf-header-actions">
@@ -285,8 +287,8 @@ export function LatticePdfLanding({ fileInputRef, onUpload, onSelectFiles, onDro
     <section className="freepdf-hero">
       <div className="freepdf-hero-layout">
         <div className="freepdf-hero-copy">
-          <h1>Every PDF task,<br />finally in <span>one place.</span></h1>
-          <p>Edit, sign, organize, and convert your PDFs without subscriptions, watermarks, or a maze of different apps.</p>
+          <h1>Every PDF task,<br /><span>beautifully</span> in one place.</h1>
+          <p>Edit, sign, organize, and convert your PDFs in seconds.<br />Powerful tools. No clutter. Just results.</p>
         </div>
 
         <div className="freepdf-product-stage">
@@ -297,9 +299,10 @@ export function LatticePdfLanding({ fileInputRef, onUpload, onSelectFiles, onDro
         </div>
 
         <section className="freepdf-trust-strip" aria-label="PDFArrow promises">
-          <div><span className="freepdf-trust-icon is-coral"><LockKeyhole size={23} /></span><span><strong>Private by design</strong><small>Your file stays private</small></span></div>
-          <div><span className="freepdf-trust-icon is-lilac"><ShieldCheck size={23} /></span><span><strong>No watermark</strong><small>Clean results, always</small></span></div>
-          <div><span className="freepdf-trust-icon is-yellow"><Clock3 size={23} /></span><span><strong>Start right away</strong><small>No account needed</small></span></div>
+          <div><span className="freepdf-trust-icon is-lilac"><ShieldCheck size={23} /></span><span><strong>Secure by design</strong><small>Your file stays in this browser</small></span></div>
+          <div><span className="freepdf-trust-icon is-yellow"><Zap size={23} /></span><span><strong>No signup needed</strong><small>Start working right away</small></span></div>
+          <div><span className="freepdf-trust-icon is-blue"><Globe2 size={23} /></span><span><strong>Works anywhere</strong><small>On any modern browser</small></span></div>
+          <div><span className="freepdf-trust-icon is-pink"><Rocket size={23} /></span><span><strong>Blazing fast</strong><small>Local tools save you time</small></span></div>
         </section>
       </div>
     </section>

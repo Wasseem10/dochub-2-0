@@ -48,6 +48,47 @@ final result: passed
 
 ---
 
+# Homepage reference redesign QA
+
+## Scope
+
+- Source: `C:\Users\wasse\AppData\Local\Temp\codex-clipboard-6ee76764-5fbb-467d-9e49-482e1a45f9e2.png`
+- Desktop viewport: 1672 × 941
+- Mobile viewport: 390 × 844
+- Route: `http://127.0.0.1:4173/?preview=homepage-reference`
+
+## Evidence
+
+- Source/implementation comparison: `work/design-qa/homepage-reference-comparison.png`
+- Desktop implementation: `work/design-qa/homepage-reference-desktop.png`
+- Mobile implementation: `work/design-qa/homepage-reference-mobile.png`
+
+## Findings
+
+- P0: none.
+- P1: none.
+- P2: the first mobile pass was 970px tall and left the reassurance row partly below the initial viewport. The final pass compresses spacing and the upload panel without weakening its visual priority; the full mobile hero is now 770px tall.
+
+The desktop build matches the selected source hierarchy and composition: compact white navigation, navy two-line headline, coral-to-orange emphasis, four pastel tool shortcuts, a large coral outlined upload target, balanced document-tool edge artwork, and four compact reassurance items. The mobile treatment uses a separately composed sparse edge-art asset, a 2 × 2 tool grid, a large touch-friendly upload panel, and a 2 × 2 reassurance grid with no horizontal overflow.
+
+## Functional checks
+
+- The full upload panel remains one accessible button backed by the existing native PDF input.
+- Drag-and-drop, mouse/touch selection, Enter, and Space continue to use the existing upload workflow.
+- Desktop navigation includes Tools, Edit, Organize, Sign, Convert, Pricing, Log in, and Choose a PDF.
+- The mobile menu opens cleanly and exposes the same destinations.
+- All four hero task shortcuts point to real PDFArrow routes.
+- Mobile width check: 390px viewport, no horizontal overflow.
+- Browser console contained no errors or warnings.
+- TypeScript check passed.
+- Unit and integration suite passed: 61 files, 225 tests.
+- Focused responsive browser test passed.
+- Production build and 107-route prerender passed.
+
+final result: passed
+
+---
+
 # Tool landing page design QA
 
 ## Scope
