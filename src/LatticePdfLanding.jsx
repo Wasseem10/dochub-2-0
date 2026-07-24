@@ -213,7 +213,7 @@ function Dropzone({ choose, dragging, setDragging, isUploading, uploadError, upl
     <span className="freepdf-upload-icon"><Upload size={26} /></span>
     <span className="freepdf-dropzone-title">{dragging ? "Drop your PDF here" : isUploading ? "Opening your PDF…" : "Drop your PDF here"}</span>
     <span className="freepdf-dropzone-copy">or choose a file from your device</span>
-    <img className="freepdf-drop-file-art" src={asset("hero-pdf-document-v1.png")} alt="" width="270" height="360" decoding="async" />
+    <img className="freepdf-drop-file-art" src={asset("hero-pdf-document-playful-v1.webp")} alt="" width="512" height="512" decoding="async" />
     <span className="freepdf-upload-status" aria-live="polite">{uploadError ? <span role="alert">{uploadError}</span> : isUploading ? <><span className="freepdf-upload-status-copy">{uploadStage.status}{uploadStage.fileName ? ` · ${uploadStage.fileName}` : ""}</span><span className="freepdf-upload-progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow={uploadStage.percent || 0}><span style={{ width: `${uploadStage.percent || 0}%` }} /></span></> : null}</span>
   </button>;
 }
@@ -268,7 +268,7 @@ export function LatticePdfLanding({ fileInputRef, onUpload, onSelectFiles, onDro
     <SiteHeader onChoose={choose} />
 
     <section className="freepdf-hero">
-      <div className="freepdf-hero-backdrop" aria-hidden="true"><HomepageImage fileName="hero-paper-workspace-v1.png" alt="" width="1825" height="862" sizes="100vw" eager /></div>
+      <div className="freepdf-hero-backdrop" aria-hidden="true"><HomepageImage fileName="hero-paper-confetti-v1.png" alt="" width="1536" height="1024" sizes="100vw" eager /></div>
       <div className="freepdf-hero-layout">
         <div className="freepdf-hero-copy">
           <span className="freepdf-eyebrow">More than just editing</span>
