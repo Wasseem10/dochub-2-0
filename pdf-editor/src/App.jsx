@@ -5808,7 +5808,7 @@ function LandingPage({ fileInputRef, onUpload, onSelectFiles, onLogin }) {
   );
 }
 
-function AuthPage({ mode, setMode, onBack, backLabel = "Back to home", onComplete, onPasswordReset, authReady, isFirebaseConfigured, routeNotice = "" }) {
+function AuthPage({ mode, setMode, onBack, onComplete, onPasswordReset, authReady, routeNotice = "" }) {
   const isSignup = mode === "signup";
   const isPasswordReset = mode === "forgot-password";
   const authMetadata = isSignup
@@ -5881,76 +5881,55 @@ function AuthPage({ mode, setMode, onBack, backLabel = "Back to home", onComplet
     <>
       <PageMetadata {...authMetadata} noIndex />
       <main className="auth-shell">
-      <section className="auth-showcase" aria-label="PDFArrow product preview">
-        <button type="button" className="auth-showcase-brand" onClick={onBack} aria-label="PDFArrow home"><BrandWordmark logo /></button>
-        <div className="auth-showcase-copy">
-          <span>PDFArrow workspace</span>
-          <h1>Your documents, ready when you are.</h1>
-          <p>Edit, sign, organize, and export important PDFs from one focused workspace.</p>
-          <ul className="auth-showcase-points">
-            <li><CheckCircle2 size={18} /> Continue your work across devices with optional cloud history.</li>
-            <li><CheckCircle2 size={18} /> Keep editing, signing, and page tools in one workspace.</li>
-            <li><CheckCircle2 size={18} /> Download polished PDFs without a PDFArrow watermark.</li>
-          </ul>
-        </div>
-        <div className="auth-showcase-preview" aria-hidden="true">
-          <div className="auth-preview-topbar"><span /><span /><span /><strong>Quarterly report.pdf</strong><em>Ready to review</em></div>
-          <div className="auth-preview-body">
-            <aside><span className="is-active" /><span /><span /><span /></aside>
-            <article><small>PDFARROW</small><h3>Quarterly operations review</h3><p /><p /><p /><div><span /><span /><span /></div></article>
-            <section><b>Document status</b><span>3 edits saved</span><span>Ready to export</span></section>
-          </div>
-        </div>
-      </section>
-      <section className="auth-card" aria-label={isSignup ? "Create account" : isPasswordReset ? "Reset password" : "Log in"}>
-        <header className="auth-card-header">
-          <button type="button" className="auth-mark auth-realpdf-brand" onClick={onBack} aria-label="PDFArrow home"><BrandWordmark logo /></button>
-          <button type="button" className="auth-back" onClick={onBack}>{backLabel}</button>
-        </header>
-        <h2>{isSignup ? "Create your workspace" : isPasswordReset ? "Reset your password" : "Sign in to PDFArrow"}</h2>
-        <p className="auth-intro">{isSignup ? "Create an account to keep optional cloud history and workspace preferences together." : isPasswordReset ? "Enter the email associated with your account and we will send a reset link." : "Welcome back. Sign in to continue to your document workspace."}</p>
-        {routeNotice && <div className="auth-notice">{routeNotice}</div>}
-        {!isFirebaseConfigured && <div className="auth-local-mode"><Lock size={15} aria-hidden="true" /><span>Local browser workspace — your session stays on this device.</span></div>}
-        {!isPasswordReset && isFirebaseConfigured && (
-          <>
-            <button type="button" className="sso-button google-button" onClick={submitGoogleAuth} disabled={!authReady || isSubmitting}>
-              Continue with Google
-            </button>
-            <div className="auth-divider"><span /> Or continue with <span /></div>
-          </>
-        )}
-        <form onSubmit={submitAuth}>
-          {isSignup && (
-            <label>
-              Full name
-              <input value={name} onChange={(event) => setName(event.target.value)} placeholder="Your name" />
-            </label>
-          )}
-          <label>
-            Email address
-            <input type="email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" placeholder="you@example.com" />
-          </label>
+        <section className="auth-card" aria-label={isSignup ? "Create account" : isPasswordReset ? "Reset password" : "Log in"}>
+          <h2>{isSignup ? "Create Account" : isPasswordReset ? "Reset Password" : "Sign In"}</h2>
+          {routeNotice && <div className="auth-notice">{routeNotice}</div>}
           {!isPasswordReset && (
-            <label>
-              <span className="auth-label-row">
-                Password
-                {!isSignup && <button type="button" aria-label="Forgot password?" onClick={() => setMode("forgot-password")}>Forgot password?</button>}
-              </span>
-              <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete={isSignup ? "new-password" : "current-password"} placeholder={isSignup ? "At least 6 characters" : "Enter your password"} />
-            </label>
+            <>
+              <button type="button" className="sso-button google-button" onClick={submitGoogleAuth} disabled={!authReady || isSubmitting}>
+                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="" />
+                <span>{isSignup ? "Sign up with Google" : "Sign in with Google"}</span>
+              </button>
+              <div className="auth-divider"><span /> OR USE YOUR EMAIL <span /></div>
+            </>
           )}
-          {error && <div className="auth-error">{error}</div>}
-          {notice && <div className="auth-notice">{notice}</div>}
-          <button type="submit" className="auth-submit" disabled={!authReady || isSubmitting}>
-            {isSubmitting ? "Connecting..." : isSignup ? "Create account" : isPasswordReset ? "Send reset email" : "Sign in"}
-          </button>
-        </form>
-        <div className="auth-security-note"><Lock size={15} aria-hidden="true" /><span>Your PDF processing stays in your browser for supported tools.</span></div>
-        <div className="auth-switch">
-          <span>{isSignup ? "Already have an account?" : isPasswordReset ? "Remembered your password?" : "New to PDFArrow?"}</span>
-          <button type="button" onClick={isPasswordReset ? () => setMode("login") : switchMode}>{isSignup ? "Sign in" : isPasswordReset ? "Back to login" : "Create an account"}</button>
-        </div>
-      </section>
+          <form onSubmit={submitAuth}>
+            {isSignup && (
+              <label className="auth-input-control">
+                <span className="auth-visually-hidden">Full name</span>
+                <Users size={18} aria-hidden="true" />
+                <input value={name} onChange={(event) => setName(event.target.value)} autoComplete="name" placeholder="Your Name" />
+              </label>
+            )}
+            <label className="auth-input-control">
+              <span className="auth-visually-hidden">Email address</span>
+              <Mail size={18} aria-hidden="true" />
+              <input type="email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" placeholder="Your Email" />
+            </label>
+            {!isPasswordReset && (
+              <>
+                <label className="auth-input-control">
+                  <span className="auth-visually-hidden">Password</span>
+                  <Lock size={18} aria-hidden="true" />
+                  <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete={isSignup ? "new-password" : "current-password"} placeholder={isSignup ? "Create a Password" : "Your Password"} />
+                </label>
+                {!isSignup && <button type="button" className="auth-forgot" onClick={() => setMode("forgot-password")}>Forgot Password?</button>}
+              </>
+            )}
+            {error && <div className="auth-error">{error}</div>}
+            {notice && <div className="auth-notice">{notice}</div>}
+            <button type="submit" className="auth-submit" disabled={!authReady || isSubmitting}>
+              {isSubmitting ? "Connecting..." : isSignup ? "Create Account" : isPasswordReset ? "Send Reset Email" : "Sign In"}
+            </button>
+          </form>
+          <div className="auth-switch">
+            <span>{isSignup ? "Already have an account?" : isPasswordReset ? "Remembered your password?" : "New to PDFArrow?"}</span>
+            <button type="button" onClick={isPasswordReset ? () => setMode("login") : switchMode}>{isSignup ? "Sign In" : isPasswordReset ? "Back to Sign In" : "Sign Up"}</button>
+          </div>
+          <footer className="auth-product-footer">
+            <button type="button" onClick={onBack}>One account for every PDFArrow workspace</button>
+          </footer>
+        </section>
       </main>
     </>
   );
