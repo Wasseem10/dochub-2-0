@@ -45,3 +45,40 @@
 - No P3 follow-up is required for this scoped refinement.
 
 final result: passed
+
+---
+
+# Tool landing page design QA
+
+## Scope
+
+- Selected source: Airy Editorial Glow, option 1
+- Primary route: `http://127.0.0.1:4173/edit-pdf?preview=final`
+- Reuse check: `http://127.0.0.1:4173/sign-pdf?preview=final`
+- Desktop viewport: 1440 × 1024
+- Mobile viewport: 390 × 844
+
+## Evidence
+
+- Source/implementation comparison: `work/design-qa/tool-landing-comparison.png`
+- Desktop implementation: `work/design-qa/tool-landing-desktop.png`
+- Mobile implementation: `work/design-qa/tool-landing-mobile.png`
+
+## Findings
+
+- P0: none.
+- P1: none.
+- P2: the initial FAQ title produced an awkward phrase and the breadcrumb targeted an incorrect tools path. Both were corrected before the final pass.
+
+The implementation preserves the selected concept's hierarchy: breadcrumb, large compact headline, soft powder-blue and blush light, dominant upload card, three-step strip, real PDFArrow workspace tutorial, related tools, and split FAQ. The mobile version recomposes every section into a single readable column with full-width touch targets and no horizontal overflow.
+
+## Functional checks
+
+- The entire drop zone is exposed as a keyboard-focusable button and handles Enter and Space.
+- Drag-and-drop behavior and the file input path remain connected to the existing upload workflow.
+- FAQ rows expand and collapse correctly.
+- Related tool links are real application routes.
+- The shared system adapts tool-specific title, upload action, steps, and FAQ copy; `Sign PDF` was verified as a second route.
+- Browser console contained no errors.
+
+final result: passed
