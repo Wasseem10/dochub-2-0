@@ -1,64 +1,65 @@
-# PDFArrow Minimal Sign-In — Design QA
+# Landing Page Design QA
 
-## Comparison target
+- Source visual truth: `work/design-references/landing-upload-tray-selected-2026-07-24.png`
+- Desktop implementation: `work/design-qa/landing-desktop-final.png`
+- Mobile implementation: `work/design-qa/landing-mobile-390x844-final.png`
+- Desktop comparison: `work/design-qa/landing-desktop-comparison-final.png`
+- Mobile comparison: `work/design-qa/landing-mobile-comparison-final.png`
+- State: anonymous landing page, idle upload state, navigation closed
 
-- Source visual truth: `design-evidence/auth-reference/selected-source.png`
-- Browser-rendered implementation: `design-evidence/auth-reference/implementation-final.png`
-- Normalized implementation: `design-evidence/auth-reference/implementation-final-normalized.png`
-- Full-view comparison: `design-evidence/auth-reference/source-vs-implementation.png`
-- Focused form comparison: `design-evidence/auth-reference/focused-form-comparison.png`
-- Route: `http://127.0.0.1:4173/login`
-- Browser viewport: 1205 × 921 CSS pixels, device scale factor 1
-- Source pixels: 1205 × 921
-- Raw implementation pixels: 1206 × 922
-- Density normalization: the one-pixel Browser capture variance was resized to 1205 × 921 with Lanczos resampling before comparison.
-- State: signed out, sign-in screen, Google available, email/password controls visible. The verification browser supplied a saved preview credential; this is browser autofill state, not application copy.
+## Capture normalization
+
+- Source pixels: 1487 × 1058.
+- Desktop viewport request: 1440 × 1024 CSS px at device scale factor 1. The in-app browser capture is 1425 × 1013 px after its scrollbar/surface inset. The source was resized to that exact capture size for the combined comparison.
+- Mobile viewport request: 390 × 844 CSS px at device scale factor 1. The in-app browser capture is 375 × 811 px after its scrollbar/surface inset.
+- The desktop comparison uses the same full first-screen crop and idle state.
+- The source does not include a phone frame, so the mobile comparison evaluates the selected design language and the explicit responsive requirement rather than claiming a 1:1 mobile source.
+
+## Full-view comparison evidence
+
+The desktop implementation preserves the source hierarchy and anatomy: compact wordmark navigation, centered two-line DM Sans headline, coral underline, concise supporting copy, four colored task tabs, a tactile ivory upload tray with visible paperclip and coral cord, a large blush drop target, and three bottom trust signals. The generated background asset matches the source's warm-white stationery rendering and keeps the center clear for accessible live controls.
+
+The mobile implementation is intentionally recomposed rather than cropped. It uses a compact logo-and-menu header, controlled three-line heading, four equal task tabs, a fully visible portrait tray and drop target, reduced edge stationery, and all three trust signals within the first screen.
+
+## Focused-region comparison evidence
+
+- Header: PDFArrow's supplied logo is displayed through the cropped wordmark treatment. Desktop navigation and the coral file CTA match the source hierarchy; mobile replaces the hidden links with a 42px menu control.
+- Upload tray: the tray and paperclip are raster assets rather than CSS approximations. The interactive button sits within the generated blush tray interior and retains hover, focus, drag, error, busy, and progress states.
+- Typography: DM Sans 600 provides the same compact geometric headline character. Body copy uses DM Sans 400 at a readable 18px desktop and 14px mobile.
+- Task tabs and trust strip: source order, accent roles, icon-plus-label anatomy, and divider rhythm are preserved. Mobile reduces detail without removing the task choices or promise labels.
 
 ## Findings
 
 No actionable P0, P1, or P2 differences remain.
 
-- Fonts and typography: compact DM Sans matches the reference’s geometric sans-serif character closely. The 31px navy heading, 14px controls, underlined account actions, and uppercase divider preserve the source hierarchy and optical weight.
-- Spacing and layout rhythm: the implementation uses the same 400px column, 382px left alignment at the reference viewport, white page, borderless composition, compact provider control, line divider, 48px fields, and bottom account footer. The form is intentionally shorter because Apple, Microsoft, Dropbox, and Xero were removed exactly as requested.
-- Colors and visual tokens: white, dark navy, powder-blue borders, subdued blue-gray icons, and fine gray rules match the source. No dashboard oxblood, gradients, or card elevation remains on authentication.
-- Image quality and asset fidelity: the Google button uses Google’s official hosted multicolor icon. No CSS-drawn, text-glyph, or placeholder logo is used.
-- Copy and content: the page is adapted to PDFArrow naming while retaining only Google and email/password authentication. The Lumin product footer and unrelated provider copy are not reproduced.
-- Accessibility and responsiveness: semantic labels remain available to assistive technology, focus rings are visible, controls remain keyboard operable, and the column centers without horizontal translation below 560px.
+- P3: The generated desktop tray begins slightly lower than the supplied reference. This is acceptable because it gives the headline and support copy more breathing room while keeping the complete upload interaction and trust strip visible.
+- P3: The mobile trust descriptions are omitted below 540px, leaving the three promise labels and icons. This is an intentional density reduction for the requested phone layout.
+
+## Required fidelity surfaces
+
+- Fonts and typography: passed. DM Sans family, weight, line height, wrapping, and hierarchy are aligned with the source.
+- Spacing and layout rhythm: passed. Desktop proportions and mobile stacking are balanced with no horizontal overflow or hidden primary controls.
+- Colors and visual tokens: passed. Warm white, blush, coral, lilac, yellow, and pink are used consistently; PDFArrow blue remains isolated to the supplied logo.
+- Image quality and asset fidelity: passed. Separate high-resolution desktop and portrait raster assets preserve the paper, tray, paperclip, cord, and stationery art direction without stretching.
+- Copy and content: passed. Product naming is PDFArrow, the source headline and support copy are preserved, and no-sign-in/private/no-watermark promises remain visible.
+
+## Interaction and console checks
+
+- Hero upload target opens the native single-file picker by pointer interaction.
+- The upload target is a native button and includes explicit Enter/Space handling.
+- Mobile navigation opens and closes successfully.
+- Edit, Sign, Organize, and Convert tabs are real route links.
+- Browser console: no errors or warnings on a clean final load.
+- Production build, TypeScript check, editorial audit, sitemap generation, and prerender completed successfully.
 
 ## Comparison history
 
-### Pass 1
-
-- P1: inherited form direction compressed the email, password, forgot-password, and submit controls into one row.
-- P2: an earlier Google-button rule forced the provider label to large blue text.
-- P2: the legacy authentication shell added residual gaps and a centered position 20px to the right of the source.
-
-Fixes made:
-
-- Forced the authentication form to a vertical column.
-- Reset the Google label to compact navy DM Sans.
-- Removed inherited card gaps, centered the composition at the source’s measured x-position, and removed residual switch borders and backgrounds.
-
-Post-fix evidence:
-
-- `design-evidence/auth-reference/implementation-final.png`
-- `design-evidence/auth-reference/source-vs-implementation.png`
-- `design-evidence/auth-reference/focused-form-comparison.png`
-
-## Interaction verification
-
-- Google sign-in button is visible and enabled when authentication is ready.
-- Forgot Password opens the reset-password state.
-- Back to Sign In returns to the login route.
-- Sign Up opens the account-creation state.
-- The account-creation Sign In action returns to login.
-- Email and password controls accept keyboard input and preserve native autocomplete behavior.
-- No browser error overlay or broken resource state appeared during the verified interaction flow.
-- TypeScript check passed.
-- Focused auth, route-guard, and dashboard integration suites passed: 20 tests.
+1. Initial desktop capture showed the generated background asset behind the hero stacking context, leaving the tray invisible (P1). The artwork moved to an explicit responsive CSS background; the next capture showed the complete tray, cord, paperclips, and edge stationery.
+2. Initial phone capture clipped the trust strip below the first screen (P2). The portrait hero height and stage proportions were tightened; the final 390 × 844 capture shows the complete heading, tabs, tray, upload control, and trust row.
+3. A clean final browser tab was loaded after hot-module replacement produced stale development warnings. The clean load reports no console errors or warnings.
 
 ## Follow-up polish
 
-- P3: browser-managed credential autofill can tint populated fields pale blue. Empty fields retain the white reference treatment; the browser owns the populated state.
+- If desired, shift the desktop tray artwork upward by roughly 24–32px for even closer source alignment.
 
 final result: passed
