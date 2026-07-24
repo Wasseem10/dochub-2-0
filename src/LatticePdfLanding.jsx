@@ -3,7 +3,6 @@ import { Link } from "react-router-dom";
 import ArrowRight from "lucide-react/dist/esm/icons/arrow-right.mjs";
 import Check from "lucide-react/dist/esm/icons/check.mjs";
 import ChevronDown from "lucide-react/dist/esm/icons/chevron-down.mjs";
-import FileText from "lucide-react/dist/esm/icons/file-text.mjs";
 import Globe2 from "lucide-react/dist/esm/icons/globe-2.mjs";
 import Grid3X3 from "lucide-react/dist/esm/icons/grid-3x3.mjs";
 import Menu from "lucide-react/dist/esm/icons/menu.mjs";
@@ -86,31 +85,12 @@ const homepageFeatureTools = [
   return tool ? { ...tool, ...entry } : null;
 }).filter(Boolean);
 
-const footerToolGroups = [
-  {
-    title: "Edit PDF",
-    links: [["Edit PDF", "/edit-pdf"], ["Annotate PDF", "/annotate-pdf"], ["PDF Reader", "/pdf-reader"], ["Fill PDF", "/fill-pdf"], ["PDF Form Filler", "/pdf-form-filler"]],
-  },
-  {
-    title: "Organize PDF",
-    links: [["Merge PDF", "/merge-pdf"], ["Split PDF", "/split-pdf"], ["Rotate PDF", "/rotate-pdf"], ["Delete PDF Pages", "/delete-pdf-pages"], ["Extract PDF Pages", "/extract-pdf-pages"]],
-  },
-  {
-    title: "Convert from PDF",
-    links: [["PDF to Word", "/pdf-to-word"], ["PDF to JPG", "/pdf-to-jpg"], ["PDF to PNG", "/pdf-to-png"], ["PDF to Excel", "/pdf-to-excel"], ["PDF to PowerPoint", "/pdf-to-powerpoint"]],
-  },
-  {
-    title: "Convert to PDF",
-    links: [["Word to PDF", "/word-to-pdf"], ["JPG to PDF", "/jpg-to-pdf"], ["PNG to PDF", "/png-to-pdf"], ["Excel to PDF", "/excel-to-pdf"], ["PowerPoint to PDF", "/powerpoint-to-pdf"]],
-  },
-  {
-    title: "Sign and protect",
-    links: [["Sign PDF", "/sign-pdf"], ["Add Initials", "/add-initials"], ["Add Date Fields", "/add-date-fields"], ["Request Signatures", "/request-signatures"], ["Protect PDF", "/protect-pdf"]],
-  },
-  {
-    title: "AI and OCR",
-    links: [["OCR PDF", "/ocr-pdf"], ["PDF Scanner", "/pdf-scanner"], ["Scan to PDF", "/scan-to-pdf"], ["Image to Searchable PDF", "/image-to-searchable-pdf"], ["AI PDF Assistant", "/ai-pdf"]],
-  },
+const footerNavigationGroups = [
+  { title: "Tools", links: [["Edit PDF", "/edit-pdf"], ["Merge PDF", "/merge-pdf"], ["Split PDF", "/split-pdf"], ["Compress PDF", "/compress-pdf"], ["All tools", ROUTE_PATHS.tools]] },
+  { title: "Edit & sign", links: [["Edit PDF", "/edit-pdf"], ["Annotate PDF", "/annotate-pdf"], ["Fill PDF", "/fill-pdf"], ["Sign PDF", "/sign-pdf"], ["PDF Form Filler", "/pdf-form-filler"]] },
+  { title: "Convert", links: [["PDF to Word", "/pdf-to-word"], ["PDF to JPG", "/pdf-to-jpg"], ["PDF to PNG", "/pdf-to-png"], ["Word to PDF", "/word-to-pdf"], ["JPG to PDF", "/jpg-to-pdf"]] },
+  { title: "Company", links: [["About PDFArrow", ROUTE_PATHS.business], ["Pricing", ROUTE_PATHS.pricing], ["Resources", ROUTE_PATHS.resources], ["Security", ROUTE_PATHS.security]] },
+  { title: "Support", links: [["Help Center", ROUTE_PATHS.support], ["Contact us", ROUTE_PATHS.contactSales], ["FAQs", "/#faq-title"], ["Privacy", ROUTE_PATHS.privacy]] },
 ];
 
 const toolsMenuColumns = [
@@ -259,16 +239,7 @@ function PopularTools() {
   </section>;
 }
 
-function FooterToolDirectory() {
-  return <section className="freepdf-footer-directory" aria-label="PDF tool directory">
-    {footerToolGroups.map((group) => <nav key={group.title} aria-label={group.title}>
-      <h2>{group.title}</h2>
-      {group.links.map(([label, route]) => <Link key={label} to={route}>{label}</Link>)}
-    </nav>)}
-  </section>;
-}
-
-function SiteFooter() {
+/* Legacy footer intentionally retired in favor of the utility footer below.
   return <footer className="freepdf-site-footer">
     <div className="freepdf-footer-surface">
       <Link className="freepdf-footer-wordmark" to={ROUTE_PATHS.home} aria-label="PDFArrow home">
@@ -279,6 +250,39 @@ function SiteFooter() {
         <div><Brand /><p>Every PDF task, finally in one place.</p></div>
         <nav aria-label="Footer"><Link to={ROUTE_PATHS.tools}>All tools</Link><Link to={ROUTE_PATHS.support}>Support</Link><Link to={ROUTE_PATHS.privacy}>Privacy</Link><Link to={ROUTE_PATHS.terms}>Terms</Link></nav>
         <span>© 2026 PDFArrow</span>
+      </div>
+    </div>
+  </footer>;
+*/
+
+function ClosingAssurances() {
+  const assurances = [
+    { icon: ShieldCheck, title: "Private by design", copy: "Your files stay private and secure." },
+    { icon: Check, title: "No account needed", copy: "Edit, convert, and sign right away." },
+    { icon: Globe2, title: "Works in your browser", copy: "No downloads or installations." },
+  ];
+  return <section className="freepdf-closing-assurances" aria-label="PDFArrow benefits"><div>{assurances.map(({ icon: Icon, title, copy }) => <article key={title}><span><Icon size={26} aria-hidden="true" /></span><div><strong>{title}</strong><p>{copy}</p></div></article>)}</div></section>;
+}
+
+function SiteFooter() {
+  return <footer className="freepdf-site-footer">
+    <div className="freepdf-footer-surface">
+      <div className="freepdf-footer-main">
+        <div className="freepdf-footer-brand-block">
+          <Link className="freepdf-footer-brand" to={ROUTE_PATHS.home} aria-label="PDFArrow home"><BrandWordmark logo /></Link>
+          <p>Every PDF task, finally in one place.</p>
+        </div>
+        <section className="freepdf-footer-directory" aria-label="PDF tool directory">
+          {footerNavigationGroups.map((group) => <nav key={group.title} aria-label={group.title}>
+            <h2>{group.title}</h2>
+            {group.links.map(([label, route]) => <Link key={label} to={route}>{label}</Link>)}
+          </nav>)}
+        </section>
+      </div>
+      <div className="freepdf-footer-meta">
+        <span>© 2026 PDFArrow. All rights reserved.</span>
+        <nav aria-label="Footer legal"><Link to={ROUTE_PATHS.privacy}>Privacy</Link><Link to={ROUTE_PATHS.terms}>Terms</Link><Link to={ROUTE_PATHS.security}>Security</Link><Link to={ROUTE_PATHS.support}>Accessibility</Link></nav>
+        <button type="button" className="freepdf-footer-language" aria-label="Language: English"><Globe2 size={16} /> English <ChevronDown size={15} /></button>
       </div>
     </div>
   </footer>;
@@ -339,24 +343,7 @@ export function LatticePdfLanding({ fileInputRef, onUpload, onSelectFiles, onDro
 
     <section className="freepdf-section freepdf-faq" aria-labelledby="faq-title"><div className="freepdf-section-heading"><span>Good to know</span><h2 id="faq-title">Clear answers before you upload.</h2></div><div>{faqs.map(([question, answer]) => <details key={question}><summary>{question}</summary><p>{answer}</p></details>)}</div></section>
 
-    <section className="freepdf-final">
-      <div className="freepdf-final-copy">
-        <span>Ready when you are</span>
-        <h2>Finish that PDF today.</h2>
-        <p>Choose a supported PDF and start immediately. No signup, no watermark, no payment screen.</p>
-        <div className="freepdf-final-trust" aria-label="Upload benefits">
-          <span><Check size={15} /> Free to use</span>
-          <span><ShieldCheck size={15} /> Private by design</span>
-        </div>
-      </div>
-      <div className="freepdf-final-action">
-        <div className="freepdf-final-file" aria-hidden="true"><FileText size={30} /></div>
-        <strong>Your PDF, ready in seconds</strong>
-        <small>Drop a file here or choose one from your device.</small>
-        <button type="button" onClick={choose}><Upload size={18} /> Choose a PDF</button>
-        <Link to={ROUTE_PATHS.privacy}>How we handle your files <ArrowRight size={13} /></Link>
-      </div>
-    </section>
+    <ClosingAssurances />
 
     <SiteFooter />
   </main>;

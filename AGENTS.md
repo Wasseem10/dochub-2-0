@@ -62,6 +62,8 @@ Match authentication to the selected Editorial Monochrome dashboard: white and n
 
 The selected July 23, 2026 authentication reference is a minimal, borderless sign-in page: one narrow 400px column on white, a dark navy `Sign In` heading and primary button, one Google sign-in button, a compact `OR USE YOUR EMAIL` divider, icon-led email and password fields, an underlined forgot-password action, and a centered PDFArrow sign-up prompt. Do not restore the split product-preview panel, card shell, extra provider buttons, security copy, or promotional authentication content.
 
+The homepage ending must stay clean, bright, and utility-led: remove the redundant final upload CTA, use a slim three-item reassurance row, then a crisp white multi-column footer with hairline dividers, compact PDFArrow branding, and restrained blue accents. Never restore the dark footer, oversized wordmark billboard, or a pastel promotional container at the end of the page.
+
 The Draw tool opens one compact floating settings bar below the primary toolbar. It must expose direct black, blue, red, orange, green, and purple choices, a working custom color picker, five readable pen-size presets, and a fine-size slider without clipping, overlapping, or duplicating controls elsewhere in the same bar.
 
 The Translate PDF workflow must let users choose the document's source language and must include English as a translation target. Do not assume every uploaded document starts in English, and never allow the source and target language to remain identical.
