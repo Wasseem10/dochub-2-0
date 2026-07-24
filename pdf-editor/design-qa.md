@@ -1,57 +1,64 @@
-# PDFArrow Precision Review Studio — Design QA
+# PDFArrow Minimal Sign-In — Design QA
 
 ## Comparison target
 
-- Source visual truth: `design-evidence/editor-precision-review/selected-source.png`
-- Implementation screenshot: `design-evidence/editor-precision-review/implementation-final.jpg`
-- Full-view comparison: `design-evidence/editor-precision-review/source-vs-implementation.jpg`
-- Focused chrome comparison: `design-evidence/editor-precision-review/focused-chrome-comparison.jpg`
-- Viewport and state: desktop editor, 1440 × 1024 CSS pixels, device scale factor 1, first page selected, thumbnails open, Highlight active, contextual highlight controls visible
-- Source dimensions: 1487 × 1058 pixels, proportionally normalized to 1440 × 1024 for comparison
-- Implementation dimensions: 1440 × 1024 pixels
+- Source visual truth: `design-evidence/auth-reference/selected-source.png`
+- Browser-rendered implementation: `design-evidence/auth-reference/implementation-final.png`
+- Normalized implementation: `design-evidence/auth-reference/implementation-final-normalized.png`
+- Full-view comparison: `design-evidence/auth-reference/source-vs-implementation.png`
+- Focused form comparison: `design-evidence/auth-reference/focused-form-comparison.png`
+- Route: `http://127.0.0.1:4173/login`
+- Browser viewport: 1205 × 921 CSS pixels, device scale factor 1
+- Source pixels: 1205 × 921
+- Raw implementation pixels: 1206 × 922
+- Density normalization: the one-pixel Browser capture variance was resized to 1205 × 921 with Lanczos resampling before comparison.
+- State: signed out, sign-in screen, Google available, email/password controls visible. The verification browser supplied a saved preview credential; this is browser autofill state, not application copy.
 
 ## Findings
 
-- No actionable P0, P1, or P2 visual differences remain.
-- Fonts and typography: the implementation uses compact DM Sans UI labels, a restrained serif filename, and document-native serif page content. Weight, wrapping, and hierarchy match the source closely.
-- Spacing and layout rhythm: the slim header, inset command bar, centered contextual strip, warm canvas, compact thumbnail rail, and bottom page navigator preserve the source hierarchy. The 144px thumbnail rail is an intentional product constraint and is narrower than the generated concept’s illustrative rail.
-- Colors and visual tokens: warm white, stone gray, charcoal, dusty rose, and oxblood are consistently mapped to the dashboard system. Legacy blue is limited to the supplied PDFArrow wordmark.
-- Image quality and asset fidelity: the supplied PDFArrow logo and real browser-rendered PDF pages are used. No placeholder illustration, CSS-drawn asset, or fake page image replaces product content.
-- Copy and content: PDFArrow naming is correct. The implementation shows truthful file and save state rather than copying the mock’s example filename and relative timestamp.
+No actionable P0, P1, or P2 differences remain.
+
+- Fonts and typography: compact DM Sans matches the reference’s geometric sans-serif character closely. The 31px navy heading, 14px controls, underlined account actions, and uppercase divider preserve the source hierarchy and optical weight.
+- Spacing and layout rhythm: the implementation uses the same 400px column, 382px left alignment at the reference viewport, white page, borderless composition, compact provider control, line divider, 48px fields, and bottom account footer. The form is intentionally shorter because Apple, Microsoft, Dropbox, and Xero were removed exactly as requested.
+- Colors and visual tokens: white, dark navy, powder-blue borders, subdued blue-gray icons, and fine gray rules match the source. No dashboard oxblood, gradients, or card elevation remains on authentication.
+- Image quality and asset fidelity: the Google button uses Google’s official hosted multicolor icon. No CSS-drawn, text-glyph, or placeholder logo is used.
+- Copy and content: the page is adapted to PDFArrow naming while retaining only Google and email/password authentication. The Lumin product footer and unrelated provider copy are not reproduced.
+- Accessibility and responsiveness: semantic labels remain available to assistive technology, focus rings are visible, controls remain keyboard operable, and the column centers without horizontal translation below 560px.
 
 ## Comparison history
 
 ### Pass 1
 
-- P2: the editor still exposed an extra Check command not present in the selected direction, which compressed the primary command hierarchy.
-- P2: highlight settings did not yet match the source’s direct color choices and thickness control.
-- P2: the header and active states still carried remnants of the previous blue visual system.
+- P1: inherited form direction compressed the email, password, forgot-password, and submit controls into one row.
+- P2: an earlier Google-button rule forced the provider label to large blue text.
+- P2: the legacy authentication shell added residual gaps and a centered position 20px to the right of the source.
 
 Fixes made:
 
-- Removed the extra Check command from the primary toolbar while preserving the complete required editor toolset.
-- Added working oxblood, amber, and gray highlight presets plus a working Thin / Medium / Thick selector.
-- Centered filename and save state, changed the completion action to Finish, and mapped focus, selection, annotation handles, contextual controls, and primary actions to oxblood.
-- Added explicit sizing and centering rules for the header and inset command bar, then verified all toolbar controls remain visible within the 1440px viewport.
+- Forced the authentication form to a vertical column.
+- Reset the Google label to compact navy DM Sans.
+- Removed inherited card gaps, centered the composition at the source’s measured x-position, and removed residual switch borders and backgrounds.
 
 Post-fix evidence:
 
-- `design-evidence/editor-precision-review/implementation-final.jpg`
-- `design-evidence/editor-precision-review/source-vs-implementation.jpg`
-- `design-evidence/editor-precision-review/focused-chrome-comparison.jpg`
+- `design-evidence/auth-reference/implementation-final.png`
+- `design-evidence/auth-reference/source-vs-implementation.png`
+- `design-evidence/auth-reference/focused-form-comparison.png`
 
-## Interaction and browser verification
+## Interaction verification
 
-- Tested Highlight activation.
-- Tested working highlight color presets.
-- Tested Thin / Medium / Thick selection.
-- Tested thumbnail rail close and reopen.
-- Tested next-page and first-page navigation.
-- Verified Print, Download, Finish, Search, and Manage Pages remain visible and enabled according to state.
-- Browser console errors checked: none.
+- Google sign-in button is visible and enabled when authentication is ready.
+- Forgot Password opens the reset-password state.
+- Back to Sign In returns to the login route.
+- Sign Up opens the account-creation state.
+- The account-creation Sign In action returns to login.
+- Email and password controls accept keyboard input and preserve native autocomplete behavior.
+- No browser error overlay or broken resource state appeared during the verified interaction flow.
+- TypeScript check passed.
+- Focused auth, route-guard, and dashboard integration suites passed: 20 tests.
 
 ## Follow-up polish
 
-- P3: the generated concept shows the next page edge in continuous flow; the released editor intentionally keeps the active page as the interaction surface so annotation coordinates, keyboard selection, and export behavior remain stable.
+- P3: browser-managed credential autofill can tint populated fields pale blue. Empty fields retain the white reference treatment; the browser owns the populated state.
 
 final result: passed
