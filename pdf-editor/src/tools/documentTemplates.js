@@ -4,7 +4,7 @@ import { wrapPlainText } from "./textConversion.js";
 export const TEMPLATE_STYLES = Object.freeze([
   { id: "modern", name: "Modern blue", accent: [0.16, 0.31, 0.78] },
   { id: "classic", name: "Classic ink", accent: [0.12, 0.15, 0.2] },
-  { id: "green", name: "Fresh green", accent: [0.04, 0.48, 0.32] },
+  { id: "green", name: "Soft violet", accent: [0.39, 0.3, 0.78] },
 ]);
 
 const today = new Date().toISOString().slice(0, 10);

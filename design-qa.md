@@ -107,3 +107,41 @@ The right rail and PDF text regions were readable in the same paired comparison 
 - Full automated suite: 49 files and 162 tests passed.
 
 final result: passed
+
+---
+
+# Remaining tool UI alignment (2026-07-24)
+
+## Scope and evidence
+
+- Source visual truth: `work/feature-audit-2026-07-24/tool-ui-match/01-edit-reference-accepted.png` (the approved Edit PDF landing system).
+- Initial family audit: `work/feature-audit-2026-07-24/tool-ui-match/tool-ui-audit-accepted-contact-sheet.png` and `work/feature-audit-2026-07-24/tool-ui-match/tool-ui-edge-audit-contact-sheet.png`.
+- Implementation screenshots: `work/feature-audit-2026-07-24/tool-ui-match/20-pdf-scanner-after.png` and `work/feature-audit-2026-07-24/tool-ui-match/22-resume-template-final.png`.
+- Full comparison evidence: `work/feature-audit-2026-07-24/tool-ui-match/tool-ui-design-qa-comparison.png`.
+- Source and implementation screenshot pixels: 1265 × 712 each.
+- CSS viewport: 1280 × 720 at device pixel ratio 1.25. Both captures used the same browser and required no density resize.
+- State: initial no-file workflow for Edit PDF and PDF Scanner; initial editable Resume Templates workspace for the focused status/style check.
+
+## Findings
+
+- No actionable P0, P1, or P2 issues remain.
+- Typography: the audited editor, converter, page-tool, analysis, redaction, scanner, and template routes retain DM Sans and the approved Edit PDF hierarchy.
+- Layout: Scanner keeps its task-specific camera-first anatomy while now using the same border, radius, elevation, and powder-blue weight.
+- Colors: legacy green and mint progress, success, selection, camera, merge-list, OCR-result, guide, and template-status states now map to PDFArrow blue, white, powder blue, and cool blue-gray.
+- Assets: all routes preserve the real cropped PDFArrow wordmark and existing Lucide tool icons.
+- Content: tool-specific descriptions, limits, privacy copy, settings, and workflow labels remain unchanged except for the template palette name.
+
+## Comparison history
+
+- Pass 1 found a P2 system mismatch: PDF Scanner used a dark navy preview and green action; several secondary tool states used the same residual tokens.
+- Fix: added shared editorial overrides across every released tool-page family and replaced the visible green template style with Soft violet.
+- Pass 2 evidence shows no remaining P0, P1, or P2 visual issue.
+
+## Verification
+
+- Representative editor, page-tool, conversion, OCR, protection, comparison, scanning, analysis, redaction, request-signature, fill, and template routes opened correctly.
+- Soft violet updated the checked template style and live preview accent.
+- Browser console errors: none.
+- TypeScript, 225 tests, and production Vite build passed.
+
+final result: passed
