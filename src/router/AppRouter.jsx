@@ -6,6 +6,7 @@ import { PublicLayout } from "../layouts/PublicLayout.jsx";
 import { NotFoundPage } from "../pages/errors/NotFoundPage.jsx";
 import { AboutPage } from "../pages/public/AboutPage.jsx";
 import { PublicPlaceholderPage } from "../pages/public/PublicPlaceholderPage.jsx";
+import { PrivacyPolicyPage } from "../pages/public/PrivacyPolicyPage.jsx";
 import { FeaturesPage } from "../pages/public/FeaturesPage.jsx";
 import { LandingRoute } from "../pages/public/LandingRoute.jsx";
 import { ToolDirectoryPage } from "../pages/public/ToolDirectoryPage.jsx";
@@ -61,7 +62,7 @@ export function PublicEditorRoute() {
 }
 
 const editorialResourcePathSet = new Set(EDITORIAL_RESOURCE_PATHS);
-const publicPlaceholderRouteObjects = PUBLIC_PLACEHOLDER_ROUTES.filter((route) => route.path !== ROUTE_PATHS.features && !editorialResourcePathSet.has(route.path)).map((route) => ({
+const publicPlaceholderRouteObjects = PUBLIC_PLACEHOLDER_ROUTES.filter((route) => ![ROUTE_PATHS.features, ROUTE_PATHS.privacy].includes(route.path) && !editorialResourcePathSet.has(route.path)).map((route) => ({
   path: route.path,
   element: <PublicPlaceholderPage {...route} />,
 }));
@@ -130,6 +131,7 @@ export const appRouteObjects = [
         children: [
           { path: ROUTE_PATHS.home, element: <LandingRoute /> },
           { path: ROUTE_PATHS.about, element: <AboutPage /> },
+          { path: ROUTE_PATHS.privacy, element: <PrivacyPolicyPage /> },
           { path: ROUTE_PATHS.editPdf, element: <PublicEditorRoute /> },
           { path: ROUTE_PATHS.features, element: <FeaturesPage /> },
           { path: ROUTE_PATHS.tools, element: <ToolDirectoryPage /> },

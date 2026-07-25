@@ -68,3 +68,20 @@ export async function saveLocalDocuments(ownerId, documents) {
     database.close();
   }
 }
+
+export async function deleteLocalDocuments(ownerId) {
+  if (!ownerId) return;
+  const database = await openDatabase();
+  try {
+    const readTransaction = database.transaction(STORE_NAME, "readonly");
+    const index = readTransaction.objectStore(STORE_NAME).index("ownerId");
+    const keys = await requestResult(index.getAllKeys(ownerId));
+
+    const deleteTransaction = database.transaction(STORE_NAME, "readwrite");
+    const store = deleteTransaction.objectStore(STORE_NAME);
+    keys.forEach((key) => store.delete(key));
+    await transactionDone(deleteTransaction);
+  } finally {
+    database.close();
+  }
+}

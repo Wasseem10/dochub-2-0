@@ -1,5 +1,6 @@
 import React from "react";
 import { createRoot } from "react-dom/client";
+import { PrivacyConsentBanner } from "./components/privacy/PrivacyChoices.jsx";
 import { AppRouter } from "./router/AppRouter.jsx";
 import "./styles.css";
 import "./editor-overrides.css";
@@ -31,5 +32,6 @@ rootElement.replaceChildren();
 createRoot(rootElement).render(
   <React.StrictMode>
     <AppRouter />
+    <PrivacyConsentBanner />
   </React.StrictMode>,
 );

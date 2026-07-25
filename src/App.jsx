@@ -6163,6 +6163,7 @@ function AuthPage({ mode, setMode, onBack, onComplete, onPasswordReset, authRead
             <span>{isSignup ? "Already have an account?" : isPasswordReset ? "Remembered your password?" : "New to PDFArrow?"}</span>
             <button type="button" onClick={isPasswordReset ? () => setMode("login") : switchMode}>{isSignup ? "Sign In" : isPasswordReset ? "Back to Sign In" : "Sign Up"}</button>
           </div>
+          <p className="auth-privacy">By continuing, you acknowledge the <a href={ROUTE_PATHS.privacy}>Privacy Policy</a> and <a href={ROUTE_PATHS.terms}>Terms</a>.</p>
           <footer className="auth-product-footer">
             <button type="button" onClick={onBack}>One account for every PDFArrow workspace</button>
           </footer>

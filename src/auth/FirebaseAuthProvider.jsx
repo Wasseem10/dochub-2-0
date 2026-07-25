@@ -15,6 +15,8 @@ import {
 } from "firebase/auth";
 import { auth, db, googleProvider, isFirebaseConfigured, storage } from "../firebase.js";
 import { trackProductEvent } from "../analytics/productAnalytics.js";
+import { revokeSecurePdfShare } from "../sharing/securePdfSharing.js";
+import { deleteLocalDocuments } from "../tools/localDocumentStore.js";
 import { AuthContext } from "./AuthContext.jsx";
 import { syncAuthUserProfile } from "./authUserProfile.js";
 
@@ -73,7 +75,14 @@ async function purgeUserData(userId) {
     const snapshot = await getDocs(query(collection(db, collectionName), where("actorId", "==", userId)));
     for (const record of snapshot.docs) await deleteDoc(record.ref);
   }
+  if (db) {
+    const shareSnapshot = await getDocs(query(collection(db, "shareLinks"), where("ownerId", "==", userId)));
+    for (const shareRecord of shareSnapshot.docs) {
+      await revokeSecurePdfShare({ db, storage, userId, token: shareRecord.id });
+    }
+  }
   if (db) await deleteDoc(doc(db, "authUserProfiles", userId));
+  await deleteLocalDocuments(userId).catch(() => {});
   try {
     Object.keys(window.localStorage).filter((key) => key.includes(userId)).forEach((key) => window.localStorage.removeItem(key));
   } catch {
@@ -165,8 +174,10 @@ export default function FirebaseAuthProvider({ children }) {
     },
     async deleteAccount({ password = "" } = {}) {
       if (!auth && currentUser?.providers?.includes("local")) {
+        await deleteLocalDocuments(currentUser.uid).catch(() => {});
         try {
           window.localStorage.removeItem(LOCAL_AUTH_STORAGE_KEY);
+          Object.keys(window.localStorage).filter((key) => key.includes(currentUser.uid)).forEach((key) => window.localStorage.removeItem(key));
         } catch {
           // Clearing the in-memory session still signs the local user out.
         }

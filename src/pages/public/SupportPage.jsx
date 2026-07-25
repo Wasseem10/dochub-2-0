@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import CheckCircle2 from "lucide-react/dist/esm/icons/check-circle-2.mjs";
 import LifeBuoy from "lucide-react/dist/esm/icons/life-buoy.mjs";
 import LoaderCircle from "lucide-react/dist/esm/icons/loader-circle.mjs";
@@ -35,8 +36,9 @@ export function SupportPage() {
         <label><span>What do you need help with?</span><select value={form.category} onChange={(event) => update("category", event.target.value)}><option value="product_help">Using PDFArrow</option><option value="bug">Something is broken</option><option value="account">Account or login</option><option value="privacy">Privacy or data deletion</option><option value="security">Security report</option><option value="other">Other</option></select></label>
         <label><span>Message</span><textarea rows="8" value={form.message} onChange={(event) => update("message", event.target.value)} maxLength="4000" placeholder="What were you doing, what happened, and which browser/device were you using?" /><small>{form.message.length}/4,000</small></label>
         {error && <div className="support-error" role="alert">{error}</div>}
+        <p className="support-privacy-notice">PDFArrow uses your name, email, category, and message to respond and stores the request for up to 180 days unless it is needed longer for security or legal reasons. <Link to={ROUTE_PATHS.privacy}>Privacy Policy</Link></p>
         <button className="support-submit" type="submit" disabled={status === "sending"}>{status === "sending" ? <><LoaderCircle className="is-spinning" size={18} /> Sending…</> : <><Send size={18} /> Send support request</>}</button>
       </>}
-    </form><aside><LockKeyhole size={23} /><h2>What is stored</h2><p>Your name, reply email, selected category, message, account ID if signed in, and submission time are stored in Firebase. Only the site owner can open the support inbox.</p><p>Do not attach or paste PDF contents. PDFArrow support does not need the document itself for an initial report.</p></aside></div>
+    </form><aside><LockKeyhole size={23} /><h2>What is stored</h2><p>Your name, reply email, selected category, message, account ID if signed in, and submission time are stored in Firebase. Only the authorized PDFArrow operator can open the support inbox.</p><p>Do not attach or paste PDF contents. PDFArrow support does not need the document itself for an initial report.</p></aside></div>
   </main>;
 }
