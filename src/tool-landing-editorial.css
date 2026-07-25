@@ -926,6 +926,153 @@
   background: var(--tool-blue) !important;
 }
 
+/* Keep every working state in the same blue editorial system as Edit PDF. */
+:is(.editor-tool-upload-page, .image-conversion-page, .document-analysis-page, .redact-page, .template-builder-page) :is(
+  .conversion-success,
+  .conversion-page-picker header button,
+  .conversion-privacy-note svg,
+  .office-file-card > header > svg,
+  .page-number-file-card > svg
+) {
+  color: var(--tool-blue);
+}
+
+.image-conversion-page .conversion-progress {
+  border-color: #d8e1ff;
+  background: var(--tool-powder);
+  color: #31457f;
+}
+
+.image-conversion-page .conversion-progress-bar {
+  background: #e1e7f5;
+}
+
+.image-conversion-page .conversion-progress-bar i {
+  background: var(--tool-blue);
+}
+
+.image-conversion-page :is(.conversion-page-picker, .scan-camera-card, .scan-page-list li, .merge-file-list article) {
+  border-color: var(--tool-line);
+}
+
+.image-conversion-page :is(.conversion-page-picker label.is-selected, .extract-page-grid label.is-selected) {
+  border-color: var(--tool-blue);
+  background: #f4f7ff;
+}
+
+.image-conversion-page :is(
+  .conversion-settings-card input[type="range"],
+  .conversion-settings-card input[type="checkbox"],
+  .conversion-page-picker input,
+  .extract-page-grid input,
+  .protection-authorization input
+) {
+  accent-color: var(--tool-blue);
+}
+
+.image-conversion-page .conversion-field input:focus {
+  border-color: var(--tool-blue);
+  outline-color: rgba(40, 81, 235, .12);
+}
+
+.image-conversion-page .scan-camera-card {
+  border-radius: 16px;
+  box-shadow: 0 14px 34px rgba(40, 81, 235, .07);
+}
+
+.image-conversion-page .scan-video-shell {
+  border: 1px solid #d8e1ff;
+  background: var(--tool-powder);
+  color: #1c326a;
+}
+
+.image-conversion-page .scan-video-shell > span small {
+  color: #66728c;
+}
+
+.image-conversion-page .scan-camera-card > div:last-child button {
+  background: var(--tool-blue);
+  box-shadow: 0 9px 20px rgba(40, 81, 235, .18);
+}
+
+.image-conversion-page .scan-camera-card > div:last-child button:hover {
+  background: #1e42d4;
+}
+
+.image-conversion-page .scan-camera-card > div:last-child .scan-camera-secondary {
+  border-color: #cdd8fb;
+  background: #fff;
+  color: #31457f;
+  box-shadow: none;
+}
+
+.image-conversion-page .scan-page-list img {
+  background: var(--tool-powder);
+}
+
+.image-conversion-page :is(.scan-page-list button, .merge-file-list button) {
+  border-color: #dbe2f1;
+  color: #36415a;
+}
+
+.image-conversion-page .merge-file-list article > span {
+  background: var(--tool-powder);
+  color: var(--tool-blue);
+}
+
+.image-conversion-page .ocr-quality-result {
+  border-color: #d8e1ff;
+  background: var(--tool-powder);
+  color: #31457f;
+}
+
+.template-builder-page .template-preview-card > header > span {
+  background: var(--tool-powder);
+  color: var(--tool-blue);
+}
+
+.template-builder-page .template-legal-note {
+  background: var(--tool-powder);
+  color: #31457f;
+}
+
+.redact-page .redact-complete {
+  border-color: #d8e1ff;
+  background: var(--tool-powder);
+  color: #31457f;
+}
+
+:is(.editor-tool-upload-page, .image-conversion-page, .document-analysis-page, .redact-page, .template-builder-page) :is(
+  .tool-guide-grid li > span:first-child,
+  .tool-guide-steps li > span
+) {
+  background: var(--tool-powder);
+  color: var(--tool-blue);
+}
+
+:is(.editor-tool-upload-page, .image-conversion-page, .document-analysis-page, .redact-page, .template-builder-page) :is(
+  .tool-guide-grid li > svg,
+  .tool-guide-answers header > svg
+) {
+  color: var(--tool-blue);
+}
+
+:is(.editor-tool-upload-page, .image-conversion-page, .document-analysis-page, .redact-page, .template-builder-page) .tool-guide-trust-grid .is-private {
+  border-color: #d8e1ff;
+  background: var(--tool-powder);
+  color: #31457f;
+}
+
+:is(.editor-tool-upload-page, .image-conversion-page, .document-analysis-page, .redact-page, .template-builder-page) .tool-guide-trust-grid .is-limit {
+  border-color: #d8e1ff;
+  background: #f7f9ff;
+  color: #445275;
+}
+
+:is(.editor-tool-upload-page, .image-conversion-page, .document-analysis-page, .redact-page, .template-builder-page) .tool-guide-answers details {
+  background: #f7f9ff;
+}
+
 @media (max-width: 900px) {
   .image-conversion-page > .tool-breadcrumbs,
   .image-conversion-page > .conversion-hero,

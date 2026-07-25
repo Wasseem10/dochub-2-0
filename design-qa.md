@@ -48,6 +48,65 @@ final result: passed
 
 ---
 
+# Remaining tool UI alignment (2026-07-24)
+
+## Scope and evidence
+
+- Source visual truth: `C:\Users\wasse\OneDrive\Desktop\pdf-editor\work\feature-audit-2026-07-24\tool-ui-match\01-edit-reference-accepted.png` (the approved Edit PDF landing system).
+- Initial family audit: `C:\Users\wasse\OneDrive\Desktop\pdf-editor\work\feature-audit-2026-07-24\tool-ui-match\tool-ui-audit-accepted-contact-sheet.png` and `C:\Users\wasse\OneDrive\Desktop\pdf-editor\work\feature-audit-2026-07-24\tool-ui-match\tool-ui-edge-audit-contact-sheet.png`.
+- Implementation screenshots: `C:\Users\wasse\OneDrive\Desktop\pdf-editor\work\feature-audit-2026-07-24\tool-ui-match\20-pdf-scanner-after.png` and `C:\Users\wasse\OneDrive\Desktop\pdf-editor\work\feature-audit-2026-07-24\tool-ui-match\22-resume-template-final.png`.
+- Full comparison evidence: `C:\Users\wasse\OneDrive\Desktop\pdf-editor\work\feature-audit-2026-07-24\tool-ui-match\tool-ui-design-qa-comparison.png`.
+- Source and implementation screenshot pixels: 1265 × 712 each.
+- CSS viewport: 1280 × 720 at device pixel ratio 1.25. The source and implementation were captured in the same in-app browser session and required no density resize.
+- State: initial no-file workflow for Edit PDF and PDF Scanner; initial editable Resume Templates workspace for the focused status/style check.
+
+## Findings
+
+- No actionable P0, P1, or P2 issues remain.
+- Fonts and typography: the audited editor, converter, page-tool, analysis, redaction, scanner, and template routes retain DM Sans, the same compact hero scale, and the same supporting-copy hierarchy as Edit PDF.
+- Spacing and layout rhythm: the shared centered hero and dominant upload/workspace pattern remains intact. Scanner keeps its task-specific camera-first anatomy while now using the same border, radius, elevation, and powder-blue visual weight.
+- Colors and visual tokens: legacy green and mint progress, success, selection, camera, merge-list, OCR-result, guide, and template-status states now map to `#2851eb`, white, powder blue, and cool blue-gray. The visible “Fresh green” template option is now “Soft violet.”
+- Image quality and asset fidelity: all audited routes preserve the real cropped PDFArrow wordmark and existing Lucide tool icons. No new raster placeholders, CSS drawings, or substitute assets were introduced.
+- Copy and content: tool-specific descriptions, file limits, privacy copy, settings, and workflow labels remain unchanged except for the template palette name.
+- Behavior and accessibility: the changes are presentation-only and retain the existing semantic buttons, inputs, labels, focus behavior, and reduced-motion rules. A full assistive-technology audit was outside this visual-alignment pass.
+
+## Focused comparison evidence
+
+- The full comparison keeps the scanner camera panel, primary camera action, hero typography, upload surface edge, and source page readable at the same scale, so a separate camera crop was unnecessary.
+- The final template screenshot provides the focused evidence for the corrected status badge and violet style option.
+- Browser-computed palette checks found no remaining legacy green or mint values on representative Scanner, Merge, OCR, Protect, Redact, and Resume Templates routes.
+
+## Comparison history
+
+- Pass 1 found a P2 system mismatch: PDF Scanner used a dark navy preview and green primary action while the approved Edit PDF source uses white/powder-blue surfaces and PDFArrow blue actions. Converter progress/results, selected page states, OCR results, merge rows, guide trust blocks, and template status surfaces contained the same residual legacy tokens.
+- Fix: added shared editorial overrides for working states across every released tool-page family, changed the scanner camera surface and controls to the shared palette, and replaced the remaining visible green template style with Soft violet.
+- Pass 2 evidence: `20-pdf-scanner-after.png`, `22-resume-template-final.png`, and the combined `tool-ui-design-qa-comparison.png`. No P0, P1, or P2 visual issue remains.
+
+## Primary interactions and engineering checks
+
+- Opened representative routes for editor, page-tool, conversion, OCR, protection, comparison, scanning, analysis, redaction, request-signature, fill, and template families.
+- Selected the Soft violet template style; the radio became checked and the live preview token updated to `rgb(99 77 199)`.
+- Browser console errors checked: none.
+- TypeScript check passed.
+- Unit and integration suite passed: 61 files, 225 tests.
+- Production Vite build passed.
+
+## Implementation checklist
+
+- [x] Align scanner camera UI with Edit PDF.
+- [x] Normalize conversion progress, success, selection, and focus states.
+- [x] Normalize merge, OCR, redaction, and guide feedback states.
+- [x] Remove the remaining green/mint and cream template surfaces.
+- [x] Verify representative tool families and live template styling.
+
+## Follow-up polish
+
+- P3: capture a dedicated narrow-viewport visual regression set when the selected browser exposes viewport emulation; current responsive structure and automated coverage were preserved, but this pass did not add new mobile screenshots.
+
+final result: passed
+
+---
+
 # Shared tool landing and signature-request QA
 
 ## Scope
