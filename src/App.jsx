@@ -1498,12 +1498,19 @@ function ProfessionalAnnotation({ annotation, selected, zoom, activeTool, pageWi
   }, [annotation, pageHeight, pageWidth]);
 
   useEffect(() => {
-    if (annotation.type !== "text") return undefined;
+    if (annotation.type !== "text") return;
     if (!selected) {
       textWasFocusedRef.current = false;
-      return undefined;
+      setIsTextEditing(false);
+      return;
     }
-    if (textWasFocusedRef.current) return undefined;
+    if (!isTextEditing && shouldDiscardTextAnnotation(annotation.content)) {
+      setIsTextEditing(true);
+    }
+  }, [annotation.content, annotation.type, isTextEditing, selected]);
+
+  useEffect(() => {
+    if (annotation.type !== "text" || !selected || !isTextEditing || textWasFocusedRef.current) return undefined;
     textWasFocusedRef.current = true;
     const frame = window.requestAnimationFrame(() => {
       const textElement = textContentRef.current;
@@ -1518,7 +1525,7 @@ function ProfessionalAnnotation({ annotation, selected, zoom, activeTool, pageWi
       selection.addRange(range);
     });
     return () => window.cancelAnimationFrame(frame);
-  }, [annotation.id, annotation.type, selected]);
+  }, [annotation.id, annotation.type, isTextEditing, selected]);
 
   const beginFrameGesture = (event, kind, handle = "") => {
     if (kind === "move" && event.target.closest?.("input, [contenteditable='true']") && !event.target.closest?.(".move-control")) {
@@ -1833,9 +1840,37 @@ function ProfessionalAnnotation({ annotation, selected, zoom, activeTool, pageWi
   }
 
   return (
-    <div className={`annotation text-box ${selected ? "is-selected" : ""} ${isTextEditing ? "is-editing" : ""}`} style={{ ...commonStyle, color: annotation.color, fontFamily: annotation.fontFamily || "Arial, Helvetica, sans-serif", fontSize: `${annotation.fontSize * textDisplayScale}px`, fontWeight: annotation.bold ? 700 : 500, fontStyle: annotation.italic ? "italic" : "normal", textDecoration: annotation.underline ? "underline" : "none", textAlign: annotation.textAlign || "left", lineHeight: annotation.lineHeight || 1.25 }} onPointerDown={dragStart}>
+    <div
+      className={`annotation text-box ${selected ? "is-selected" : ""} ${isTextEditing ? "is-editing" : ""}`}
+      style={{ ...commonStyle, color: annotation.color, fontFamily: annotation.fontFamily || "Arial, Helvetica, sans-serif", fontSize: `${annotation.fontSize * textDisplayScale}px`, fontWeight: annotation.bold ? 700 : 500, fontStyle: annotation.italic ? "italic" : "normal", textDecoration: annotation.underline ? "underline" : "none", textAlign: annotation.textAlign || "left", lineHeight: annotation.lineHeight || 1.25 }}
+      onPointerDown={dragStart}
+      onDoubleClick={(event) => {
+        event.stopPropagation();
+        onSelect(annotation.id);
+        setIsTextEditing(true);
+      }}
+    >
       {controls}
-      <EditableTextContent ref={textContentRef} ariaLabel="Edit text box" className="text-content" editable={selected} spellCheck="false" value={annotation.content} onPointerDown={(event) => { event.stopPropagation(); onSelect(annotation.id); }} onFocus={() => setIsTextEditing(true)} onChange={updateTextContent} onBlur={() => { setIsTextEditing(false); commitTextContent(); }} />
+      <EditableTextContent
+        ref={textContentRef}
+        ariaLabel="Edit text box"
+        className="text-content"
+        editable={selected && isTextEditing}
+        spellCheck="false"
+        value={annotation.content}
+        onPointerDown={(event) => {
+          if (!isTextEditing) return;
+          event.stopPropagation();
+          onSelect(annotation.id);
+        }}
+        onFocus={() => setIsTextEditing(true)}
+        onChange={updateTextContent}
+        onBlur={() => {
+          textWasFocusedRef.current = false;
+          setIsTextEditing(false);
+          commitTextContent();
+        }}
+      />
     </div>
   );
 }
@@ -4794,6 +4829,11 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     setIsShapeMenuOpen(false);
     setIsCompactToolsMenuOpen(false);
     setSelectedDetectedTextId(null);
+    if (nextTool === "select") {
+      setTool("select");
+      showToast("Select an object, then drag it to move it.");
+      return;
+    }
     if (nextTool === "image") {
       setTool("image");
       imageInputRef.current?.click();
