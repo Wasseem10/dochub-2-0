@@ -48,6 +48,65 @@ final result: passed
 
 ---
 
+# Shared tool landing and signature-request QA
+
+## Scope
+
+- Source visual truth: `C:\Users\wasse\OneDrive\Desktop\pdf-editor\work\design-qa\tool-landing-edit-reference-viewport.jpg` (current Edit PDF landing)
+- Implementation screenshot: `C:\Users\wasse\OneDrive\Desktop\pdf-editor\work\design-qa\tool-landing-merge-viewport.jpg`
+- Side-by-side comparison: `C:\Users\wasse\OneDrive\Desktop\pdf-editor\work\design-qa\tool-landing-edit-vs-merge-viewport-comparison.jpg`
+- Source and implementation pixels: 1265 × 712 each.
+- CSS viewport: 1280 × 720 at device scale 1.25. No density normalization was needed because both captures came from the same browser, viewport, and density.
+- State: no file selected; the upload action is the dominant first workflow.
+
+## Findings
+
+- No actionable P0, P1, or P2 visual differences remain.
+- Fonts and typography: both pages use DM Sans with the same compact negative tracking, 760 hero weight, restrained gray supporting copy, and clear centered hierarchy. Tool-specific copy wraps naturally without reducing the upload action's priority.
+- Spacing and layout rhythm: breadcrumbs, hero spacing, the 1050px heading region, 920px upload frame, 360px upload target, radii, dashed border, and shadow treatment follow the Edit PDF source. Converter settings now sit below the upload surface instead of competing beside it.
+- Colors and visual tokens: both use white and powder-blue surfaces, blue `#2851eb` primary actions, cool gray borders, and the same restrained blue/blush ambient light. Legacy green, mint, and cream upload styling is removed.
+- Image quality and asset fidelity: both pages use the real cropped PDFArrow wordmark and the established Lucide upload icon. No placeholder art, CSS illustration, or substitute logo was introduced.
+- Copy and content: each workflow retains accurate tool-specific file limits, action copy, privacy language, and released feature behavior.
+- Responsiveness and accessibility: desktop and Android browser tests passed for Merge PDF, PDF to Word, OCR PDF, Translate PDF, and Redact PDF. All representative routes had no horizontal overflow, practical upload targets, semantic file inputs, and visible blue primary actions.
+
+## Focused comparison evidence
+
+- A separate crop was unnecessary because the hero typography, upload frame, icon, copy, and primary action are all readable at full size in the side-by-side viewport comparison.
+- Browser-computed evidence for Merge PDF: DM Sans, 67.2px hero size, weight 760; 360px upload minimum height; `rgba(255, 255, 255, 0.88)` upload surface; `rgb(40, 81, 235)` primary action.
+
+## Comparison history
+
+- Pass 1: the shared landing system visually matched Edit PDF, but route testing found that Redact PDF's lazy-loaded stylesheet could restore a pale legacy upload fill. The shared selector was strengthened so the final redaction upload uses the same white surface and blue action.
+- Pass 1 also found a P1 mobile interaction overlap in the new signature-request field toolbar: history controls intercepted the Signature button, and an unnecessary field-format bar consumed space. On small screens the history and secondary groups are now removed from this task-specific toolbar, the six required field actions fit in one centered row, and the unrelated settings strip is suppressed.
+- Pass 2: 18 focused desktop and Android browser checks passed. Signature, Initials, Date, Text, and Checkbox fields were placed and identified correctly; all representative tool pages kept the shared visual tokens with no horizontal overflow. The browser console contained no errors.
+
+## Primary interactions tested
+
+- Opened representative public tool routes in their initial no-file state.
+- Verified upload controls and primary-action styling on desktop and Android.
+- Uploaded a generated PDF to Request Signatures.
+- Placed Signature, Initials, Date, Text, and Checkbox fields through direct toolbar actions.
+- Reopened and dismissed the request dialog without losing the editable document.
+- Verified Share PDF's authentication boundary and secure-link action.
+- Production build, 107-route prerender, TypeScript, targeted lint, and all 225 unit/integration tests passed.
+
+## Implementation Checklist
+
+- [x] Match released tool landing pages to the Edit PDF visual system.
+- [x] Keep the upload action dominant before a file is selected.
+- [x] Remove legacy green, mint, and cream tool styling.
+- [x] Preserve tool-specific processing and settings.
+- [x] Expose all required signature-request field types directly.
+- [x] Verify desktop and mobile route behavior.
+
+**Follow-up Polish**
+
+- No P3 follow-up is required for this scoped release.
+
+final result: passed
+
+---
+
 # All Tools colorful catalog QA
 
 ## Scope

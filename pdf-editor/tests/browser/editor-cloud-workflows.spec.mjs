@@ -48,3 +48,35 @@ test("Request Signatures keeps the page editable and lets the user reopen the re
   await expect(page.getByRole("dialog", { name: "Request signatures" })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Request signature", exact: true })).toBeVisible();
 });
+
+test("Request Signatures exposes every required recipient field as a direct toolbar action", async ({ page }) => {
+  await page.goto(appPath("/request-signatures"));
+  await page.locator('input[type="file"]').first().setInputFiles({
+    name: "signature-fields.pdf",
+    mimeType: "application/pdf",
+    buffer: await workflowPdf("SIGNATURE FIELD TYPES"),
+  });
+
+  const surface = page.locator(".page-surface");
+  await expect(surface).toBeVisible();
+  const surfaceBox = await surface.boundingBox();
+  const fieldButtons = [
+    ["Signature", "Signature", 0.2],
+    ["Initials", "Initials", 0.32],
+    ["Date", "Date", 0.44],
+    ["Text", "Text field", 0.56],
+    ["Checkbox", "Checkbox", 0.68],
+  ];
+
+  for (const [buttonName, fieldLabel, yRatio] of fieldButtons) {
+    await page.getByRole("button", { name: buttonName, exact: true }).click();
+    await surface.click({ position: { x: surfaceBox.width * 0.28, y: surfaceBox.height * yRatio } });
+    const fieldSelector = fieldLabel === "Checkbox"
+      ? `.annotation.checkbox-field[aria-label="${fieldLabel}"]`
+      : `.annotation.fillable-field input[aria-label="${fieldLabel}"]`;
+    await expect(page.locator(fieldSelector)).toHaveCount(1);
+  }
+
+  await expect(page.locator(".annotation.fillable-field")).toHaveCount(4);
+  await expect(page.locator(".annotation.checkbox-field")).toHaveCount(1);
+});
