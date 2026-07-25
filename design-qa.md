@@ -1,5 +1,43 @@
 # Design QA
 
+## PDF Form Filler pastel background
+
+- Source visual truth: `C:\Users\wasse\AppData\Local\Temp\codex-clipboard-cf821b7a-a967-4adb-8f5b-a51de8aae7a9.png`
+- Desktop implementation: `C:\Users\wasse\OneDrive\Desktop\pdf-editor\work\design-qa\pdf-form-filler-pastel-background-implementation.png`
+- Mobile implementation: `C:\Users\wasse\OneDrive\Desktop\pdf-editor\work\design-qa\pdf-form-filler-pastel-background-mobile.png`
+- Full comparison evidence: `C:\Users\wasse\OneDrive\Desktop\pdf-editor\work\design-qa\pdf-form-filler-pastel-background-comparison.png`
+- Source pixels: 3072 × 2048. Desktop implementation pixels: 1279 × 974 from a 1294 × 986 CSS viewport at device scale 1.25. Mobile implementation: 390 × 844 CSS viewport.
+- Density normalization: the source was proportionally cover-cropped and downsampled to 1279 × 974 for the combined comparison.
+- State: anonymous `/pdf-form-filler` upload page before a file is chosen.
+
+### Findings
+
+- No actionable P0, P1, or P2 issues remain.
+- Fonts and typography: the existing PDFArrow DM Sans hierarchy remains unchanged and stays legible over the pale background.
+- Spacing and layout rhythm: all existing hero, upload, reassurance, and guide spacing is preserved.
+- Colors and visual tokens: the supplied raster preserves its cyan, lilac, blush, and soft yellow balance. White upload surfaces retain sufficient contrast.
+- Image quality and asset fidelity: the exact 3072 × 2048 source PNG is served as the route-specific background with `cover` sizing.
+- Copy and content: all PDF Form Filler headings, upload guidance, limits, trust copy, and supporting sections are unchanged.
+- Responsive behavior: desktop uses a fixed background; mobile switches to normal scrolling with a tuned focal position and no horizontal overflow.
+
+### Focused-region evidence
+
+- A separate focused crop was not needed because the source is a full-frame abstract background with no small typography, icons, or detailed focal asset.
+
+### Primary interactions tested
+
+- The scoped “Choose a PDF” button opened the native single-file chooser.
+- Desktop and 390 × 844 mobile layouts were inspected.
+- Browser console errors checked: none.
+
+### Comparison history
+
+- Pass 1: no P0, P1, or P2 visual mismatch. The supplied background is visible at full fidelity, page content remains readable, and the mobile layout has no horizontal overflow.
+
+final result: passed
+
+---
+
 ## Landing page
 
 Latest request reviewed: make the landing page light, simple, and enterprise-grade.
