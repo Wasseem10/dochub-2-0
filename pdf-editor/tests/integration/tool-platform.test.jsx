@@ -62,9 +62,9 @@ describe("public PDF tool platform", () => {
     await act(async () => root.findByType("input").props.onChange({ target: { value: "PowerPoint" } }));
     expect(textOf(root.findByProps({ "aria-live": "polite" }))).toBe("2 tools");
 
-    await act(async () => root.findAllByType("button").find((button) => textOf(button) === "Protect").props.onClick());
+    await act(async () => root.findAllByType("button").find((button) => textOf(button).startsWith("Protect")).props.onClick());
     expect(textOf(root.findByProps({ "aria-live": "polite" }))).toBe("0 tools");
-    expect(root.findAllByType("h2").some((heading) => textOf(heading) === "No tools match that search")).toBe(true);
+    expect(root.findAllByType("h2").some((heading) => textOf(heading) === "No tools match “PowerPoint”")).toBe(true);
 
     await act(async () => root.findAllByType("button").find((button) => textOf(button) === "Clear filters").props.onClick());
     expect(textOf(root.findByProps({ "aria-live": "polite" }))).toBe("68 tools");
