@@ -239,6 +239,22 @@ const compactEditorTools = [
   ...referencePrimaryTools.slice(5),
 ];
 
+const requestFieldTools = [
+  { id: "signature", label: "Signature", icon: PenLine },
+  { id: "initials", label: "Initials", icon: Type },
+  { id: "date", label: "Date", icon: CalendarDays },
+  { id: "text", label: "Text", icon: FilePlus2 },
+  { id: "checkbox", label: "Checkbox", icon: Check },
+];
+
+const requestFieldLabels = {
+  signature: "Signature",
+  initials: "Initials",
+  date: "Date",
+  text: "Text field",
+  checkbox: "Checkbox",
+};
+
 function makeId(prefix) {
   return `${prefix}-${Math.random().toString(36).slice(2, 9)}`;
 }
@@ -1948,6 +1964,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     shapeColor: colors.blue,
     shapeStroke: 3,
     whiteoutOpacity: 1,
+    requestFieldType: "signature",
   });
 
   const ensurePdfDocumentProxy = useCallback(async () => {
@@ -2038,7 +2055,8 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   const selectedDetectedText = useMemo(() => detectedTextItems.find((item) => item.id === selectedDetectedTextId), [detectedTextItems, selectedDetectedTextId]);
   const activeDocument = useMemo(() => documents.find((document) => document.id === activeDocumentId), [documents, activeDocumentId]);
   const currentPage = pages[pageIndex] || pages[0];
-  const hasVisibleToolSettings = selected?.type === "text" || ["text", "field", "draw", "highlight", "textHighlight", "whiteout", "rectangle", "circle", "line", "arrow"].includes(tool);
+  const hasVisibleToolSettings = publicTool !== "request-signatures"
+    && (selected?.type === "text" || ["text", "field", "draw", "highlight", "textHighlight", "whiteout", "rectangle", "circle", "line", "arrow"].includes(tool));
   const pageAnnotations = annotations.filter((annotation) => annotation.page === pageIndex);
   const pageDetectedTextItems = detectedTextItems.filter((item) => item.pageNumber === pageIndex && !item.isDeleted);
   const pageDeletedTextItems = detectedTextItems.filter((item) => item.pageNumber === pageIndex && item.isDeleted);
@@ -3597,17 +3615,24 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
 
     if (tool === "field") {
       const isSignatureRequest = publicTool === "request-signatures";
+      const requestFieldType = isSignatureRequest ? toolSettings.requestFieldType || "signature" : "text";
+      const requestFieldSize = {
+        signature: { w: 0.28, h: 0.07 },
+        initials: { w: 0.16, h: 0.055 },
+        date: { w: 0.2, h: 0.055 },
+        text: { w: 0.28, h: 0.055 },
+      }[requestFieldType] || { w: 0.28, h: 0.055 };
       addAnnotation({
         id: makeId("field"),
         type: "field",
         page: pageIndex,
-        x: clamp(point.x, 0, 0.68),
+        x: clamp(point.x, 0, 1 - requestFieldSize.w),
         y: clamp(point.y, 0, 0.93),
-        w: 0.28,
-        h: 0.055,
+        w: requestFieldSize.w,
+        h: requestFieldSize.h,
         content: "",
-        fieldName: isSignatureRequest ? "Signature" : "Text field",
-        requestFieldType: isSignatureRequest ? "signature" : "text",
+        fieldName: isSignatureRequest ? requestFieldLabels[requestFieldType] : "Text field",
+        requestFieldType,
         required: true,
         color: colors.blue,
         fontSize: 12,
@@ -3735,7 +3760,9 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
         type: "checkbox",
         page: pageIndex,
         ...centeredAnnotationBounds(point, width, height),
-        checked: true,
+        checked: publicTool !== "request-signatures",
+        fieldName: publicTool === "request-signatures" ? requestFieldLabels.checkbox : undefined,
+        required: publicTool === "request-signatures",
         color: colors.blue,
         opacity: 1,
       });
@@ -4809,6 +4836,15 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     setTool(nextTool);
   };
 
+  const activateRequestField = (fieldType) => {
+    setSelectedId(null);
+    setSelectedDetectedTextId(null);
+    setToolSettings((current) => ({ ...current, requestFieldType: fieldType }));
+    setTool(fieldType === "checkbox" ? "checkbox" : "field");
+    setActiveToolMode("fillSign");
+    showToast(`Click the page to place a required ${requestFieldLabels[fieldType].toLowerCase()} field.`);
+  };
+
   const finishEditing = async () => {
     await saveActiveDocument(true);
     navigate(currentUser?.uid ? ROUTE_PATHS.documents : ROUTE_PATHS.home);
@@ -4898,7 +4934,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   }
 
   return (
-    <main className={`editor-shell ${hasVisibleToolSettings ? "has-tool-settings" : ""} ${tool === "editText" ? "is-smart-text-mode" : ""} ${tool === "textHighlight" ? "is-text-highlight-mode" : ""} ${tool === "highlight" || tool === "textHighlight" ? "is-highlight-settings-mode" : ""} ${zoomMode === EDITOR_ZOOM_MODE.CUSTOM ? "is-custom-zoom" : "is-fit-zoom"}`}>
+    <main className={`editor-shell ${publicTool === "request-signatures" ? "is-signature-request" : ""} ${hasVisibleToolSettings ? "has-tool-settings" : ""} ${tool === "editText" ? "is-smart-text-mode" : ""} ${tool === "textHighlight" ? "is-text-highlight-mode" : ""} ${tool === "highlight" || tool === "textHighlight" ? "is-highlight-settings-mode" : ""} ${zoomMode === EDITOR_ZOOM_MODE.CUSTOM ? "is-custom-zoom" : "is-fit-zoom"}`}>
       <input ref={fileInputRef} className="hidden-input" type="file" accept="application/pdf" onChange={onUpload} />
       <input ref={appendFileInputRef} className="hidden-input" type="file" accept="application/pdf" onChange={onAppendUpload} />
       <input ref={imageInputRef} className="hidden-input" type="file" accept="image/png,image/jpeg" onChange={onImageUpload} />
@@ -5079,6 +5115,24 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
         </div>
 
         <div className="reference-primary-tools" role="toolbar" aria-label="Editing tools">
+          {publicTool === "request-signatures" ? (
+            <div className="request-field-tools" aria-label="Required signing fields">
+              <button type="button" className={`reference-toolbar-button ${tool === "select" ? "is-active" : ""}`} aria-pressed={tool === "select"} onClick={() => activateReferenceTool("select")}>
+                <MousePointer2 size={23} /><span>Select</span>
+              </button>
+              {requestFieldTools.map(({ id, label, icon: Icon }) => {
+                const active = id === "checkbox"
+                  ? tool === "checkbox"
+                  : tool === "field" && toolSettings.requestFieldType === id;
+                return (
+                  <button key={id} type="button" className={`reference-toolbar-button ${active ? "is-active" : ""}`} aria-pressed={active} onClick={() => activateRequestField(id)}>
+                    <Icon size={23} /><span>{label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          ) : (
+            <>
           <div className="reference-content-tools">
             {referencePrimaryTools.slice(0, 2).map(({ id, label, icon: Icon }) => (
               <button key={id} type="button" className={`reference-toolbar-button ${tool === id ? "is-active" : ""}`} aria-pressed={tool === id} onClick={() => activateReferenceTool(id)}>
@@ -5148,6 +5202,8 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
               </button>
             ))}
           </div>
+            </>
+          )}
         </div>
 
         <div className="reference-secondary-tools">
@@ -5244,13 +5300,15 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
         </div>
       </section>
 
-      <ToolSettingsPanel
-        tool={tool}
-        settings={toolSettings}
-        setSettings={setToolSettings}
-        selectedTextAnnotation={selected?.type === "text" ? selected : null}
-        updateAnnotation={updateAnnotation}
-      />
+      {publicTool !== "request-signatures" && (
+        <ToolSettingsPanel
+          tool={tool}
+          settings={toolSettings}
+          setSettings={setToolSettings}
+          selectedTextAnnotation={selected?.type === "text" ? selected : null}
+          updateAnnotation={updateAnnotation}
+        />
+      )}
 
       <section className={`workspace ${isPagesCollapsed ? "pages-collapsed" : ""} ${isManagePagesOpen ? "is-managing-pages" : ""}`}>
         <aside className="lumin-editor-rail">
