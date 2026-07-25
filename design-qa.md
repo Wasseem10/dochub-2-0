@@ -326,3 +326,50 @@ The implementation preserves the selected concept's hierarchy: breadcrumb, large
 - Browser console contained no errors.
 
 final result: passed
+# Public All Tools Catalog — Dashboard Match (2026-07-24)
+
+## Evidence
+
+- Source visual truth: `work/design-qa/public-tools-source-dashboard.png`
+- Implementation screenshot: `work/design-qa/public-tools-after-pass1.png`
+- Combined comparison: `work/design-qa/public-tools-source-vs-implementation.png`
+- Viewport: 1280 × 720 CSS px at device scale factor 1
+- Source pixels: 1280 × 720
+- Implementation pixels: 1280 × 720
+- State: default All tools category with no search query
+
+## Full-view comparison
+
+- The public `/tools` route now uses the dashboard catalog’s powder-blue surface, compact category controls, three-column tool rows, colorful icon tiles, popular-tools grouping, and dense vertical rhythm.
+- The public marketing header replaces the dashboard shell by design; the catalog content beneath it preserves the source hierarchy and interaction model.
+
+## Focused comparison
+
+- A separate crop was not required because the 1280 × 720 combined comparison keeps the heading, filters, result count, section label, tool cards, typography, colors, and icon treatment clearly readable.
+- Fonts and typography: DM Sans, compact uppercase section labels, dense 11–14px controls, and bold tool names match the source. The public H1 is intentionally larger to retain its SEO page-title role.
+- Spacing and layout rhythm: 1110px content width, 8px card gaps, 6–7px radii, and 74px tool rows match the source catalog.
+- Colors and visual tokens: powder-blue `#f5f7ff`, PDFArrow blue `#2851eb`, white cards, blue-gray dividers, and the same eight colorful icon tones match the source.
+- Image quality and asset fidelity: the existing PDFArrow logo and shared `ToolIcon` library are preserved; no substitute assets or CSS-drawn icons were introduced.
+- Copy and content: “Every PDF task, one clear place,” the category counts, popular tool set, and tool destinations match the dashboard catalog while retaining public-page metadata.
+
+## Interaction checks
+
+- Search filters the visible tool cards and changes the catalog to “All matching tools.”
+- Category controls report pressed state and show the correct tool count.
+- Clear filters restores all 68 released tools.
+- Upload PDF and every tool card remain real internal links.
+- Browser console check found no application errors.
+
+## Comparison history
+
+- Pass 1: no P0, P1, or P2 visual mismatches. The implementation intentionally keeps the public marketing header and a larger semantic H1 instead of copying the authenticated app shell.
+
+## Findings
+
+- No actionable P0, P1, or P2 findings.
+
+## Follow-up polish
+
+- P3: a future pass could add a compact sticky search treatment once real usage data shows that long-scroll discovery needs it.
+
+final result: passed
