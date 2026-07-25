@@ -29,6 +29,7 @@ const legalDescriptions = {
 /** @type {RouteRecord[]} */
 const routeRecords = [
   { path: "/", title: "Every PDF Task in One Place | PDFArrow", description: "Edit, sign, fill, merge, split, organize, and convert PDFs without subscriptions, watermarks, or forced signup.", noIndex: false, kind: "home" },
+  { path: ROUTE_PATHS.about, title: "About PDFArrow | A simpler browser-first PDF workspace", description: "Meet PDFArrow, a browser-first PDF workspace built to make editing, organizing, converting, signing, scanning, and reviewing documents feel straightforward.", noIndex: false, kind: "about" },
   { path: ROUTE_PATHS.tools, title: "Free PDF Tools | PDFArrow", description: "Browse working free PDF tools with clear formats, limits, and availability labels.", noIndex: false, kind: "directory" },
   { path: ROUTE_PATHS.features, title: "All PDF Features | PDFArrow", description: "Explore every released PDFArrow feature for editing, organizing, converting, signing, scanning, protecting, and reviewing PDFs.", noIndex: false, kind: "directory" },
   { path: ROUTE_PATHS.support, title: "PDF Help and Support | PDFArrow", description: "Contact PDFArrow support about PDF tools, accounts, privacy, security, or data deletion.", noIndex: false },
@@ -87,6 +88,10 @@ function staticContentFor(record) {
     return `<main class="prerender-shell">${breadcrumb(category.name)}<p class="prerender-brand">PDFArrow · ${tools.length} working tools</p><h1>${escapeHtml(category.headline)}</h1><p class="prerender-lead">${escapeHtml(category.intro)}</p><section><h2>${escapeHtml(category.name)} tools</h2><ul class="prerender-links">${tools.map(toolLink).join("")}</ul></section><section><h2>What to check before downloading</h2><ul>${guidance}</ul></section><p><a href="/tools">Browse every PDF tool</a></p></main>`;
   }
 
+  if (record.kind === "about") {
+    return `<main class="prerender-shell"><p class="prerender-brand">About PDFArrow</p><h1>PDF work should feel clear, fast, and human.</h1><p class="prerender-lead">${escapeHtml(record.description)}</p><a class="prerender-action" href="/edit-pdf">Choose a PDF</a><section><h2>Useful software without the maze</h2><p>PDFArrow keeps the document in focus, shows real limits before processing, and makes the next action easy to find.</p></section><section><h2>Browser-first by design</h2><p>Supported workflows process files on your device, without forcing an account before you can begin.</p></section><section><h2>One connected PDF toolkit</h2><p>Edit, annotate, organize, convert, sign, scan, protect, and review documents in one clear workspace.</p><p><a href="/tools">Explore all PDF tools</a></p></section></main>`;
+  }
+
   if (record.kind === "home" || record.kind === "directory") {
     const categoryLinks = TOOL_CATEGORY_PAGES.map((category) => `<li><a href="${escapeHtml(category.route)}"><strong>${escapeHtml(category.name)}</strong><span>${escapeHtml(category.metaDescription)}</span></a></li>`).join("");
     const toolLinks = TOOL_REGISTRY.filter((tool) => tool.status !== "coming-soon").map(toolLink).join("");
@@ -129,6 +134,19 @@ function structuredDataFor(record) {
       logo: `${siteUrl}/icon.svg`,
     },
   );
+  if (record.kind === "about") schemas.push({
+    "@context": "https://schema.org",
+    "@type": "AboutPage",
+    name: "About PDFArrow",
+    description: record.description,
+    url: canonical,
+    mainEntity: {
+      "@type": "SoftwareApplication",
+      name: "PDFArrow",
+      applicationCategory: "BusinessApplication",
+      operatingSystem: "Web",
+    },
+  });
   if (record.kind === "directory") schemas.push({
     "@context": "https://schema.org",
     "@type": "CollectionPage",
