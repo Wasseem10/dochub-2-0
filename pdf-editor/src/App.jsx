@@ -3546,10 +3546,8 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     }
     lastPagePointRef.current = pointerToNormalized(event, event.currentTarget);
     if (!["text", "highlight", "textHighlight", "draw", "signature", "initials", "checkbox", "field", "date", "whiteout", "rectangle", "circle", "line", "arrow", "comment", "stamp", "link", "image"].includes(tool)) {
-      const selectedAnnotation = annotations.find((item) => item.id === selectedId);
-      if (selectedAnnotation?.type === "text" && shouldDiscardTextAnnotation(selectedAnnotation.content)) {
-        commitAnnotations(annotations.filter((item) => item.id !== selectedAnnotation.id));
-      }
+      // The text editor's blur handler owns saving or discarding its live DOM
+      // draft; annotation state can still contain the pre-edit value here.
       setSelectedId(null);
       setSelectedDetectedTextId(null);
       return;
