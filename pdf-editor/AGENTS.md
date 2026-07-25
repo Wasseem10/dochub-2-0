@@ -66,6 +66,8 @@ The selected July 23, 2026 authentication reference is a minimal, borderless sig
 
 The homepage ending must stay clean, bright, and utility-led: remove the redundant final upload CTA, use a slim three-item reassurance row, then a crisp white multi-column footer with hairline dividers, compact PDFArrow branding, and restrained blue accents. Never restore the dark footer, oversized wordmark billboard, or a pastel promotional container at the end of the page.
 
+Legal and policy pages must feel native to the PDFArrow public site rather than like a separate corporate microsite. Reuse the bright white canvas, compact DM Sans typography, restrained powder-blue and blush glow, familiar content widths, simple cards, and airy section rhythm from the homepage and About page. Keep detailed legal copy readable and complete without oversized legal-portal typography, dense data-dashboard styling, or competing decorative treatments.
+
 The Draw tool opens one compact floating settings bar below the primary toolbar. It must expose direct black, blue, red, orange, green, and purple choices, a working custom color picker, five readable pen-size presets, and a fine-size slider without clipping, overlapping, or duplicating controls elsewhere in the same bar.
 
 While Draw is active, newly completed strokes must remain unselected so transform handles never interrupt handwriting between pen strokes. Existing strokes remain movable only after switching away from Draw.
