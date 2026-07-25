@@ -12,9 +12,10 @@ import ShieldCheck from "lucide-react/dist/esm/icons/shield-check.mjs";
 import Trash2 from "lucide-react/dist/esm/icons/trash-2.mjs";
 import Upload from "lucide-react/dist/esm/icons/upload.mjs";
 import { Link } from "react-router-dom";
-import { trackProductEvent } from "../../analytics/productAnalytics.js";
+import { trackProductEvent, trackUploadValidationFailure } from "../../analytics/productAnalytics.js";
 import { PageMetadata } from "../../components/public/PageMetadata.jsx";
 import { ToolGuideContent } from "../../components/public/ToolGuideContent.jsx";
+import { WorkflowErrorState } from "../../components/public/WorkflowErrorState.jsx";
 import { ROUTE_PATHS } from "../../router/routePaths.js";
 import { toolSeoSchemas } from "../../tools/toolSeoSchemas.js";
 import { createPdfFromImages } from "../../tools/imageConversion.js";
@@ -91,12 +92,34 @@ export function ScanPdfPage({ tool }) {
 
   const addFiles = (files) => {
     const list = Array.from(files || []);
-    const validationError = validateScanFiles(list);
-    if (validationError) return setError(validationError);
-    if (pages.length + list.length > SCAN_PDF_LIMITS.maxImages) return setError(`A scan can contain up to ${SCAN_PDF_LIMITS.maxImages} pages.`);
-    setError("");
-    setPages((current) => [...current, ...list.map((file) => ({ id: crypto.randomUUID(), file, preview: URL.createObjectURL(file), rotation: 0 }))]);
-    trackProductEvent("upload_started", { toolId: tool.id });
+    if (!list.length) return;
+    const remainingSlots = Math.max(0, SCAN_PDF_LIMITS.maxImages - pages.length);
+    if (!remainingSlots) {
+      trackUploadValidationFailure(tool.id, "too_many_files");
+      setError(`You already have the maximum of ${SCAN_PDF_LIMITS.maxImages} pages. Remove one before adding another.`);
+      return;
+    }
+    const accepted = [];
+    const skipped = list.slice(remainingSlots).map((file) => `${file.name}: the ${SCAN_PDF_LIMITS.maxImages}-page limit was reached`);
+    list.slice(0, remainingSlots).forEach((file) => {
+      const validationError = validateScanFiles([file]);
+      if (validationError) {
+        trackUploadValidationFailure(tool.id, "invalid_image");
+        skipped.push(`${file.name}: ${validationError}`);
+      } else {
+        accepted.push({ id: crypto.randomUUID(), file, preview: URL.createObjectURL(file), rotation: 0 });
+      }
+    });
+    if (accepted.length) {
+      setPages((current) => [...current, ...accepted]);
+      trackProductEvent("upload_started", { toolId: tool.id, batchSize: accepted.length });
+    }
+    if (skipped.length) {
+      const summary = skipped.slice(0, 3).join("; ");
+      setError(`${accepted.length ? `${accepted.length} page${accepted.length === 1 ? "" : "s"} added. ` : ""}${skipped.length} file${skipped.length === 1 ? " was" : "s were"} skipped: ${summary}${skipped.length > 3 ? `; and ${skipped.length - 3} more` : ""}.`);
+    } else {
+      setError("");
+    }
   };
 
   const removePage = (index) => setPages((current) => {
@@ -180,7 +203,7 @@ export function ScanPdfPage({ tool }) {
     {isCamera && <section className="scan-camera-card"><div className="scan-video-shell"><video ref={videoRef} muted playsInline />{!cameraOn && <span><Camera size={30} /><strong>Camera preview</strong><small>Use the rear camera for clearer paper scans.</small></span>}</div><div><button type="button" onClick={cameraOn ? capture : startCamera}>{cameraOn ? <><Camera size={18} /> Capture page</> : <><Camera size={18} /> Start camera</>}</button>{cameraOn && <button className="scan-camera-secondary" type="button" onClick={stopCamera}>Stop camera</button>}<p>Camera capture requires browser permission and HTTPS. You can always upload existing photos instead.</p></div></section>}
     <div className="conversion-workspace-grid"><section>
       <div className="conversion-dropzone" onDragOver={(event) => event.preventDefault()} onDrop={(event) => { event.preventDefault(); addFiles(event.dataTransfer.files); }}><input ref={inputRef} type="file" multiple accept="image/jpeg,image/png,.jpg,.jpeg,.png" onChange={(event) => { addFiles(event.target.files); event.target.value = ""; }} /><span><Upload size={27} /></span><h2>Add scanned page images</h2><p>Up to {SCAN_PDF_LIMITS.maxImages} JPG or PNG pages, 20 MB each.</p><button type="button" onClick={() => inputRef.current?.click()}>Choose page images</button></div>
-      {error && <div className="conversion-error" role="alert">{error}</div>}
+      <WorkflowErrorState message={error} onDismiss={() => setError("")} onRetry={pages.length && status === "idle" ? createPdf : undefined} />
       {pages.length > 0 && <ol className="scan-page-list">{pages.map((pageRecord, index) => <li key={pageRecord.id}><img src={pageRecord.preview} alt={`Scan page ${index + 1}`} style={{ transform: `rotate(${pageRecord.rotation}deg)` }} /><div><strong>Page {index + 1}</strong><small>{pageRecord.file.name}</small></div><span><button type="button" aria-label={`Move page ${index + 1} up`} disabled={index === 0} onClick={() => setPages((items) => moveScanPage(items, index, index - 1))}><ArrowUp size={15} /></button><button type="button" aria-label={`Move page ${index + 1} down`} disabled={index === pages.length - 1} onClick={() => setPages((items) => moveScanPage(items, index, index + 1))}><ArrowDown size={15} /></button><button type="button" aria-label={`Rotate page ${index + 1}`} onClick={() => setPages((items) => items.map((item, itemIndex) => itemIndex === index ? { ...item, rotation: nextScanRotation(item.rotation) } : item))}><RotateCw size={15} /></button><button type="button" aria-label={`Remove page ${index + 1}`} onClick={() => removePage(index)}><Trash2 size={15} /></button></span></li>)}</ol>}
     </section><aside className="conversion-settings-card"><span>{isSearchable ? "OCR output" : "Scan settings"}</span>{isSearchable ? <FileSearch size={25} /> : <Images size={25} />}<h2>{isSearchable ? "Searchable English text" : "Ordered PDF pages"}</h2><label className="protection-authorization"><input type="checkbox" checked={cleanup} onChange={(event) => setCleanup(event.target.checked)} /><span>Apply grayscale and contrast cleanup to every page.</span></label><div className="conversion-summary"><Check size={18} /><span>{pages.length ? `${pages.length} page${pages.length === 1 ? "" : "s"} ready` : "Add page images to continue"}</span></div>
       {status === "working" && <><div className="conversion-progress-bar"><i style={{ width: `${progress}%` }} /></div><p className="ocr-status">{isSearchable ? "Recognizing and building…" : "Building your PDF…"} {progress}%</p></>}

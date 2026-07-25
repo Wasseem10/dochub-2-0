@@ -10,6 +10,7 @@ import { Link } from "react-router-dom";
 import { trackProductEvent } from "../../analytics/productAnalytics.js";
 import { PageMetadata } from "../../components/public/PageMetadata.jsx";
 import { ToolGuideContent } from "../../components/public/ToolGuideContent.jsx";
+import { WorkflowErrorState } from "../../components/public/WorkflowErrorState.jsx";
 import { ROUTE_PATHS } from "../../router/routePaths.js";
 import { toolSeoSchemas } from "../../tools/toolSeoSchemas.js";
 import { createPdfFromPlainText, extractPlainTextFromPdf, validateTextConversionFile } from "../../tools/textConversion.js";
@@ -73,7 +74,7 @@ export function TextConversionPage({ tool }) {
       <div className="conversion-workspace-grid">
         <section>
           <label className="conversion-dropzone"><input type="file" accept={accept} onChange={(event) => chooseFile(event.target.files?.[0])} /><span><Upload size={25} /></span><strong>{file ? file.name : `Drop or choose a ${pdfToText ? "PDF" : "TXT"} file`}</strong><small>Maximum file size: 10 MB</small></label>
-          {error && <div className="conversion-error" role="alert">{error}</div>}
+          <WorkflowErrorState message={error} onDismiss={() => setError("")} onRetry={file && status === "idle" ? convert : undefined} />
           {file && <div className="office-file-card"><header><FileText size={20} /><div><strong>{file.name}</strong><small>Ready for browser conversion</small></div></header></div>}
         </section>
         <aside className="conversion-settings-card">

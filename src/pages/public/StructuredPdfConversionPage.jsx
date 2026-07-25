@@ -10,6 +10,7 @@ import { Link } from "react-router-dom";
 import { beginToolOperation, pageCountBucket, trackProductEvent, trackToolUpload, trackUploadValidationFailure } from "../../analytics/productAnalytics.js";
 import { PageMetadata } from "../../components/public/PageMetadata.jsx";
 import { ToolGuideContent } from "../../components/public/ToolGuideContent.jsx";
+import { WorkflowErrorState } from "../../components/public/WorkflowErrorState.jsx";
 import { ROUTE_PATHS } from "../../router/routePaths.js";
 import { toolSeoSchemas } from "../../tools/toolSeoSchemas.js";
 import {
@@ -238,7 +239,7 @@ export function StructuredPdfConversionPage({ tool }) {
             <span><Upload size={27} /></span><h2>Drop your PDF here</h2><p>Choose a valid, unencrypted PDF up to 25 MB and 100 pages.</p><button type="button" disabled={status === "reading" || status === "converting"} onClick={() => inputRef.current?.click()}>Choose a PDF</button>
           </div>
           {status === "reading" && <div className="conversion-progress"><LoaderCircle className="is-spinning" size={18} /> Reading your PDF…</div>}
-          {error && <div className="conversion-error" role="alert">{error}</div>}
+          <WorkflowErrorState message={error} onDismiss={() => setError("")} onRetry={file && status === "idle" ? convert : undefined} />
           {file && <div className="office-file-card"><header><FileText size={20} /><div><strong>{file.name}</strong><small>{formatBytes(file.size)} · {pageCount} page{pageCount === 1 ? "" : "s"}</small></div></header></div>}
         </section>
         <aside className="conversion-settings-card">

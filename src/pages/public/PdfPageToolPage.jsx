@@ -15,6 +15,7 @@ import Undo2 from "lucide-react/dist/esm/icons/undo-2.mjs";
 import Upload from "lucide-react/dist/esm/icons/upload.mjs";
 import { PageMetadata } from "../../components/public/PageMetadata.jsx";
 import { ToolGuideContent } from "../../components/public/ToolGuideContent.jsx";
+import { WorkflowErrorState } from "../../components/public/WorkflowErrorState.jsx";
 import { ROUTE_PATHS } from "../../router/routePaths.js";
 import { createStoredZip } from "../../tools/imageConversion.js";
 import { compressionSavings, compressPdfPreservingStructure, createCompressedPdfFromJpegs, PDF_COMPRESSION_PRESETS } from "../../tools/pdfCompression.js";
@@ -462,36 +463,44 @@ function CompressWorkspace({ tool }) {
     if (!incoming.length) return;
     setError("");
     setResults([]);
-    setPreview(null);
-    if (incoming.length > PAGE_TOOL_LIMITS.maxFiles) {
+    const remainingSlots = Math.max(0, PAGE_TOOL_LIMITS.maxFiles - files.length);
+    if (!remainingSlots) {
       trackUploadValidationFailure(tool.id, "too_many_files");
-      setError(`Compress no more than ${PAGE_TOOL_LIMITS.maxFiles} PDFs at once.`);
+      setError(`You already have the maximum of ${PAGE_TOOL_LIMITS.maxFiles} PDFs. Remove one before adding another.`);
       return;
     }
-    if (incoming.some((file) => file.type !== "application/pdf" && !file.name.toLowerCase().endsWith(".pdf"))) {
-      trackUploadValidationFailure(tool.id, "wrong_file_type");
-      setError("Choose PDF files only.");
-      return;
-    }
-    if (incoming.some((file) => file.size > PAGE_TOOL_LIMITS.maxFileBytes)) {
-      trackUploadValidationFailure(tool.id, "file_too_large");
-      setError("Each PDF must be under 50 MB.");
-      return;
-    }
+    const candidates = incoming.slice(0, remainingSlots);
+    const skipped = incoming.slice(remainingSlots).map((file) => `${file.name}: the ${PAGE_TOOL_LIMITS.maxFiles}-file limit was reached`);
     setStatus("reading");
     try {
       const loaded = [];
-      for (const nextFile of incoming) {
-        const bytes = new Uint8Array(await nextFile.arrayBuffer());
-        const details = await inspectPdfBytes(bytes);
-        if (details.pageCount > PAGE_TOOL_LIMITS.maxPages) {
-          throw new Error(`${nextFile.name} has ${details.pageCount} pages. The limit is ${PAGE_TOOL_LIMITS.maxPages}.`);
+      for (const nextFile of candidates) {
+        if (nextFile.type !== "application/pdf" && !nextFile.name.toLowerCase().endsWith(".pdf")) {
+          trackUploadValidationFailure(tool.id, "wrong_file_type");
+          skipped.push(`${nextFile.name}: not a PDF`);
+          continue;
         }
-        trackToolUpload(tool.id, nextFile, { pageCount: details.pageCount });
-        loaded.push({ id: makeId("compress"), file: nextFile, bytes, pageCount: details.pageCount });
+        if (nextFile.size > PAGE_TOOL_LIMITS.maxFileBytes) {
+          trackUploadValidationFailure(tool.id, "file_too_large");
+          skipped.push(`${nextFile.name}: larger than 50 MB`);
+          continue;
+        }
+        try {
+          const bytes = new Uint8Array(await nextFile.arrayBuffer());
+          const details = await inspectPdfBytes(bytes);
+          if (details.pageCount > PAGE_TOOL_LIMITS.maxPages) {
+            skipped.push(`${nextFile.name}: ${details.pageCount} pages exceeds the ${PAGE_TOOL_LIMITS.maxPages}-page limit`);
+            continue;
+          }
+          trackToolUpload(tool.id, nextFile, { pageCount: details.pageCount });
+          loaded.push({ id: makeId("compress"), file: nextFile, bytes, pageCount: details.pageCount });
+        } catch (loadError) {
+          trackUploadValidationFailure(tool.id, "invalid_pdf");
+          skipped.push(`${nextFile.name}: ${friendlyPdfError(loadError)}`);
+        }
       }
-      setFiles(loaded);
-      if (loaded[0]) {
+      if (loaded.length) setFiles((current) => [...current, ...loaded]);
+      if (loaded[0] && !preview) {
         setPreview({
           fileId: loaded[0].id,
           fileName: loaded[0].file.name,
@@ -499,10 +508,10 @@ function CompressWorkspace({ tool }) {
           compressed: "",
         });
       }
-    } catch (loadError) {
-      trackUploadValidationFailure(tool.id, "invalid_pdf");
-      setFiles([]);
-      setError(friendlyPdfError(loadError));
+      if (skipped.length) {
+        const summary = skipped.slice(0, 3).join("; ");
+        setError(`${loaded.length ? `${loaded.length} PDF${loaded.length === 1 ? "" : "s"} added. ` : ""}${skipped.length} file${skipped.length === 1 ? " was" : "s were"} skipped: ${summary}${skipped.length > 3 ? `; and ${skipped.length - 3} more` : ""}.`);
+      }
     } finally {
       setStatus("idle");
     }
@@ -655,7 +664,7 @@ function CompressWorkspace({ tool }) {
               {result.status === "success" && <button type="button" onClick={() => void showResultPreview(result)}>Preview</button>}
             </article>)}
           </section>}
-          {error && <div className="conversion-error" role="alert">{error}</div>}
+          <WorkflowErrorState message={error} onDismiss={() => setError("")} onRetry={files.length && status === "idle" ? compressPdfs : undefined} />
         </section>
         <aside className="conversion-settings-card compression-settings-card">
           <span>Compression settings</span>

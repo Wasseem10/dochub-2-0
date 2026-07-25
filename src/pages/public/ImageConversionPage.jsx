@@ -15,6 +15,7 @@ import { ROUTE_PATHS } from "../../router/routePaths.js";
 import { createPdfFromImages, createStoredZip, IMAGE_CONVERSION_LIMITS, isSupportedImageType } from "../../tools/imageConversion.js";
 import { toolSeoSchemas } from "../../tools/toolSeoSchemas.js";
 import { ExportSuccessState } from "../../components/public/ExportSuccessState.jsx";
+import { WorkflowErrorState } from "../../components/public/WorkflowErrorState.jsx";
 import { beginToolOperation, pageCountBucket, trackProductEvent, trackToolUpload, trackUploadValidationFailure } from "../../analytics/productAnalytics.js";
 
 async function loadPdfRenderer() {
@@ -109,38 +110,53 @@ function ImagesToPdfWorkspace({ tool }) {
     const files = Array.from(fileList || []);
     setError("");
     if (!files.length) return;
-    if (images.length + files.length > IMAGE_CONVERSION_LIMITS.maxImageCount) {
+    const remainingSlots = Math.max(0, IMAGE_CONVERSION_LIMITS.maxImageCount - images.length);
+    if (!remainingSlots) {
       trackUploadValidationFailure(tool.id, "too_many_files");
-      setError(`Choose no more than ${IMAGE_CONVERSION_LIMITS.maxImageCount} images at once.`);
+      setError(`You already have the maximum of ${IMAGE_CONVERSION_LIMITS.maxImageCount} images. Remove one before adding another.`);
       return;
     }
     const expectedType = acceptsPng ? "image/png" : "image/jpeg";
-    const invalid = files.find((file) => !isSupportedImageType(file.type, file.name) || (acceptsPng ? file.type !== "image/png" && !file.name.toLowerCase().endsWith(".png") : file.type === "image/png" || file.name.toLowerCase().endsWith(".png")));
-    if (invalid) {
-      trackUploadValidationFailure(tool.id, "wrong_file_type");
-      setError(`${tool.name} accepts ${acceptsPng ? "PNG" : "JPG"} images. ${invalid.name} is not supported here.`);
-      return;
-    }
-    if (files.some((file) => file.size > IMAGE_CONVERSION_LIMITS.maxInputBytes)) {
-      trackUploadValidationFailure(tool.id, "file_too_large");
-      setError("Each image must be under 50 MB.");
-      return;
-    }
+    const candidates = files.slice(0, remainingSlots);
+    const skipped = files.slice(remainingSlots).map((file) => `${file.name}: the ${IMAGE_CONVERSION_LIMITS.maxImageCount}-image limit was reached`);
     setStatus("reading");
     try {
-      const records = await Promise.all(files.map(async (file) => {
+      const records = [];
+      for (const file of candidates) {
+        const correctFormat = isSupportedImageType(file.type, file.name)
+          && (acceptsPng
+            ? file.type === "image/png" || file.name.toLowerCase().endsWith(".png")
+            : file.type !== "image/png" && !file.name.toLowerCase().endsWith(".png"));
+        if (!correctFormat) {
+          trackUploadValidationFailure(tool.id, "wrong_file_type");
+          skipped.push(`${file.name}: not a ${acceptsPng ? "PNG" : "JPG"} image`);
+          continue;
+        }
+        if (!file.size || file.size > IMAGE_CONVERSION_LIMITS.maxInputBytes) {
+          trackUploadValidationFailure(tool.id, file.size ? "file_too_large" : "empty_file");
+          skipped.push(`${file.name}: ${file.size ? "larger than 50 MB" : "empty file"}`);
+          continue;
+        }
         const previewUrl = URL.createObjectURL(file);
-        previewUrlsRef.current.push(previewUrl);
-        const dimensions = await readImageDimensions(previewUrl);
-        trackToolUpload(tool.id, file);
-        return { id: makeId("image"), name: file.name, size: file.size, mimeType: expectedType, bytes: new Uint8Array(await file.arrayBuffer()), previewUrl, ...dimensions };
-      }));
-      setImages((current) => [...current, ...records]);
+        try {
+          const dimensions = await readImageDimensions(previewUrl);
+          const bytes = new Uint8Array(await file.arrayBuffer());
+          previewUrlsRef.current.push(previewUrl);
+          trackToolUpload(tool.id, file);
+          records.push({ id: makeId("image"), name: file.name, size: file.size, mimeType: expectedType, bytes, previewUrl, ...dimensions });
+        } catch {
+          URL.revokeObjectURL(previewUrl);
+          trackUploadValidationFailure(tool.id, "invalid_image");
+          skipped.push(`${file.name}: could not be read`);
+        }
+      }
+      if (records.length) setImages((current) => [...current, ...records]);
+      if (skipped.length) {
+        const summary = skipped.slice(0, 3).join("; ");
+        setError(`${records.length ? `${records.length} image${records.length === 1 ? "" : "s"} added. ` : ""}${skipped.length} file${skipped.length === 1 ? " was" : "s were"} skipped: ${summary}${skipped.length > 3 ? `; and ${skipped.length - 3} more` : ""}.`);
+      }
+    } finally {
       setStatus("idle");
-    } catch (uploadError) {
-      trackUploadValidationFailure(tool.id, "invalid_image");
-      setStatus("idle");
-      setError(uploadError.message || "One of these images could not be read.");
     }
   };
 
@@ -180,7 +196,7 @@ function ImagesToPdfWorkspace({ tool }) {
     <div className="conversion-workspace-grid">
       <section>
         <ConversionDropzone accept={acceptsPng ? "image/png,.png" : "image/jpeg,.jpg,.jpeg"} multiple label={`Drop ${acceptsPng ? "PNG" : "JPG"} images here`} hint="Add up to 100 images, then drag them into the exact page order you want." onFiles={addFiles} disabled={status !== "idle"} />
-        {error && <div className="conversion-error" role="alert">{error}</div>}
+        <WorkflowErrorState message={error} onDismiss={() => setError("")} onRetry={images.length && status === "idle" ? exportPdf : undefined} />
         {images.length > 0 && <div className="conversion-image-list" aria-label="Images in PDF order">
           {images.map((image, index) => <article
             key={image.id}
@@ -333,7 +349,7 @@ function PdfToImagesWorkspace({ tool }) {
       <section>
         <ConversionDropzone accept="application/pdf,.pdf" multiple={false} label="Drop a PDF here" hint={`Choose pages and export them as ${outputPng ? "lossless PNG" : "high-quality JPG"} images.`} onFiles={loadPdf} disabled={status === "reading" || status === "converting"} />
         {status === "reading" && <div className="conversion-progress"><LoaderCircle className="is-spinning" size={18} /> Reading pages... {progress}%</div>}
-        {error && <div className="conversion-error" role="alert">{error}</div>}
+        <WorkflowErrorState message={error} onDismiss={() => setError("")} onRetry={pdfFile && status === "idle" ? exportImages : undefined} />
         {pages.length > 0 && <div className="conversion-page-picker">
           <header><div><strong>{pdfFile.name}</strong><small>{pages.length} page{pages.length === 1 ? "" : "s"} · {formatBytes(pdfFile.size)}</small></div><button type="button" onClick={() => setSelectedPages(allSelected ? new Set() : new Set(pages.map((page) => page.pageNumber)))}>{allSelected ? "Clear all" : "Select all"}</button></header>
           <div>{pages.map((page) => <label key={page.pageNumber} className={selectedPages.has(page.pageNumber) ? "is-selected" : ""}><input type="checkbox" checked={selectedPages.has(page.pageNumber)} onChange={() => togglePage(page.pageNumber)} /><img src={page.previewUrl} alt={`Page ${page.pageNumber}`} /><span>Page {page.pageNumber}</span></label>)}</div>

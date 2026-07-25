@@ -8,6 +8,7 @@ import { Link } from "react-router-dom";
 import { beginToolOperation, pageCountBucket, trackProductEvent, trackToolUpload, trackUploadValidationFailure } from "../../analytics/productAnalytics.js";
 import { PageMetadata } from "../../components/public/PageMetadata.jsx";
 import { ToolGuideContent } from "../../components/public/ToolGuideContent.jsx";
+import { WorkflowErrorState } from "../../components/public/WorkflowErrorState.jsx";
 import { ROUTE_PATHS } from "../../router/routePaths.js";
 import { toolSeoSchemas } from "../../tools/toolSeoSchemas.js";
 import {
@@ -179,7 +180,7 @@ export function OcrPdfPage({ tool }) {
         <span><Upload size={27} /></span><h2>Drop a scanned PDF here</h2><p>PDFs up to 20 MB and {OCR_PDF_LIMITS.maxPages} pages.</p><button type="button" disabled={status === "reading" || status === "processing"} onClick={() => inputRef.current?.click()}>Choose a PDF</button>
       </div>
       {status === "reading" && <div className="conversion-progress"><LoaderCircle className="is-spinning" size={18} /> Checking your PDF…</div>}
-      {error && <div className="conversion-error" role="alert">{error}</div>}
+      <WorkflowErrorState message={error} onDismiss={() => setError("")} onRetry={file && status === "idle" ? runOcr : undefined} />
       {file && <div className="office-file-card"><header><FileSearch size={20} /><div><strong>{file.name}</strong><small>{pageCount} page{pageCount === 1 ? "" : "s"}</small></div></header></div>}
     </section><aside className="conversion-settings-card ocr-settings-card"><span>Searchable output</span><FileSearch size={25} /><h2>Recognize text on every page</h2>
       <div className="ocr-settings-grid">

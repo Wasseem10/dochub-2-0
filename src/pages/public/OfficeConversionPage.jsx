@@ -7,6 +7,7 @@ import LoaderCircle from "lucide-react/dist/esm/icons/loader-circle.mjs";
 import Upload from "lucide-react/dist/esm/icons/upload.mjs";
 import { PageMetadata } from "../../components/public/PageMetadata.jsx";
 import { ToolGuideContent } from "../../components/public/ToolGuideContent.jsx";
+import { WorkflowErrorState } from "../../components/public/WorkflowErrorState.jsx";
 import { ROUTE_PATHS } from "../../router/routePaths.js";
 import { beginToolOperation, pageCountBucket, trackProductEvent, trackToolUpload, trackUploadValidationFailure } from "../../analytics/productAnalytics.js";
 import { toolSeoSchemas } from "../../tools/toolSeoSchemas.js";
@@ -261,7 +262,7 @@ function PdfToWordWorkspace({ tool }) {
       <section>
         <ConversionDropzone accept="application/pdf,.pdf" label="Drop your PDF here" hint="Choose an unencrypted PDF up to 20 MB and 50 pages." onFile={loadPdf} disabled={status === "reading" || status === "converting"} />
         {status === "reading" && <div className="conversion-progress"><LoaderCircle className="is-spinning" size={18} /> Reading pages... {progress}%</div>}
-        {error && <div className="conversion-error" role="alert">{error}</div>}
+        <WorkflowErrorState message={error} onDismiss={() => setError("")} onRetry={file && status === "idle" ? convert : undefined} />
         {pages.length > 0 && <div className="office-file-card">
           <header><FileText size={20} /><div><strong>{file.name}</strong><small>{pages.length} page{pages.length === 1 ? "" : "s"} · {formatBytes(file.size)} · {textLineCount} text lines found</small></div></header>
           <div className="office-page-strip">{pages.map((page) => <figure key={page.pageNumber}><img src={page.previewUrl} alt={`Page ${page.pageNumber}`} /><figcaption>Page {page.pageNumber}</figcaption></figure>)}</div>
@@ -364,7 +365,7 @@ function WordToPdfWorkspace({ tool }) {
       <section>
         <ConversionDropzone accept="application/vnd.openxmlformats-officedocument.wordprocessingml.document,.docx" label="Drop your Word file here" hint="Choose a DOCX file up to 20 MB. Legacy .doc files are not supported yet." onFile={loadDocx} disabled={status === "reading" || status === "converting"} />
         {status === "reading" && <div className="conversion-progress"><LoaderCircle className="is-spinning" size={18} /> Reading your document...</div>}
-        {error && <div className="conversion-error" role="alert">{error}</div>}
+        <WorkflowErrorState message={error} onDismiss={() => setError("")} onRetry={file && status === "idle" ? convert : undefined} />
         {file && <div className="office-file-card"><header><FileText size={20} /><div><strong>{file.name}</strong><small>DOCX · {formatBytes(file.size)} · ready to render</small></div></header></div>}
         <div ref={renderHostRef} className="docx-render-host" aria-hidden="true" />
       </section>

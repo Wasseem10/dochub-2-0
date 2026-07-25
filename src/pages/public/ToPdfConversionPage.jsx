@@ -11,6 +11,7 @@ import { Link } from "react-router-dom";
 import { beginToolOperation, pageCountBucket, trackProductEvent, trackToolUpload, trackUploadValidationFailure } from "../../analytics/productAnalytics.js";
 import { PageMetadata } from "../../components/public/PageMetadata.jsx";
 import { ToolGuideContent } from "../../components/public/ToolGuideContent.jsx";
+import { WorkflowErrorState } from "../../components/public/WorkflowErrorState.jsx";
 import { ROUTE_PATHS } from "../../router/routePaths.js";
 import { toolSeoSchemas } from "../../tools/toolSeoSchemas.js";
 import { createPdfFromRenderedDocxPages } from "../../tools/officeConversion.js";
@@ -285,7 +286,7 @@ export function ToPdfConversionPage({ tool }) {
             <span><Upload size={27} /></span><h2>Drop your {mode.label} file here</h2><p>Choose a {mode.extension} file up to 20 MB.</p><button type="button" disabled={status === "reading" || status === "converting"} onClick={() => inputRef.current?.click()}>Choose a file</button>
           </div>
           {status === "reading" && <div className="conversion-progress"><LoaderCircle className="is-spinning" size={18} /> Reading your {mode.label} file…</div>}
-          {error && <div className="conversion-error" role="alert">{error}</div>}
+          <WorkflowErrorState message={error} onDismiss={() => setError("")} onRetry={file && status === "idle" ? convert : undefined} />
           {file && <div className="office-file-card"><header><FileText size={20} /><div><strong>{file.name}</strong><small>{formatBytes(file.size)} · {summary}</small></div></header></div>}
           {safeHtml && <div className="safe-html-render-host" aria-hidden="true"><iframe ref={iframeRef} title="Safe HTML rendering surface" sandbox="allow-same-origin" srcDoc={safeHtml} onLoad={() => setHtmlReady(true)} /></div>}
         </section>
