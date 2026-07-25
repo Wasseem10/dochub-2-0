@@ -711,6 +711,257 @@
   background: #1e42d4;
 }
 
+/* Once a file is present, hand visual priority to the working controls. */
+.image-conversion-page .conversion-workspace-grid > section:has(
+  :is(
+    .compression-file-list,
+    .merge-file-list,
+    .office-file-card,
+    .page-number-file-card,
+    .page-organizer,
+    .scan-page-list
+  )
+) > .conversion-dropzone {
+  min-height: 132px;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-rows: auto auto;
+  place-items: start;
+  align-content: center;
+  column-gap: 16px;
+  row-gap: 3px;
+  padding: 25px 30px;
+  outline-offset: -10px;
+  text-align: left;
+}
+
+.image-conversion-page .conversion-workspace-grid > section:has(
+  :is(
+    .compression-file-list,
+    .merge-file-list,
+    .office-file-card,
+    .page-number-file-card,
+    .page-organizer,
+    .scan-page-list
+  )
+) > .conversion-dropzone > span {
+  width: 48px;
+  height: 48px;
+  grid-column: 1;
+  grid-row: 1 / 3;
+  align-self: center;
+  border-radius: 13px;
+  box-shadow: none;
+}
+
+.image-conversion-page .conversion-workspace-grid > section:has(
+  :is(
+    .compression-file-list,
+    .merge-file-list,
+    .office-file-card,
+    .page-number-file-card,
+    .page-organizer,
+    .scan-page-list
+  )
+) > .conversion-dropzone h2,
+.image-conversion-page .conversion-workspace-grid > section:has(
+  :is(
+    .compression-file-list,
+    .merge-file-list,
+    .office-file-card,
+    .page-number-file-card,
+    .page-organizer,
+    .scan-page-list
+  )
+) > .conversion-dropzone > strong {
+  grid-column: 2;
+  grid-row: 1;
+  align-self: end;
+  margin: 0;
+  font-size: 18px;
+  letter-spacing: -.025em;
+}
+
+.image-conversion-page .conversion-workspace-grid > section:has(
+  :is(
+    .compression-file-list,
+    .merge-file-list,
+    .office-file-card,
+    .page-number-file-card,
+    .page-organizer,
+    .scan-page-list
+  )
+) > .conversion-dropzone p,
+.image-conversion-page .conversion-workspace-grid > section:has(
+  :is(
+    .compression-file-list,
+    .merge-file-list,
+    .office-file-card,
+    .page-number-file-card,
+    .page-organizer,
+    .scan-page-list
+  )
+) > .conversion-dropzone > small {
+  grid-column: 2;
+  grid-row: 2;
+  align-self: start;
+  margin: 0;
+  font-size: 12px;
+}
+
+.image-conversion-page .conversion-workspace-grid > section:has(
+  :is(
+    .compression-file-list,
+    .merge-file-list,
+    .office-file-card,
+    .page-number-file-card,
+    .page-organizer,
+    .scan-page-list
+  )
+) > .conversion-dropzone > button {
+  min-width: 168px;
+  min-height: 44px;
+  grid-column: 3;
+  grid-row: 1 / 3;
+  align-self: center;
+  margin: 0;
+  padding: 0 17px;
+  font-size: 13px;
+  box-shadow: 0 8px 18px rgba(40, 81, 235, .16);
+}
+
+.tool-export-success {
+  display: grid;
+  gap: 14px;
+  margin-top: 2px;
+  padding: 17px;
+  border: 1px solid #d6e0ff;
+  border-radius: 13px;
+  background: linear-gradient(145deg, #f5f8ff 0%, #fff 78%);
+  box-shadow: 0 10px 24px rgba(40, 81, 235, .07);
+}
+
+.tool-export-success > header {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+}
+
+.tool-export-success > header > span {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 11px;
+  background: #e8eeff;
+  color: var(--tool-blue);
+}
+
+.tool-export-success > header strong,
+.tool-export-success > header small {
+  display: block;
+}
+
+.tool-export-success > header strong {
+  color: var(--tool-ink);
+  font-size: 15px;
+  letter-spacing: -.015em;
+}
+
+.tool-export-success > header small {
+  margin-top: 2px;
+  color: #6e7890;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.tool-export-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.tool-export-actions button,
+.tool-export-success > footer button {
+  display: inline-flex;
+  min-height: 39px;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 0 12px;
+  border: 1px solid #ced9fb;
+  border-radius: 9px;
+  background: #fff;
+  color: #34405c;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 720;
+  cursor: pointer;
+}
+
+.tool-export-actions button.is-primary {
+  border-color: var(--tool-blue);
+  background: var(--tool-blue);
+  color: #fff;
+}
+
+.tool-export-actions button:hover {
+  border-color: #9fb2ee;
+  background: #f7f9ff;
+}
+
+.tool-export-actions button.is-primary:hover {
+  border-color: #1e42d4;
+  background: #1e42d4;
+}
+
+.tool-export-related {
+  display: inline-flex;
+  width: fit-content;
+  align-items: center;
+  gap: 6px;
+  color: var(--tool-blue);
+  font-size: 12px;
+  font-weight: 720;
+  text-decoration: none;
+}
+
+.tool-export-related:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.tool-export-success > footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding-top: 11px;
+  border-top: 1px solid #e0e6f4;
+}
+
+.tool-export-success > footer > small {
+  color: #70798d;
+  font-size: 11px;
+}
+
+.tool-export-success > footer > span {
+  display: flex;
+  gap: 5px;
+}
+
+.tool-export-success > footer button {
+  min-height: 30px;
+  padding: 0 9px;
+  border-color: #dce3f2;
+  font-size: 10px;
+}
+
+.tool-export-success > footer button:hover {
+  border-color: #b8c6ea;
+  background: #f5f7fc;
+}
+
 .conversion-settings-card {
   position: static;
   display: grid;
@@ -1158,6 +1409,64 @@
   .redact-upload button {
     width: 100%;
     min-width: 0;
+  }
+
+  .image-conversion-page .conversion-workspace-grid > section:has(
+    :is(
+      .compression-file-list,
+      .merge-file-list,
+      .office-file-card,
+      .page-number-file-card,
+      .page-organizer,
+      .scan-page-list
+    )
+  ) > .conversion-dropzone {
+    min-height: 220px;
+    grid-template-columns: 1fr;
+    grid-template-rows: auto;
+    place-items: center;
+    gap: 8px;
+    padding: 26px 18px;
+    text-align: center;
+  }
+
+  .image-conversion-page .conversion-workspace-grid > section:has(
+    :is(
+      .compression-file-list,
+      .merge-file-list,
+      .office-file-card,
+      .page-number-file-card,
+      .page-organizer,
+      .scan-page-list
+    )
+  ) > .conversion-dropzone > :is(span, h2, strong, p, small, button) {
+    grid-column: 1;
+    grid-row: auto;
+    align-self: auto;
+  }
+
+  .image-conversion-page .conversion-workspace-grid > section:has(
+    :is(
+      .compression-file-list,
+      .merge-file-list,
+      .office-file-card,
+      .page-number-file-card,
+      .page-organizer,
+      .scan-page-list
+    )
+  ) > .conversion-dropzone > button {
+    width: 100%;
+    min-width: 0;
+    margin-top: 3px;
+  }
+
+  .tool-export-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .tool-export-success > footer {
+    align-items: flex-start;
+    flex-direction: column;
   }
 
   :is(.editor-tool-upload-page, .image-conversion-page, .document-analysis-page, .redact-page, .template-builder-page) .tool-guide-related > div {
