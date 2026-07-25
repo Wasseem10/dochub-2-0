@@ -1483,9 +1483,12 @@
   .image-conversion-page > .conversion-workspace-grid,
   .image-conversion-page > .conversion-privacy-note,
   .analysis-upload,
-  .redact-upload,
-  :is(.editor-tool-upload-page, .image-conversion-page, .document-analysis-page, .redact-page, .template-builder-page) .tool-guide-content {
+  .redact-upload {
     width: calc(100% - 28px);
+  }
+
+  :is(.editor-tool-upload-page, .image-conversion-page, .document-analysis-page, .redact-page, .template-builder-page) .tool-guide-content {
+    width: calc(100% - 30px);
   }
 
   .conversion-dropzone,
