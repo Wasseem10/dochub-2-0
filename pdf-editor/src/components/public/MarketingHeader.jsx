@@ -35,6 +35,7 @@ export function MarketingHeader() {
       <div className="marketing-header-row">
         <Link className="marketing-brand" to={ROUTE_PATHS.home} onClick={closeMenus} aria-label="PDFArrow home"><BrandWordmark /></Link>
         <nav className="marketing-desktop-nav" aria-label="Public navigation">
+          <Link to={ROUTE_PATHS.about}>About</Link>
           <Link to={ROUTE_PATHS.features}>Features</Link>
           <Link to={ROUTE_PATHS.tools}>All tools</Link>
           <Link to={ROUTE_PATHS.editPdf}>Edit PDF</Link>
@@ -52,6 +53,7 @@ export function MarketingHeader() {
 
       {mobileOpen && (
         <nav className="marketing-mobile-nav" aria-label="Mobile navigation">
+          <Link to={ROUTE_PATHS.about} onClick={closeMenus}>About</Link>
           <Link to={ROUTE_PATHS.features} onClick={closeMenus}>Features</Link>
           <Link to={ROUTE_PATHS.tools} onClick={closeMenus}>All tools</Link>
           <Link to={ROUTE_PATHS.editPdf} onClick={closeMenus}>Edit PDF</Link>

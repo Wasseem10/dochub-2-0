@@ -11,6 +11,7 @@ import { Link } from "react-router-dom";
 import { beginToolOperation, trackProductEvent, trackToolUpload, trackUploadValidationFailure } from "../../analytics/productAnalytics.js";
 import { PageMetadata } from "../../components/public/PageMetadata.jsx";
 import { ToolGuideContent } from "../../components/public/ToolGuideContent.jsx";
+import { WorkflowErrorState } from "../../components/public/WorkflowErrorState.jsx";
 import { ROUTE_PATHS } from "../../router/routePaths.js";
 import { toolSeoSchemas } from "../../tools/toolSeoSchemas.js";
 import { flattenPdfBytes, FLATTEN_PDF_LIMITS } from "../../tools/flattenPdf.js";
@@ -97,7 +98,7 @@ export function PdfProtectionPage({ tool }) {
         <span><Upload size={27} /></span><h2>Drop your PDF here</h2><p>PDFs up to 25 MB{isFlatten ? ` and ${FLATTEN_PDF_LIMITS.maxPages} pages` : ""}.</p><button type="button" disabled={status === "working"} onClick={() => inputRef.current?.click()}>Choose a PDF</button>
       </div>
       {file && <div className="office-file-card"><header><FileCheck2 size={20} /><div><strong>{file.name}</strong><small>{formatBytes(file.size)} · ready to {isFlatten ? "flatten" : "unlock"}</small></div></header></div>}
-      {error && <div className="conversion-error" role="alert">{error}</div>}
+      <WorkflowErrorState message={error} onDismiss={() => setError("")} onRetry={file && status === "ready" ? processPdf : undefined} />
     </section><aside className="conversion-settings-card"><span>{isFlatten ? "Finalized output" : "Authorized password removal"}</span><Icon size={25} /><h2>{isFlatten ? "One visible layer" : "Current PDF password"}</h2>
       {isFlatten ? <div className="office-mode-note"><strong>This intentionally removes interactivity</strong><p>The visual page stays intact, but selectable text, forms, links, comments, layers, attachments, metadata, and accessibility tags are discarded.</p></div> : <><label className="conversion-field"><span>Open password</span><input type="password" autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Enter current password" /></label><label className="protection-authorization"><input type="checkbox" checked={authorized} onChange={(event) => setAuthorized(event.target.checked)} /><span>I own this PDF or have permission to remove its password.</span></label></>}
       <div className="conversion-summary"><Check size={18} /><span>{file ? `${file.name} is ready` : "Add a PDF to continue"}</span></div>

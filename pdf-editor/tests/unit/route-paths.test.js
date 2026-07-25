@@ -8,6 +8,7 @@ describe("route path configuration", () => {
   it("contains every Stage 2 route", () => {
     const configured = new Set([
       ROUTE_PATHS.home,
+      ROUTE_PATHS.about,
       ROUTE_PATHS.tools,
       ROUTE_PATHS.editPdf,
       ROUTE_PATHS.support,

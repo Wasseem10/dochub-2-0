@@ -962,6 +962,99 @@
   background: #f5f7fc;
 }
 
+.workflow-error-state {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  margin-top: 14px;
+  padding: 15px 16px;
+  border: 1px solid #f2cbd2;
+  border-radius: 13px;
+  background: linear-gradient(135deg, #fff7f8 0%, #fff 72%);
+  box-shadow: 0 9px 24px rgba(145, 40, 61, .06);
+  color: #6c2534;
+}
+
+.workflow-error-icon {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  border-radius: 11px;
+  background: #ffe9ed;
+  color: #bd3a54;
+}
+
+.workflow-error-copy strong,
+.workflow-error-copy p,
+.workflow-error-copy small { display: block; }
+
+.workflow-error-copy strong {
+  color: #571827;
+  font-size: 13px;
+  letter-spacing: -.01em;
+}
+
+.workflow-error-copy p {
+  margin: 3px 0 0;
+  color: #804050;
+  font-size: 12px;
+  font-weight: 580;
+  line-height: 1.45;
+}
+
+.workflow-error-copy small {
+  margin-top: 3px;
+  color: #956774;
+  font-size: 10px;
+}
+
+.workflow-error-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.workflow-error-actions button {
+  display: inline-flex;
+  min-height: 35px;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 10px;
+  border: 1px solid #ecc4cc;
+  border-radius: 8px;
+  background: #fff;
+  color: #783143;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 720;
+  cursor: pointer;
+}
+
+.workflow-error-actions button.is-primary {
+  border-color: #a9344d;
+  background: #a9344d;
+  color: #fff;
+}
+
+.workflow-error-actions button.is-icon {
+  width: 35px;
+  padding: 0;
+}
+
+.workflow-error-actions button:hover {
+  border-color: #bd6a7b;
+  background: #fff7f8;
+}
+
+.workflow-error-actions button.is-primary:hover {
+  border-color: #8f263d;
+  background: #8f263d;
+}
+
 .conversion-settings-card {
   position: static;
   display: grid;
@@ -1467,6 +1560,21 @@
   .tool-export-success > footer {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .workflow-error-state {
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: start;
+  }
+
+  .workflow-error-actions {
+    grid-column: 1 / -1;
+    flex-wrap: wrap;
+    justify-content: stretch;
+  }
+
+  .workflow-error-actions button:not(.is-icon) {
+    flex: 1 1 150px;
   }
 
   :is(.editor-tool-upload-page, .image-conversion-page, .document-analysis-page, .redact-page, .template-builder-page) .tool-guide-related > div {

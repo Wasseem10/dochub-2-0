@@ -14,6 +14,7 @@ if (registryErrors.length) {
 
 const paths = [
   ROUTE_PATHS.home,
+  ROUTE_PATHS.about,
   ROUTE_PATHS.features,
   ROUTE_PATHS.tools,
   ROUTE_PATHS.support,
