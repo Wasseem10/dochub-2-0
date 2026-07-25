@@ -99,7 +99,6 @@ export function PrivacyPolicyPage() {
       />
 
       <header className="privacy-policy-hero">
-        <nav aria-label="Breadcrumb"><Link to={ROUTE_PATHS.home}>Home</Link><span>/</span><span aria-current="page">Privacy Policy</span></nav>
         <div className="privacy-policy-hero-grid">
           <div>
             <span className="privacy-policy-kicker"><ShieldCheck size={16} /> Privacy at PDFArrow</span>
@@ -108,6 +107,7 @@ export function PrivacyPolicyPage() {
             <small>Effective and last updated {PRIVACY_POLICY_EFFECTIVE_DATE}</small>
           </div>
           <aside aria-label="Privacy highlights">
+            <small className="privacy-policy-snapshot-label">At a glance</small>
             <strong>No sale of personal information</strong>
             <span>No behavioral advertising</span>
             <span>No document content in analytics</span>
