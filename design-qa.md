@@ -108,6 +108,64 @@ The right rail and PDF text regions were readable in the same paired comparison 
 
 final result: passed
 
+# Post-upload PDF Workflows ? Shared State Repair (2026-07-24)
+
+## Evidence
+
+- Source visual truth: `work/design-qa/tool-landing-edit-reference-viewport.jpg`
+- Before implementation: `work/feature-audit-2026-07-24/post-upload-workflows/02-compress-loaded.jpg`
+- Desktop implementation: `work/feature-audit-2026-07-24/post-upload-workflows/11-compress-loaded-fixed.jpg`
+- Completed-state implementation: `work/feature-audit-2026-07-24/post-upload-workflows/12-compress-result-fixed.jpg`
+- Mobile completed state: `work/feature-audit-2026-07-24/post-upload-workflows/13-compress-result-mobile-fixed.jpg`
+- Combined comparison: `work/feature-audit-2026-07-24/post-upload-workflows/15-compress-loaded-comparison.jpg`
+- Desktop screenshot pixels and CSS viewport: 1265 ? 712 at device scale factor 1
+- Mobile viewport request: 390 ? 844 CSS px; captured page pixels: 375 ? 811
+- State: a valid PDF has been loaded; desktop completion evidence uses the measured compression result
+
+## Full-view comparison
+
+- The loaded workflow now gives the selected file and tool settings priority above the fold. The 360px first-use drop zone compacts to a 132px horizontal replacement control after upload.
+- The completed state now uses the same white, powder-blue, and `#2851eb` system as the approved Edit PDF landing page instead of unstyled browser-default buttons and links.
+- The compact state is shared by compression, page organization, OCR, flatten/unlock, and scan-to-PDF workflows. Mobile recomposes it as a centered 220px stack with full-width actions.
+
+## Focused comparison
+
+- The combined desktop image keeps the upload panel, file row, settings heading, typography, borders, and vertical rhythm readable, so a second crop was not needed.
+- Fonts and typography: DM Sans hierarchy is preserved. Loaded-state heading is reduced to 18px and completion actions use compact 10?15px labels without truncation.
+- Spacing and layout rhythm: 132px desktop drop zone, 16px column gap, 48px icon tile, 44px replacement button, and the compact 13px success panel align to the tool-page density.
+- Colors and visual tokens: white and powder-blue surfaces, blue actions, blue-gray dividers, and restrained blue shadow remain within the approved public tool palette.
+- Image quality and asset fidelity: the existing PDFArrow logo and Lucide icon system are retained; no replacement logo, placeholder asset, or CSS-drawn icon was introduced.
+- Copy and content: completion copy clearly states that the file is ready, offers download/start-another actions, names the related workflow, and keeps feedback secondary.
+
+## Interaction and accessibility checks
+
+- Real browser runs completed for balanced PDF compression, page organization, OCR, flatten PDF, and scan-to-PDF.
+- Compression reported an honest 115 KB ? 114 KB result and rendered the before/after preview.
+- Flatten PDF and scan-to-PDF both produced their download-complete state.
+- Desktop, mobile, initial, loaded, working, and completed states were inspected.
+- Completion feedback controls now have explicit accessible labels; all actions remain native buttons or links.
+- No camera permission was requested while auditing the scanner because scan-to-PDF fully exercised the image workflow without broadening browser access.
+
+## Comparison history
+
+- Pass 1 findings:
+  - P1: the shared export-success component rendered as raw browser-default text, buttons, and underlined links in multiple completed workflows.
+  - P2: the large upload drop zone stayed 360px tall after file selection and pushed the tool?s next action below the fold.
+- Fixes:
+  - Rebuilt the shared completion component with a clear success header, primary download action, start-another action, related workflow link, and restrained feedback footer.
+  - Added a responsive loaded-state layout that compacts shared upload panels only when a real file/page list is present.
+- Pass 2 evidence:
+  - `11-compress-loaded-fixed.jpg` confirms the compact desktop working state.
+  - `12-compress-result-fixed.jpg` confirms the styled completed state.
+  - `13-compress-result-mobile-fixed.jpg` confirms the mobile stack without clipping or horizontal overflow.
+- Pass 2 result: no actionable P0, P1, or P2 findings remain in the repaired shared states.
+
+## Follow-up polish
+
+- P3: future workflow-specific passes can tune dense page-list controls independently without changing the now-consistent shared upload and completion system.
+
+final result: passed
+
 ---
 
 # Remaining tool UI alignment (2026-07-24)
