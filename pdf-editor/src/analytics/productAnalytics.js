@@ -1,3 +1,6 @@
+import { OPTIONAL_ANALYTICS_RETENTION_DAYS } from "../privacy/privacyConfig.js";
+import { optionalAnalyticsAllowed } from "../privacy/privacyChoices.js";
+
 const ALLOWED_EVENTS = new Set([
   "homepage_viewed",
   "page_viewed",
@@ -26,7 +29,6 @@ const ANALYTICS_COLLECTION = "productAnalyticsEvents";
 const VISITOR_KEY = "realpdf_analytics_visitor_id";
 const ATTRIBUTION_KEY = "pdfarrow_session_attribution_v1";
 const PAGE_VIEWS_KEY = "pdfarrow_session_page_views_v1";
-const ANALYTICS_RETENTION_DAYS = 400;
 const memoryPageViews = new Set();
 
 function safeHostname(value) {
@@ -52,11 +54,14 @@ function classifyTrafficSource(referrerDomain, searchParams) {
 
 export function currentTrafficAttribution() {
   if (typeof window === "undefined") return { trafficSource: "direct", referrerDomain: "", landingPath: "/" };
-  try {
-    const stored = JSON.parse(window.sessionStorage.getItem(ATTRIBUTION_KEY) || "null");
-    if (stored?.trafficSource && stored?.landingPath) return stored;
-  } catch {
-    // Storage can be unavailable; calculate a privacy-safe attribution in memory.
+  const analyticsAllowed = optionalAnalyticsAllowed();
+  if (analyticsAllowed) {
+    try {
+      const stored = JSON.parse(window.sessionStorage.getItem(ATTRIBUTION_KEY) || "null");
+      if (stored?.trafficSource && stored?.landingPath) return stored;
+    } catch {
+      // Storage can be unavailable; calculate a privacy-safe attribution in memory.
+    }
   }
   const referrerDomain = safeHostname(document.referrer);
   const ownDomain = safeHostname(window.location.origin);
@@ -66,7 +71,9 @@ export function currentTrafficAttribution() {
     referrerDomain: externalReferrer,
     landingPath: (window.location.pathname || "/").slice(0, 160),
   };
-  try { window.sessionStorage.setItem(ATTRIBUTION_KEY, JSON.stringify(attribution)); } catch { /* Keep attribution in this event only. */ }
+  if (analyticsAllowed) {
+    try { window.sessionStorage.setItem(ATTRIBUTION_KEY, JSON.stringify(attribution)); } catch { /* Keep attribution in this event only. */ }
+  }
   return attribution;
 }
 
@@ -83,6 +90,7 @@ function visitorId() {
 }
 
 async function persistProductEvent(event) {
+  if (!optionalAnalyticsAllowed()) return;
   try {
     const [{ auth, db }, { addDoc, collection, serverTimestamp, Timestamp }] = await Promise.all([
       import("../firebase.js"),
@@ -96,7 +104,7 @@ async function persistProductEvent(event) {
       visitorId: visitorId(),
       occurredAt: serverTimestamp(),
       clientOccurredAt: new Date().toISOString(),
-      expiresAt: Timestamp.fromDate(new Date(Date.now() + ANALYTICS_RETENTION_DAYS * 24 * 60 * 60 * 1000)),
+      expiresAt: Timestamp.fromDate(new Date(Date.now() + OPTIONAL_ANALYTICS_RETENTION_DAYS * 24 * 60 * 60 * 1000)),
     });
   } catch (error) {
     if (import.meta.env.DEV) console.warn("[RealPDF analytics] Event storage failed", error?.code || error?.message);
@@ -104,6 +112,7 @@ async function persistProductEvent(event) {
 }
 
 function queueProductEventPersistence(event) {
+  if (!optionalAnalyticsAllowed()) return;
   const isLowPriorityPageView = ["page_viewed", "homepage_viewed"].includes(event.name);
   if (!isLowPriorityPageView) {
     void persistProductEvent(event);
@@ -229,14 +238,19 @@ export function beginToolOperation(toolId, { operation = "export", slowAfterMs =
 export function trackPageView(route = "/") {
   if (typeof window === "undefined") return false;
   const normalizedRoute = String(route || "/").split("?")[0].slice(0, 160);
-  try {
-    const viewed = new Set(JSON.parse(window.sessionStorage.getItem(PAGE_VIEWS_KEY) || "[]"));
-    if (viewed.has(normalizedRoute)) return false;
-    viewed.add(normalizedRoute);
-    window.sessionStorage.setItem(PAGE_VIEWS_KEY, JSON.stringify([...viewed].slice(-100)));
-  } catch {
+  if (!optionalAnalyticsAllowed()) {
     if (memoryPageViews.has(normalizedRoute)) return false;
     memoryPageViews.add(normalizedRoute);
+  } else {
+    try {
+      const viewed = new Set(JSON.parse(window.sessionStorage.getItem(PAGE_VIEWS_KEY) || "[]"));
+      if (viewed.has(normalizedRoute)) return false;
+      viewed.add(normalizedRoute);
+      window.sessionStorage.setItem(PAGE_VIEWS_KEY, JSON.stringify([...viewed].slice(-100)));
+    } catch {
+      if (memoryPageViews.has(normalizedRoute)) return false;
+      memoryPageViews.add(normalizedRoute);
+    }
   }
   const properties = { route: normalizedRoute, ...currentTrafficAttribution() };
   trackProductEvent("page_viewed", properties);
