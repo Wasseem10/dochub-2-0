@@ -8948,3 +8948,46 @@ main.editor-shell .tool-settings.draw-tool-settings {
     top: 164px !important;
   }
 }
+
+/* Persistent next-step guidance for tools that act directly on the page. */
+main.editor-shell .tool-settings.tool-instruction-settings {
+  width: min(620px, calc(100vw - 32px)) !important;
+  max-width: min(620px, calc(100vw - 32px)) !important;
+  min-height: 40px !important;
+  height: 40px !important;
+  justify-content: flex-start !important;
+  gap: 8px !important;
+  padding: 0 14px !important;
+  overflow: hidden !important;
+  color: #43516a !important;
+  font-size: 13px !important;
+  line-height: 1.35 !important;
+}
+
+main.editor-shell .tool-instruction-settings > * {
+  min-height: 0 !important;
+  height: auto !important;
+  border: 0 !important;
+}
+
+main.editor-shell .tool-instruction-settings svg {
+  flex: 0 0 auto !important;
+  color: #2851eb !important;
+}
+
+main.editor-shell .tool-instruction-settings strong {
+  flex: 0 0 auto !important;
+  color: #17243a !important;
+  font-weight: 800 !important;
+}
+
+@media (max-width: 900px) {
+  main.editor-shell .tool-settings.tool-instruction-settings {
+    width: calc(100vw - 16px) !important;
+    max-width: calc(100vw - 16px) !important;
+    min-height: 44px !important;
+    height: auto !important;
+    padding: 7px 12px !important;
+    font-size: 12px !important;
+  }
+}

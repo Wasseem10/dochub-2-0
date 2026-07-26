@@ -63,3 +63,22 @@ describe("highlight tool settings", () => {
     await act(async () => renderer.unmount());
   });
 });
+
+describe("direct page tool guidance", () => {
+  it.each([
+    ["erase", "Erase", "Select an annotation or existing text item to remove it."],
+    ["stamp", "Stamp", "Click the page to place an Approved stamp."],
+    ["link", "Link", "Click the page, then enter the web address for the link."],
+    ["comment", "Note", "Click the page to place a note, then type your comment."],
+  ])("keeps the %s instruction visible", async (tool, label, instruction) => {
+    let renderer;
+    await act(async () => {
+      renderer = TestRenderer.create(<ToolSettingsPanel tool={tool} settings={{}} setSettings={vi.fn()} />);
+    });
+
+    const status = renderer.root.findByProps({ role: "status" });
+    expect(status.findByType("strong").children.join("")).toBe(label);
+    expect(status.findByType("span").children.join("")).toBe(instruction);
+    await act(async () => renderer.unmount());
+  });
+});
