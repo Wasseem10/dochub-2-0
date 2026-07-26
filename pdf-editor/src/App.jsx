@@ -5374,6 +5374,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
           tool={tool}
           settings={toolSettings}
           setSettings={setToolSettings}
+          hasSelectableTextLayer={pageDetectedTextItems.length > 0}
           selectedTextAnnotation={selected?.type === "text" ? selected : null}
           updateAnnotation={updateAnnotation}
         />
@@ -6274,7 +6275,14 @@ function AllToolsNavIcon() {
   );
 }
 
-export function ToolSettingsPanel({ tool, settings, setSettings, selectedTextAnnotation, updateAnnotation }) {
+export function ToolSettingsPanel({
+  tool,
+  settings,
+  setSettings,
+  hasSelectableTextLayer = false,
+  selectedTextAnnotation,
+  updateAnnotation,
+}) {
   const [isFontMenuOpen, setIsFontMenuOpen] = useState(false);
   const [fontSearch, setFontSearch] = useState("");
   const isEditingSelectedText = selectedTextAnnotation?.type === "text";
@@ -6451,6 +6459,11 @@ export function ToolSettingsPanel({ tool, settings, setSettings, selectedTextAnn
     return (
       <div className="tool-settings highlight-tool-settings" role="toolbar" aria-label={tool === "textHighlight" ? "Text highlight settings" : "Highlight settings"}>
         <span className="settings-title highlight-settings-title">{tool === "textHighlight" ? "Text highlight" : "Highlight"}</span>
+        {tool === "textHighlight" && (
+          <span className="text-highlight-mode-hint" role="status">
+            {hasSelectableTextLayer ? "Manual band: place over text" : "No text layer: place manually"}
+          </span>
+        )}
         <div className="highlight-setting-group highlight-color-field">
           <span>Color</span>
           <div className="highlight-preset-colors" role="group" aria-label="Highlight color">

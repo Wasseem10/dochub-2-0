@@ -16,12 +16,19 @@ function DrawSettingsHarness() {
   return <ToolSettingsPanel tool="draw" settings={settings} setSettings={setSettings} />;
 }
 
-function HighlightSettingsHarness({ tool = "textHighlight" }) {
+function HighlightSettingsHarness({ tool = "textHighlight", hasSelectableTextLayer = false }) {
   const [settings, setSettings] = useState({
     highlightColor: "#FFDA66",
     highlightOpacity: 0.62,
   });
-  return <ToolSettingsPanel tool={tool} settings={settings} setSettings={setSettings} />;
+  return (
+    <ToolSettingsPanel
+      tool={tool}
+      settings={settings}
+      setSettings={setSettings}
+      hasSelectableTextLayer={hasSelectableTextLayer}
+    />
+  );
 }
 
 describe("draw tool settings", () => {
@@ -60,6 +67,21 @@ describe("highlight tool settings", () => {
     const slider = renderer.root.findByProps({ "aria-label": "Highlight opacity" });
     await act(async () => slider.props.onChange({ target: { value: "75" } }));
     expect(renderer.root.findByProps({ className: "highlight-opacity-output" }).children.join("")).toBe("75%");
+    await act(async () => renderer.unmount());
+  });
+
+  it.each([
+    [false, "No text layer: place manually"],
+    [true, "Manual band: place over text"],
+  ])("explains manual placement before interaction when selectable text is %s", async (hasSelectableTextLayer, instruction) => {
+    let renderer;
+    await act(async () => {
+      renderer = TestRenderer.create(
+        <HighlightSettingsHarness hasSelectableTextLayer={hasSelectableTextLayer} />,
+      );
+    });
+
+    expect(renderer.root.findByProps({ role: "status" }).children.join("")).toBe(instruction);
     await act(async () => renderer.unmount());
   });
 });
