@@ -43,6 +43,14 @@ describe("PDFArrow tool registry", () => {
     expect(FOOTER_TOOL_GROUPS.every(({ tools }) => tools.length > 0 && tools.length <= 5)).toBe(true);
   });
 
+  it("gives every released tool crawlable links to other released tools", () => {
+    const releasedIds = new Set(TOOL_REGISTRY.filter(({ status }) => status !== "coming-soon").map(({ id }) => id));
+    for (const tool of TOOL_REGISTRY.filter(({ status }) => status !== "coming-soon")) {
+      expect(tool.relatedTools.length, tool.id).toBeGreaterThan(0);
+      expect(tool.relatedTools.every((id) => id !== tool.id && releasedIds.has(id)), tool.id).toBe(true);
+    }
+  });
+
   it("provides one unique indexable hub for every tool category", () => {
     expect(TOOL_CATEGORY_PAGES).toHaveLength(TOOL_CATEGORIES.length);
     expect(new Set(TOOL_CATEGORY_PAGES.map(({ route }) => route)).size).toBe(TOOL_CATEGORY_PAGES.length);

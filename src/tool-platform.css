@@ -953,6 +953,7 @@
 }
 
 .editor-tool-dropzone {
+  position: relative;
   display: grid;
   min-height: 370px;
   place-items: center;
@@ -965,6 +966,28 @@
   text-align: center;
   cursor: pointer;
   transition: border-color .16s ease, background .16s ease, box-shadow .16s ease, transform .16s ease;
+}
+
+.editor-tool-dropzone-action {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  width: 100%;
+  min-width: 0 !important;
+  height: 100%;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 16px !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  cursor: pointer;
+}
+
+.editor-tool-dropzone-action:focus-visible {
+  outline: 3px solid rgba(40, 81, 235, .58);
+  outline-offset: 4px;
 }
 
 .editor-tool-dropzone:hover,
@@ -996,7 +1019,9 @@
   letter-spacing: -.035em;
 }
 
-.editor-tool-dropzone button {
+.editor-tool-picker-label {
+  position: relative;
+  z-index: 2;
   display: inline-flex;
   min-width: min(100%, 390px);
   min-height: 64px;
@@ -1013,11 +1038,10 @@
   font-size: 18px;
   font-weight: 850;
   box-shadow: 0 17px 34px rgba(72, 174, 217, .25);
-  cursor: pointer;
+  pointer-events: none;
 }
 
-.editor-tool-dropzone button:hover { background: #70cfee; }
-.editor-tool-dropzone .editor-tool-blank-action { min-width: auto; min-height: 42px; margin-top: -8px; padding: 0 18px; border: 1px solid #cbd8e7; background: #ffffff; color: #2851eb; box-shadow: none; font-size: 14px; }
+.editor-tool-dropzone .editor-tool-blank-action { position: relative; z-index: 3; min-width: auto; min-height: 42px; margin-top: -8px; padding: 0 18px; border: 1px solid #cbd8e7; background: #ffffff; color: #2851eb; box-shadow: none; font-size: 14px; }
 .editor-tool-dropzone .editor-tool-blank-action:hover { border-color: #2851eb; background: #f3f6ff; }
 .editor-tool-dropzone button:disabled { cursor: wait; opacity: .72; }
 .editor-tool-dropzone p { margin: 0; color: #91a0b5; font-size: 14px; }

@@ -10,6 +10,7 @@ import { isEditorialResourcePath } from "../src/editorial/editorialRoutePaths.js
 import { editorialShareImagePath, getToolEvidence, hasToolShareImage, PRODUCT_LAST_TESTED_LABEL, PRODUCT_RESPONSIBLE_PARTY } from "../src/editorial/toolEvidence.js";
 import { resolveSiteUrl } from "./site-url.mjs";
 import { COMPARISONS, COMPARISON_REVIEWED_LABEL, comparisonFaqEntries, comparisonPath, comparisonPlanRows } from "../src/comparison/comparisonData.js";
+import { toolDirectoryMetadata } from "../src/seo/publicPageMetadata.js";
 
 const siteUrl = resolveSiteUrl();
 const template = await readFile("dist/index.html", "utf8");
@@ -18,6 +19,8 @@ const escapeHtml = (value) => String(value).replaceAll("&", "&amp;").replaceAll(
 /** @param {unknown} value */
 const escapeJson = (value) => JSON.stringify(value).replaceAll("<", "\\u003c");
 const highIntentToolIds = new Set(HIGH_INTENT_TOOL_IDS);
+const releasedToolCount = TOOL_REGISTRY.filter(({ status }) => status !== "coming-soon").length;
+const directoryMetadata = toolDirectoryMetadata(releasedToolCount);
 /** @typedef {{ path: string, title: string, description: string, noIndex: boolean, tool?: import("../src/tools/toolRegistry.js").ToolRecord, category?: (typeof TOOL_CATEGORY_PAGES)[number], resource?: (typeof EDITORIAL_RESOURCE_PAGES)[number], comparison?: (typeof COMPARISONS)[number], kind?: string }} RouteRecord */
 /** @type {Record<string, string>} */
 const legalDescriptions = {
@@ -31,7 +34,7 @@ const legalDescriptions = {
 const routeRecords = [
   { path: "/", title: "Every PDF Task in One Place | PDFArrow", description: "Edit, sign, fill, merge, split, organize, and convert PDFs without subscriptions, watermarks, or forced signup.", noIndex: false, kind: "home" },
   { path: ROUTE_PATHS.about, title: "About PDFArrow | A simpler browser-first PDF workspace", description: "Meet PDFArrow, a browser-first PDF workspace built to make editing, organizing, converting, signing, scanning, and reviewing documents feel straightforward.", noIndex: false, kind: "about" },
-  { path: ROUTE_PATHS.tools, title: "Free PDF Tools | PDFArrow", description: "Browse working free PDF tools with clear formats, limits, and availability labels.", noIndex: false, kind: "directory" },
+  { path: ROUTE_PATHS.tools, title: directoryMetadata.title, description: directoryMetadata.description, noIndex: false, kind: "directory" },
   { path: ROUTE_PATHS.features, title: "All PDF Features | PDFArrow", description: "Explore every released PDFArrow feature for editing, organizing, converting, signing, scanning, protecting, and reviewing PDFs.", noIndex: false, kind: "directory" },
   { path: ROUTE_PATHS.support, title: "PDF Help and Support | PDFArrow", description: "Contact PDFArrow support about PDF tools, accounts, privacy, security, or data deletion.", noIndex: false },
   { path: ROUTE_PATHS.compare, title: "PDF editor comparisons | PDFArrow", description: "Compare PDFArrow with DocHub, Smallpdf, iLovePDF, Adobe Acrobat, and Sejda using current official product information.", noIndex: false, kind: "comparison-directory" },

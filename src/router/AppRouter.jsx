@@ -25,29 +25,45 @@ import { PublicOnlyRoute } from "./PublicOnlyRoute.jsx";
 import { RouteErrorBoundary } from "./RouteErrorBoundary.jsx";
 import { APP_ROUTE_SECTIONS, PUBLIC_PLACEHOLDER_ROUTES } from "./routes.js";
 import { ROUTE_PATHS } from "./routePaths.js";
+import { PUBLIC_TOOL_MODULE_LOADERS } from "./publicToolModules.js";
 
 const lazyNamed = (loader, exportName) => lazy(() => loader().then((module) => ({ default: module[exportName] })));
-const LazyComparePdfPage = lazyNamed(() => import("../pages/public/ComparePdfPage.jsx"), "ComparePdfPage");
-const LazyDocumentAnalysisPage = lazyNamed(() => import("../pages/public/DocumentAnalysisPage.jsx"), "DocumentAnalysisPage");
-const LazyImageConversionPage = lazyNamed(() => import("../pages/public/ImageConversionPage.jsx"), "ImageConversionPage");
-const LazyOfficeConversionPage = lazyNamed(() => import("../pages/public/OfficeConversionPage.jsx"), "OfficeConversionPage");
-const LazyOcrPdfPage = lazyNamed(() => import("../pages/public/OcrPdfPage.jsx"), "OcrPdfPage");
-const LazyOpenDocumentConversionPage = lazyNamed(() => import("../pages/public/OpenDocumentConversionPage.jsx"), "OpenDocumentConversionPage");
-const LazyPdfPageToolPage = lazyNamed(() => import("../pages/public/PdfPageToolPage.jsx"), "PdfPageToolPage");
-const LazyPdfProtectionPage = lazyNamed(() => import("../pages/public/PdfProtectionPage.jsx"), "PdfProtectionPage");
-const LazyRedactPdfPage = lazyNamed(() => import("../pages/public/RedactPdfPage.jsx"), "RedactPdfPage");
-const LazyScanPdfPage = lazyNamed(() => import("../pages/public/ScanPdfPage.jsx"), "ScanPdfPage");
+const LazyComparePdfPage = lazyNamed(PUBLIC_TOOL_MODULE_LOADERS.comparePdf, "ComparePdfPage");
+const LazyDocumentAnalysisPage = lazyNamed(PUBLIC_TOOL_MODULE_LOADERS.documentAnalysis, "DocumentAnalysisPage");
+const LazyImageConversionPage = lazyNamed(PUBLIC_TOOL_MODULE_LOADERS.imageConversion, "ImageConversionPage");
+const LazyOfficeConversionPage = lazyNamed(PUBLIC_TOOL_MODULE_LOADERS.officeConversion, "OfficeConversionPage");
+const LazyOcrPdfPage = lazyNamed(PUBLIC_TOOL_MODULE_LOADERS.ocrPdf, "OcrPdfPage");
+const LazyOpenDocumentConversionPage = lazyNamed(PUBLIC_TOOL_MODULE_LOADERS.openDocumentConversion, "OpenDocumentConversionPage");
+const LazyPdfPageToolPage = lazyNamed(PUBLIC_TOOL_MODULE_LOADERS.pdfPageTool, "PdfPageToolPage");
+const LazyPdfProtectionPage = lazyNamed(PUBLIC_TOOL_MODULE_LOADERS.pdfProtection, "PdfProtectionPage");
+const LazyRedactPdfPage = lazyNamed(PUBLIC_TOOL_MODULE_LOADERS.redactPdf, "RedactPdfPage");
+const LazyScanPdfPage = lazyNamed(PUBLIC_TOOL_MODULE_LOADERS.scanPdf, "ScanPdfPage");
 const LazySecureSharePage = lazyNamed(() => import("../pages/public/SecureSharePage.jsx"), "SecureSharePage");
 const LazySigningRequestPage = lazyNamed(() => import("../pages/public/SigningRequestPage.jsx"), "SigningRequestPage");
 const LazySupportPage = lazyNamed(() => import("../pages/public/SupportPage.jsx"), "SupportPage");
-const LazyStructuredPdfConversionPage = lazyNamed(() => import("../pages/public/StructuredPdfConversionPage.jsx"), "StructuredPdfConversionPage");
-const LazyTemplateBuilderPage = lazyNamed(() => import("../pages/public/TemplateBuilderPage.jsx"), "TemplateBuilderPage");
-const LazyTextConversionPage = lazyNamed(() => import("../pages/public/TextConversionPage.jsx"), "TextConversionPage");
-const LazyToPdfConversionPage = lazyNamed(() => import("../pages/public/ToPdfConversionPage.jsx"), "ToPdfConversionPage");
+const LazyStructuredPdfConversionPage = lazyNamed(PUBLIC_TOOL_MODULE_LOADERS.structuredPdfConversion, "StructuredPdfConversionPage");
+const LazyTemplateBuilderPage = lazyNamed(PUBLIC_TOOL_MODULE_LOADERS.templateBuilder, "TemplateBuilderPage");
+const LazyTextConversionPage = lazyNamed(PUBLIC_TOOL_MODULE_LOADERS.textConversion, "TextConversionPage");
+const LazyToPdfConversionPage = lazyNamed(PUBLIC_TOOL_MODULE_LOADERS.toPdfConversion, "ToPdfConversionPage");
 const LazyEditorialResourceRoute = lazyNamed(() => import("../pages/public/EditorialResourceRoute.jsx"), "EditorialResourceRoute");
 
 function PublicToolBoundary({ children }) {
-  return <Suspense fallback={<div className="public-route-loading" role="status">Opening PDF tool…</div>}>{children}</Suspense>;
+  return (
+    <Suspense fallback={(
+      <main className="public-route-loading" aria-labelledby="public-route-loading-title">
+        <section role="status" aria-live="polite">
+          <span aria-hidden="true" className="public-route-loading-icon">PDF</span>
+          <div>
+            <h1 id="public-route-loading-title">Opening your PDF tool</h1>
+            <p>Loading the controls for this task. Your document has not been selected or uploaded.</p>
+          </div>
+          <div className="public-route-loading-progress" aria-hidden="true"><span /></div>
+        </section>
+      </main>
+    )}>
+      {children}
+    </Suspense>
+  );
 }
 
 export function EditorRoute() {
