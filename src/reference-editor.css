@@ -864,6 +864,21 @@ main.editor-shell .highlight-settings-title {
   white-space: nowrap !important;
 }
 
+main.editor-shell .text-highlight-mode-hint {
+  display: inline-flex !important;
+  min-height: 28px !important;
+  height: 28px !important;
+  align-items: center !important;
+  padding: 0 9px !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 999px !important;
+  background: #f8fafc !important;
+  color: #475467 !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  white-space: nowrap !important;
+}
+
 main.editor-shell .highlight-setting-group {
   display: inline-flex !important;
   align-items: center !important;
@@ -921,6 +936,10 @@ main.editor-shell .highlight-opacity-output {
   main.editor-shell .highlight-settings-title,
   main.editor-shell .highlight-setting-group > span {
     display: none !important;
+  }
+
+  main.editor-shell .text-highlight-mode-hint {
+    flex: 0 0 auto !important;
   }
 }
 
