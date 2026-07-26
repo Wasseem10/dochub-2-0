@@ -179,7 +179,9 @@ test("progressive pages finish rendering instead of remaining on an endless load
     buffer: await progressiveFixture(),
   });
   await expect(page.locator(".page-thumbnail-item")).toHaveCount(3);
-  await page.getByRole("button", { name: /Page 3\./ }).click();
+  const currentPage = page.getByRole("textbox", { name: "Current page" });
+  await currentPage.fill("3");
+  await currentPage.press("Enter");
   await expect(page.getByRole("img", { name: "PDF page 3" })).toBeVisible({ timeout: 20_000 });
   await expect(page.getByRole("status", { name: /PDF page 3/ })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Reload page" })).toHaveCount(0);

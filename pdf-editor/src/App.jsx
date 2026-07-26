@@ -2027,11 +2027,11 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     }
   }, []);
 
-  const hydratePdfPageAt = useCallback(async (targetIndex) => {
+  const hydratePdfPageAt = useCallback(async (targetIndex, { force = false } = {}) => {
     const token = pdfHydrationTokenRef.current;
     const generation = pdfPageRenderGenerationRef.current.get(targetIndex) || 0;
     const pageRecord = pagesRef.current[targetIndex];
-    if (!pageRecord || pageRecord.source !== "pdf" || pageRecord.image) return;
+    if (!pageRecord || pageRecord.source !== "pdf" || (!force && pageRecord.image)) return;
     if (pdfPageHydrationTasksRef.current.has(targetIndex)) return pdfPageHydrationTasksRef.current.get(targetIndex);
 
     const sourcePageIndex = Number.isInteger(pageRecord.originalIndex) ? pageRecord.originalIndex : targetIndex;
@@ -4710,7 +4710,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     setPages((items) => items.map((page, index) => (
       index === targetIndex ? { ...page, image: "", isHydrated: false, renderStatus: "pending", renderAttempts: 0 } : page
     )));
-    window.setTimeout(() => { void hydratePdfPageAt(targetIndex); }, 0);
+    window.setTimeout(() => { void hydratePdfPageAt(targetIndex, { force: true }); }, 0);
   };
 
   const prepareSignatureRequest = async ({ recipientName, recipient, message, expirationDays }) => {
@@ -5295,8 +5295,14 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
                 ))}
               </div>
               <div className="reference-compact-tools-footer">
-                <button type="button" role="menuitem" onClick={undo} disabled={!undoStack.length}><Undo2 size={19} /><span>Undo</span></button>
-                <button type="button" role="menuitem" onClick={redo} disabled={!redoStack.length}><Redo2 size={19} /><span>Redo</span></button>
+                <button type="button" role="menuitem" onClick={() => {
+                  undo();
+                  setIsCompactToolsMenuOpen(false);
+                }} disabled={!undoStack.length}><Undo2 size={19} /><span>Undo</span></button>
+                <button type="button" role="menuitem" onClick={() => {
+                  redo();
+                  setIsCompactToolsMenuOpen(false);
+                }} disabled={!redoStack.length}><Redo2 size={19} /><span>Redo</span></button>
                 <button type="button" role="menuitem" onClick={() => {
                   setIsSearchOpen((value) => !value);
                   setIsCommentsOpen(false);
@@ -5307,6 +5313,10 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
                   setIsPagesCollapsed(false);
                   setIsCompactToolsMenuOpen(false);
                 }}><PanelsTopLeft size={19} /><span>Manage pages</span></button>
+                <button type="button" role="menuitem" onClick={() => {
+                  setIsCompactToolsMenuOpen(false);
+                  void printPdf();
+                }}><Printer size={19} /><span>Print document</span></button>
               </div>
             </div>
           )}
@@ -5382,7 +5392,16 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
             <div>
               <button type="button" title="Grid view" onClick={() => setViewMode("grid")}><Grid2X2 size={18} /></button>
               <button type="button" title="List view" onClick={() => setViewMode("list")}><List size={18} /></button>
-              <button type="button" title="Close thumbnails" onClick={() => setIsPagesCollapsed(true)}><X size={18} /></button>
+              <button
+                type="button"
+                title="Close thumbnails"
+                onClick={() => {
+                  setIsPagesCollapsed(true);
+                  setIsManagePagesOpen(false);
+                }}
+              >
+                <X size={18} />
+              </button>
             </div>
           </div>
           {isManagePagesOpen && <div className="page-organizer-controls">
