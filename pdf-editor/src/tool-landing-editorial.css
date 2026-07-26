@@ -115,7 +115,7 @@
   letter-spacing: -.035em;
 }
 
-.editor-tool-dropzone button {
+.editor-tool-picker-label {
   min-width: min(100%, 255px);
   min-height: 52px;
   margin-top: 2px;
@@ -126,7 +126,6 @@
   box-shadow: 0 12px 25px rgba(40, 81, 235, .2);
 }
 
-.editor-tool-dropzone button:hover { background: #1e42d4; }
 .editor-tool-dropzone .editor-tool-blank-action { min-height: 40px; border-color: #d5dcf3; background: #fff; color: var(--tool-blue); }
 .editor-tool-dropzone p { color: #8a92a3; font-size: 13px; }
 .editor-tool-upload-progress span { background: var(--tool-blue); }

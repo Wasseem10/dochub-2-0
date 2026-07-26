@@ -60,6 +60,7 @@ const PARTIAL_EDITOR_LIMIT = "This workflow opens the current browser editor. Su
 const COMING_SOON_LIMIT = "This tool is not implemented yet. PDFArrow does not upload or process files for this workflow today.";
 const DEDICATED_CONVERTER_IDS = new Set(["pdf-to-word", "pdf-to-excel", "pdf-to-powerpoint", "pdf-to-jpg", "pdf-to-png", "pdf-to-txt", "pdf-to-html", "word-to-pdf", "excel-to-pdf", "powerpoint-to-pdf", "html-to-pdf", "jpg-to-pdf", "png-to-pdf", "txt-to-pdf", "rtf-to-pdf", "odt-to-pdf", "odp-to-pdf", "ods-to-pdf", "epub-to-pdf", "zip-to-pdf", "ocr-pdf", "pdf-scanner", "scan-to-pdf", "image-to-searchable-pdf", "ai-pdf", "chat-with-pdf", "summarize-pdf", "translate-pdf", "extract-data-from-pdf", "ask-pdf", "ai-question-generator", "contract-analyzer", "resume-analyzer", "compare-pdf", "document-version-comparison"]);
 const DEDICATED_PAGE_TOOL_IDS = new Set(["merge-pdf", "split-pdf", "rotate-pdf", "delete-pdf-pages", "extract-pdf-pages", "reorder-pdf-pages", "organize-pdf", "add-page-numbers", "watermark-pdf", "crop-pdf", "compress-pdf", "redact-pdf", "unlock-pdf", "flatten-pdf", "remove-pdf-password"]);
+const DEFAULT_RELATED_TOOL_IDS = ["edit-pdf", "merge-pdf", "organize-pdf"];
 
 /** @type {ToolDefinition[]} */
 const definitions = [
@@ -299,12 +300,20 @@ function buildBaseTool([slug, name, shortDescription, category, icon, status, su
 
 const builtTools = definitions.map(buildBaseTool);
 
+/** @param {ToolRecord} tool @param {ToolRecord[]} tools */
+function buildRelatedToolIds(tool, tools) {
+  const related = tools.filter((candidate) => candidate.category === tool.category && candidate.id !== tool.id);
+  for (const fallbackId of DEFAULT_RELATED_TOOL_IDS) {
+    if (related.length >= 3) break;
+    const candidate = tools.find((item) => item.id === fallbackId);
+    if (candidate && candidate.id !== tool.id && candidate.category !== tool.category) related.push(candidate);
+  }
+  return related.slice(0, 3).map((candidate) => candidate.id);
+}
+
 export const TOOL_REGISTRY = Object.freeze(builtTools.map((tool) => ({
   ...tool,
-  relatedTools: builtTools
-    .filter((candidate) => candidate.category === tool.category && candidate.id !== tool.id)
-    .slice(0, 3)
-    .map((candidate) => candidate.id),
+  relatedTools: buildRelatedToolIds(tool, builtTools),
 })));
 
 export const TOOL_BY_ID = new Map(TOOL_REGISTRY.map((tool) => [tool.id, tool]));

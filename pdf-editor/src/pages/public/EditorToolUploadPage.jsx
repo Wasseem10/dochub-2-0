@@ -59,7 +59,7 @@ export function EditorToolUploadPage({ toolId, fileInputRef, onUpload, onDropFil
   return (
     <main className={`editor-tool-upload-page editor-tool-upload-page--${tool.id}`}>
       <PageMetadata title={tool.seoTitle} description={tool.metaDescription} canonicalUrl={tool.canonicalUrl} schemas={toolSeoSchemas(tool)} />
-      <input ref={fileInputRef} className="sr-only" type="file" accept="application/pdf,.pdf" onChange={onUpload} />
+      <input ref={fileInputRef} className="sr-only" type="file" accept="application/pdf,.pdf" onChange={onUpload} tabIndex={-1} aria-hidden="true" />
       <nav className="editor-tool-breadcrumbs" aria-label="Breadcrumb">
         <Link to="/"><Home size={14} />Home</Link>
         <ChevronRight size={14} />
@@ -76,13 +76,6 @@ export function EditorToolUploadPage({ toolId, fileInputRef, onUpload, onDropFil
         <div className="editor-tool-upload-frame">
           <div
             className={`editor-tool-dropzone ${dragging ? "is-dragging" : ""}`}
-            onClick={openPicker}
-            onKeyDown={(event) => {
-              if (event.key === "Enter" || event.key === " ") {
-                event.preventDefault();
-                openPicker();
-              }
-            }}
             onDragEnter={(event) => {
               event.preventDefault();
               dropDepth.current += 1;
@@ -103,18 +96,22 @@ export function EditorToolUploadPage({ toolId, fileInputRef, onUpload, onDropFil
               setDragging(false);
               onDropFiles(event.dataTransfer.files);
             }}
-            role="button"
-            tabIndex={isUploading ? -1 : 0}
-            aria-label={`Choose a PDF to ${DROP_ACTION[tool.id] || "open"}`}
           >
-            <span className="editor-tool-upload-icon"><Upload size={48} strokeWidth={1.8} /></span>
+            <span className="editor-tool-upload-icon" aria-hidden="true"><Upload size={48} strokeWidth={1.8} /></span>
             <h2>{dragging ? "Drop your PDF to open it" : `Drop your PDF here to ${DROP_ACTION[tool.id] || "open"}`}</h2>
-            <button type="button" disabled={isUploading} onClick={(event) => { event.stopPropagation(); openPicker(); }}>
+            <button
+              type="button"
+              className="editor-tool-dropzone-action"
+              disabled={isUploading}
+              onClick={openPicker}
+              aria-label={`Choose a PDF to ${DROP_ACTION[tool.id] || "open"}`}
+            />
+            <span className="editor-tool-picker-label" aria-hidden="true">
               <FileText className={isUploading ? "is-uploading" : ""} size={19} />
               {isUploading ? "Opening your PDF..." : "Choose a PDF"}
-            </button>
+            </span>
             {tool.id === "edit-pdf" && onBlankPage && (
-              <button type="button" className="editor-tool-blank-action" disabled={isUploading} onClick={(event) => { event.stopPropagation(); onBlankPage(); }}>
+              <button type="button" className="editor-tool-blank-action" disabled={isUploading} onClick={onBlankPage}>
                 <FileText size={18} /> Start with a blank page
               </button>
             )}
