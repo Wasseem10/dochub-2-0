@@ -8043,20 +8043,34 @@ function LinkModal({ initialUrl = "https://", isEditing = false, onClose, onSave
 function SignatureModal({ defaultName, mode = "signature", onClose, onSave }) {
   const canvasRef = useRef(null);
   const fileRef = useRef(null);
-  const [tab, setTab] = useState("draw");
+  const [tab, setTab] = useState(mode === "initials" ? "type" : "draw");
   const [typedName, setTypedName] = useState(defaultName || "");
   const [signatureFont, setSignatureFont] = useState(DEFAULT_SIGNATURE_FONT);
   const [uploadedImage, setUploadedImage] = useState("");
   const [hasInk, setHasInk] = useState(false);
+  const [previewOnPage, setPreviewOnPage] = useState(false);
   const [error, setError] = useState("");
   const drawingRef = useRef(false);
   const canSave = canSaveEditorSignature({ mode, tab, typedName, hasInk, uploadedImage });
+  const methodOptions = [
+    { id: "draw", label: "Draw", Icon: PenLine },
+    { id: "type", label: "Type", Icon: Type },
+    { id: "upload", label: "Upload", Icon: Upload },
+  ];
+
+  useEffect(() => {
+    const closeOnEscape = (event) => {
+      if (event.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [onClose]);
 
   const getCanvasPoint = (event) => {
     const rect = canvasRef.current.getBoundingClientRect();
     return {
-      x: event.clientX - rect.left,
-      y: event.clientY - rect.top,
+      x: (event.clientX - rect.left) * (canvasRef.current.width / rect.width),
+      y: (event.clientY - rect.top) * (canvasRef.current.height / rect.height),
     };
   };
 
@@ -8094,6 +8108,21 @@ function SignatureModal({ defaultName, mode = "signature", onClose, onSave }) {
     const canvas = canvasRef.current;
     canvas.getContext("2d").clearRect(0, 0, canvas.width, canvas.height);
     setHasInk(false);
+    setError("");
+  };
+
+  const clearCurrentMethod = () => {
+    if (tab === "draw") {
+      clearCanvas();
+      return;
+    }
+    if (tab === "upload") {
+      setUploadedImage("");
+      if (fileRef.current) fileRef.current.value = "";
+    } else {
+      setTypedName("");
+    }
+    setError("");
   };
 
   const onUploadSignature = (event) => {
@@ -8144,64 +8173,112 @@ function SignatureModal({ defaultName, mode = "signature", onClose, onSave }) {
 
   return (
     <div className="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="signature-modal-title" aria-describedby="signature-modal-description">
-      <section className="signature-modal">
-        <header>
+      <section className="signature-modal signature-proof-modal">
+        <header className="signature-proof-header">
           <div>
             <h2 id="signature-modal-title">{mode === "initials" ? "Create initials" : "Create signature"}</h2>
-            <p id="signature-modal-description">{mode === "initials" ? "Enter your name, then click the PDF page to place the initials." : "Create a signature, save it, then click the PDF page to place it."}</p>
+            <p id="signature-modal-description">{mode === "initials" ? "Type your name, check the initials, then save them for placement." : "Make your signature, check its scale, then save it for placement."}</p>
           </div>
-          <button type="button" className="modal-close" aria-label={`Close ${mode === "initials" ? "initials" : "signature"} dialog`} onClick={onClose}><X size={18} /></button>
+          <div className="signature-proof-close">
+            <span aria-hidden="true">Esc</span>
+            <button type="button" className="modal-close" aria-label={`Close ${mode === "initials" ? "initials" : "signature"} dialog`} onClick={onClose}><X size={20} /></button>
+          </div>
         </header>
 
         {mode !== "initials" && <div className="signature-tabs" role="tablist" aria-label="Signature method">
-          {["draw", "type", "upload"].map((item) => (
-            <button key={item} type="button" role="tab" aria-selected={tab === item} className={tab === item ? "is-active" : ""} onClick={() => { setTab(item); setError(""); }}>
-              {item[0].toUpperCase() + item.slice(1)}
+          {methodOptions.map(({ id, label, Icon }) => (
+            <button key={id} type="button" role="tab" aria-selected={tab === id} className={tab === id ? "is-active" : ""} onClick={() => { setTab(id); setError(""); }}>
+              <Icon size={18} strokeWidth={1.8} aria-hidden="true" />
+              <span>{label}</span>
             </button>
           ))}
         </div>}
 
-        {mode !== "initials" && tab === "draw" && (
-          <div className="signature-draw-pad">
-            <canvas
-              ref={canvasRef}
-              width="640"
-              height="220"
-              aria-label="Signature drawing area"
-              onPointerDown={drawStart}
-              onPointerMove={drawMove}
-              onPointerUp={drawEnd}
-              onPointerLeave={drawEnd}
-            />
-            <p>Draw with your pointer. Prefer typing your signature if you use a keyboard.</p>
-            <button type="button" onClick={clearCanvas} disabled={!hasInk}>Clear drawing</button>
-          </div>
-        )}
-
-        {(mode === "initials" || tab === "type") && (
-          <label className="field signature-type">
-            <span>{mode === "initials" ? "Full name" : "Name for typed signature"}</span>
-            <input autoFocus value={typedName} onChange={(event) => { setTypedName(event.target.value); setError(""); }} />
-            <div className="signature-font-picker">
-              <span>Cursive font</span>
-              <select value={signatureFont} onChange={(event) => setSignatureFont(event.target.value)}>
-                {SIGNATURE_FONT_OPTIONS.map((font) => <option key={font.value} value={font.value}>{font.label}</option>)}
-              </select>
+        <div className={`signature-proof-stage${previewOnPage ? " is-page-preview" : ""}`}>
+          {(mode === "initials" || tab === "type") && (
+            <div className="signature-proof-fields">
+              <label>
+                <span>{mode === "initials" ? "Full name" : "Name for typed signature"}</span>
+                <input autoFocus value={typedName} onChange={(event) => { setTypedName(event.target.value); setError(""); }} />
+              </label>
+              <label>
+                <span>Signature style</span>
+                <select value={signatureFont} onChange={(event) => setSignatureFont(event.target.value)}>
+                  {SIGNATURE_FONT_OPTIONS.map((font) => <option key={font.value} value={font.value}>{font.label}</option>)}
+                </select>
+              </label>
             </div>
-            <strong style={{ fontFamily: signatureFont }}>{mode === "initials" ? typedName.split(/\s+/).filter(Boolean).map((part) => part[0]).join("").slice(0, 3).toUpperCase() || "Initials" : typedName || "Signature"}</strong>
-          </label>
-        )}
+          )}
 
-        {mode !== "initials" && tab === "upload" && (
-          <div className="signature-upload">
-            <input ref={fileRef} className="hidden-input" type="file" accept="image/png,image/jpeg" onChange={onUploadSignature} />
-            <button type="button" onClick={() => fileRef.current?.click()}><Upload size={17} /> Upload image</button>
-            {uploadedImage ? <img src={uploadedImage} alt="Uploaded signature preview" /> : <p>PNG or JPG signatures work best on a transparent or white background.</p>}
+          <div className="signature-proof-sheet">
+            {mode !== "initials" && tab === "draw" && (
+              <div className="signature-draw-pad">
+                <canvas
+                  ref={canvasRef}
+                  width="760"
+                  height="220"
+                  aria-label="Signature drawing area"
+                  onPointerDown={drawStart}
+                  onPointerMove={drawMove}
+                  onPointerUp={drawEnd}
+                  onPointerCancel={drawEnd}
+                  onPointerLeave={drawEnd}
+                />
+                {!hasInk && <div className="signature-proof-cue" aria-hidden="true"><PenLine size={34} strokeWidth={1.5} /><span>Sign on the line</span></div>}
+              </div>
+            )}
+
+            {(mode === "initials" || tab === "type") && (
+              <div className={`signature-type-preview${typedName.trim() ? " has-value" : ""}`} style={{ fontFamily: signatureFont }}>
+                {mode === "initials" ? typedName.split(/\s+/).filter(Boolean).map((part) => part[0]).join("").slice(0, 3).toUpperCase() || "Your initials" : typedName || "Your signature"}
+              </div>
+            )}
+
+            {mode !== "initials" && tab === "upload" && (
+              <div className="signature-upload">
+                <input ref={fileRef} className="hidden-input" type="file" accept="image/png,image/jpeg" onChange={onUploadSignature} />
+                {uploadedImage ? (
+                  <img src={uploadedImage} alt="Uploaded signature preview" />
+                ) : (
+                  <>
+                    <Upload size={30} strokeWidth={1.5} aria-hidden="true" />
+                    <p>Upload a transparent PNG or a clear JPG.</p>
+                    <button type="button" onClick={() => fileRef.current?.click()}>Choose image</button>
+                  </>
+                )}
+              </div>
+            )}
+            <div className="signature-proof-baseline" aria-hidden="true" />
+            <span className="signature-proof-scale">{previewOnPage ? "Page preview · 100%" : "Placed at 100%"}</span>
           </div>
-        )}
+        </div>
 
         {error && <p className="signature-modal-error" role="alert">{error}</p>}
-        <footer>
+        <div className="signature-proof-utility">
+          <button
+            type="button"
+            className="signature-proof-clear"
+            onClick={clearCurrentMethod}
+            disabled={tab === "draw" ? !hasInk : tab === "upload" ? !uploadedImage : !typedName}
+          >
+            Clear
+          </button>
+          {mode !== "initials" && tab === "draw" ? (
+            <p>Keyboard users can create a typed signature. <button type="button" onClick={() => { setTab("type"); setError(""); }}>Switch to Type</button></p>
+          ) : <span aria-hidden="true" />}
+          <button
+            type="button"
+            className="signature-proof-toggle"
+            role="switch"
+            aria-checked={previewOnPage}
+            onClick={() => setPreviewOnPage((value) => !value)}
+          >
+            <span className="signature-proof-toggle-track" aria-hidden="true"><span /></span>
+            Preview on page
+          </button>
+        </div>
+
+        <footer className="signature-proof-footer">
           <button type="button" className="modal-secondary" onClick={onClose}>Cancel</button>
           <button type="button" className="modal-primary" disabled={!canSave} onClick={saveSignature}>Save {mode === "initials" ? "initials" : "signature"}</button>
         </footer>
