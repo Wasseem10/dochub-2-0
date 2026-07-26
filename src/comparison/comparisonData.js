@@ -245,3 +245,55 @@ export function getComparisonBySlug(slug = "") {
   const normalized = slug.replace(/^pdfarrow-vs-/, "");
   return COMPARISONS.find((comparison) => comparison.slug === normalized);
 }
+
+/** @param {(typeof COMPARISONS)[number]} comparison */
+export function comparisonAdvantageCards(comparison) {
+  return [
+    { title: "Start immediately", body: comparison.pdfArrowReasons[0] },
+    { title: "Keep control of the file", body: comparison.pdfArrowReasons[1] },
+    { title: "Keep the workflow simple", body: comparison.pdfArrowReasons[2] },
+    {
+      title: "Know the tradeoff",
+      body: `PDFArrow is not trying to replace ${comparison.company} for ${comparison.bestForCompetitor.toLowerCase()}. It is designed to make common individual PDF work faster to begin.`,
+    },
+  ];
+}
+
+/** @param {(typeof COMPARISONS)[number]} comparison */
+export function comparisonPlanRows(comparison) {
+  return [
+    ["Free access", "Supported tools are currently free, with no watermark or forced signup.", comparison.competitorFacts.price],
+    ["Account requirement", sharedPdfArrow.account, comparison.competitorFacts.account],
+    ["Paid and team options", "Paid team and enterprise plans are not currently active.", `${comparison.company} offers established paid options. Check its official pricing page for current regional prices and billing terms.`],
+  ];
+}
+
+/** @param {(typeof COMPARISONS)[number]} comparison */
+export function comparisonFaqEntries(comparison) {
+  return [
+    {
+      question: `Is PDFArrow better than ${comparison.company}?`,
+      answer: `It depends on the workflow. PDFArrow is the simpler choice for ${comparison.bestForPdfArrow.toLowerCase()}. ${comparison.company} is the stronger choice for ${comparison.bestForCompetitor.toLowerCase()}.`,
+    },
+    {
+      question: `Does PDFArrow support the same platforms as ${comparison.company}?`,
+      answer: `PDFArrow is a responsive web app and does not currently offer native desktop or mobile apps. ${comparison.competitorFacts.platforms}`,
+    },
+    {
+      question: `How does PDFArrow pricing compare with ${comparison.company}?`,
+      answer: `PDFArrow's supported tools are currently free and its paid team plans are not active. ${comparison.competitorFacts.price} Verify the vendor's official pricing page for current prices, taxes, limits, and regional differences.`,
+    },
+    {
+      question: `Can I switch from ${comparison.company} to PDFArrow?`,
+      answer: "Yes for ordinary PDF files: download or keep the document, then open it directly in PDFArrow. Account history, reusable templates, signature-request audit trails, and proprietary cloud-workspace data are not automatically imported.",
+    },
+    {
+      question: "Can I use PDFArrow without an account?",
+      answer: "Yes. Supported PDFArrow tools can be started as a guest. An account is optional for saved workspace features.",
+    },
+    {
+      question: "How current is this comparison?",
+      answer: `This page was reviewed on ${COMPARISON_REVIEWED_LABEL} using the official vendor sources listed below. Plans and features can change, so verify time-sensitive details with the vendor.`,
+    },
+  ];
+}
