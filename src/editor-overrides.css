@@ -9388,6 +9388,477 @@ main.editor-shell .tool-instruction-settings strong {
   font-weight: 800 !important;
 }
 
+/* Signature Proof: a deliberate proofing surface instead of a generic form modal. */
+.signature-modal.signature-proof-modal {
+  width: min(920px, calc(100vw - 32px));
+  max-height: calc(100vh - 32px);
+  overflow: auto;
+  border: 1px solid #d8d8d5;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 28px 80px rgba(22, 28, 38, 0.22);
+  color: #1c2028;
+  font-family: "DM Sans", Arial, sans-serif;
+}
+
+.signature-proof-modal .signature-proof-header {
+  min-height: 104px;
+  align-items: center;
+  padding: 24px 32px;
+  border-bottom: 1px solid #e3e3e0;
+  background: #fff;
+}
+
+.signature-proof-modal .signature-proof-header h2 {
+  color: #171b24;
+  font-family: "Funnel Display", "DM Sans", Arial, sans-serif;
+  font-size: 24px;
+  font-weight: 720;
+  letter-spacing: -0.025em;
+}
+
+.signature-proof-modal .signature-proof-header p {
+  margin-top: 5px;
+  color: #6d7179;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.signature-proof-close {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.signature-proof-close > span {
+  color: #9a9b9f;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+
+.signature-proof-modal .signature-proof-close .modal-close {
+  width: 38px;
+  height: 38px;
+  border: 1px solid #dededb;
+  border-radius: 8px;
+  background: #fff;
+  color: #252932;
+}
+
+.signature-proof-modal .signature-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0;
+  padding: 0 32px;
+  border-bottom: 1px solid #e6e6e3;
+}
+
+.signature-proof-modal .signature-tabs button {
+  position: relative;
+  justify-content: center;
+  width: 100%;
+  height: 70px;
+  padding: 0 20px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: #72747a;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.signature-proof-modal .signature-tabs button + button {
+  border-left: 1px solid #e6e6e3;
+}
+
+.signature-proof-modal .signature-tabs button.is-active {
+  border-color: #e6e6e3;
+  background: transparent;
+  color: #681f32;
+}
+
+.signature-proof-modal .signature-tabs button.is-active::after {
+  position: absolute;
+  right: 34px;
+  bottom: -1px;
+  left: 34px;
+  height: 3px;
+  background: #681f32;
+  content: "";
+}
+
+.signature-proof-stage {
+  padding: 28px 34px 26px;
+  background: #f7f7f5;
+  transition: background-color 180ms ease;
+}
+
+.signature-proof-stage.is-page-preview {
+  background: #e8e9e7;
+}
+
+.signature-proof-stage.is-page-preview .signature-proof-sheet {
+  max-width: 660px;
+  margin-inline: auto;
+  box-shadow: 0 12px 30px rgba(27, 30, 35, 0.1);
+}
+
+.signature-proof-fields {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 210px;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.signature-proof-fields label {
+  display: grid;
+  gap: 6px;
+}
+
+.signature-proof-fields label > span {
+  color: #4e5158;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.signature-proof-fields input,
+.signature-proof-fields select {
+  width: 100%;
+  height: 42px;
+  padding: 0 12px;
+  border: 1px solid #cececa;
+  border-radius: 6px;
+  background: #fff;
+  color: #20242c;
+  font: 600 14px/1 "DM Sans", Arial, sans-serif;
+}
+
+.signature-proof-sheet {
+  position: relative;
+  min-height: 244px;
+  overflow: hidden;
+  border: 1px solid #c9c9c4;
+  border-radius: 3px;
+  background: #fff;
+  transition: max-width 180ms ease, box-shadow 180ms ease;
+}
+
+.signature-proof-fields + .signature-proof-sheet {
+  min-height: 204px;
+}
+
+.signature-proof-modal .signature-draw-pad {
+  position: absolute;
+  inset: 0;
+  display: block;
+  padding: 0;
+}
+
+.signature-proof-modal .signature-draw-pad canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  cursor: crosshair;
+  touch-action: none;
+}
+
+.signature-proof-cue {
+  position: absolute;
+  inset: 38px 32px 62px;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 8px;
+  pointer-events: none;
+  color: #898b90;
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.signature-proof-baseline {
+  position: absolute;
+  right: 34px;
+  bottom: 58px;
+  left: 34px;
+  height: 1px;
+  background: #36383d;
+  pointer-events: none;
+}
+
+.signature-proof-scale {
+  position: absolute;
+  right: 34px;
+  bottom: 27px;
+  color: #8b8d91;
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.015em;
+}
+
+.signature-type-preview {
+  position: absolute;
+  right: 50px;
+  bottom: 61px;
+  left: 50px;
+  overflow: hidden;
+  color: #a3a3a0;
+  font-size: clamp(40px, 6vw, 64px);
+  font-weight: 500;
+  line-height: 1.05;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.signature-type-preview.has-value {
+  color: #171b24;
+}
+
+.signature-proof-modal .signature-upload {
+  position: absolute;
+  inset: 18px 30px 58px;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 8px;
+  padding: 0;
+  color: #777980;
+  text-align: center;
+}
+
+.signature-proof-modal .signature-upload p {
+  margin: 0;
+  color: #777980;
+  font-size: 13px;
+}
+
+.signature-proof-modal .signature-upload button {
+  justify-self: center;
+  height: 36px;
+  border: 1px solid #b8b8b3;
+  border-radius: 6px;
+  background: #fff;
+  color: #2e3138;
+  font-weight: 750;
+}
+
+.signature-proof-modal .signature-upload img {
+  max-width: min(80%, 520px);
+  max-height: 125px;
+  border: 0;
+  border-radius: 0;
+  object-fit: contain;
+}
+
+.signature-proof-modal .signature-modal-error {
+  margin: 12px 34px 0;
+  border-radius: 6px;
+}
+
+.signature-proof-utility {
+  display: grid;
+  grid-template-columns: minmax(90px, 1fr) minmax(0, 2fr) minmax(170px, 1fr);
+  align-items: center;
+  min-height: 64px;
+  padding: 12px 32px;
+  border-top: 1px solid #e4e4e1;
+  background: #fff;
+}
+
+.signature-proof-utility > p {
+  margin: 0;
+  color: #76787e;
+  font-size: 12px;
+  line-height: 1.4;
+  text-align: center;
+}
+
+.signature-proof-utility > p button {
+  padding: 0;
+  border: 0;
+  border-bottom: 1px solid currentColor;
+  border-radius: 0;
+  background: transparent;
+  color: #681f32;
+  font: inherit;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.signature-proof-clear {
+  justify-self: start;
+  min-width: 58px;
+  height: 30px;
+  padding: 0 12px;
+  border: 1px solid #c9c9c4;
+  border-radius: 6px;
+  background: #fff;
+  color: #681f32;
+  font: 750 13px/1 "DM Sans", Arial, sans-serif;
+  cursor: pointer;
+}
+
+.signature-proof-modal .signature-proof-clear:disabled {
+  border-color: #deded9;
+  background: #fafaf8;
+  color: #b2b2ae;
+  opacity: 1;
+}
+
+.signature-proof-toggle {
+  justify-self: end;
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding: 5px 0;
+  border: 0;
+  background: transparent;
+  color: #484b52;
+  font: 700 12px/1 "DM Sans", Arial, sans-serif;
+  cursor: pointer;
+}
+
+.signature-proof-toggle-track {
+  position: relative;
+  width: 31px;
+  height: 18px;
+  border: 1px solid #b9b9b4;
+  border-radius: 999px;
+  background: #d8d8d4;
+  transition: background-color 150ms ease, border-color 150ms ease;
+}
+
+.signature-proof-toggle-track > span {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  transition: transform 150ms ease;
+}
+
+.signature-proof-toggle[aria-checked="true"] .signature-proof-toggle-track {
+  border-color: #681f32;
+  background: #681f32;
+}
+
+.signature-proof-toggle[aria-checked="true"] .signature-proof-toggle-track > span {
+  transform: translateX(13px);
+}
+
+.signature-proof-modal .signature-proof-footer {
+  gap: 10px;
+  padding: 16px 32px;
+  border-top: 1px solid #e4e4e1;
+  background: #fafaf9;
+}
+
+.signature-proof-modal .signature-proof-footer button {
+  min-width: 126px;
+  height: 42px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.signature-proof-modal .signature-proof-footer .modal-secondary {
+  border-color: #c9c9c4;
+  background: #fff;
+  color: #32353c;
+}
+
+.signature-proof-modal .signature-proof-footer .modal-primary {
+  border-color: #681f32;
+  background: #681f32;
+  color: #fff;
+}
+
+.signature-proof-modal .signature-proof-footer .modal-primary:disabled {
+  border-color: #dadad6;
+  background: #e7e7e3;
+  color: #a6a6a1;
+  opacity: 1;
+}
+
+.signature-proof-modal button:focus-visible,
+.signature-proof-modal input:focus-visible,
+.signature-proof-modal select:focus-visible {
+  outline: 3px solid rgba(104, 31, 50, 0.2) !important;
+  outline-offset: 2px;
+}
+
+@media (max-width: 680px) {
+  .signature-modal.signature-proof-modal {
+    width: calc(100vw - 16px);
+    max-height: calc(100dvh - 16px);
+  }
+
+  .signature-proof-modal .signature-proof-header {
+    min-height: 88px;
+    padding: 18px 18px;
+  }
+
+  .signature-proof-close > span {
+    display: none;
+  }
+
+  .signature-proof-modal .signature-tabs {
+    padding: 0 12px;
+  }
+
+  .signature-proof-modal .signature-tabs button {
+    height: 58px;
+    padding: 0 8px;
+    font-size: 12px;
+  }
+
+  .signature-proof-modal .signature-tabs button.is-active::after {
+    right: 12px;
+    left: 12px;
+  }
+
+  .signature-proof-stage {
+    padding: 18px;
+  }
+
+  .signature-proof-fields {
+    grid-template-columns: 1fr;
+  }
+
+  .signature-proof-sheet {
+    min-height: 210px;
+  }
+
+  .signature-proof-utility {
+    grid-template-columns: 1fr auto;
+    gap: 8px 16px;
+    padding: 12px 18px;
+  }
+
+  .signature-proof-utility > p {
+    grid-row: 2;
+    grid-column: 1 / -1;
+    text-align: left;
+  }
+
+  .signature-proof-modal .signature-proof-footer {
+    padding: 14px 18px;
+  }
+
+  .signature-proof-modal .signature-proof-footer button {
+    flex: 1;
+    min-width: 0;
+  }
+}
+
 @media (max-width: 900px) {
   main.editor-shell .tool-settings.tool-instruction-settings {
     width: calc(100vw - 16px) !important;
