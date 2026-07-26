@@ -6,6 +6,7 @@ import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
 import * as pdfjsLib from "pdfjs-dist/legacy/build/pdf.mjs";
 
 const appPath = (path) => process.env.GITHUB_ACTIONS === "true" ? `/dochub-2-0${path}` : path;
+const primaryExportProjects = new Set(["desktop-chromium", "android-chromium", "iphone-webkit"]);
 
 async function textPdf(...pageLabels) {
   const document = await PDFDocument.create();
@@ -48,8 +49,12 @@ async function downloadBytes(page, buttonName) {
   return { download, bytes: new Uint8Array(await readFile(await download.path())) };
 }
 
+async function expectNoHorizontalOverflow(page) {
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
+}
+
 test("merge and split preserve valid native PDF pages", async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name.includes("android") || testInfo.project.name.includes("iphone"), "Full download validation runs on desktop engines.");
+  test.skip(!primaryExportProjects.has(testInfo.project.name), "Full download validation runs on the primary desktop and phone engines.");
   await page.goto(appPath("/merge-pdf"));
   await page.locator('input[type="file"]').setInputFiles([
     { name: "first.pdf", mimeType: "application/pdf", buffer: await textPdf("FIRST DOCUMENT") },
@@ -68,10 +73,11 @@ test("merge and split preserve valid native PDF pages", async ({ page }, testInf
   expect(split.download.suggestedFilename()).toBe("packet-pages-2-3.pdf");
   const splitPdf = await PDFDocument.load(split.bytes);
   expect(splitPdf.getPageCount()).toBe(2);
+  await expectNoHorizontalOverflow(page);
 });
 
 test("compression creates a smaller valid visual PDF", async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name !== "desktop-chromium", "Pixel compression output is validated once in Chromium.");
+  test.skip(!primaryExportProjects.has(testInfo.project.name), "Pixel compression output is validated on the primary desktop and phone engines.");
   test.setTimeout(90_000);
   const source = await imageHeavyPdf();
   await page.goto(appPath("/compress-pdf"));
@@ -82,10 +88,11 @@ test("compression creates a smaller valid visual PDF", async ({ page }, testInfo
   expect(compressed.download.suggestedFilename()).toBe("image-heavy-compressed.pdf");
   expect(compressed.bytes.length).toBeLessThan(source.length);
   expect((await PDFDocument.load(compressed.bytes)).getPageCount()).toBe(1);
+  await expectNoHorizontalOverflow(page);
 });
 
 test("balanced compression preserves searchable text and form fields", async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name !== "desktop-chromium", "Structure-preserving compression is validated once in Chromium.");
+  test.skip(!primaryExportProjects.has(testInfo.project.name), "Structure-preserving compression is validated on the primary desktop and phone engines.");
   test.setTimeout(90_000);
   const source = await structuredPdf();
   await page.goto(appPath("/compress-pdf"));
@@ -98,10 +105,11 @@ test("balanced compression preserves searchable text and form fields", async ({ 
   const rendered = await pdfjsLib.getDocument({ data: compressed.bytes.slice(0), disableWorker: true, verbosity: 0 }).promise;
   const content = await (await rendered.getPage(1)).getTextContent();
   expect(content.items.map((item) => item.str).join(" ")).toContain("SEARCHABLE INVOICE 42000");
+  await expectNoHorizontalOverflow(page);
 });
 
 test("batch compression reports measured savings, previews output, and downloads a ZIP", async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name !== "desktop-chromium", "Batch compression output is validated once in Chromium.");
+  test.skip(!primaryExportProjects.has(testInfo.project.name), "Batch compression output is validated on the primary desktop and phone engines.");
   test.setTimeout(120_000);
   const first = await imageHeavyPdf();
   const second = await imageHeavyPdf();
@@ -121,6 +129,7 @@ test("batch compression reports measured savings, previews output, and downloads
   ]);
   await expect(page.getByRole("region", { name: "Compression results" })).toContainText("% smaller");
   await expect(page.getByRole("img", { name: "Compressed first page of photos-one.pdf" })).toBeVisible();
+  await expectNoHorizontalOverflow(page);
 });
 
 test("PDF to Word and Word to PDF produce valid searchable documents", async ({ page }, testInfo) => {
@@ -155,7 +164,7 @@ test("PDF to Word and Word to PDF produce valid searchable documents", async ({ 
 });
 
 test("signing places a signature and exports it in the PDF", async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name.includes("android") || testInfo.project.name.includes("iphone"), "Signed output validation runs on desktop engines.");
+  test.skip(!primaryExportProjects.has(testInfo.project.name), "Signed output validation runs on the primary desktop and phone engines.");
   await page.goto(appPath("/sign-pdf"));
   await page.locator('input[type="file"]').first().setInputFiles({ name: "agreement.pdf", mimeType: "application/pdf", buffer: await textPdf("SIGN BELOW") });
   const signatureDialog = page.getByRole("dialog", { name: "Create signature" });
@@ -173,10 +182,11 @@ test("signing places a signature and exports it in the PDF", async ({ page }, te
   const rendered = await pdfjsLib.getDocument({ data: signed.bytes.slice(0), disableWorker: true, verbosity: 0 }).promise;
   const content = await (await rendered.getPage(1)).getTextContent();
   expect(content.items.map((item) => item.str).join(" ")).toContain("Wasseem Dabbas");
+  await expectNoHorizontalOverflow(page);
 });
 
 test("password protection downloads a genuinely encrypted PDF", async ({ page }, testInfo) => {
-  test.skip(!["desktop-chromium", "android-chromium", "iphone-webkit"].includes(testInfo.project.name), "Encryption output is validated on the primary desktop and phone engines.");
+  test.skip(!primaryExportProjects.has(testInfo.project.name), "Encryption output is validated on the primary desktop and phone engines.");
   test.setTimeout(90_000);
   await page.goto(appPath("/protect-pdf"));
   await page.locator('input[type="file"]').first().setInputFiles({ name: "private.pdf", mimeType: "application/pdf", buffer: await textPdf("PRIVATE DOCUMENT") });
@@ -188,5 +198,5 @@ test("password protection downloads a genuinely encrypted PDF", async ({ page },
   expect(protectedResult.download.suggestedFilename()).toBe("private-protected.pdf");
   expect(new TextDecoder("latin1").decode(protectedResult.bytes)).toContain("/Encrypt");
   await expect(PDFDocument.load(protectedResult.bytes)).rejects.toThrow();
-  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
+  await expectNoHorizontalOverflow(page);
 });
