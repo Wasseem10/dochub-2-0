@@ -425,43 +425,46 @@
 
 .privacy-consent {
   position: fixed;
-  right: 22px;
+  right: auto;
   bottom: 22px;
+  left: 22px;
   z-index: 3000;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 16px 22px;
+  grid-template-columns: minmax(0, 1fr) 218px;
+  gap: 12px;
   align-items: center;
-  width: min(720px, calc(100% - 44px));
-  padding: 17px 18px;
+  width: min(520px, calc(100% - 44px));
+  padding: 13px 14px;
   border: 1px solid #d6deec;
-  border-radius: 15px;
+  border-radius: 13px;
   background: #fff;
   box-shadow: 0 20px 58px rgba(13, 29, 63, .18);
   color: #101323;
   font-family: "DM Sans", Arial, sans-serif;
 }
 
-.privacy-consent strong { font-size: 14px; }
+.privacy-consent strong { font-size: 13px; }
 
 .privacy-consent p {
-  max-width: 460px;
-  margin: 4px 0 5px;
+  max-width: 420px;
+  margin: 3px 0 4px;
   color: #667086;
-  font-size: 11px;
-  line-height: 1.5;
+  font-size: 10px;
+  line-height: 1.42;
 }
 
 .privacy-consent a {
   color: #2851eb;
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 760;
 }
 
 .privacy-consent-actions {
-  display: flex;
-  gap: 8px;
+  display: grid;
+  gap: 6px;
 }
+
+.privacy-consent-actions button { min-height: 40px; }
 
 .privacy-policy-page :focus-visible,
 .privacy-consent :focus-visible {
@@ -502,8 +505,8 @@
   .privacy-quick-facts article { padding: 25px; }
   .privacy-choice-panel { margin-top: 68px; margin-bottom: 70px; padding: 34px 24px; border-radius: 18px; }
   .privacy-choice-panel h2 { font-size: 37px; }
-  .privacy-choice-actions,
-  .privacy-consent-actions { display: grid; grid-template-columns: 1fr; }
+  .privacy-choice-actions { display: grid; grid-template-columns: 1fr; }
+  .privacy-consent-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .privacy-choice-actions button,
   .privacy-consent-actions button { width: 100%; }
   .privacy-policy-toc nav { grid-template-columns: 1fr; }
@@ -512,13 +515,21 @@
   .privacy-policy-content > section:first-child { padding: 26px 22px; border-radius: 16px; }
   .privacy-data-table-wrap { margin-right: -14px; }
   .privacy-consent {
-    right: 12px;
-    bottom: 12px;
-    left: 12px;
+    right: 10px;
+    bottom: 10px;
+    left: 10px;
     grid-template-columns: 1fr;
     width: auto;
-    padding: 16px;
+    gap: 10px;
+    padding: 12px;
   }
+
+  .privacy-consent p { max-width: none; }
+  .privacy-consent-actions button { min-height: 40px; padding: 5px 8px; line-height: 1.25; }
+}
+
+@media (max-width: 340px) {
+  .privacy-consent-actions { grid-template-columns: 1fr; }
 }
 
 @media (prefers-reduced-motion: reduce) {

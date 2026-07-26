@@ -49,10 +49,10 @@ export function AboutPage() {
           name: "About PDFArrow",
           url: absoluteSiteUrl(ROUTE_PATHS.about),
           mainEntity: {
-            "@type": "SoftwareApplication",
+            "@type": "Organization",
             name: "PDFArrow",
-            applicationCategory: "BusinessApplication",
-            operatingSystem: "Web",
+            url: absoluteSiteUrl("/"),
+            logo: absoluteSiteUrl("/pdfarrow-logo.png"),
           },
         }]}
       />

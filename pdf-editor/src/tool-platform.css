@@ -47,6 +47,11 @@
   text-decoration: none;
 }
 
+.marketing-brand .brand-wordmark--logo {
+  width: 136px;
+  height: 34px;
+}
+
 .marketing-brand .brand-wordmark { transition: opacity .18s ease, transform .18s ease; }
 .marketing-brand:hover .brand-wordmark { opacity: .82; transform: translateY(-1px); }
 

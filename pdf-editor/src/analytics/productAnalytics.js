@@ -13,6 +13,7 @@ const ALLOWED_EVENTS = new Set([
   "export_succeeded",
   "export_failed",
   "related_tool_clicked",
+  "comparison_cta_clicked",
   "optional_account_created",
   "account_signed_up",
   "account_logged_in",
@@ -256,4 +257,12 @@ export function trackPageView(route = "/") {
   trackProductEvent("page_viewed", properties);
   if (normalizedRoute === "/") trackProductEvent("homepage_viewed", properties);
   return true;
+}
+
+export function trackComparisonCta(route, placement) {
+  return trackProductEvent("comparison_cta_clicked", {
+    route: String(route || "/compare").split("?")[0],
+    operation: String(placement || "unknown"),
+    ...clientEnvironment(),
+  });
 }

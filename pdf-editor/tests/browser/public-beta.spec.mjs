@@ -27,7 +27,7 @@ async function regressionPdf() {
 test("public-beta routes render without horizontal overflow", async ({ page }) => {
   for (const route of [
     "/", "/tools", "/edit-pdf", "/merge-pdf", "/split-pdf", "/compress-pdf", "/pdf-to-word", "/word-to-pdf",
-    "/ocr-pdf", "/sign-pdf", "/protect-pdf", "/compare-pdf", "/redact-pdf", "/privacy", "/terms", "/data-retention", "/support",
+    "/ocr-pdf", "/sign-pdf", "/protect-pdf", "/compare-pdf", "/compare", "/compare/pdfarrow-vs-dochub", "/redact-pdf", "/privacy", "/terms", "/data-retention", "/support",
   ]) {
     await page.goto(appPath(route));
     await expect(page.locator("body")).toBeVisible();
