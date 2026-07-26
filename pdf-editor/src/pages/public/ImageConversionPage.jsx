@@ -331,7 +331,7 @@ function PdfToImagesWorkspace({ tool }) {
         outputFiles.push({ name: `page-${String(pageNumber).padStart(3, "0")}.${extension}`, data });
         setProgress(Math.round(((index + 1) / chosen.length) * 100));
       }
-      const baseName = pdfFile.name.replace(/\.pdf$/i, "") || "realpdf-pages";
+      const baseName = pdfFile.name.replace(/\.pdf$/i, "") || "pdfarrow-pages";
       if (outputFiles.length === 1) downloadBytes(outputFiles[0].data, outputPng ? "image/png" : "image/jpeg", `${baseName}-${outputFiles[0].name}`);
       else downloadBytes(createStoredZip(outputFiles), "application/zip", `${baseName}-${outputPng ? "png" : "jpg"}.zip`);
       operation.succeed({ pageCountBucket: pageCountBucket(chosen.length) });

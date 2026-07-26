@@ -108,7 +108,7 @@ async function persistProductEvent(event) {
       expiresAt: Timestamp.fromDate(new Date(Date.now() + OPTIONAL_ANALYTICS_RETENTION_DAYS * 24 * 60 * 60 * 1000)),
     });
   } catch (error) {
-    if (import.meta.env.DEV) console.warn("[RealPDF analytics] Event storage failed", error?.code || error?.message);
+    if (import.meta.env.DEV) console.warn("[PDFArrow analytics] Event storage failed", error?.code || error?.message);
   }
 }
 
