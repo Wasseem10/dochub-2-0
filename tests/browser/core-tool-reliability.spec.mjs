@@ -133,7 +133,7 @@ test("batch compression reports measured savings, previews output, and downloads
 });
 
 test("PDF to Word and Word to PDF produce valid searchable documents", async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name.includes("android") || testInfo.project.name.includes("iphone"), "Office output validation runs on desktop engines.");
+  test.skip(!primaryExportProjects.has(testInfo.project.name), "Office output validation runs on the primary desktop and phone engines.");
   await page.goto(appPath("/pdf-to-word"));
   await page.locator('input[type="file"]').setInputFiles({ name: "quarterly.pdf", mimeType: "application/pdf", buffer: await textPdf("QUARTERLY TOTAL 42000") });
   await expect(page.getByText("quarterly.pdf")).toBeVisible();
@@ -161,6 +161,7 @@ test("PDF to Word and Word to PDF produce valid searchable documents", async ({ 
   const rendered = await pdfjsLib.getDocument({ data: pdf.bytes.slice(0), disableWorker: true, verbosity: 0 }).promise;
   const content = await (await rendered.getPage(1)).getTextContent();
   expect(content.items.map((item) => item.str).join(" ")).toContain("SEARCHABLE WORD REPORT 42000");
+  await expectNoHorizontalOverflow(page);
 });
 
 test("signing places a signature and exports it in the PDF", async ({ page }, testInfo) => {
