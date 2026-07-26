@@ -26,6 +26,8 @@ The primary desktop editor toolbar is a slim 64px floating white rounded card on
 
 The floating bottom zoom and page navigator follows the selected July 17, 2026 compact rail concept: one low-profile white capsule, borderless Lucide controls, a bordered zoom select, a pale-blue current-page field, one subtle divider, and restrained shadow. Keep zoom out/in, zoom preset, first/previous/next/last page, current page, and total page count functional and aligned.
 
+The mobile editor must be intentionally touch-first rather than a compressed desktop toolbar. Use one compact filename header, an unobstructed document canvas, a six-action bottom tool dock with generous tap targets, and a separate bottom-sheet More menu containing every tool hidden from the dock. Keep the zoom/page capsule below the tool dock, place contextual settings above it, eliminate overlapping toolbar groups and horizontal page gutters, and enlarge transform handles for touch.
+
 New text boxes must open at a readable minimum size, auto-grow while typing, use Arial as the dependable default PDF font, save on blur, and keep one shared blue selection model with eight resize handles, rotation, keyboard nudging, deletion, and history. The contextual text bar must use clear labels and only operational font/style controls.
 
 While a text box has keyboard focus, hide its transform controls so the writing area stays unobstructed; restore them only after focus leaves the text.

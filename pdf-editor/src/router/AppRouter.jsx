@@ -5,6 +5,7 @@ import { AuthLayout } from "../layouts/AuthLayout.jsx";
 import { PublicLayout } from "../layouts/PublicLayout.jsx";
 import { NotFoundPage } from "../pages/errors/NotFoundPage.jsx";
 import { AboutPage } from "../pages/public/AboutPage.jsx";
+import { ComparisonHubPage } from "../pages/public/ComparisonHubPage.jsx";
 import { PublicPlaceholderPage } from "../pages/public/PublicPlaceholderPage.jsx";
 import { PrivacyPolicyPage } from "../pages/public/PrivacyPolicyPage.jsx";
 import { FeaturesPage } from "../pages/public/FeaturesPage.jsx";
@@ -12,6 +13,7 @@ import { LandingRoute } from "../pages/public/LandingRoute.jsx";
 import { ToolDirectoryPage } from "../pages/public/ToolDirectoryPage.jsx";
 import { ToolCategoryPage } from "../pages/public/ToolCategoryPage.jsx";
 import { ToolLandingPage } from "../pages/public/ToolLandingPage.jsx";
+import { VendorComparisonPage } from "../pages/public/VendorComparisonPage.jsx";
 import { TOOL_REGISTRY } from "../tools/toolRegistry.js";
 import { TOOL_CATEGORY_PAGES } from "../tools/toolCategoryPages.js";
 import { EDITORIAL_RESOURCE_PATHS } from "../editorial/editorialRoutePaths.js";
@@ -131,6 +133,8 @@ export const appRouteObjects = [
         children: [
           { path: ROUTE_PATHS.home, element: <LandingRoute /> },
           { path: ROUTE_PATHS.about, element: <AboutPage /> },
+          { path: ROUTE_PATHS.compare, element: <ComparisonHubPage /> },
+          { path: ROUTE_PATHS.comparisonPattern, element: <VendorComparisonPage /> },
           { path: ROUTE_PATHS.privacy, element: <PrivacyPolicyPage /> },
           { path: ROUTE_PATHS.editPdf, element: <PublicEditorRoute /> },
           { path: ROUTE_PATHS.features, element: <FeaturesPage /> },

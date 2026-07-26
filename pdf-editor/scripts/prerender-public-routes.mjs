@@ -9,6 +9,7 @@ import { EDITORIAL_RESOURCE_PAGES } from "../src/editorial/editorialResources.js
 import { isEditorialResourcePath } from "../src/editorial/editorialRoutePaths.js";
 import { editorialShareImagePath, getToolEvidence, hasToolShareImage, PRODUCT_LAST_TESTED_LABEL, PRODUCT_RESPONSIBLE_PARTY } from "../src/editorial/toolEvidence.js";
 import { resolveSiteUrl } from "./site-url.mjs";
+import { COMPARISONS, COMPARISON_REVIEWED_LABEL, comparisonPath } from "../src/comparison/comparisonData.js";
 
 const siteUrl = resolveSiteUrl();
 const template = await readFile("dist/index.html", "utf8");
@@ -17,7 +18,7 @@ const escapeHtml = (value) => String(value).replaceAll("&", "&amp;").replaceAll(
 /** @param {unknown} value */
 const escapeJson = (value) => JSON.stringify(value).replaceAll("<", "\\u003c");
 const highIntentToolIds = new Set(HIGH_INTENT_TOOL_IDS);
-/** @typedef {{ path: string, title: string, description: string, noIndex: boolean, tool?: import("../src/tools/toolRegistry.js").ToolRecord, category?: (typeof TOOL_CATEGORY_PAGES)[number], resource?: (typeof EDITORIAL_RESOURCE_PAGES)[number], kind?: string }} RouteRecord */
+/** @typedef {{ path: string, title: string, description: string, noIndex: boolean, tool?: import("../src/tools/toolRegistry.js").ToolRecord, category?: (typeof TOOL_CATEGORY_PAGES)[number], resource?: (typeof EDITORIAL_RESOURCE_PAGES)[number], comparison?: (typeof COMPARISONS)[number], kind?: string }} RouteRecord */
 /** @type {Record<string, string>} */
 const legalDescriptions = {
   [ROUTE_PATHS.privacy]: "How PDFArrow handles browser processing, local storage, optional Firebase cloud history, analytics, and deletion.",
@@ -33,6 +34,8 @@ const routeRecords = [
   { path: ROUTE_PATHS.tools, title: "Free PDF Tools | PDFArrow", description: "Browse working free PDF tools with clear formats, limits, and availability labels.", noIndex: false, kind: "directory" },
   { path: ROUTE_PATHS.features, title: "All PDF Features | PDFArrow", description: "Explore every released PDFArrow feature for editing, organizing, converting, signing, scanning, protecting, and reviewing PDFs.", noIndex: false, kind: "directory" },
   { path: ROUTE_PATHS.support, title: "PDF Help and Support | PDFArrow", description: "Contact PDFArrow support about PDF tools, accounts, privacy, security, or data deletion.", noIndex: false },
+  { path: ROUTE_PATHS.compare, title: "PDF editor comparisons | PDFArrow", description: "Compare PDFArrow with DocHub, Smallpdf, iLovePDF, Adobe Acrobat, and Sejda using current official product information.", noIndex: false, kind: "comparison-directory" },
+  ...COMPARISONS.map((comparison) => ({ path: comparisonPath(comparison.slug), title: `${comparison.seoTitle} | PDFArrow`, description: comparison.description, noIndex: false, comparison })),
   ...TOOL_CATEGORY_PAGES.map((category) => ({ path: category.route, title: category.seoTitle, description: category.metaDescription, noIndex: false, category })),
   ...PUBLIC_PLACEHOLDER_ROUTES.filter(({ path }) => path !== ROUTE_PATHS.features && !isEditorialResourcePath(path)).map((route) => ({ ...route, title: `${route.title} | PDFArrow`, description: legalDescriptions[route.path] || route.description, noIndex: !Object.hasOwn(legalDescriptions, route.path) })),
   ...EDITORIAL_RESOURCE_PAGES.map((resource) => ({ path: resource.path, title: resource.seoTitle, description: resource.metaDescription, noIndex: false, resource })),
@@ -54,6 +57,20 @@ function staticContentFor(record) {
   const breadcrumb = (current) => `<nav aria-label="Breadcrumb"><a href="/tools">PDF tools</a><span aria-hidden="true"> / </span><span>${escapeHtml(current)}</span></nav>`;
   /** @param {import("../src/tools/toolRegistry.js").ToolRecord} tool */
   const toolLink = (tool) => `<li><a href="${escapeHtml(tool.route)}"><strong>${escapeHtml(tool.name)}</strong><span>${escapeHtml(tool.shortDescription)}</span></a></li>`;
+
+  if (record.kind === "comparison-directory") {
+    const links = COMPARISONS.map((comparison) => `<li><a href="${escapeHtml(comparisonPath(comparison.slug))}"><strong>${escapeHtml(comparison.title)}</strong><span>${escapeHtml(comparison.summary)}</span></a></li>`).join("");
+    return `<main class="prerender-shell"><p class="prerender-brand">PDFArrow · Independent product comparisons</p><h1>Choose the PDF tool that fits how you work.</h1><p class="prerender-lead">${escapeHtml(record.description)}</p><p>Research reviewed ${escapeHtml(COMPARISON_REVIEWED_LABEL)}. Product details can change.</p><section><h2>PDF editor comparisons</h2><ul class="prerender-links">${links}</ul></section></main>`;
+  }
+
+  if (record.comparison) {
+    const comparison = record.comparison;
+    const rows = comparison.rows.map((row) => `<tr>${row.map((cell, index) => `<${index === 0 ? "th" : "td"}>${escapeHtml(cell)}</${index === 0 ? "th" : "td"}>`).join("")}</tr>`).join("");
+    const pdfArrowReasons = comparison.pdfArrowReasons.map((reason) => `<li>${escapeHtml(reason)}</li>`).join("");
+    const competitorReasons = comparison.competitorReasons.map((reason) => `<li>${escapeHtml(reason)}</li>`).join("");
+    const sources = comparison.sources.map(([label, href]) => `<li><a href="${escapeHtml(href)}">${escapeHtml(label)}</a></li>`).join("");
+    return `<main class="prerender-shell"><nav aria-label="Breadcrumb"><a href="/compare">Comparisons</a><span aria-hidden="true"> / </span><span>${escapeHtml(comparison.title)}</span></nav><p class="prerender-brand">Side-by-side · reviewed ${escapeHtml(COMPARISON_REVIEWED_LABEL)}</p><h1>${escapeHtml(comparison.title)}</h1><p class="prerender-lead">${escapeHtml(comparison.summary)}</p><a class="prerender-action" href="/edit-pdf">Try PDFArrow</a><section><h2>Quick recommendation</h2><p><strong>Choose PDFArrow for:</strong> ${escapeHtml(comparison.bestForPdfArrow)}.</p><p><strong>Choose ${escapeHtml(comparison.company)} for:</strong> ${escapeHtml(comparison.bestForCompetitor)}.</p></section><section><h2>Feature-by-feature comparison</h2><div class="prerender-table-wrap"><table><thead><tr><th>Area</th><th>PDFArrow</th><th>${escapeHtml(comparison.company)}</th></tr></thead><tbody>${rows}</tbody></table></div></section><section><h2>When PDFArrow fits</h2><ul>${pdfArrowReasons}</ul></section><section><h2>When ${escapeHtml(comparison.company)} fits</h2><ul>${competitorReasons}</ul></section><section><h2>Official sources</h2><ul>${sources}</ul><p>Features, prices, and limits can change. Verify time-sensitive details with the vendor.</p></section></main>`;
+  }
 
   if (record.resource) {
     const resource = record.resource;

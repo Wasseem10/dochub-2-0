@@ -696,30 +696,6 @@ main.editor-shell .annotation-controls button:hover {
     display: none !important;
   }
 
-  main.editor-shell .reference-history-tools > .reference-toolbar-button:first-child span,
-  main.editor-shell .reference-content-tools > .reference-toolbar-button:nth-of-type(1) span,
-  main.editor-shell .reference-content-tools > .reference-toolbar-button:nth-of-type(2) span {
-    font-size: 0 !important;
-  }
-
-  main.editor-shell .reference-history-tools > .reference-toolbar-button:first-child span::after,
-  main.editor-shell .reference-content-tools > .reference-toolbar-button:nth-of-type(1) span::after,
-  main.editor-shell .reference-content-tools > .reference-toolbar-button:nth-of-type(2) span::after {
-    font-size: 9px !important;
-  }
-
-  main.editor-shell .reference-history-tools > .reference-toolbar-button:first-child span::after {
-    content: "Pages";
-  }
-
-  main.editor-shell .reference-content-tools > .reference-toolbar-button:nth-of-type(1) span::after {
-    content: "Text";
-  }
-
-  main.editor-shell .reference-content-tools > .reference-toolbar-button:nth-of-type(2) span::after {
-    content: "Edit";
-  }
-
   main.editor-shell .reference-header-actions {
     gap: 3px !important;
   }
@@ -774,8 +750,8 @@ main.editor-shell .annotation-controls button:hover {
   }
 
   main.editor-shell .page-nav .page-nav-zoom-select {
-    width: 78px !important;
-    min-width: 78px !important;
+    width: 92px !important;
+    min-width: 92px !important;
     height: 30px !important;
     padding: 0 20px 0 8px !important;
     font-size: 12px !important;
@@ -837,7 +813,168 @@ main.editor-shell .annotation-controls button:hover {
   }
 
   main.editor-shell .page-nav .page-nav-zoom-select {
-    width: 70px !important;
-    min-width: 70px !important;
+    width: 84px !important;
+    min-width: 84px !important;
+  }
+}
+
+/* Dedicated touch layout: the document owns the viewport and editing actions
+   live in a stable bottom dock instead of overlapping flex groups. */
+@media (max-width: 600px) {
+  main.editor-shell.editor-shell,
+  main.editor-shell.editor-shell.has-tool-settings,
+  main.editor-shell.editor-shell.has-tool-settings.is-highlight-settings-mode {
+    grid-template-rows: 52px minmax(0, 1fr) !important;
+  }
+
+  main.editor-shell .reference-file-header {
+    min-height: 52px !important;
+    height: 52px !important;
+  }
+
+  main.editor-shell .workspace,
+  main.editor-shell .workspace.pages-collapsed,
+  main.editor-shell .workspace.is-managing-pages {
+    grid-row: 2 !important;
+    min-height: 0 !important;
+  }
+
+  main.editor-shell .reference-tool-ribbon {
+    position: fixed !important;
+    inset: auto 8px 58px 8px !important;
+    z-index: 180 !important;
+    display: grid !important;
+    grid-template-columns: repeat(6, minmax(0, 1fr)) !important;
+    width: auto !important;
+    min-height: 64px !important;
+    height: 64px !important;
+    margin: 0 !important;
+    padding: 5px 6px !important;
+    gap: 2px !important;
+    overflow: visible !important;
+    border: 1px solid #dbe2ec !important;
+    border-radius: 18px !important;
+    background: rgba(255, 255, 255, 0.98) !important;
+    box-shadow: 0 12px 30px rgba(23, 36, 58, 0.16), 0 2px 8px rgba(23, 36, 58, 0.08) !important;
+    backdrop-filter: blur(14px) !important;
+  }
+
+  main.editor-shell .reference-history-tools,
+  main.editor-shell .reference-primary-tools,
+  main.editor-shell .reference-content-tools {
+    display: contents !important;
+  }
+
+  main.editor-shell .mobile-redo-tool,
+  main.editor-shell .mobile-direct-edittext {
+    display: none !important;
+  }
+
+  main.editor-shell .reference-toolbar-button,
+  main.editor-shell .reference-compact-tools,
+  main.editor-shell .reference-compact-tools-trigger {
+    width: 100% !important;
+    min-width: 0 !important;
+    height: 52px !important;
+    min-height: 52px !important;
+    margin: 0 !important;
+    padding: 4px 2px !important;
+    gap: 3px !important;
+    overflow: visible !important;
+    border-radius: 12px !important;
+    font-size: 9.5px !important;
+  }
+
+  main.editor-shell .reference-toolbar-button svg {
+    width: 21px !important;
+    height: 21px !important;
+  }
+
+  main.editor-shell .mobile-pages-tool span,
+  main.editor-shell .mobile-direct-select span {
+    display: none !important;
+  }
+
+  main.editor-shell .mobile-pages-tool::after,
+  main.editor-shell .mobile-direct-select::after {
+    font-size: 9.5px !important;
+    font-weight: 650 !important;
+    line-height: 1 !important;
+  }
+
+  main.editor-shell .mobile-pages-tool::after {
+    content: "Pages";
+  }
+
+  main.editor-shell .mobile-direct-select::after {
+    content: "Move";
+  }
+
+  main.editor-shell .reference-compact-tools-menu {
+    position: fixed !important;
+    inset: auto 8px 130px 8px !important;
+    z-index: 950 !important;
+    width: auto !important;
+    max-height: min(62dvh, 520px) !important;
+    padding: 12px !important;
+    overflow-y: auto !important;
+    border: 1px solid #d7deea !important;
+    border-radius: 20px !important;
+    background: #fff !important;
+    box-shadow: 0 20px 52px rgba(23, 37, 62, 0.24) !important;
+  }
+
+  main.editor-shell .reference-compact-tools-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 7px !important;
+  }
+
+  main.editor-shell .reference-compact-tools-grid button,
+  main.editor-shell .reference-compact-tools-footer button {
+    min-height: 58px !important;
+    font-size: 11px !important;
+  }
+
+  main.editor-shell .reference-compact-tools-footer {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  main.editor-shell .reference-compact-tools-footer button:disabled {
+    cursor: not-allowed !important;
+    opacity: 0.45 !important;
+  }
+
+  main.editor-shell .document-stage {
+    padding-bottom: 150px !important;
+  }
+
+  main.editor-shell .status-bar {
+    z-index: 190 !important;
+    bottom: max(8px, env(safe-area-inset-bottom)) !important;
+  }
+
+  main.editor-shell > .tool-settings,
+  main.editor-shell > .text-format-settings {
+    position: fixed !important;
+    inset: auto auto 130px 8px !important;
+    z-index: 210 !important;
+    width: calc(100vw - 16px) !important;
+    max-width: calc(100vw - 16px) !important;
+    height: 48px !important;
+    min-height: 48px !important;
+    border: 1px solid #d8e0eb !important;
+    border-radius: 14px !important;
+    background: #fff !important;
+    box-shadow: 0 10px 26px rgba(23, 37, 62, 0.16) !important;
+  }
+
+  main.editor-shell .resize-control {
+    width: 16px !important;
+    height: 16px !important;
+  }
+
+  main.editor-shell .rotation-handle {
+    width: 22px !important;
+    height: 22px !important;
   }
 }

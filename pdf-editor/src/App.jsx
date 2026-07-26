@@ -226,17 +226,25 @@ const referencePrimaryTools = [
 
 const compactEditorTools = [
   { id: "select", label: "Select", icon: MousePointer2 },
+  { id: "text", label: "Add Text", icon: Type },
+  { id: "editText", label: "Edit Text", icon: ScanText },
+  { id: "signature", label: "Sign", icon: PenLine },
+  { id: "draw", label: "Draw", icon: Paintbrush },
+  { id: "highlight", label: "Highlight", icon: Highlighter },
+  { id: "textHighlight", label: "Text Highlight", icon: Type },
+  { id: "erase", label: "Erase", icon: Eraser },
+  { id: "image", label: "Image", icon: ImageIcon },
+  { id: "stamp", label: "Stamp", icon: Stamp },
+  { id: "link", label: "Link", icon: Link },
+  { id: "note", label: "Note", icon: StickyNote },
   { id: "checkbox", label: "Check", icon: Check },
   { id: "field", label: "Text field", icon: FilePlus2 },
   { id: "date", label: "Date", icon: CalendarDays },
   { id: "initials", label: "Initials", icon: Type },
-  { id: "draw", label: "Draw", icon: Paintbrush },
-  { id: "erase", label: "Erase", icon: Eraser },
   { id: "arrow", label: "Arrow", icon: Send },
   { id: "line", label: "Line", icon: Minus },
   { id: "rectangle", label: "Rectangle", icon: RectangleHorizontal },
   { id: "circle", label: "Circle", icon: Circle },
-  ...referencePrimaryTools.slice(5),
 ];
 
 const requestFieldTools = [
@@ -5141,15 +5149,16 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
         <div className="reference-history-tools" aria-label="History">
           <button
             type="button"
-            className={`reference-toolbar-button ${isPagesCollapsed ? "" : "is-active"}`}
+            className={`reference-toolbar-button mobile-pages-tool ${isPagesCollapsed ? "" : "is-active"}`}
+            aria-label="Thumbnails"
             aria-controls="page-thumbnails"
             aria-expanded={!isPagesCollapsed}
             onClick={() => setIsPagesCollapsed((value) => !value)}
           >
             <PanelsTopLeft size={23} /><span>Thumbnails</span>
           </button>
-          <button type="button" className="reference-toolbar-button" onClick={undo} disabled={!undoStack.length}><Undo2 size={23} /><span>Undo</span></button>
-          <button type="button" className="reference-toolbar-button" onClick={redo} disabled={!redoStack.length}><Redo2 size={23} /><span>Redo</span></button>
+          <button type="button" className="reference-toolbar-button mobile-undo-tool" aria-label="Undo" onClick={undo} disabled={!undoStack.length}><Undo2 size={23} /><span>Undo</span></button>
+          <button type="button" className="reference-toolbar-button mobile-redo-tool" aria-label="Redo" onClick={redo} disabled={!redoStack.length}><Redo2 size={23} /><span>Redo</span></button>
         </div>
 
         <div className="reference-primary-tools" role="toolbar" aria-label="Editing tools">
@@ -5173,15 +5182,15 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
             <>
           <div className="reference-content-tools">
             {referencePrimaryTools.slice(0, 2).map(({ id, label, icon: Icon }) => (
-              <button key={id} type="button" className={`reference-toolbar-button ${tool === id ? "is-active" : ""}`} aria-pressed={tool === id} onClick={() => activateReferenceTool(id)}>
+              <button key={id} type="button" aria-label={label} className={`reference-toolbar-button mobile-direct-${id.toLowerCase()} ${tool === id ? "is-active" : ""}`} aria-pressed={tool === id} onClick={() => activateReferenceTool(id)}>
                 <Icon size={23} /><span>{label}</span>
               </button>
             ))}
-            <button type="button" className={`reference-toolbar-button reference-select-tool ${tool === "select" ? "is-active" : ""}`} aria-pressed={tool === "select"} onClick={() => activateReferenceTool("select")}>
+            <button type="button" aria-label="Select" className={`reference-toolbar-button reference-select-tool mobile-direct-select ${tool === "select" ? "is-active" : ""}`} aria-pressed={tool === "select"} onClick={() => activateReferenceTool("select")}>
               <MousePointer2 size={23} /><span>Select</span>
             </button>
             {referencePrimaryTools.slice(2, 3).map(({ id, label, icon: Icon }) => (
-              <button key={id} type="button" className={`reference-toolbar-button ${tool === id ? "is-active" : ""}`} aria-pressed={tool === id} onClick={() => activateReferenceTool(id)}>
+              <button key={id} type="button" aria-label={label} className={`reference-toolbar-button mobile-direct-${id.toLowerCase()} ${tool === id ? "is-active" : ""}`} aria-pressed={tool === id} onClick={() => activateReferenceTool(id)}>
                 <Icon size={23} /><span>{label}</span>
               </button>
             ))}
@@ -5259,6 +5268,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
           <button
             type="button"
             className={`reference-toolbar-button reference-compact-tools-trigger ${isCompactToolsMenuOpen ? "is-active" : ""}`}
+            aria-label="More editing tools"
             aria-haspopup="menu"
             aria-expanded={isCompactToolsMenuOpen}
             aria-controls="compact-editor-tools-menu"
@@ -5285,6 +5295,8 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
                 ))}
               </div>
               <div className="reference-compact-tools-footer">
+                <button type="button" role="menuitem" onClick={undo} disabled={!undoStack.length}><Undo2 size={19} /><span>Undo</span></button>
+                <button type="button" role="menuitem" onClick={redo} disabled={!redoStack.length}><Redo2 size={19} /><span>Redo</span></button>
                 <button type="button" role="menuitem" onClick={() => {
                   setIsSearchOpen((value) => !value);
                   setIsCommentsOpen(false);
