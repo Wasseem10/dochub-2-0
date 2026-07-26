@@ -40,8 +40,7 @@ test("flatten rebuilds pages into a downloadable PDF", async ({ page }) => {
   expect(output.getForm().getFields()).toHaveLength(0);
 });
 
-test("authorized password removal runs through qpdf in the browser", async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name !== "desktop-chromium", "The qpdf WASM workflow runs once in Chromium.");
+test("authorized password removal runs through qpdf in the browser", async ({ page }) => {
   test.setTimeout(90_000);
   await page.goto(appPath("/unlock-pdf"));
   await page.locator('input[type="file"]').setInputFiles({ name: "document.pdf", mimeType: "application/pdf", buffer: await samplePdf() });

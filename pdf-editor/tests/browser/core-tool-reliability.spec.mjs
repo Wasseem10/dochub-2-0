@@ -176,7 +176,7 @@ test("signing places a signature and exports it in the PDF", async ({ page }, te
 });
 
 test("password protection downloads a genuinely encrypted PDF", async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name !== "desktop-chromium", "Encryption output is validated once in Chromium.");
+  test.skip(!["desktop-chromium", "android-chromium", "iphone-webkit"].includes(testInfo.project.name), "Encryption output is validated on the primary desktop and phone engines.");
   test.setTimeout(90_000);
   await page.goto(appPath("/protect-pdf"));
   await page.locator('input[type="file"]').first().setInputFiles({ name: "private.pdf", mimeType: "application/pdf", buffer: await textPdf("PRIVATE DOCUMENT") });
@@ -188,4 +188,5 @@ test("password protection downloads a genuinely encrypted PDF", async ({ page },
   expect(protectedResult.download.suggestedFilename()).toBe("private-protected.pdf");
   expect(new TextDecoder("latin1").decode(protectedResult.bytes)).toContain("/Encrypt");
   await expect(PDFDocument.load(protectedResult.bytes)).rejects.toThrow();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
 });
