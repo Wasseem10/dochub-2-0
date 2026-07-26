@@ -42,6 +42,30 @@ test("mobile zoom modes are named and custom zoom remains pannable", async ({ pa
   expect(customLayout.pageLeft).toBeGreaterThanOrEqual(0);
 });
 
+test("mobile text survives blur, returns to selection mode, and remains exportable", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(appPath("/edit-pdf"));
+  await page.getByRole("button", { name: "Start with a blank page" }).click();
+  await expect(page.locator(".privacy-consent")).toHaveCount(0);
+  await page.getByRole("button", { name: "Add Text", exact: true }).click();
+
+  const surface = page.locator(".page-surface");
+  const box = await surface.boundingBox();
+  expect(box).not.toBeNull();
+  await surface.click({ position: { x: Math.min(110, box.width * .3), y: Math.min(170, box.height * .25) } });
+
+  const textBox = page.getByRole("textbox", { name: "Edit text box", exact: true });
+  await expect(textBox).toBeFocused();
+  await textBox.fill("Mobile text stays after blur");
+  await page.getByRole("button", { name: "Select", exact: true }).click();
+
+  await expect(textBox).toHaveText("Mobile text stays after blur");
+  await expect(page.locator(".text-box")).toHaveCount(1);
+  await expect(page.locator(".reference-select-tool")).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByRole("button", { name: "Download", exact: true })).toBeEnabled();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
+});
+
 test("the homepage keeps one hero upload target and the desktop CTA in view", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.goto(appPath("/"));

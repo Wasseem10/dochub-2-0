@@ -33,7 +33,7 @@ export function MarketingHeader() {
   return (
     <header ref={headerRef} className="marketing-header">
       <div className="marketing-header-row">
-        <Link className="marketing-brand" to={ROUTE_PATHS.home} onClick={closeMenus} aria-label="PDFArrow home"><BrandWordmark /></Link>
+        <Link className="marketing-brand" to={ROUTE_PATHS.home} onClick={closeMenus} aria-label="PDFArrow home"><BrandWordmark logo /></Link>
         <nav className="marketing-desktop-nav" aria-label="Public navigation">
           <Link to={ROUTE_PATHS.about}>About</Link>
           <Link to={ROUTE_PATHS.features}>Features</Link>
@@ -42,7 +42,7 @@ export function MarketingHeader() {
           <Link to="/organize-pdf">Organize PDF</Link>
           <Link to={ROUTE_PATHS.signPdf}>Sign PDF</Link>
           <Link to="/pdf-to-jpg">Convert PDF</Link>
-          <Link to={ROUTE_PATHS.resources}>Resources</Link>
+          <Link to={ROUTE_PATHS.compare}>Comparisons</Link>
         </nav>
         <div className="marketing-header-actions">
           <Link className="marketing-login" to={ROUTE_PATHS.login}>Log in</Link>
@@ -60,6 +60,7 @@ export function MarketingHeader() {
           <Link to="/organize-pdf" onClick={closeMenus}>Organize PDF</Link>
           <Link to={ROUTE_PATHS.signPdf} onClick={closeMenus}>Sign PDF</Link>
           <Link to="/pdf-to-jpg" onClick={closeMenus}>Convert PDF</Link>
+          <Link to={ROUTE_PATHS.compare} onClick={closeMenus}>Comparisons</Link>
           <Link to={ROUTE_PATHS.resources} onClick={closeMenus}>Resources</Link>
           <Link to={ROUTE_PATHS.privacy} onClick={closeMenus}>Privacy</Link>
           <Link to={ROUTE_PATHS.login} onClick={closeMenus}>Log in</Link>

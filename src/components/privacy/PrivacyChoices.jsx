@@ -17,14 +17,28 @@ function usePrivacyChoice() {
   return { choice, choose };
 }
 
+function useActiveEditor() {
+  const [active, setActive] = useState(() => typeof document !== "undefined" && Boolean(document.querySelector("main.editor-shell")));
+  useEffect(() => {
+    if (typeof document === "undefined" || typeof MutationObserver === "undefined") return undefined;
+    const update = () => setActive(Boolean(document.querySelector("main.editor-shell")));
+    const observer = new MutationObserver(update);
+    observer.observe(document.getElementById("root") || document.body, { childList: true, subtree: true });
+    update();
+    return () => observer.disconnect();
+  }, []);
+  return active;
+}
+
 export function PrivacyConsentBanner() {
   const { choice, choose } = usePrivacyChoice();
-  if (choice) return null;
+  const activeEditor = useActiveEditor();
+  if (choice || activeEditor) return null;
   return (
-    <aside className="privacy-consent" role="dialog" aria-labelledby="privacy-consent-title" aria-describedby="privacy-consent-copy">
+    <aside className="privacy-consent" role="region" aria-labelledby="privacy-consent-title" aria-describedby="privacy-consent-copy">
       <div>
         <strong id="privacy-consent-title">Your privacy choices</strong>
-        <p id="privacy-consent-copy">PDFArrow uses essential browser storage to run the editor. Optional analytics never include your file name, document contents, signatures, or form answers.</p>
+        <p id="privacy-consent-copy">Essential storage runs PDFArrow. Optional analytics never include document contents, file names, signatures, or form answers.</p>
         <a href="/privacy#choices">Read the Privacy Policy</a>
       </div>
       <div className="privacy-consent-actions">

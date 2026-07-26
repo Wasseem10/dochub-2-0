@@ -9,6 +9,7 @@ import Menu from "lucide-react/dist/esm/icons/menu.mjs";
 import PencilLine from "lucide-react/dist/esm/icons/pencil-line.mjs";
 import RefreshCw from "lucide-react/dist/esm/icons/refresh-cw.mjs";
 import Rocket from "lucide-react/dist/esm/icons/rocket.mjs";
+import Scale from "lucide-react/dist/esm/icons/scale.mjs";
 import ShieldCheck from "lucide-react/dist/esm/icons/shield-check.mjs";
 import Signature from "lucide-react/dist/esm/icons/signature.mjs";
 import Upload from "lucide-react/dist/esm/icons/upload.mjs";
@@ -17,6 +18,7 @@ import Zap from "lucide-react/dist/esm/icons/zap.mjs";
 import { BrandWordmark } from "./components/public/BrandWordmark.jsx";
 import { PageMetadata } from "./components/public/PageMetadata.jsx";
 import { absoluteSiteUrl } from "./config/site.js";
+import { trackComparisonCta } from "./analytics/productAnalytics.js";
 import { ROUTE_PATHS } from "./router/routePaths.js";
 import { ToolIcon } from "./tools/ToolIcon.jsx";
 import { TOOL_CATEGORIES, TOOL_REGISTRY } from "./tools/toolRegistry.js";
@@ -89,7 +91,7 @@ const footerNavigationGroups = [
   { title: "Tools", links: [["Edit PDF", "/edit-pdf"], ["Merge PDF", "/merge-pdf"], ["Split PDF", "/split-pdf"], ["Compress PDF", "/compress-pdf"], ["All tools", ROUTE_PATHS.tools]] },
   { title: "Edit & sign", links: [["Edit PDF", "/edit-pdf"], ["Annotate PDF", "/annotate-pdf"], ["Fill PDF", "/fill-pdf"], ["Sign PDF", "/sign-pdf"], ["PDF Form Filler", "/pdf-form-filler"]] },
   { title: "Convert", links: [["PDF to Word", "/pdf-to-word"], ["PDF to JPG", "/pdf-to-jpg"], ["PDF to PNG", "/pdf-to-png"], ["Word to PDF", "/word-to-pdf"], ["JPG to PDF", "/jpg-to-pdf"]] },
-  { title: "Company", links: [["About PDFArrow", ROUTE_PATHS.business], ["Pricing", ROUTE_PATHS.pricing], ["Resources", ROUTE_PATHS.resources], ["Security", ROUTE_PATHS.security]] },
+  { title: "Company", links: [["About PDFArrow", ROUTE_PATHS.business], ["Pricing", ROUTE_PATHS.pricing], ["Comparisons", ROUTE_PATHS.compare], ["Resources", ROUTE_PATHS.resources], ["Security", ROUTE_PATHS.security]] },
   { title: "Support", links: [["Help Center", ROUTE_PATHS.support], ["Contact us", ROUTE_PATHS.contactSales], ["FAQs", "/#faq-title"], ["Privacy", ROUTE_PATHS.privacy]] },
 ];
 
@@ -161,6 +163,7 @@ function SiteHeader({ onChoose }) {
     ["Organize", "/organize-pdf"],
     ["Sign", ROUTE_PATHS.signPdf],
     ["Convert", "/pdf-to-jpg"],
+    ["Compare", ROUTE_PATHS.compare],
     ["Pricing", ROUTE_PATHS.pricing],
   ];
 
@@ -236,6 +239,22 @@ function PopularTools() {
     <div className="freepdf-section-heading"><span>Popular tools</span><h2 id="popular-tools-title">Small tools for the jobs in between.</h2><p>Edit, sign, organize, convert, and finish PDFs with focused browser tools.</p></div>
     <div className="freepdf-tool-grid">{homepageFeatureTools.map((tool) => <Link key={tool.id} className={`freepdf-tool-card is-${tool.tone}`} to={tool.route}><span className="freepdf-tool-icon"><ToolIcon name={tool.icon} size={26} /></span><div><h3>{tool.name}</h3><p>{tool.description}</p></div><ArrowRight size={17} aria-hidden="true" /></Link>)}</div>
     <Link className="freepdf-text-link" to={ROUTE_PATHS.tools}>Browse every PDF tool <ArrowRight size={16} /></Link>
+  </section>;
+}
+
+function ComparisonTeaser() {
+  const vendors = ["DocHub", "Smallpdf", "iLovePDF", "Adobe Acrobat", "Sejda"];
+  return <section className="freepdf-section freepdf-comparison-teaser" aria-labelledby="comparison-teaser-title">
+    <div>
+      <span className="freepdf-comparison-mark"><Scale size={21} aria-hidden="true" /></span>
+      <div>
+        <small>Independent product comparisons</small>
+        <h2 id="comparison-teaser-title">Choosing another PDF tool?</h2>
+        <p>See where PDFArrow is simpler, where established competitors go further, and which workflow fits the document in front of you.</p>
+      </div>
+    </div>
+    <div className="freepdf-comparison-vendors" aria-label="Available PDF editor comparisons">{vendors.map((vendor) => <span key={vendor}>{vendor}</span>)}</div>
+    <Link className="freepdf-comparison-link" to={ROUTE_PATHS.compare} onClick={() => trackComparisonCta("/", "homepage_teaser")}>Compare PDFArrow <ArrowRight size={16} /></Link>
   </section>;
 }
 
@@ -336,6 +355,8 @@ export function LatticePdfLanding({ fileInputRef, onUpload, onSelectFiles, onDro
     </section>
 
     <PopularTools />
+
+    <ComparisonTeaser />
 
     <section className="freepdf-section freepdf-how" aria-labelledby="how-title"><div className="freepdf-section-heading"><span>How it works</span><h2 id="how-title">Choose it. Change it. Download it.</h2></div><div>{[["1", "Choose your file", "Upload a supported PDF or drag it into the workspace."], ["2", "Make the change", "Use focused editing, signing, page, or conversion controls."], ["3", "Download the result", "Review your output and download without a watermark."]].map(([number, title, copy]) => <article key={number}><span>{number}</span><h3>{title}</h3><p>{copy}</p></article>)}</div></section>
 

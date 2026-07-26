@@ -5,6 +5,7 @@ import { Link } from "react-router-dom";
 import { PageMetadata } from "../../components/public/PageMetadata.jsx";
 import { absoluteSiteUrl } from "../../config/site.js";
 import { COMPARISONS, COMPARISON_REVIEWED_LABEL, comparisonPath } from "../../comparison/comparisonData.js";
+import { trackComparisonCta } from "../../analytics/productAnalytics.js";
 
 export function ComparisonHubPage() {
   return (
@@ -47,7 +48,7 @@ export function ComparisonHubPage() {
               <li><CheckCircle2 size={16} /> Privacy and processing model</li>
               <li><CheckCircle2 size={16} /> Apps, signatures, and pricing</li>
             </ul>
-            <Link to={comparisonPath(item.slug)}>Read the comparison <ArrowRight size={16} /></Link>
+            <Link to={comparisonPath(item.slug)} onClick={() => trackComparisonCta("/compare", `vendor_${item.slug}`)}>Read the comparison <ArrowRight size={16} /></Link>
           </article>
         ))}
       </section>

@@ -161,10 +161,10 @@ function structuredDataFor(record) {
     description: record.description,
     url: canonical,
     mainEntity: {
-      "@type": "SoftwareApplication",
+      "@type": "Organization",
       name: "PDFArrow",
-      applicationCategory: "BusinessApplication",
-      operatingSystem: "Web",
+      url: `${siteUrl}/`,
+      logo: `${siteUrl}/pdfarrow-logo.png`,
     },
   });
   if (record.kind === "directory") schemas.push({
