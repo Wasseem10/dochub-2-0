@@ -5,6 +5,7 @@ import { TOOL_REGISTRY, validateToolRegistry } from "../src/tools/toolRegistry.j
 import { resolveSiteUrl } from "./site-url.mjs";
 import { EDITORIAL_RESOURCE_PATHS } from "../src/editorial/editorialRoutePaths.js";
 import { COMPARISON_PATHS } from "../src/comparison/comparisonData.js";
+import { PUBLIC_SITE_LAST_MODIFIED_ISO } from "../src/seo/publicFreshness.js";
 
 const siteUrl = resolveSiteUrl();
 const registryErrors = validateToolRegistry();
@@ -32,7 +33,7 @@ const paths = [
 
 const uniquePaths = [...new Set(paths)].sort();
 const urls = uniquePaths
-  .map((path) => `  <url><loc>${siteUrl}${path === "/" ? "/" : path}</loc></url>`)
+  .map((path) => `  <url><loc>${siteUrl}${path === "/" ? "/" : path}</loc><lastmod>${PUBLIC_SITE_LAST_MODIFIED_ISO}</lastmod></url>`)
   .join("\n");
 const sitemap = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls}\n</urlset>\n`;
 

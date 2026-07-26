@@ -75,8 +75,8 @@ describe("PDFArrow tool registry", () => {
     }
   });
 
-  it("only emits FAQ structured data where the complete FAQ is visible", () => {
-    expect(toolSeoSchemas(TOOL_REGISTRY.find(({ id }) => id === "pdf-to-word")).map((schema) => schema["@type"])).toEqual(["BreadcrumbList", "HowTo", "FAQPage"]);
-    expect(toolSeoSchemas(TOOL_REGISTRY.find(({ id }) => id === "rotate-pdf")).map((schema) => schema["@type"])).toEqual(["BreadcrumbList", "HowTo"]);
+  it("keeps tool structured data focused on currently supported search features", () => {
+    expect(toolSeoSchemas(TOOL_REGISTRY.find(({ id }) => id === "pdf-to-word")).map((schema) => schema["@type"])).toEqual(["BreadcrumbList"]);
+    expect(toolSeoSchemas(TOOL_REGISTRY.find(({ id }) => id === "rotate-pdf")).map((schema) => schema["@type"])).toEqual(["BreadcrumbList"]);
   });
 });

@@ -9388,6 +9388,181 @@ main.editor-shell .tool-instruction-settings strong {
   font-weight: 800 !important;
 }
 
+main.editor-shell .page-surface.is-placing-signature {
+  cursor: crosshair;
+}
+
+main.editor-shell .signature-placement-ghost {
+  position: absolute;
+  z-index: 18;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 84px;
+  min-height: 34px;
+  padding: 4px 8px;
+  border: 1px dashed rgba(104, 31, 50, 0.72);
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.82);
+  color: #171b24;
+  font-size: clamp(16px, 2.3vw, 28px);
+  line-height: 1;
+  pointer-events: none;
+  transform: translate(8px, 8px);
+  box-shadow: 0 8px 22px rgba(30, 33, 39, 0.1);
+}
+
+main.editor-shell .signature-placement-ghost img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+main.editor-shell .signature-placement-ghost > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+main.editor-shell .signature-placement-ghost small {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  padding: 4px 7px;
+  border-radius: 4px;
+  background: #681f32;
+  color: #fff;
+  font: 700 10px/1 "DM Sans", Arial, sans-serif;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+
+main.editor-shell .tool-settings.signature-placement-settings {
+  width: min(760px, calc(100vw - 32px)) !important;
+  max-width: min(760px, calc(100vw - 32px)) !important;
+  min-height: 46px !important;
+  height: 46px !important;
+  justify-content: flex-start !important;
+  gap: 10px !important;
+  padding: 5px 8px 5px 12px !important;
+  overflow: hidden !important;
+}
+
+main.editor-shell .signature-placement-status {
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+  gap: 8px;
+  padding-right: 12px;
+  border-right: 1px solid #e2e4e8;
+  color: #681f32;
+}
+
+main.editor-shell .signature-placement-status > span {
+  display: grid;
+  gap: 1px;
+}
+
+main.editor-shell .signature-placement-status strong {
+  color: #20242c;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+main.editor-shell .signature-placement-status small {
+  color: #777b83;
+  font-size: 9px;
+  line-height: 1.1;
+}
+
+main.editor-shell .saved-signature-list {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  gap: 5px;
+}
+
+main.editor-shell .saved-signature-list button {
+  display: grid;
+  place-items: center;
+  width: 86px;
+  min-width: 86px;
+  height: 34px !important;
+  padding: 3px 7px !important;
+  overflow: hidden;
+  border: 1px solid #d8d8d3 !important;
+  border-radius: 5px !important;
+  background: #fff !important;
+  color: #252932 !important;
+}
+
+main.editor-shell .saved-signature-list button.is-active {
+  border-color: #681f32 !important;
+  box-shadow: inset 0 0 0 1px #681f32;
+}
+
+main.editor-shell .saved-signature-list img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+main.editor-shell .saved-signature-list span {
+  max-width: 100%;
+  overflow: hidden;
+  font-size: 19px;
+  line-height: 1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+main.editor-shell .signature-placement-change,
+main.editor-shell .signature-placement-delete {
+  flex: 0 0 auto;
+  height: 34px !important;
+  padding: 0 11px !important;
+  border-radius: 5px !important;
+  font-size: 11px !important;
+  font-weight: 800 !important;
+}
+
+main.editor-shell .signature-placement-change {
+  margin-left: auto;
+  border-color: #681f32 !important;
+  background: #681f32 !important;
+  color: #fff !important;
+}
+
+main.editor-shell .signature-placement-delete {
+  gap: 5px !important;
+  border-color: #d8d8d3 !important;
+  background: #fff !important;
+  color: #5f6269 !important;
+}
+
+@media (max-width: 900px) {
+  main.editor-shell .tool-settings.signature-placement-settings {
+    width: calc(100vw - 16px) !important;
+    max-width: calc(100vw - 16px) !important;
+    padding-inline: 8px !important;
+    overflow-x: auto !important;
+  }
+
+  main.editor-shell .signature-placement-status small {
+    display: none;
+  }
+
+  main.editor-shell .saved-signature-list button {
+    width: 70px;
+    min-width: 70px;
+  }
+
+  main.editor-shell .signature-placement-change {
+    margin-left: 0;
+  }
+}
+
 /* Signature Proof: a deliberate proofing surface instead of a generic form modal. */
 .signature-modal.signature-proof-modal {
   width: min(920px, calc(100vw - 32px));

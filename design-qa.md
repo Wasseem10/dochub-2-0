@@ -1,39 +1,38 @@
-# Signature Proof Dialog — Design QA
+# Signature Placement and SEO — QA
 
-## Comparison target
+## Signature workflow
 
-- Source visual truth: `work/design-references/signature-proof-selected-2026-07-26.png`
-- Implementation screenshot: `work/design-qa/signature-proof-2026-07-26/signature-proof-final.png`
-- Combined comparison: `work/design-qa/signature-proof-2026-07-26/signature-proof-comparison.png`
-- Route/state: `/app/editor/:documentId`, blank PDF, Sign tool open, Draw method selected.
+- Browser capture: `work/design-qa/signature-placement-seo-2026-07-26/signature-shelf.png`
+- Placement preview: `work/design-qa/signature-placement-seo-2026-07-26/placement-preview.png`
+- Selected placement: `work/design-qa/signature-placement-seo-2026-07-26/placed-selection.png`
 
-## Findings
+The saved-signature shelf remains compact beneath the primary editor command bar. A signature follows the pointer as a translucent proof with a clear “Click to place” cue. After placement, the existing normalized selection model appears with eight resize handles, rotation, movement, deletion, and undo.
 
-- No actionable P0, P1, or P2 differences remain.
-- Layout and hierarchy: the implementation matches the selected wide white proofing dialog, compact header, three-part method strip, bordered signature sheet, utility row, and quiet action footer.
-- Typography and color: PDFArrow's DM Sans/Funnel Display system, charcoal copy, neutral surfaces, fine dividers, and oxblood active/action treatment replace the previous generic blue pill UI.
-- Proofing surface: the empty state uses one pen cue, one signing baseline, and an explicit 100% placement note. The optional page-preview state narrows and lifts the signature sheet so the control has a visible, useful effect.
-- Interaction: Draw, Type, Upload, Clear, Switch to Type, Preview on page, Cancel, close, Escape, and Save remain operational. Empty saves stay disabled.
-- Accessibility: the three methods are exposed as a tablist, the page preview is an accessible switch with `aria-checked`, keyboard users receive a direct typed alternative, inputs remain labeled, and the modal retains its dialog title and description.
-- Responsive behavior: the modal uses a constrained viewport height, single-column typed controls on narrow screens, compact tabs, and a stacked utility helper without changing the desktop composition into a cropped layout.
+Browser checks:
 
-## Browser checks
+- Created and saved a typed signature.
+- Confirmed the saved signature appears in the placement shelf.
+- Confirmed the placement ghost follows the page pointer.
+- Placed the signature and verified eight resize handles.
+- Verified Undo becomes available after placement.
+- Reloaded the editor and confirmed the saved signature remains available without reopening the creation dialog.
+- Removed the saved signature and confirmed the next Sign action returns to the creation dialog.
 
-- Opened a blank local PDF through the public editor entry.
-- Opened the Sign tool and verified the default Draw state.
-- Toggled Preview on page and verified `aria-checked="true"` plus the visible page-proof state.
-- Switched to Type, entered `Jordan Lee`, and verified Save signature became enabled.
-- Switched to Upload and verified Choose image appeared while Save signature remained disabled without a file.
-- Closed and reopened the modal and captured the clean default state.
+## SEO implementation
 
-## Comparison history
+- All 108 canonical sitemap URLs now include a valid `lastmod` date.
+- Every prerendered WebPage schema now includes `dateModified`.
+- Deprecated HowTo schema and restricted FAQPage schema were removed while the visible how-to and FAQ content remains on the pages.
+- The SEO audit now rejects missing sitemap freshness signals and outdated HowTo/FAQ markup.
+- Canonicals, titles, descriptions, indexability, one-H1 structure, crawlable internal links, and performance budgets continue to pass.
 
-1. The first implementation matched the main source regions but left Clear as an unframed text action and could show a scrollbar in the typed state.
-2. Clear was restored to the source's compact disabled button treatment, the typed proof sheet was shortened, and the focus treatment was aligned to oxblood.
-3. The final browser capture matches the source's density, rhythm, hierarchy, and restrained proofing character.
+## Verification
 
-## Follow-up polish
-
-- P3: the concept includes decorative corner registration marks around the signing sheet. They were omitted to keep the production surface simple and avoid introducing non-semantic decorative geometry.
+- TypeScript: passed.
+- Signature and registry unit tests: 11 passed.
+- Production build and prerender: passed.
+- Public performance budget: passed.
+- SEO audit: passed for 108 canonical routes, 68 released tools, and 6 comparison routes.
+- ESLint: no errors; existing repository warnings remain.
 
 final result: passed

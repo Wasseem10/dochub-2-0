@@ -3,7 +3,6 @@ import { dirname, join } from "node:path";
 import { PUBLIC_PLACEHOLDER_ROUTES } from "../src/router/routes.js";
 import { ROUTE_PATHS } from "../src/router/routePaths.js";
 import { TOOL_CATEGORY_PAGES } from "../src/tools/toolCategoryPages.js";
-import { HIGH_INTENT_TOOL_IDS } from "../src/tools/highIntentToolContent.js";
 import { getRelatedTools, TOOL_REGISTRY } from "../src/tools/toolRegistry.js";
 import { EDITORIAL_RESOURCE_PAGES } from "../src/editorial/editorialResources.js";
 import { isEditorialResourcePath } from "../src/editorial/editorialRoutePaths.js";
@@ -11,6 +10,7 @@ import { editorialShareImagePath, getToolEvidence, hasToolShareImage, PRODUCT_LA
 import { resolveSiteUrl } from "./site-url.mjs";
 import { COMPARISONS, COMPARISON_REVIEWED_LABEL, comparisonFaqEntries, comparisonPath, comparisonPlanRows } from "../src/comparison/comparisonData.js";
 import { toolDirectoryMetadata } from "../src/seo/publicPageMetadata.js";
+import { publicPageLastModified } from "../src/seo/publicFreshness.js";
 
 const siteUrl = resolveSiteUrl();
 const template = await readFile("dist/index.html", "utf8");
@@ -18,7 +18,6 @@ const template = await readFile("dist/index.html", "utf8");
 const escapeHtml = (value) => String(value).replaceAll("&", "&amp;").replaceAll('"', "&quot;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
 /** @param {unknown} value */
 const escapeJson = (value) => JSON.stringify(value).replaceAll("<", "\\u003c");
-const highIntentToolIds = new Set(HIGH_INTENT_TOOL_IDS);
 const releasedToolCount = TOOL_REGISTRY.filter(({ status }) => status !== "coming-soon").length;
 const directoryMetadata = toolDirectoryMetadata(releasedToolCount);
 /** @typedef {{ path: string, title: string, description: string, noIndex: boolean, tool?: import("../src/tools/toolRegistry.js").ToolRecord, category?: (typeof TOOL_CATEGORY_PAGES)[number], resource?: (typeof EDITORIAL_RESOURCE_PAGES)[number], comparison?: (typeof COMPARISONS)[number], kind?: string }} RouteRecord */
@@ -136,6 +135,7 @@ function structuredDataFor(record) {
     description: record.description,
     url: canonical,
     inLanguage: "en-US",
+    dateModified: publicPageLastModified(record.path),
     isPartOf: { "@type": "WebSite", name: "PDFArrow", url: `${siteUrl}/` },
   }];
   if (record.kind === "home") schemas.push(
@@ -193,9 +193,7 @@ function structuredDataFor(record) {
     const tool = record.tool;
     schemas.push(
       { "@context": "https://schema.org", "@type": "BreadcrumbList", itemListElement: [{ "@type": "ListItem", position: 1, name: "PDF tools", item: `${siteUrl}/tools` }, { "@type": "ListItem", position: 2, name: tool.name, item: canonical }] },
-      { "@context": "https://schema.org", "@type": "HowTo", name: `How to use ${tool.name}`, step: tool.steps.map((step, index) => ({ "@type": "HowToStep", position: index + 1, name: `Step ${index + 1}`, text: step, url: canonical })) },
     );
-    if (highIntentToolIds.has(tool.id)) schemas.push({ "@context": "https://schema.org", "@type": "FAQPage", mainEntity: tool.faqEntries.map((entry) => ({ "@type": "Question", name: entry.question, acceptedAnswer: { "@type": "Answer", text: entry.answer } })) });
   }
   return `\n    <script id="pdfarrow-prerender-structured-data" type="application/ld+json">${escapeJson(schemas)}</script>`;
 }

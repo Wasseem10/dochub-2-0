@@ -10,6 +10,7 @@ const root = fileURLToPath(new URL("..", import.meta.url));
 const read = (path) => readFile(join(root, path), "utf8");
 const sitemap = await read("dist/sitemap.xml");
 const sitemapUrls = [...sitemap.matchAll(/<loc>(https?:\/\/[^<]+)<\/loc>/g)].map((match) => new URL(match[1]));
+const sitemapLastModified = [...sitemap.matchAll(/<url><loc>(https?:\/\/[^<]+)<\/loc><lastmod>([^<]+)<\/lastmod><\/url>/g)];
 const failures = [];
 const titles = new Map();
 const descriptions = new Map();
@@ -27,6 +28,8 @@ const requireMatch = (condition, message) => {
 
 requireMatch(sitemapUrls.length >= 80, `Sitemap exposes only ${sitemapUrls.length} public URLs.`);
 requireMatch(!sitemapUrls.some(({ pathname }) => /^\/(app|login|signup|forgot-password|share|sign)(\/|$)/.test(pathname)), "Sitemap includes a private, auth, or token route.");
+requireMatch(sitemapLastModified.length === sitemapUrls.length, "Sitemap is missing a lastmod freshness signal for one or more canonical URLs.");
+requireMatch(sitemapLastModified.every(([, , value]) => /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(Date.parse(value))), "Sitemap contains an invalid lastmod date.");
 
 for (const url of sitemapUrls) {
   const path = url.pathname === "/" ? "dist/index.html" : `dist${url.pathname}/index.html`;
@@ -46,6 +49,7 @@ for (const url of sitemapUrls) {
   requireMatch(h1Count === 1, `${url.pathname}: expected one prerendered H1, found ${h1Count}.`);
   requireMatch(Boolean(structuredData), `${url.pathname}: missing prerendered structured data.`);
   requireMatch(!html.includes('"@type":"SoftwareApplication"'), `${url.pathname}: contains ineligible SoftwareApplication markup without a real review or rating.`);
+  requireMatch(!html.includes('"@type":"HowTo"') && !html.includes('"@type":"FAQPage"'), `${url.pathname}: contains deprecated or restricted HowTo/FAQ rich-result markup.`);
   if (structuredData) {
     try { JSON.parse(structuredData); } catch { failures.push(`${url.pathname}: structured data is not valid JSON.`); }
   }
