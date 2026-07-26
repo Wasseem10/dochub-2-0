@@ -116,7 +116,13 @@ import { normalizedPointerInRect } from "./tools/editorPointerCoordinates.js";
 import { createTextAnnotation, estimateTextAnnotationSize, normalizeEditorText, shouldDiscardTextAnnotation } from "./tools/editorTextObjects.js";
 import { detectedTextBaseline, detectedTextRotation, layoutDetectedText, resolveDetectedTextStyle, sampleDetectedTextBackground, standardPdfFontVariant } from "./tools/editorDetectedText.js";
 import { recoverPdfPageRender, withPdfPageDeadline } from "./tools/editorPageRecovery.js";
-import { canSaveEditorSignature } from "./tools/editorSignature.js";
+import {
+  canSaveEditorSignature,
+  loadEditorSignatureLibrary,
+  persistEditorSignatureLibrary,
+  removeSavedEditorSignature,
+  upsertSavedEditorSignature,
+} from "./tools/editorSignature.js";
 import { duplicateEditorPageState, rotateEditorPageRecord } from "./tools/editorPageOrganizer.js";
 import { applyNativePdfFormAnnotation, createEditorExportDocument } from "./tools/pdfEditorPageExport.js";
 import { sanitizeReplacedPdfBytes } from "./tools/pdfExportSanitizer.js";
@@ -1976,6 +1982,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   const [redoStack, setRedoStack] = useState([]);
   const [draft, setDraft] = useState(null);
   const [signatureText, setSignatureText] = useState("");
+  const [savedSignatures, setSavedSignatures] = useState(loadEditorSignatureLibrary);
   const [viewMode, setViewMode] = useState("list");
   const [draggedPageIndex, setDraggedPageIndex] = useState(null);
   const [pageDropIndex, setPageDropIndex] = useState(null);
@@ -2005,7 +2012,10 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   const [isCommentsOpen, setIsCommentsOpen] = useState(false);
   const [documentSearchQuery, setDocumentSearchQuery] = useState("");
   const [activeSearchIndex, setActiveSearchIndex] = useState(0);
-  const [activeSignature, setActiveSignature] = useState({ content: "", imageDataUrl: "", fontFamily: DEFAULT_SIGNATURE_FONT });
+  const [activeSignature, setActiveSignature] = useState(() => (
+    loadEditorSignatureLibrary()[0] || { content: "", imageDataUrl: "", fontFamily: DEFAULT_SIGNATURE_FONT }
+  ));
+  const [signaturePreviewPoint, setSignaturePreviewPoint] = useState(null);
   const [pendingImage, setPendingImage] = useState(null);
   const [toolSettings, setToolSettings] = useState({
     textColor: colors.black,
@@ -2117,7 +2127,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   const currentPage = pages[pageIndex] || pages[0];
   const hasVisibleToolSettings = publicTool !== "request-signatures"
     && (selected?.type === "text"
-      || ["text", "field", "draw", "highlight", "textHighlight", "whiteout", "rectangle", "circle", "line", "arrow"].includes(tool)
+      || ["text", "field", "draw", "highlight", "textHighlight", "whiteout", "rectangle", "circle", "line", "arrow", "signature"].includes(tool)
       || Object.hasOwn(TOOL_PERSISTENT_INSTRUCTIONS, tool));
   const pageAnnotations = annotations.filter((annotation) => annotation.page === pageIndex);
   const pageDetectedTextItems = detectedTextItems.filter((item) => item.pageNumber === pageIndex && !item.isDeleted);
@@ -3844,6 +3854,9 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
 
   const onPagePointerMove = (event) => {
     lastPagePointRef.current = pointerToNormalized(event, event.currentTarget);
+    if (tool === "signature" && (activeSignature.content || activeSignature.imageDataUrl)) {
+      setSignaturePreviewPoint(lastPagePointRef.current);
+    }
     if (!draft) return;
     const point = lastPagePointRef.current;
 
@@ -4720,6 +4733,30 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     window.setTimeout(() => { void hydratePdfPageAt(targetIndex, { force: true }); }, 0);
   };
 
+  const selectSavedSignature = (signature) => {
+    setActiveSignature(signature);
+    setSignatureText(signature.content || signatureText);
+    setTool("signature");
+    setSelectedId(null);
+    showToast("Signature ready. Move over the page to preview it, then click to place.");
+  };
+
+  const deleteSavedSignature = (signatureId) => {
+    const nextSignatures = removeSavedEditorSignature(savedSignatures, signatureId);
+    persistEditorSignatureLibrary(nextSignatures);
+    setSavedSignatures(nextSignatures);
+    if (activeSignature.id === signatureId) {
+      const nextActive = nextSignatures[0] || { content: "", imageDataUrl: "", fontFamily: DEFAULT_SIGNATURE_FONT };
+      setActiveSignature(nextActive);
+      setSignatureText(nextActive.content || "");
+      if (!nextSignatures.length) {
+        setTool("select");
+        setSignaturePreviewPoint(null);
+      }
+    }
+    showToast(nextSignatures.length ? "Saved signature removed." : "Saved signature removed. Create another when you are ready.");
+  };
+
   const prepareSignatureRequest = async ({ recipientName, recipient, message, expirationDays }) => {
     if (!(await requireAuthenticationForEditorAction("signature-request"))) {
       setSignatureRequestModalOpen(false);
@@ -5375,6 +5412,11 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
           hasSelectableTextLayer={pageDetectedTextItems.length > 0}
           selectedTextAnnotation={selected?.type === "text" ? selected : null}
           updateAnnotation={updateAnnotation}
+          savedSignatures={savedSignatures}
+          activeSignature={activeSignature}
+          onSelectSignature={selectSavedSignature}
+          onCreateSignature={() => { setSignatureModalMode("signature"); setSignatureModalOpen(true); }}
+          onDeleteSignature={deleteSavedSignature}
         />
       )}
 
@@ -5515,13 +5557,14 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
         <div className="canvas-column" ref={canvasColumnRef}>
           <div className="document-stage">
             <div
-              className="page-surface"
+              className={`page-surface${tool === "signature" && (activeSignature.content || activeSignature.imageDataUrl) ? " is-placing-signature" : ""}`}
               tabIndex={0}
               style={{ width: currentPage.width * (zoom / 100) * EDITOR_PAGE_SCALE, height: currentPage.height * (zoom / 100) * EDITOR_PAGE_SCALE }}
               onPointerDown={onPagePointerDown}
               onPointerMove={onPagePointerMove}
               onPointerUp={onPagePointerUp}
               onPointerCancel={onPagePointerUp}
+              onPointerLeave={() => setSignaturePreviewPoint(null)}
             >
               {currentPage.image ? <img className="pdf-image" src={currentPage.image} alt={`PDF page ${pageIndex + 1}`} onError={() => retryPdfPage(pageIndex)} /> : currentPage.source === "pdf" ? currentPage.renderStatus === "error" ? <PdfPageUnavailable pageNumber={pageIndex + 1} onRetry={() => retryPdfPage(pageIndex)} /> : <PdfPageLoading pageNumber={pageIndex + 1} recovering={currentPage.renderStatus === "recovering"} /> : currentPage.source === "blank" ? <BlankDocument /> : <SampleDocument pageIndex={pageIndex} />}
               {currentPage.source === "pdf" && currentPage.isHydrated !== false && !pageDetectedTextItems.length && !currentPage.text?.trim() && (
@@ -5537,6 +5580,24 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
                 </div>
               )}
               <div className="annotation-layer">
+                {tool === "signature" && signaturePreviewPoint && (activeSignature.content || activeSignature.imageDataUrl) && (
+                  <div
+                    className="signature-placement-ghost"
+                    style={{
+                      left: `${clamp(signaturePreviewPoint.x, 0, 0.74) * 100}%`,
+                      top: `${clamp(signaturePreviewPoint.y, 0, 0.91) * 100}%`,
+                      width: "26%",
+                      height: activeSignature.imageDataUrl ? "9%" : "5.5%",
+                      fontFamily: activeSignature.fontFamily || DEFAULT_SIGNATURE_FONT,
+                    }}
+                    aria-hidden="true"
+                  >
+                    {activeSignature.imageDataUrl
+                      ? <img src={activeSignature.imageDataUrl} alt="" />
+                      : <span>{activeSignature.content || "Signature"}</span>}
+                    <small>Click to place</small>
+                  </div>
+                )}
                 {pageDeletedTextItems.map((item) => (
                   <div
                     key={`deleted-${item.id}`}
@@ -5783,15 +5844,20 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
           mode={signatureModalMode}
           onClose={() => setSignatureModalOpen(false)}
           onSave={(signature) => {
-            setSignatureText(signature.content || signatureText);
             setSignatureModalOpen(false);
             if (signatureModalMode === "initials") {
+              setSignatureText(signature.content || signatureText);
               setTool("initials");
               showToast("Initials are ready. Click the page to place them.");
             } else {
-              setActiveSignature(signature);
+              const nextSignatures = upsertSavedEditorSignature(savedSignatures, signature, () => makeId("saved-signature"));
+              const nextSignature = nextSignatures[0];
+              persistEditorSignatureLibrary(nextSignatures);
+              setSavedSignatures(nextSignatures);
+              setSignatureText(nextSignature.content || signatureText);
+              setActiveSignature(nextSignature);
               setTool("signature");
-              showToast("Signature ready. Click the page to place it.");
+              showToast("Signature ready. Move over the page to preview it, then click to place.");
             }
           }}
         />
@@ -6323,6 +6389,11 @@ export function ToolSettingsPanel({
   hasSelectableTextLayer = false,
   selectedTextAnnotation,
   updateAnnotation,
+  savedSignatures = [],
+  activeSignature,
+  onSelectSignature,
+  onCreateSignature,
+  onDeleteSignature,
 }) {
   const [isFontMenuOpen, setIsFontMenuOpen] = useState(false);
   const [fontSearch, setFontSearch] = useState("");
@@ -6369,6 +6440,41 @@ export function ToolSettingsPanel({
         <Info size={17} aria-hidden="true" />
         <strong>{persistentInstruction.label}</strong>
         <span>{persistentInstruction.instruction}</span>
+      </div>
+    );
+  }
+
+  if (effectiveTool === "signature") {
+    return (
+      <div className="tool-settings signature-placement-settings" role="toolbar" aria-label="Signature placement">
+        <div className="signature-placement-status">
+          <PenLine size={17} aria-hidden="true" />
+          <span><strong>Ready to place</strong><small>Move over the page, then click.</small></span>
+        </div>
+        <div className="saved-signature-list" role="group" aria-label="Saved signatures">
+          {savedSignatures.map((signature, index) => (
+            <button
+              key={signature.id}
+              type="button"
+              className={signature.id === activeSignature?.id ? "is-active" : ""}
+              aria-pressed={signature.id === activeSignature?.id}
+              aria-label={`Use saved signature ${index + 1}`}
+              onClick={() => onSelectSignature?.(signature)}
+            >
+              {signature.imageDataUrl
+                ? <img src={signature.imageDataUrl} alt="" />
+                : <span style={{ fontFamily: signature.fontFamily || DEFAULT_SIGNATURE_FONT }}>{signature.content}</span>}
+            </button>
+          ))}
+        </div>
+        <button type="button" className="signature-placement-change" onClick={onCreateSignature}>
+          {savedSignatures.length ? "New signature" : "Create signature"}
+        </button>
+        {activeSignature?.id && (
+          <button type="button" className="signature-placement-delete" aria-label="Delete active saved signature" onClick={() => onDeleteSignature?.(activeSignature.id)}>
+            <Trash2 size={15} /> Remove
+          </button>
+        )}
       </div>
     );
   }

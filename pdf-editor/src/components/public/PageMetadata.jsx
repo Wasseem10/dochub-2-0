@@ -3,6 +3,7 @@ import { trackPageView } from "../../analytics/productAnalytics.js";
 import { absoluteSiteUrl } from "../../config/site.js";
 import { editorialShareImagePath, hasToolShareImage } from "../../editorial/toolEvidence.js";
 import { isEditorialResourcePath } from "../../editorial/editorialRoutePaths.js";
+import { publicPageLastModified } from "../../seo/publicFreshness.js";
 
 function setMeta(name, content, attribute = "name") {
   let element = document.head.querySelector(`meta[${attribute}="${name}"]`);
@@ -60,6 +61,7 @@ export function PageMetadata({ title, description, canonicalUrl, schemas = [], n
       description,
       url: absoluteCanonical,
       inLanguage: "en-US",
+      dateModified: publicPageLastModified(canonicalUrl),
       isPartOf: { "@type": "WebSite", name: "PDFArrow", url: absoluteSiteUrl("/") },
     };
     const pageSchemas = [pageSchema, ...schemas];
