@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { COMPARISONS, COMPARISON_PATHS, comparisonPath, getComparisonBySlug } from "../../src/comparison/comparisonData.js";
+import { COMPARISONS, COMPARISON_PATHS, comparisonAdvantageCards, comparisonFaqEntries, comparisonPath, comparisonPlanRows, getComparisonBySlug } from "../../src/comparison/comparisonData.js";
 
 describe("competitor comparison content", () => {
   it("publishes one sourced page per researched competitor", () => {
@@ -13,6 +13,9 @@ describe("competitor comparison content", () => {
     COMPARISONS.forEach((comparison) => {
       expect(comparison.rows.length).toBeGreaterThanOrEqual(6);
       expect(comparison.sources.length).toBeGreaterThanOrEqual(3);
+      expect(comparisonAdvantageCards(comparison)).toHaveLength(4);
+      expect(comparisonPlanRows(comparison)).toHaveLength(3);
+      expect(comparisonFaqEntries(comparison).length).toBeGreaterThanOrEqual(5);
       comparison.sources.forEach(([, href]) => expect(href).toMatch(/^https:\/\//));
     });
   });
