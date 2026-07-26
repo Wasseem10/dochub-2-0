@@ -6071,6 +6071,25 @@ function AuthPage({ mode, setMode, onBack, onComplete, onPasswordReset, authRead
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [authFieldsUnlocked, setAuthFieldsUnlocked] = useState(false);
+  const emailInputRef = useRef(null);
+  const passwordInputRef = useRef(null);
+  const hasManualAuthInputRef = useRef(false);
+
+  useEffect(() => {
+    const clearPreviewCredentialAutofill = () => {
+      if (hasManualAuthInputRef.current) return;
+      const emailField = emailInputRef.current;
+      const passwordField = passwordInputRef.current;
+      if (emailField?.value.trim().toLowerCase() !== "preview@pdfarrow.local") return;
+      emailField.value = "";
+      if (passwordField) passwordField.value = "";
+      setEmail("");
+      setPassword("");
+    };
+    const timers = [0, 120, 400, 1000, 2200].map((delay) => window.setTimeout(clearPreviewCredentialAutofill, delay));
+    return () => timers.forEach((timer) => window.clearTimeout(timer));
+  }, [mode]);
 
   const submitAuth = async (event) => {
     event.preventDefault();
@@ -6119,6 +6138,9 @@ function AuthPage({ mode, setMode, onBack, onComplete, onPasswordReset, authRead
       <PageMetadata {...authMetadata} noIndex />
       <main className="auth-shell">
         <section className="auth-card" aria-label={isSignup ? "Create account" : isPasswordReset ? "Reset password" : "Log in"}>
+          <button type="button" className="auth-brand" onClick={onBack} aria-label="Back to PDFArrow home">
+            <BrandWordmark logo />
+          </button>
           <h2>{isSignup ? "Create Account" : isPasswordReset ? "Reset Password" : "Sign In"}</h2>
           {routeNotice && <div className="auth-notice">{routeNotice}</div>}
           {!isPasswordReset && (
@@ -6130,25 +6152,53 @@ function AuthPage({ mode, setMode, onBack, onComplete, onPasswordReset, authRead
               <div className="auth-divider"><span /> OR USE YOUR EMAIL <span /></div>
             </>
           )}
-          <form onSubmit={submitAuth}>
+          <form onSubmit={submitAuth} autoComplete="on">
             {isSignup && (
               <label className="auth-input-control">
                 <span className="auth-visually-hidden">Full name</span>
                 <Users size={18} aria-hidden="true" />
-                <input value={name} onChange={(event) => setName(event.target.value)} autoComplete="name" placeholder="Your Name" />
+                <input name="name" value={name} onChange={(event) => setName(event.target.value)} autoComplete="name" placeholder="Your Name" />
               </label>
             )}
             <label className="auth-input-control">
               <span className="auth-visually-hidden">Email address</span>
               <Mail size={18} aria-hidden="true" />
-              <input type="email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" placeholder="Your Email" />
+              <input
+                ref={emailInputRef}
+                name="email"
+                type="email"
+                value={email}
+                readOnly={!authFieldsUnlocked}
+                onPointerDown={() => setAuthFieldsUnlocked(true)}
+                onFocus={() => setAuthFieldsUnlocked(true)}
+                onChange={(event) => {
+                  hasManualAuthInputRef.current = true;
+                  setEmail(event.target.value);
+                }}
+                autoComplete="username"
+                placeholder="Your Email"
+              />
             </label>
             {!isPasswordReset && (
               <>
                 <label className="auth-input-control">
                   <span className="auth-visually-hidden">Password</span>
                   <Lock size={18} aria-hidden="true" />
-                  <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete={isSignup ? "new-password" : "current-password"} placeholder={isSignup ? "Create a Password" : "Your Password"} />
+                  <input
+                    ref={passwordInputRef}
+                    name="password"
+                    type="password"
+                    value={password}
+                    readOnly={!authFieldsUnlocked}
+                    onPointerDown={() => setAuthFieldsUnlocked(true)}
+                    onFocus={() => setAuthFieldsUnlocked(true)}
+                    onChange={(event) => {
+                      hasManualAuthInputRef.current = true;
+                      setPassword(event.target.value);
+                    }}
+                    autoComplete={isSignup ? "new-password" : "current-password"}
+                    placeholder={isSignup ? "Create a Password" : "Your Password"}
+                  />
                 </label>
                 {!isSignup && <button type="button" className="auth-forgot" onClick={() => setMode("forgot-password")}>Forgot Password?</button>}
               </>

@@ -25,8 +25,7 @@
 .auth-shell .auth-card-header,
 .auth-shell .auth-intro,
 .auth-shell .auth-local-mode,
-.auth-shell .auth-security-note,
-.auth-shell .auth-privacy {
+.auth-shell .auth-security-note {
   display: none !important;
 }
 
@@ -46,6 +45,34 @@
   background: transparent !important;
   box-shadow: none !important;
   transform: translateX(-20px) !important;
+}
+
+.auth-shell .auth-brand {
+  display: inline-flex !important;
+  align-items: center !important;
+  align-self: flex-start !important;
+  width: auto !important;
+  min-height: 34px !important;
+  margin: 0 0 34px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  cursor: pointer !important;
+}
+
+.auth-shell .auth-brand .brand-wordmark--logo {
+  width: 118px !important;
+  height: 29px !important;
+}
+
+.auth-shell .auth-brand:hover {
+  opacity: 0.82 !important;
+}
+
+.auth-shell .auth-brand:focus-visible {
+  border-radius: 5px !important;
+  outline: 3px solid rgba(40, 81, 235, 0.18) !important;
+  outline-offset: 4px !important;
 }
 
 .auth-shell .auth-card h2 {
@@ -279,6 +306,35 @@
   text-underline-offset: 2px !important;
 }
 
+.auth-shell .auth-privacy {
+  display: block !important;
+  width: 100% !important;
+  margin: 16px 0 0 !important;
+  color: #6c8193 !important;
+  font-size: 11.5px !important;
+  font-weight: 500 !important;
+  line-height: 1.55 !important;
+  text-align: center !important;
+}
+
+.auth-shell .auth-privacy a {
+  color: var(--auth-navy) !important;
+  font-weight: 700 !important;
+  text-decoration: underline !important;
+  text-decoration-thickness: 1px !important;
+  text-underline-offset: 2px !important;
+}
+
+.auth-shell .auth-privacy a:hover {
+  color: #315d7a !important;
+}
+
+.auth-shell .auth-privacy a:focus-visible {
+  border-radius: 3px !important;
+  outline: 3px solid rgba(40, 81, 235, 0.18) !important;
+  outline-offset: 2px !important;
+}
+
 .auth-shell .auth-product-footer {
   display: flex !important;
   justify-content: center !important;
@@ -321,6 +377,15 @@
     transform: none !important;
   }
 
+  .auth-shell .auth-brand {
+    margin-bottom: 28px !important;
+  }
+
+  .auth-shell .auth-brand .brand-wordmark--logo {
+    width: 110px !important;
+    height: 27px !important;
+  }
+
   .auth-shell .auth-card h2 {
     margin-bottom: 28px !important;
     font-size: 29px !important;
@@ -329,6 +394,11 @@
   .auth-shell .auth-divider {
     width: calc(100% - 32px) !important;
     gap: 14px !important;
+  }
+
+  .auth-shell .auth-privacy {
+    margin-top: 14px !important;
+    font-size: 11px !important;
   }
 }
 
