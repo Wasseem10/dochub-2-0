@@ -72,3 +72,23 @@ test("PDF pages download as genuine JPG and PNG images", async ({ page }, testIn
   expect(png.download.suggestedFilename()).toBe("source-page-001.png");
   expect([...png.bytes.subarray(0, 8)]).toEqual([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
 });
+
+test("mobile image conversion keeps upload and download actions reachable", async ({ page }, testInfo) => {
+  test.skip(!testInfo.project.name.includes("android") && !testInfo.project.name.includes("iphone"), "Mobile reachability runs on phone projects.");
+
+  await page.goto(appPath("/png-to-pdf"));
+  await page.locator('input[type="file"]').setInputFiles({ name: "mobile-graphic.png", mimeType: "image/png", buffer: tinyPng });
+  await expect(page.getByText("1 image ready")).toBeVisible();
+  const pdfDownload = await downloadFrom(page, "Download PDF");
+  expect(pdfDownload.download.suggestedFilename()).toBe("png-images.pdf");
+  expect((await PDFDocument.load(pdfDownload.bytes)).getPageCount()).toBe(1);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
+
+  await page.goto(appPath("/pdf-to-png"));
+  await page.locator('input[type="file"]').setInputFiles({ name: "mobile-source.pdf", mimeType: "application/pdf", buffer: await samplePdf() });
+  await expect(page.getByText("1 page ·", { exact: false })).toBeVisible();
+  const pngDownload = await downloadFrom(page, "Download PNG");
+  expect(pngDownload.download.suggestedFilename()).toBe("mobile-source-page-001.png");
+  expect([...pngDownload.bytes.subarray(0, 8)]).toEqual([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
+});
