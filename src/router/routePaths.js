@@ -1,6 +1,8 @@
 export const ROUTE_PATHS = Object.freeze({
   home: "/",
   about: "/about",
+  compare: "/compare",
+  comparisonPattern: "/compare/:comparisonSlug",
   features: "/features",
   pricing: "/pricing",
   business: "/business",

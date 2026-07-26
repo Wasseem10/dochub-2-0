@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url><loc>https://www.pdfarrow.com/</loc></url>
+  <url><loc>https://www.pdfarrow.com/about</loc></url>
   <url><loc>https://www.pdfarrow.com/add-date-fields</loc></url>
   <url><loc>https://www.pdfarrow.com/add-initials</loc></url>
   <url><loc>https://www.pdfarrow.com/add-page-numbers</loc></url>
@@ -11,7 +12,13 @@
   <url><loc>https://www.pdfarrow.com/ask-pdf</loc></url>
   <url><loc>https://www.pdfarrow.com/chat-with-pdf</loc></url>
   <url><loc>https://www.pdfarrow.com/comment-on-pdf</loc></url>
+  <url><loc>https://www.pdfarrow.com/compare</loc></url>
   <url><loc>https://www.pdfarrow.com/compare-pdf</loc></url>
+  <url><loc>https://www.pdfarrow.com/compare/pdfarrow-vs-adobe-acrobat</loc></url>
+  <url><loc>https://www.pdfarrow.com/compare/pdfarrow-vs-dochub</loc></url>
+  <url><loc>https://www.pdfarrow.com/compare/pdfarrow-vs-ilovepdf</loc></url>
+  <url><loc>https://www.pdfarrow.com/compare/pdfarrow-vs-sejda</loc></url>
+  <url><loc>https://www.pdfarrow.com/compare/pdfarrow-vs-smallpdf</loc></url>
   <url><loc>https://www.pdfarrow.com/compress-pdf</loc></url>
   <url><loc>https://www.pdfarrow.com/contract-analyzer</loc></url>
   <url><loc>https://www.pdfarrow.com/contract-templates</loc></url>

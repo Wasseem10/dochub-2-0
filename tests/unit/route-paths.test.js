@@ -3,6 +3,7 @@ import { APP_ROUTE_SECTIONS, PUBLIC_PLACEHOLDER_ROUTES } from "../../src/router/
 import { currentLocationPath, editorPath, ROUTE_PATHS, sharePath, signPath } from "../../src/router/routePaths.js";
 import { EDITORIAL_RESOURCE_PATHS } from "../../src/editorial/editorialRoutePaths.js";
 import { TOOL_REGISTRY } from "../../src/tools/toolRegistry.js";
+import { COMPARISON_PATHS } from "../../src/comparison/comparisonData.js";
 
 describe("route path configuration", () => {
   it("contains every Stage 2 route", () => {
@@ -18,6 +19,8 @@ describe("route path configuration", () => {
       ROUTE_PATHS.editorPattern,
       ROUTE_PATHS.sharePattern,
       ROUTE_PATHS.signPattern,
+      ROUTE_PATHS.comparisonPattern,
+      ...COMPARISON_PATHS,
       ...PUBLIC_PLACEHOLDER_ROUTES.map(({ path }) => path),
       ...TOOL_REGISTRY.map(({ route }) => route),
       ...EDITORIAL_RESOURCE_PATHS,
