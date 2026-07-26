@@ -134,7 +134,7 @@ function MergeWorkspace({ tool }) {
     const operation = beginToolOperation(tool.id, { operation: "merge" });
     try {
       const bytes = await mergePdfDocuments(files);
-      downloadBytes(bytes, "application/pdf", "merged-realpdf.pdf");
+      downloadBytes(bytes, "application/pdf", "merged-pdfarrow.pdf");
       operation.succeed({ pageCountBucket: pageCountBucket(files.reduce((sum, file) => sum + file.pageCount, 0)) });
       setStatus("complete");
     } catch (mergeError) { operation.fail("pdf_processing"); setError(friendlyPdfError(mergeError)); setStatus("idle"); }

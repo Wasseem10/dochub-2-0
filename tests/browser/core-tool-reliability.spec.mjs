@@ -57,7 +57,7 @@ test("merge and split preserve valid native PDF pages", async ({ page }, testInf
   ]);
   await expect(page.getByText("2 PDFs ready · 3 pages")).toBeVisible();
   const merged = await downloadBytes(page, "Download merged PDF");
-  expect(merged.download.suggestedFilename()).toBe("merged-realpdf.pdf");
+  expect(merged.download.suggestedFilename()).toBe("merged-pdfarrow.pdf");
   expect((await PDFDocument.load(merged.bytes)).getPageCount()).toBe(3);
 
   await page.goto(appPath("/split-pdf"));
