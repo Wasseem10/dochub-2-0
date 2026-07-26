@@ -224,6 +224,13 @@ const referencePrimaryTools = [
   { id: "note", label: "Note", icon: StickyNote },
 ];
 
+const TOOL_PERSISTENT_INSTRUCTIONS = Object.freeze({
+  erase: { label: "Erase", instruction: "Select an annotation or existing text item to remove it." },
+  stamp: { label: "Stamp", instruction: "Click the page to place an Approved stamp." },
+  link: { label: "Link", instruction: "Click the page, then enter the web address for the link." },
+  comment: { label: "Note", instruction: "Click the page to place a note, then type your comment." },
+});
+
 const compactEditorTools = [
   { id: "select", label: "Select", icon: MousePointer2 },
   { id: "text", label: "Add Text", icon: Type },
@@ -2099,7 +2106,9 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   const activeDocument = useMemo(() => documents.find((document) => document.id === activeDocumentId), [documents, activeDocumentId]);
   const currentPage = pages[pageIndex] || pages[0];
   const hasVisibleToolSettings = publicTool !== "request-signatures"
-    && (selected?.type === "text" || ["text", "field", "draw", "highlight", "textHighlight", "whiteout", "rectangle", "circle", "line", "arrow"].includes(tool));
+    && (selected?.type === "text"
+      || ["text", "field", "draw", "highlight", "textHighlight", "whiteout", "rectangle", "circle", "line", "arrow"].includes(tool)
+      || Object.hasOwn(TOOL_PERSISTENT_INSTRUCTIONS, tool));
   const pageAnnotations = annotations.filter((annotation) => annotation.page === pageIndex);
   const pageDetectedTextItems = detectedTextItems.filter((item) => item.pageNumber === pageIndex && !item.isDeleted);
   const pageDeletedTextItems = detectedTextItems.filter((item) => item.pageNumber === pageIndex && item.isDeleted);
@@ -6303,6 +6312,17 @@ export function ToolSettingsPanel({ tool, settings, setSettings, selectedTextAnn
     setIsFontMenuOpen(false);
     setFontSearch("");
   };
+  const persistentInstruction = TOOL_PERSISTENT_INSTRUCTIONS[effectiveTool];
+
+  if (persistentInstruction) {
+    return (
+      <div className="tool-settings tool-instruction-settings" role="status" aria-live="polite">
+        <Info size={17} aria-hidden="true" />
+        <strong>{persistentInstruction.label}</strong>
+        <span>{persistentInstruction.instruction}</span>
+      </div>
+    );
+  }
 
   if (!["text", "field", "draw", "highlight", "textHighlight", "whiteout", "rectangle", "circle", "line", "arrow"].includes(effectiveTool)) {
     return null;
