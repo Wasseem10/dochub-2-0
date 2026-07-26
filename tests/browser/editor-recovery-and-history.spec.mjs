@@ -132,7 +132,7 @@ test("mobile editor collapses thumbnails, keeps tools reachable, fits the page, 
   }));
   expect(toolbarLayout.scrollWidth, `toolbar should fit within ${toolbarLayout.clientWidth}px`).toBeLessThanOrEqual(toolbarLayout.clientWidth + 1);
 
-  const moreTools = toolbar.getByRole("button", { name: "More", exact: true });
+  const moreTools = toolbar.getByRole("button", { name: "More editing tools", exact: true });
   await expect(moreTools).toBeVisible();
   await moreTools.click();
   const compactToolsMenu = page.getByRole("menu", { name: "More editing tools" });
@@ -151,6 +151,12 @@ test("mobile editor collapses thumbnails, keeps tools reachable, fits the page, 
   const box = await surface.boundingBox();
   await surface.click({ position: { x: Math.min(120, box.width * 0.3), y: Math.min(260, box.height * 0.35) } });
   await expect(page.locator(".annotation.checkbox-field")).toHaveCount(1);
+
+  await moreTools.click();
+  await page.getByRole("menu", { name: "More editing tools" }).getByRole("menuitem", { name: "Manage pages", exact: true }).click();
+  await expect(page.locator("#page-thumbnails").getByText("Manage pages", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Duplicate page 1", exact: true }).click();
+  await expect(page.locator(".page-thumbnail-item")).toHaveCount(3);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
 });
 
