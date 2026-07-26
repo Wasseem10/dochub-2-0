@@ -977,4 +977,13 @@ main.editor-shell .annotation-controls button:hover {
     width: 22px !important;
     height: 22px !important;
   }
+
+  main.editor-shell .workspace.is-managing-pages .pages-panel {
+    z-index: 220 !important;
+  }
+
+  main.editor-shell .workspace.is-managing-pages .thumbnail-list {
+    padding-bottom: 150px !important;
+    scroll-padding-bottom: 150px;
+  }
 }

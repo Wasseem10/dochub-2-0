@@ -14,7 +14,7 @@ async function chooseShape(page, name) {
     return;
   }
 
-  await page.getByRole("button", { name: "More", exact: true }).click();
+  await page.getByRole("button", { name: "More editing tools", exact: true }).click();
   const menu = page.getByRole("menu", { name: "More editing tools" });
   await expect(menu).toBeVisible();
   await menu.getByRole("menuitem", { name, exact: true }).click();
@@ -34,7 +34,7 @@ test("Shapes toolbar draws arrow, line, circle, and rectangle into the exported 
   await page.getByRole("button", { name: "Start with a blank page" }).click();
   const isMobile = testInfo.project.name.includes("android") || testInfo.project.name.includes("iphone");
   if (isMobile) {
-    await page.getByRole("button", { name: "More", exact: true }).click();
+    await page.getByRole("button", { name: "More editing tools", exact: true }).click();
     const menu = page.getByRole("menu", { name: "More editing tools" });
     await expect(menu).toBeVisible();
     for (const name of ["Arrow", "Line", "Circle", "Rectangle"]) {
