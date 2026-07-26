@@ -106,7 +106,7 @@ import { getPdfLoadErrorMessage, MAX_PDF_EDITOR_PAGES, validatePdfUpload } from 
 import { takePendingPdfFile } from "./tools/pendingPdfFile.js";
 import { drawFlattenedInputAnnotation } from "./tools/pdfEditorAnnotationExport.js";
 import { attachPdfCommentAnnotation } from "./tools/pdfCommentAnnotations.js";
-import { addPdfLinkAnnotation } from "./editor/pdfLinkAnnotation.mjs";
+import { addPdfLinkAnnotation, normalizeEditorLinkUrl } from "./editor/pdfLinkAnnotation.mjs";
 import { centeredAnnotationBounds } from "./editor/annotationPlacement.mjs";
 import { protectPdfBytes } from "./tools/protectPdf.js";
 import { EDITOR_TOOL_MODES, getDefaultToolForMode, getToolsForMode, resolveModeForTool } from "./tools/editorToolModes.js";
@@ -1485,7 +1485,19 @@ function EditorSelectionControls({ onDelete, onMoveStart, onResizeStart, onRotat
   );
 }
 
-function ProfessionalAnnotation({ annotation, selected, zoom, activeTool, pageWidth = BASE_PAGE_WIDTH, pageHeight = BASE_PAGE_HEIGHT, onSelect, onCommit, onUpdate, onDelete }) {
+function ProfessionalAnnotation({
+  annotation,
+  selected,
+  zoom,
+  activeTool,
+  pageWidth = BASE_PAGE_WIDTH,
+  pageHeight = BASE_PAGE_HEIGHT,
+  onSelect,
+  onCommit,
+  onUpdate,
+  onDelete,
+  onEditLink,
+}) {
   const textContentRef = useRef(null);
   const textMeasureCanvasRef = useRef(null);
   const textWasFocusedRef = useRef(false);
@@ -1816,10 +1828,7 @@ function ProfessionalAnnotation({ annotation, selected, zoom, activeTool, pageWi
         onPointerDown={dragStart}
         onDoubleClick={(event) => {
           event.stopPropagation();
-          const nextUrl = window.prompt("Link address", annotation.url || "https://");
-          if (!nextUrl?.trim()) return;
-          const normalizedUrl = /^https?:\/\//i.test(nextUrl.trim()) ? nextUrl.trim() : `https://${nextUrl.trim()}`;
-          onUpdate(annotation.id, { url: normalizedUrl, content: normalizedUrl.replace(/^https?:\/\//i, "") });
+          onEditLink?.(annotation);
         }}
       >
         <Link size={Math.max(13, 15 * (zoom / 100))} />
@@ -1984,6 +1993,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   const [signatureRequestModalOpen, setSignatureRequestModalOpen] = useState(false);
   const [protectModalOpen, setProtectModalOpen] = useState(false);
   const [upgradeModalOpen, setUpgradeModalOpen] = useState(false);
+  const [linkEditor, setLinkEditor] = useState(null);
   const [authRequiredAction, setAuthRequiredAction] = useState("");
   const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
   const [isZoomMenuOpen, setIsZoomMenuOpen] = useState(false);
@@ -3780,23 +3790,11 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     }
 
     if (tool === "link") {
-      const url = window.prompt("Link address", "https://");
-      if (!url?.trim()) return;
-      const normalizedUrl = /^https?:\/\//i.test(url.trim()) ? url.trim() : `https://${url.trim()}`;
-      addAnnotation({
-        id: makeId("link"),
-        type: "link",
+      setLinkEditor({
+        annotationId: null,
+        initialUrl: "https://",
+        point,
         page: pageIndex,
-        x: clamp(point.x, 0, 0.7),
-        y: clamp(point.y, 0, 0.93),
-        w: 0.28,
-        h: 0.045,
-        content: normalizedUrl.replace(/^https?:\/\//i, ""),
-        url: normalizedUrl,
-        color: colors.blue,
-        fontSize: 12,
-        opacity: 1,
-        rotation: 0,
       });
       return;
     }
@@ -5628,6 +5626,15 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
                     onSelect={setSelectedId}
                     onCommit={updateAnnotation}
                     onUpdate={updateAnnotation}
+                    onEditLink={(linkAnnotation) => {
+                      setSelectedId(linkAnnotation.id);
+                      setLinkEditor({
+                        annotationId: linkAnnotation.id,
+                        initialUrl: linkAnnotation.url || "https://",
+                        point: null,
+                        page: linkAnnotation.page,
+                      });
+                    }}
                     onDelete={(id) => {
                       commitAnnotations(annotations.filter((item) => item.id !== id));
                       setSelectedId(null);
@@ -5810,6 +5817,40 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
           fileName={fileName}
           onClose={() => setProtectModalOpen(false)}
           onProtect={protectDocument}
+        />
+      )}
+      {linkEditor && (
+        <LinkModal
+          initialUrl={linkEditor.initialUrl}
+          isEditing={Boolean(linkEditor.annotationId)}
+          onClose={() => setLinkEditor(null)}
+          onSave={(normalizedUrl) => {
+            if (linkEditor.annotationId) {
+              updateAnnotation(linkEditor.annotationId, {
+                url: normalizedUrl,
+                content: normalizedUrl.replace(/^https?:\/\//i, ""),
+              });
+              showToast("Link updated.");
+            } else {
+              addAnnotation({
+                id: makeId("link"),
+                type: "link",
+                page: linkEditor.page,
+                x: clamp(linkEditor.point.x, 0, 0.7),
+                y: clamp(linkEditor.point.y, 0, 0.93),
+                w: 0.28,
+                h: 0.045,
+                content: normalizedUrl.replace(/^https?:\/\//i, ""),
+                url: normalizedUrl,
+                color: colors.blue,
+                fontSize: 12,
+                opacity: 1,
+                rotation: 0,
+              });
+              showToast("Link added. Double-click it to change the address.");
+            }
+            setLinkEditor(null);
+          }}
         />
       )}
       {upgradeModalOpen && (
@@ -7913,6 +7954,89 @@ function DocumentCommentsPanel({
         ))}
       </div>
     </section>
+  );
+}
+
+function LinkModal({ initialUrl = "https://", isEditing = false, onClose, onSave }) {
+  const [url, setUrl] = useState(initialUrl);
+  const [error, setError] = useState("");
+  const dialogRef = useRef(null);
+  const returnFocusRef = useRef(typeof document !== "undefined" ? document.activeElement : null);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+
+  useEffect(() => {
+    const onKeyDown = (event) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        onCloseRef.current();
+        return;
+      }
+      if (event.key !== "Tab") return;
+      const focusable = [...(dialogRef.current?.querySelectorAll("button:not(:disabled), input:not(:disabled)") || [])];
+      if (!focusable.length) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+      returnFocusRef.current?.focus?.({ preventScroll: true });
+    };
+  }, []);
+
+  const submit = (event) => {
+    event.preventDefault();
+    const normalizedUrl = normalizeEditorLinkUrl(url);
+    if (!normalizedUrl) {
+      setError("Enter a valid web address, such as https://example.com.");
+      return;
+    }
+    onSave(normalizedUrl);
+  };
+
+  return (
+    <div className="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="link-modal-title" aria-describedby="link-modal-description">
+      <form ref={dialogRef} className="link-modal" noValidate onSubmit={submit}>
+        <header>
+          <div>
+            <h2 id="link-modal-title">{isEditing ? "Edit link" : "Add link"}</h2>
+            <p id="link-modal-description">Enter the web address this PDF link should open.</p>
+          </div>
+          <button type="button" className="modal-close" aria-label="Close link dialog" onClick={onClose}><X size={18} /></button>
+        </header>
+        <div className="link-modal-body">
+          <label className="field">
+            <span>Web address</span>
+            <input
+              autoFocus
+              inputMode="url"
+              type="url"
+              value={url}
+              aria-invalid={Boolean(error)}
+              aria-describedby={error ? "link-url-error" : undefined}
+              onChange={(event) => {
+                setUrl(event.target.value);
+                setError("");
+              }}
+              placeholder="https://example.com"
+            />
+          </label>
+          {error && <p id="link-url-error" className="workflow-error" role="alert">{error}</p>}
+        </div>
+        <footer>
+          <button type="button" className="modal-secondary" onClick={onClose}>Cancel</button>
+          <button type="submit" className="modal-primary">{isEditing ? "Save link" : "Add link"}</button>
+        </footer>
+      </form>
+    </div>
   );
 }
 

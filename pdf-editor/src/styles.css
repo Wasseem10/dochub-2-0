@@ -532,6 +532,7 @@
 }
 
 .signature-modal,
+.link-modal,
 .share-modal,
 .upgrade-modal,
 .auth-required-modal {
@@ -557,6 +558,7 @@
 }
 
 .signature-modal header,
+.link-modal header,
 .share-modal header,
 .upgrade-modal header,
 .auth-required-modal header {
@@ -569,6 +571,7 @@
 }
 
 .signature-modal h2,
+.link-modal h2,
 .share-modal h2,
 .upgrade-modal h2,
 .auth-required-modal h2 {
@@ -578,6 +581,7 @@
 }
 
 .signature-modal p,
+.link-modal p,
 .share-modal p,
 .upgrade-modal p,
 .auth-required-modal p {
@@ -676,7 +680,27 @@
   background: #fff;
 }
 
+.link-modal {
+  width: min(520px, 100%);
+}
+
+.link-modal-body {
+  display: grid;
+  gap: 10px;
+  padding: 22px 24px;
+}
+
+.link-modal-body .field {
+  padding: 0;
+  border: 0;
+}
+
+.link-modal-body .workflow-error {
+  margin: 0;
+}
+
 .signature-modal footer,
+.link-modal footer,
 .share-modal footer,
 .upgrade-modal footer,
 .auth-required-modal footer {

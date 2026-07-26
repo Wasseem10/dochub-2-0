@@ -1,8 +1,15 @@
 import { describe, expect, it } from "vitest";
 import { PDFDocument } from "pdf-lib";
-import { addPdfLinkAnnotation } from "../../src/editor/pdfLinkAnnotation.mjs";
+import { addPdfLinkAnnotation, normalizeEditorLinkUrl } from "../../src/editor/pdfLinkAnnotation.mjs";
 
 describe("PDF link annotations", () => {
+  it("normalizes safe web addresses and rejects unsupported values", () => {
+    expect(normalizeEditorLinkUrl("example.com/review")).toBe("https://example.com/review");
+    expect(normalizeEditorLinkUrl("http://example.com")).toBe("http://example.com/");
+    expect(normalizeEditorLinkUrl("javascript:alert(1)")).toBe("");
+    expect(normalizeEditorLinkUrl("https://")).toBe("");
+  });
+
   it("exports a clickable URI annotation with the expected page rectangle", async () => {
     const document = await PDFDocument.create();
     const page = document.addPage([612, 792]);
