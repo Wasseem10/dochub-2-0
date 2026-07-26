@@ -159,9 +159,13 @@ test("mobile annotations, history, links, images, notes, and stamps survive expo
   const note = page.locator(".annotation.comment-marker");
   await note.locator("textarea[aria-label='Note text']").fill("Mobile review note");
 
-  page.once("dialog", (dialog) => dialog.accept("https://example.com/mobile-review"));
   await activateMobileTool(page, "Link");
   await clickSurface(page, 0.14, 0.48);
+  const linkDialog = page.getByRole("dialog", { name: "Add link" });
+  await expect(linkDialog).toBeVisible();
+  await linkDialog.getByLabel("Web address").fill("https://example.com/mobile-review");
+  await linkDialog.getByRole("button", { name: "Add link", exact: true }).click();
+  await expect(linkDialog).toHaveCount(0);
   await expect(page.locator(".annotation.link-annotation")).toContainText("example.com/mobile-review");
 
   await activateMobileTool(page, "Image");
