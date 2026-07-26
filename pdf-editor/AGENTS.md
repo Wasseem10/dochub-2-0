@@ -58,6 +58,8 @@ Documents and owner Analytics use the same Editorial Monochrome app shell as Hom
 
 Authentication and lazy-loading transitions use PDFArrow’s DM Sans and Funnel Display typography, the blue document mark, concise status copy, a compact centered white card, and reduced-motion-safe progress. Do not use condensed display fonts, tiny all-caps brand pills, or vague filler copy on loading screens.
 
+The selected July 26, 2026 Login-to-Dashboard loading redesign is Seamless Desk Reveal (ideation option 1): replace the generic centered loading card with a bright full-page transition that softly reveals the destination dashboard, shows a PDF moving toward the official cropped PDFArrow wordmark and dashboard, retains “Opening your workspace” with concise session-restoration status, and remains intentionally simplified on mobile and under reduced motion.
+
 The login screen should feel professional and document-first: use a restrained workspace preview, calm navy/blue surfaces, clear sign-in hierarchy, and explicit browser-processing reassurance. Avoid playful handwritten type, cloud imagery, or oversized promotional visuals in authentication.
 
 Keep the authentication layout inspired by a classic centered sign-in card: obvious email/password hierarchy, one restrained social sign-in option, generous breathing room, and an original PDFArrow document-workspace panel rather than copying another PDF product's branding or decoration.
