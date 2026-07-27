@@ -15,6 +15,7 @@ import {
   createSearchablePdfFromOcrPages,
   enhanceOcrImageData,
   flattenOcrWords,
+  formatOcrPageReadiness,
   isSupportedOcrLanguage,
   OCR_LANGUAGES,
   OCR_PDF_LIMITS,
@@ -188,7 +189,7 @@ export function OcrPdfPage({ tool }) {
         <label><span>Scan cleanup</span><select value={cleanupMode} disabled={status === "processing"} onChange={(event) => setCleanupMode(event.target.value)}><option value="auto">Auto levels</option><option value="document">High contrast</option><option value="original">Keep original</option></select></label>
         <label><span>Page orientation</span><select value={orientation} disabled={status === "processing"} onChange={(event) => setOrientation(event.target.value)}><option value="auto">Detect automatically</option><option value="0">Already upright</option><option value="90">Rotate right 90°</option><option value="180">Rotate 180°</option><option value="270">Rotate left 90°</option></select></label>
       </div>
-      <div className="office-mode-note"><strong>Private local recognition</strong><p>The selected language model downloads on first use, then processes your document locally. Page cleanup, rotation, OCR, and PDF creation run on this device.</p></div><div className="conversion-summary"><Check size={18} /><span>{file ? `${pageCount} pages ready for OCR` : "Add a scanned PDF to continue"}</span></div>
+      <div className="office-mode-note"><strong>Private local recognition</strong><p>The selected language model downloads on first use, then processes your document locally. Page cleanup, rotation, OCR, and PDF creation run on this device.</p></div><div className="conversion-summary"><Check size={18} /><span>{file ? formatOcrPageReadiness(pageCount) : "Add a scanned PDF to continue"}</span></div>
       {status === "processing" && <><div className="conversion-progress-bar"><i style={{ width: `${progress}%` }} /></div><p className="ocr-status" aria-live="polite">{statusText}</p></>}
       <button className="conversion-primary-action" type="button" disabled={!file || status === "reading" || status === "processing"} onClick={runOcr}>{status === "processing" ? <><LoaderCircle className="is-spinning" size={18} /> OCR {progress}%</> : <><FileSearch size={18} /> Run OCR and download PDF</>}</button>
       {result && <button className="conversion-secondary-action" type="button" onClick={() => downloadBytes(new TextEncoder().encode(result.text), "text/plain", `${result.baseName}-ocr.txt`, tool.id)}><Download size={17} /> Download recognized TXT</button>}
