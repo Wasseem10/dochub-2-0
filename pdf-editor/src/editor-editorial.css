@@ -969,13 +969,29 @@ main.editor-shell .annotation-controls button:hover {
   }
 
   main.editor-shell .resize-control {
-    width: 16px !important;
-    height: 16px !important;
+    width: 28px !important;
+    height: 28px !important;
+    border: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
   }
 
   main.editor-shell .rotation-handle {
-    width: 22px !important;
-    height: 22px !important;
+    width: 34px !important;
+    height: 34px !important;
+    border-width: 3px !important;
+  }
+
+  main.editor-shell .annotation-controls {
+    top: -112px !important;
+    height: 48px !important;
+    padding: 3px !important;
+    border-radius: 12px !important;
+  }
+
+  main.editor-shell .annotation-controls button {
+    width: 42px !important;
+    height: 42px !important;
   }
 
   main.editor-shell .workspace.is-managing-pages .pages-panel {

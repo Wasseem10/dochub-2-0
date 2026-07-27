@@ -2,8 +2,14 @@ import { describe, expect, it } from "vitest";
 import { PDFDocument, StandardFonts } from "pdf-lib";
 import * as pdfjsLib from "pdfjs-dist/legacy/build/pdf.mjs";
 import { drawFlattenedInputAnnotation } from "../../src/tools/pdfEditorAnnotationExport.js";
+import { verifySignedPdfExport } from "../../src/tools/pdfExportVerification.js";
 
 const standardFontDataUrl = new URL("../../node_modules/pdfjs-dist/standard_fonts/", import.meta.url).href;
+const PNG_DATA_URL = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=";
+
+async function embedDataUrlImage(pdfDoc, dataUrl) {
+  return pdfDoc.embedPng(Buffer.from(dataUrl.split(",")[1], "base64"));
+}
 
 describe("editor PDF export", () => {
   it("produces an openable PDF containing filled fields, dates, initials, and signatures", async () => {
@@ -37,5 +43,50 @@ describe("editor PDF export", () => {
     expect(extracted).toContain("AL");
     const rotatedDate = content.items.find((item) => item.str === "07/15/2026");
     expect(Math.abs(rotatedDate.transform[1])).toBeGreaterThan(0);
+  });
+
+  it("reopens and verifies typed, drawn, and uploaded signatures across pages", async () => {
+    const pdfDoc = await PDFDocument.create();
+    const firstPage = pdfDoc.addPage([612, 792]);
+    const secondPage = pdfDoc.addPage([500, 700]);
+    const helvetica = await pdfDoc.embedFont(StandardFonts.Helvetica);
+    const timesItalic = await pdfDoc.embedFont(StandardFonts.TimesRomanItalic);
+    const annotations = [
+      { page: 0, type: "signature", x: .12, y: .16, w: .32, h: .09, content: "Ada Lovelace", fontSize: 24, color: "#0f172a", opacity: .72, rotation: 22 },
+      { page: 0, type: "signature", x: .2, y: .45, w: .42, h: .12, content: "Drawn signature", imageDataUrl: PNG_DATA_URL, fontSize: 24, color: "#0f172a", opacity: .45, rotation: -18 },
+      { page: 1, type: "signature", x: .18, y: .28, w: .28, h: .08, content: "Uploaded signature", imageDataUrl: PNG_DATA_URL, fontSize: 24, color: "#0f172a", opacity: .8, rotation: 33 },
+    ];
+
+    for (const annotation of annotations) {
+      const page = annotation.page === 0 ? firstPage : secondPage;
+      expect(await drawFlattenedInputAnnotation({
+        pdfDoc,
+        page,
+        annotation,
+        helvetica,
+        timesItalic,
+        pickPdfFont: () => helvetica,
+        embedDataUrlImage,
+      })).toBe(true);
+    }
+
+    const bytes = await pdfDoc.save();
+    const reopened = await PDFDocument.load(bytes);
+    expect(reopened.getPageCount()).toBe(2);
+
+    const verification = await verifySignedPdfExport({
+      bytes,
+      annotations,
+      getDocument: (source) => pdfjsLib.getDocument({ ...source, standardFontDataUrl }),
+      operations: pdfjsLib.OPS,
+    });
+    expect(verification).toEqual({ ok: true, verifiedCount: 3, pageCount: 2 });
+
+    const rendered = await pdfjsLib.getDocument({ data: bytes.slice(0), disableWorker: true, standardFontDataUrl, verbosity: 0 }).promise;
+    const firstPageText = await (await rendered.getPage(1)).getTextContent();
+    const typedSignature = firstPageText.items.find((item) => item.str === "Ada Lovelace");
+    expect(typedSignature).toBeTruthy();
+    expect(Math.abs(typedSignature.transform[1])).toBeGreaterThan(0);
+    rendered.cleanup?.();
   });
 });
