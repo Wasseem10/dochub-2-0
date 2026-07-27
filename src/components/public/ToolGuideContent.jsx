@@ -22,13 +22,24 @@ const FAQ_TOPICS = Object.freeze({
   "comment-on-pdf": "commenting on PDFs",
 });
 
+const GUIDE_STEP_OVERRIDES = Object.freeze({
+  "translate-pdf": [
+    "Choose a text-based, unencrypted PDF and select its current language.",
+    "Choose a different target language and run the browser's on-device translation.",
+    "Review the translated text preview page by page before downloading.",
+    "Check names, dates, figures, legal terms, and technical wording against the source.",
+    "Expect a rebuilt text document, not the source PDF's images, tables, fonts, or page positioning.",
+    "Download the searchable PDF or TXT copy and keep the original PDF for reference.",
+  ],
+});
+
 export function ToolGuideContent({ tool }) {
   const relatedTools = [...getRelatedTools(tool), ...POPULAR_TOOLS]
     .filter((related, index, all) => related.id !== tool.id && all.findIndex((candidate) => candidate.id === related.id) === index)
     .slice(0, 5);
   const actionName = tool.name.replace(/\bPDF\b/gi, "").trim().toLowerCase() || "work with your file";
   const faqTopic = FAQ_TOPICS[tool.id] || `using ${tool.name}`;
-  const guideSteps = [
+  const guideSteps = GUIDE_STEP_OVERRIDES[tool.id] || [
     tool.steps[0] || "Choose a PDF using the upload box above.",
     tool.steps[1] || `Use the ${tool.name} controls in the PDFArrow workspace.`,
     `Review the affected pages and adjust the ${actionName} settings as needed.`,

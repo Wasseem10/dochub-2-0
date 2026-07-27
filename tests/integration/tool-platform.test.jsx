@@ -248,6 +248,10 @@ describe("public PDF tool platform", () => {
       expect(renderer.root.findAllByType("input").some((input) => input.props.type === "file" && input.props.accept.includes("application/pdf"))).toBe(true);
       expect(textOf(renderer.root).includes("No document text enters analytics")).toBe(true);
       expect(textOf(renderer.root).includes("source pages")).toBe(true);
+      if (toolId === "translate-pdf") {
+        expect(textOf(renderer.root).includes("not the source PDF's images, tables, fonts, or page positioning")).toBe(true);
+        expect(textOf(renderer.root).includes("confirm the result is positioned correctly")).toBe(false);
+      }
       await unmount(renderer);
     }
   });
