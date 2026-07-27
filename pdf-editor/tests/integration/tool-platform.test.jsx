@@ -284,6 +284,18 @@ describe("public PDF tool platform", () => {
     expect(textOf(organize.root).includes("Arrange the final PDF")).toBe(true);
     await unmount(organize);
 
+    const deletePages = await render(<PdfPageToolPage tool={TOOL_BY_ID.get("delete-pdf-pages")} />);
+    expect(textOf(deletePages.root).includes("Choose pages to remove")).toBe(true);
+    expect(textOf(deletePages.root).includes("Download PDF with pages removed")).toBe(true);
+    expect(textOf(deletePages.root).includes("Arrange the final PDF")).toBe(false);
+    await unmount(deletePages);
+
+    const rotatePages = await render(<PdfPageToolPage tool={TOOL_BY_ID.get("rotate-pdf")} />);
+    expect(textOf(rotatePages.root).includes("Rotate individual pages")).toBe(true);
+    expect(textOf(rotatePages.root).includes("Download rotated PDF")).toBe(true);
+    expect(textOf(rotatePages.root).includes("Arrange the final PDF")).toBe(false);
+    await unmount(rotatePages);
+
     const pageNumbers = await render(<PdfPageToolPage tool={TOOL_BY_ID.get("add-page-numbers")} />);
     expect(pageNumbers.root.findAllByType("input").some((input) => input.props.type === "file")).toBe(true);
     expect(textOf(pageNumbers.root).includes("Choose the number style")).toBe(true);

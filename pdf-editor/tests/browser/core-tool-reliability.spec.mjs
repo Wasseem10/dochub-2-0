@@ -7,6 +7,7 @@ import * as pdfjsLib from "pdfjs-dist/legacy/build/pdf.mjs";
 
 const appPath = (path) => process.env.GITHUB_ACTIONS === "true" ? `/dochub-2-0${path}` : path;
 const primaryExportProjects = new Set(["desktop-chromium", "android-chromium", "iphone-webkit"]);
+const phoneExportProjects = new Set(["android-chromium", "iphone-webkit"]);
 
 async function textPdf(...pageLabels) {
   const document = await PDFDocument.create();
@@ -73,6 +74,43 @@ test("merge and split preserve valid native PDF pages", async ({ page }, testInf
   expect(split.download.suggestedFilename()).toBe("packet-pages-2-3.pdf");
   const splitPdf = await PDFDocument.load(split.bytes);
   expect(splitPdf.getPageCount()).toBe(2);
+  await expectNoHorizontalOverflow(page);
+});
+
+test("mobile delete and rotate tools expose focused controls and preserve native pages", async ({ page }, testInfo) => {
+  test.skip(!phoneExportProjects.has(testInfo.project.name), "This focused workflow validates both released phone engines.");
+  const source = await textPdf("KEEP PAGE ONE", "REMOVE PAGE TWO", "ROTATE PAGE THREE");
+
+  await page.goto(appPath("/delete-pdf-pages"));
+  await page.locator('input[type="file"]').setInputFiles({ name: "page-actions.pdf", mimeType: "application/pdf", buffer: source });
+  await expect(page.getByRole("button", { name: "Delete page" })).toHaveCount(3);
+  await expect(page.getByRole("button", { name: "Rotate page" })).toHaveCount(0);
+  await page.getByRole("button", { name: "Delete page" }).nth(1).click();
+  await expect(page.getByText("2 output pages")).toBeVisible();
+  const deleted = await downloadBytes(page, "Download PDF with pages removed");
+  expect(deleted.download.suggestedFilename()).toBe("page-actions-pages-removed.pdf");
+  const deletedPdf = await pdfjsLib.getDocument({ data: deleted.bytes.slice(0), disableWorker: true, verbosity: 0 }).promise;
+  expect(deletedPdf.numPages).toBe(2);
+  const deletedText = [];
+  for (let pageNumber = 1; pageNumber <= deletedPdf.numPages; pageNumber += 1) {
+    const content = await (await deletedPdf.getPage(pageNumber)).getTextContent();
+    deletedText.push(content.items.map((item) => item.str).join(" "));
+  }
+  expect(deletedText).toEqual(["KEEP PAGE ONE", "ROTATE PAGE THREE"]);
+  await expectNoHorizontalOverflow(page);
+
+  await page.goto(appPath("/rotate-pdf"));
+  await page.locator('input[type="file"]').setInputFiles({ name: "page-actions.pdf", mimeType: "application/pdf", buffer: source });
+  await expect(page.getByRole("button", { name: "Rotate page" })).toHaveCount(3);
+  await expect(page.getByRole("button", { name: "Delete page" })).toHaveCount(0);
+  await page.getByRole("button", { name: "Rotate page" }).first().click();
+  await expect(page.getByText("Original 1 · 90°")).toBeVisible();
+  const rotated = await downloadBytes(page, "Download rotated PDF");
+  expect(rotated.download.suggestedFilename()).toBe("page-actions-rotated.pdf");
+  const rotatedPdf = await PDFDocument.load(rotated.bytes);
+  expect(rotatedPdf.getPageCount()).toBe(3);
+  expect(rotatedPdf.getPage(0).getRotation().angle).toBe(90);
+  expect(rotatedPdf.getPage(1).getRotation().angle).toBe(0);
   await expectNoHorizontalOverflow(page);
 });
 
