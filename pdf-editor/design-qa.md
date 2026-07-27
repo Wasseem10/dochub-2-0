@@ -1,34 +1,32 @@
-# PDF.js Signed Review and Mobile More — QA
+# Mobile Page Organizer — QA
 
 ## Browser evidence
 
-- `work/design-qa/pdfjs-review-mobile-more-2026-07-26/signed-review-pdfjs-390x844.png`
-- `work/design-qa/pdfjs-review-mobile-more-2026-07-26/mobile-more-390x844.png`
-- `work/design-qa/pdfjs-review-mobile-more-2026-07-26/mobile-more-320x700.png`
+- `work/design-qa/mobile-page-organizer-2026-07-27/organizer-390x844.png`
+- `work/design-qa/mobile-page-organizer-2026-07-27/organizer-320x700.png`
 
-## Signed review checks
+## Layout checks
 
-- Exported a locally saved PDF containing a signature and confirmed verification completed before review opened.
-- Confirmed the review contains one PDF.js canvas and zero iframes.
-- Confirmed the rendered page is visible at 390 × 844, including the placed signature.
-- Confirmed previous/next state, page count, 60–180% zoom limits, and a working 120% re-render.
-- Confirmed loading feedback, render-error messaging, page-level Retry, Done, and second-copy download are present.
+- Confirmed Manage Pages opens as a full 390 × 844 and 320 × 700 viewport workspace rather than a side rail.
+- Confirmed the Done action, page count, Undo, Redo, Add blank, and Import PDF remain visible above the scrolling page list.
+- Confirmed every page has a readable 112px-wide uncropped preview, a dedicated 42 × 76px touch drag handle, and finger-sized move, duplicate, rotate, and delete controls.
+- Confirmed the 320px layout uses a two-column action grid without page-level or document-level horizontal overflow.
 
-## Mobile More checks
+## Interaction checks
 
-- Confirmed a true viewport-level bottom sheet with a dimmed backdrop, 44px close control, internal scrolling, and safe-area-aware padding.
-- Confirmed the sheet is anchored to the viewport bottom at both 390 × 844 and 320 × 700.
-- Confirmed no horizontal overflow at 320px.
-- Confirmed grouped Edit & mark up, Insert, Shapes, and Document sections contain every tool hidden from the six-action dock.
-- Activated Whiteout from the sheet, confirmed the sheet closed, and confirmed the operational placement guidance appeared.
+- Added a blank page and confirmed the page count, current page, Undo, and Redo states update.
+- Duplicated page 2 and confirmed the duplicate becomes the current page.
+- Reordered pages with both the move buttons and a pointer drag from the dedicated touch handle.
+- Rotated a portrait page to landscape and confirmed the thumbnail updates from 112 × 145px to 112 × 86.5px.
+- Undid all QA changes and restored the original three-page document.
+- Confirmed Done returns to the unobstructed editor and restores normal page scrolling.
 - Confirmed no browser console errors.
 
 ## Automated verification
 
 - TypeScript: passed.
-- PDF review, mobile More inventory, and signed-export tests: 8 passed.
-- Full automated suite: 256 tests passed across 68 files.
-- Production build and 114-route prerender: passed.
-- Public mobile-loading budget: passed.
+- Vitest: 68 test files and 257 tests passed.
+- Production editorial audit, sitemap generation, Vite build, 114-route prerender, Sites preparation, and public performance budget: passed.
+- `git diff --check`: passed.
 
-final result: passed
+Final result: passed.

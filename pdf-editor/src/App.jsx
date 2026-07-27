@@ -123,7 +123,7 @@ import {
   removeSavedEditorSignature,
   upsertSavedEditorSignature,
 } from "./tools/editorSignature.js";
-import { duplicateEditorPageState, rotateEditorPageRecord } from "./tools/editorPageOrganizer.js";
+import { duplicateEditorPageState, reorderEditorPageState, rotateEditorPageRecord } from "./tools/editorPageOrganizer.js";
 import { applyNativePdfFormAnnotation, createEditorExportDocument } from "./tools/pdfEditorPageExport.js";
 import { verifySignedPdfExport } from "./tools/pdfExportVerification.js";
 import { sanitizeReplacedPdfBytes } from "./tools/pdfExportSanitizer.js";
@@ -154,6 +154,10 @@ const ZOOM_PRESETS = [40, 50, 60, 80, 90, 100, 120, 140, 160];
 
 function usesMobileEditorLayout() {
   return typeof window !== "undefined" && window.matchMedia("(max-width: 900px)").matches;
+}
+
+function usesPhoneEditorLayout() {
+  return typeof window !== "undefined" && window.matchMedia("(max-width: 600px)").matches;
 }
 
 const colors = {
@@ -1957,6 +1961,8 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   const shapeMenuRef = useRef(null);
   const compactToolsMenuRef = useRef(null);
   const compactToolsCloseRef = useRef(null);
+  const mobilePageOrganizerDoneRef = useRef(null);
+  const pagePointerDragRef = useRef(null);
   const canvasColumnRef = useRef(null);
   const publicDocumentRecoveryRef = useRef(new Set());
   const trackedDocumentOpenRef = useRef(new Set());
@@ -2965,6 +2971,25 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     };
   }, [isCompactToolsMenuOpen]);
 
+  useEffect(() => {
+    if (!isManagePagesOpen || !usesPhoneEditorLayout()) return undefined;
+    const previousBodyOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const focusFrame = window.requestAnimationFrame(() => mobilePageOrganizerDoneRef.current?.focus());
+    const closeOnEscape = (event) => {
+      if (event.key !== "Escape") return;
+      setIsManagePagesOpen(false);
+      setIsPagesCollapsed(true);
+    };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => {
+      window.cancelAnimationFrame(focusFrame);
+      window.removeEventListener("keydown", closeOnEscape);
+      document.body.style.overflow = previousBodyOverflow;
+      pagePointerDragRef.current = null;
+    };
+  }, [isManagePagesOpen]);
+
   const selectPdfFile = () => {
     fileInputRef.current?.click();
   };
@@ -3448,31 +3473,62 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   const rotateCurrentPage = () => rotatePageAt(pageIndex);
 
   const reorderPage = (fromIndex, toIndex) => {
-    if (fromIndex < 0 || fromIndex >= pages.length || toIndex < 0 || toIndex >= pages.length || fromIndex === toIndex) return;
-    const remapIndex = (index) => {
-      if (index === fromIndex) return toIndex;
-      if (fromIndex < toIndex && index > fromIndex && index <= toIndex) return index - 1;
-      if (toIndex < fromIndex && index >= toIndex && index < fromIndex) return index + 1;
-      return index;
-    };
-    pushHistorySnapshot();
-    setPages((items) => {
-      const next = [...items];
-      const [movedPage] = next.splice(fromIndex, 1);
-      next.splice(toIndex, 0, movedPage);
-      return next.map((page, index) => ({ ...page, number: index + 1 }));
+    const next = reorderEditorPageState({
+      pages,
+      annotations,
+      detectedTextItems,
+      fromIndex,
+      toIndex,
     });
-    setAnnotations((items) => items.map((annotation) => ({ ...annotation, page: remapIndex(annotation.page) })));
-    setDetectedTextItems((items) => items.map((item) => ({ ...item, pageNumber: remapIndex(item.pageNumber) })));
+    if (next.pages === pages) return;
+    pushHistorySnapshot();
+    setPages(next.pages);
+    setAnnotations(next.annotations);
+    setDetectedTextItems(next.detectedTextItems);
     setSelectedId(null);
     setSelectedDetectedTextId(null);
-    setPageIndex(toIndex);
+    setPageIndex(next.pageIndex);
     markUnsaved();
     showToast(`Moved page ${fromIndex + 1} to position ${toIndex + 1}.`);
   };
 
-  const moveCurrentPage = (direction) => {
-    reorderPage(pageIndex, pageIndex + direction);
+  const startPagePointerReorder = (event, fromIndex) => {
+    if (!isManagePagesOpen || !usesPhoneEditorLayout()) return;
+    event.preventDefault();
+    event.stopPropagation();
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+    pagePointerDragRef.current = { fromIndex, targetIndex: fromIndex };
+    setDraggedPageIndex(fromIndex);
+    setPageDropIndex(fromIndex);
+  };
+
+  const updatePagePointerReorder = (event) => {
+    const session = pagePointerDragRef.current;
+    if (!session) return;
+    event.preventDefault();
+    const targetItem = document.elementsFromPoint(event.clientX, event.clientY)
+      .map((element) => element.closest?.("[data-organizer-page-index]"))
+      .find(Boolean);
+    const targetIndex = Number.parseInt(targetItem?.dataset?.organizerPageIndex || "", 10);
+    if (!Number.isInteger(targetIndex) || targetIndex === session.targetIndex) return;
+    pagePointerDragRef.current = { ...session, targetIndex };
+    setPageDropIndex(targetIndex);
+  };
+
+  const finishPagePointerReorder = (event, shouldCommit = true) => {
+    const session = pagePointerDragRef.current;
+    if (!session) return;
+    event.preventDefault();
+    event.stopPropagation();
+    if (event.currentTarget.hasPointerCapture?.(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+    pagePointerDragRef.current = null;
+    setDraggedPageIndex(null);
+    setPageDropIndex(null);
+    if (shouldCommit && session.fromIndex !== session.targetIndex) {
+      reorderPage(session.fromIndex, session.targetIndex);
+    }
   };
 
   const hydrateDocument = useCallback(async (documentRecord) => {
@@ -5526,7 +5582,17 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
             </button>
           );})}
         </aside>
-        <aside id="page-thumbnails" className={`pages-panel ${isPagesCollapsed ? "is-collapsed" : ""}`}>
+        <aside
+          id="page-thumbnails"
+          className={`pages-panel ${isPagesCollapsed ? "is-collapsed" : ""}`}
+          aria-label={isManagePagesOpen ? "Page organizer" : "Page thumbnails"}
+          role={isManagePagesOpen && usesPhoneEditorLayout() ? "dialog" : undefined}
+          aria-modal={isManagePagesOpen && usesPhoneEditorLayout() ? "true" : undefined}
+          aria-labelledby={isManagePagesOpen && usesPhoneEditorLayout() ? "mobile-page-organizer-title" : undefined}
+          onPointerMove={isManagePagesOpen ? updatePagePointerReorder : undefined}
+          onPointerUp={isManagePagesOpen ? (event) => finishPagePointerReorder(event) : undefined}
+          onPointerCancel={isManagePagesOpen ? (event) => finishPagePointerReorder(event, false) : undefined}
+        >
           <div className="panel-title pdfnet-page-title">
             <strong>Thumbnails</strong>
             <div>
@@ -5544,6 +5610,33 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
               </button>
             </div>
           </div>
+          {isManagePagesOpen && (
+            <>
+              <header className="mobile-page-organizer-header">
+                <div>
+                  <span>Page organizer</span>
+                  <h2 id="mobile-page-organizer-title">Manage pages</h2>
+                  <small>{pages.length} {pages.length === 1 ? "page" : "pages"} in this document</small>
+                </div>
+                <button
+                  ref={mobilePageOrganizerDoneRef}
+                  type="button"
+                  onClick={() => {
+                    setIsManagePagesOpen(false);
+                    setIsPagesCollapsed(true);
+                  }}
+                >
+                  Done
+                </button>
+              </header>
+              <div className="mobile-page-organizer-actions" aria-label="Page organizer actions">
+                <button type="button" onClick={undo} disabled={!undoStack.length}><Undo2 size={18} /><span>Undo</span></button>
+                <button type="button" onClick={redo} disabled={!redoStack.length}><Redo2 size={18} /><span>Redo</span></button>
+                <button type="button" onClick={addBlankPage}><FilePlus2 size={18} /><span>Add blank</span></button>
+                <button type="button" onClick={() => appendFileInputRef.current?.click()}><Upload size={18} /><span>Import PDF</span></button>
+              </div>
+            </>
+          )}
           {isManagePagesOpen && <div className="page-organizer-controls">
             <div className="page-organizer-heading">
               <div><strong>Manage pages</strong><span>Page {pageIndex + 1} of {pages.length}</span></div>
@@ -5567,7 +5660,25 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
           </div>}
           <div className={`thumbnail-list ${viewMode}`}>
             {pages.map((page, index) => (
-              <div key={page.id} className="page-thumbnail-item">
+              <div
+                key={page.id}
+                className="page-thumbnail-item"
+                data-organizer-page-index={index}
+              >
+              {isManagePagesOpen && (
+                <button
+                  type="button"
+                  className="mobile-page-drag-handle"
+                  aria-label={`Drag page ${index + 1} to reorder`}
+                  onPointerDown={(event) => startPagePointerReorder(event, index)}
+                  onPointerMove={updatePagePointerReorder}
+                  onPointerUp={(event) => finishPagePointerReorder(event)}
+                  onPointerCancel={(event) => finishPagePointerReorder(event, false)}
+                >
+                  <GripVertical size={18} />
+                  <span>Drag</span>
+                </button>
+              )}
               <button
                 type="button"
                 className={`thumbnail ${pageIndex === index ? "is-selected" : ""} ${draggedPageIndex === index ? "is-dragging" : ""} ${pageDropIndex === index && draggedPageIndex !== index ? "is-drop-target" : ""}`}
@@ -5615,10 +5726,10 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
                 </div>
                 <span className="thumbnail-label">{index + 1}</span>
               </button>
-              {isManagePagesOpen && pageIndex === index && (
+              {isManagePagesOpen && (pageIndex === index || usesPhoneEditorLayout()) && (
                 <div className="thumbnail-inline-actions" aria-label={`Actions for page ${index + 1}`}>
-                  <button type="button" title={`Move page ${index + 1} up`} aria-label={`Move page ${index + 1} up`} onClick={() => moveCurrentPage(-1)} disabled={index === 0}><ChevronUp size={14} /></button>
-                  <button type="button" title={`Move page ${index + 1} down`} aria-label={`Move page ${index + 1} down`} onClick={() => moveCurrentPage(1)} disabled={index === pages.length - 1}><ChevronDown size={14} /></button>
+                  <button type="button" title={`Move page ${index + 1} up`} aria-label={`Move page ${index + 1} up`} onClick={() => reorderPage(index, index - 1)} disabled={index === 0}><ChevronUp size={14} /></button>
+                  <button type="button" title={`Move page ${index + 1} down`} aria-label={`Move page ${index + 1} down`} onClick={() => reorderPage(index, index + 1)} disabled={index === pages.length - 1}><ChevronDown size={14} /></button>
                   <button type="button" title={`Duplicate page ${index + 1}`} aria-label={`Duplicate page ${index + 1}`} onClick={() => duplicatePageAt(index)}><Copy size={14} /></button>
                   <button type="button" title={`Rotate page ${index + 1}`} aria-label={`Rotate page ${index + 1}`} onClick={() => rotatePageAt(index)}><RotateCw size={14} /></button>
                   <button type="button" title={`Delete page ${index + 1}`} aria-label={`Delete page ${index + 1}`} onClick={() => deletePageAt(index)} disabled={pages.length <= 1}><Trash2 size={14} /></button>
