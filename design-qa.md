@@ -1,38 +1,36 @@
-# Signature Placement and SEO — QA
+# Mobile Signing and Signed Export — QA
 
-## Signature workflow
+## Browser evidence
 
-- Browser capture: `work/design-qa/signature-placement-seo-2026-07-26/signature-shelf.png`
-- Placement preview: `work/design-qa/signature-placement-seo-2026-07-26/placement-preview.png`
-- Selected placement: `work/design-qa/signature-placement-seo-2026-07-26/placed-selection.png`
+- `work/design-qa/mobile-signing-export-2026-07-26/mobile-signature-sheet-390.png`
+- `work/design-qa/mobile-signing-export-2026-07-26/mobile-signature-sheet-320.png`
+- `work/design-qa/mobile-signing-export-2026-07-26/mobile-placement-controls-390.png`
+- `work/design-qa/mobile-signing-export-2026-07-26/mobile-touch-handles-390.png`
+- `work/design-qa/mobile-signing-export-2026-07-26/signed-export-review-320.png`
 
-The saved-signature shelf remains compact beneath the primary editor command bar. A signature follows the pointer as a translucent proof with a clear “Click to place” cue. After placement, the existing normalized selection model appears with eight resize handles, rotation, movement, deletion, and undo.
+## Mobile signing checks
 
-Browser checks:
+- Verified the signature creator as a bottom sheet at 390 × 844 and 320 × 700.
+- Drew a signature with a touch-style pointer gesture and confirmed Save becomes enabled.
+- Confirmed Draw, Type, Upload, Clear, Preview, Cancel, and Save remain visible without overlap.
+- Confirmed the placement sheet clears both the six-action dock and the zoom/page capsule.
+- Placed a drawn signature and verified eight 28px resize touch targets, a 34px rotation target, and 42px object action buttons.
+- Confirmed the rotation target is visually separated from the object action bar.
 
-- Created and saved a typed signature.
-- Confirmed the saved signature appears in the placement shelf.
-- Confirmed the placement ghost follows the page pointer.
-- Placed the signature and verified eight resize handles.
-- Verified Undo becomes available after placement.
-- Reloaded the editor and confirmed the saved signature remains available without reopening the creation dialog.
-- Removed the saved signature and confirmed the next Sign action returns to the creation dialog.
+## Signed export checks
 
-## SEO implementation
+- Typed signatures scale with their resized box.
+- Drawn and uploaded images preserve their aspect ratio and transparent pixels.
+- Rotation is exported around the visual center rather than the lower-left corner.
+- Signed exports are reopened in an in-app review surface only after PDF.js verifies every signature on its intended page.
+- Browser export check verified two signature items on one page and exposed a second-copy download.
+- No browser console errors or warnings were produced.
 
-- All 108 canonical sitemap URLs now include a valid `lastmod` date.
-- Every prerendered WebPage schema now includes `dateModified`.
-- Deprecated HowTo schema and restricted FAQPage schema were removed while the visible how-to and FAQ content remains on the pages.
-- The SEO audit now rejects missing sitemap freshness signals and outdated HowTo/FAQ markup.
-- Canonicals, titles, descriptions, indexability, one-H1 structure, crawlable internal links, and performance budgets continue to pass.
-
-## Verification
+## Automated verification
 
 - TypeScript: passed.
-- Signature and registry unit tests: 11 passed.
-- Production build and prerender: passed.
-- Public performance budget: passed.
-- SEO audit: passed for 108 canonical routes, 68 released tools, and 6 comparison routes.
-- ESLint: no errors; existing repository warnings remain.
+- Signed export, page export, and signature geometry tests: 10 passed.
+- Production build and 114-route prerender: passed.
+- Public mobile-loading budget: passed.
 
 final result: passed

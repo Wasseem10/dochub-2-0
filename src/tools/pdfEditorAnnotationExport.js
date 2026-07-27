@@ -1,4 +1,5 @@
 import { degrees, rgb } from "pdf-lib";
+import { drawPdfSignatureAnnotation } from "./pdfSignatureExport.js";
 
 function colorFromHex(hex = "#0f172a") {
   const normalized = String(hex).replace("#", "");
@@ -25,6 +26,17 @@ export async function drawFlattenedInputAnnotation({
   if (!supported.has(annotation.type)) return false;
   const { width, height } = page.getSize();
   const color = colorFromHex(annotation.color);
+
+  if (annotation.type === "signature" || annotation.type === "initials") {
+    return drawPdfSignatureAnnotation({
+      pdfDoc,
+      page,
+      annotation,
+      font: timesItalic,
+      color,
+      embedDataUrlImage,
+    });
+  }
 
   if (annotation.type === "checkbox") {
     const markWidth = annotation.w * width;
@@ -87,13 +99,5 @@ export async function drawFlattenedInputAnnotation({
     return true;
   }
 
-  if (annotation.imageDataUrl) {
-    const image = await embedDataUrlImage(pdfDoc, annotation.imageDataUrl);
-    if (image) {
-      page.drawImage(image, { x: annotation.x * width, y: height - annotation.y * height - annotation.h * height, width: annotation.w * width, height: annotation.h * height, opacity: annotation.opacity, rotate: degrees(Number(annotation.rotation || 0)) });
-    }
-  } else if (String(annotation.content || "").trim()) {
-    page.drawText(annotation.content, { x: annotation.x * width + 6, y: height - annotation.y * height - annotation.h * height + 7, size: annotation.fontSize, font: timesItalic, color, opacity: annotation.opacity, rotate: degrees(Number(annotation.rotation || 0)) });
-  }
   return true;
 }

@@ -125,6 +125,7 @@ import {
 } from "./tools/editorSignature.js";
 import { duplicateEditorPageState, rotateEditorPageRecord } from "./tools/editorPageOrganizer.js";
 import { applyNativePdfFormAnnotation, createEditorExportDocument } from "./tools/pdfEditorPageExport.js";
+import { verifySignedPdfExport } from "./tools/pdfExportVerification.js";
 import { sanitizeReplacedPdfBytes } from "./tools/pdfExportSanitizer.js";
 import { closePdfPrintTarget, createPdfPrintTarget, renderPdfDocumentForPrint } from "./tools/pdfPrint.js";
 
@@ -1987,6 +1988,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   const [draggedPageIndex, setDraggedPageIndex] = useState(null);
   const [pageDropIndex, setPageDropIndex] = useState(null);
   const [isExporting, setIsExporting] = useState(false);
+  const [signedExportReview, setSignedExportReview] = useState(null);
   const [uploadError, setUploadError] = useState("");
   const [uploadStage, setUploadStage] = useState({ status: "idle", percent: 0, fileName: "" });
   const [isDraggingFile, setIsDraggingFile] = useState(false);
@@ -4675,22 +4677,47 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     }
     let bytes = await pdfDoc.save();
     if (rebuiltPageIndexes.size) bytes = await sanitizeReplacedPdfBytes(bytes);
+    const signatureAnnotations = annotations.filter((annotation) => (
+      ["signature", "initials"].includes(annotation.type)
+      && (annotation.imageDataUrl || String(annotation.content || "").trim())
+    ));
+    const signatureVerification = signatureAnnotations.length
+      ? await verifySignedPdfExport({
+        bytes,
+        annotations: signatureAnnotations,
+        getDocument: (source) => pdfjsLib.getDocument(source),
+        operations: pdfjsLib.OPS,
+      })
+      : null;
     const exported = {
       bytes,
       blob: new Blob([bytes], { type: "application/pdf" }),
       name: fileName.replace(/\.pdf$/i, "") + "-edited.pdf",
+      signatureVerification,
     };
     if (shouldDownload) {
       downloadBlob(exported.blob, exported.name, analyticsToolId);
+      if (signatureVerification?.ok) {
+        setSignedExportReview((currentReview) => {
+          if (currentReview?.url) URL.revokeObjectURL(currentReview.url);
+          return {
+            url: URL.createObjectURL(exported.blob),
+            name: exported.name,
+            verification: signatureVerification,
+          };
+        });
+      }
       operation?.succeed({ pageCountBucket: pageCountBucket(pages.length) });
     }
     setSaved(true);
     setSaveState("saved");
-    if (shouldShowResult) showToast(rebuiltPageIndexes.size
-      ? "Exported with replaced text permanently removed from the PDF."
-      : nativeSourcePreserved
-      ? "Exported edits while preserving the original PDF structure."
-      : "Exported PDF with the updated page order and edits.");
+    if (shouldShowResult) showToast(signatureVerification?.ok
+      ? `Export verified: ${signatureVerification.verifiedCount} signature ${signatureVerification.verifiedCount === 1 ? "item" : "items"} reopened for review.`
+      : rebuiltPageIndexes.size
+        ? "Exported with replaced text permanently removed from the PDF."
+        : nativeSourcePreserved
+          ? "Exported edits while preserving the original PDF structure."
+          : "Exported PDF with the updated page order and edits.");
     return exported;
     } catch (error) {
       operation?.fail("editor_export_failed");
@@ -5883,6 +5910,15 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
           fileName={fileName}
           onClose={() => setProtectModalOpen(false)}
           onProtect={protectDocument}
+        />
+      )}
+      {signedExportReview && (
+        <SignedPdfReviewModal
+          review={signedExportReview}
+          onClose={() => {
+            URL.revokeObjectURL(signedExportReview.url);
+            setSignedExportReview(null);
+          }}
         />
       )}
       {linkEditor && (
@@ -8146,6 +8182,29 @@ function LinkModal({ initialUrl = "https://", isEditing = false, onClose, onSave
   );
 }
 
+function SignedPdfReviewModal({ review, onClose }) {
+  if (!review) return null;
+  return (
+    <div className="modal-backdrop signed-pdf-review-backdrop" role="dialog" aria-modal="true" aria-labelledby="signed-pdf-review-title">
+      <section className="signed-pdf-review-modal">
+        <header>
+          <div>
+            <span className="signed-pdf-review-status"><CheckCircle2 size={16} /> Export verified</span>
+            <h2 id="signed-pdf-review-title">Review your signed PDF</h2>
+            <p>{review.verification.verifiedCount} signature {review.verification.verifiedCount === 1 ? "item" : "items"} checked across {review.verification.pageCount} {review.verification.pageCount === 1 ? "page" : "pages"}.</p>
+          </div>
+          <button type="button" className="modal-close" aria-label="Close signed PDF review" onClick={onClose}><X size={20} /></button>
+        </header>
+        <iframe src={review.url} title={`Review ${review.name}`} />
+        <footer>
+          <button type="button" className="modal-secondary" onClick={onClose}>Done</button>
+          <a className="modal-primary" href={review.url} download={review.name}><Download size={16} /> Download another copy</a>
+        </footer>
+      </section>
+    </div>
+  );
+}
+
 function SignatureModal({ defaultName, mode = "signature", onClose, onSave }) {
   const canvasRef = useRef(null);
   const fileRef = useRef(null);
@@ -8278,7 +8337,7 @@ function SignatureModal({ defaultName, mode = "signature", onClose, onSave }) {
   };
 
   return (
-    <div className="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="signature-modal-title" aria-describedby="signature-modal-description">
+    <div className="modal-backdrop signature-proof-backdrop" role="dialog" aria-modal="true" aria-labelledby="signature-modal-title" aria-describedby="signature-modal-description">
       <section className="signature-modal signature-proof-modal">
         <header className="signature-proof-header">
           <div>
@@ -8324,13 +8383,15 @@ function SignatureModal({ defaultName, mode = "signature", onClose, onSave }) {
                   width="760"
                   height="220"
                   aria-label="Signature drawing area"
+                  aria-describedby="signature-draw-help"
                   onPointerDown={drawStart}
                   onPointerMove={drawMove}
                   onPointerUp={drawEnd}
                   onPointerCancel={drawEnd}
                   onPointerLeave={drawEnd}
                 />
-                {!hasInk && <div className="signature-proof-cue" aria-hidden="true"><PenLine size={34} strokeWidth={1.5} /><span>Sign on the line</span></div>}
+                <span id="signature-draw-help" className="sr-only">Draw with your finger, stylus, or pointer. You can also switch to Type for a keyboard-accessible signature.</span>
+                {!hasInk && <div className="signature-proof-cue" aria-hidden="true"><PenLine size={34} strokeWidth={1.5} /><span>Sign on the line</span><small>Use your finger, stylus, or pointer</small></div>}
               </div>
             )}
 
