@@ -28,6 +28,11 @@ export function isSupportedOcrLanguage(language) {
   return OCR_LANGUAGES.some((option) => option.value === language);
 }
 
+export function formatOcrPageReadiness(pageCount) {
+  const count = Math.max(0, Math.trunc(Number(pageCount) || 0));
+  return `${count} page${count === 1 ? "" : "s"} ready for OCR`;
+}
+
 export function ocrRenderScaleForPage(width, height) {
   const safeWidth = Math.max(1, Number(width) || 1);
   const safeHeight = Math.max(1, Number(height) || 1);

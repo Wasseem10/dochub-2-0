@@ -4,6 +4,7 @@ import {
   createSearchablePdfFromOcrPages,
   enhanceOcrImageData,
   flattenOcrWords,
+  formatOcrPageReadiness,
   isSupportedOcrLanguage,
   ocrRenderScaleForPage,
   ocrTextFromPages,
@@ -47,6 +48,11 @@ describe("OCR PDF output", () => {
     expect(isSupportedOcrLanguage("spa")).toBe(true);
     expect(isSupportedOcrLanguage("jpn")).toBe(false);
     expect(ocrRenderScaleForPage(10_000, 10_000)).toBe(1.4);
+  });
+
+  it("uses correct page grammar in the ready state", () => {
+    expect(formatOcrPageReadiness(1)).toBe("1 page ready for OCR");
+    expect(formatOcrPageReadiness(2)).toBe("2 pages ready for OCR");
   });
 
   it("keeps accented OCR text in the extracted TXT output", () => {
