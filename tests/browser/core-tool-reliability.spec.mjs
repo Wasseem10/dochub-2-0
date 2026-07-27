@@ -202,6 +202,38 @@ test("mobile delete and rotate tools expose focused controls and preserve native
   await expectNoHorizontalOverflow(page);
 });
 
+test("mobile page numbers, watermarks, and crops produce verifiable PDF output", async ({ page }, testInfo) => {
+  test.skip(!phoneExportProjects.has(testInfo.project.name), "This focused workflow validates both released phone engines.");
+  const source = await textPdf("MOBILE PAGE FINISHING");
+
+  await page.goto(appPath("/add-page-numbers"));
+  await page.locator('input[type="file"]').setInputFiles({ name: "finishing.pdf", mimeType: "application/pdf", buffer: source });
+  await page.getByLabel("Start at").fill("7");
+  const numbered = await downloadBytes(page, "Download numbered PDF");
+  const numberedPdf = await pdfjsLib.getDocument({ data: numbered.bytes.slice(0), disableWorker: true, verbosity: 0 }).promise;
+  const numberedText = await (await numberedPdf.getPage(1)).getTextContent();
+  expect(numberedText.items.map((item) => item.str)).toContain("7");
+  await expectNoHorizontalOverflow(page);
+
+  await page.goto(appPath("/watermark-pdf"));
+  await page.locator('input[type="file"]').first().setInputFiles({ name: "finishing.pdf", mimeType: "application/pdf", buffer: source });
+  await page.getByLabel("Text", { exact: true }).fill("REVIEW COPY");
+  const watermarked = await downloadBytes(page, "Download watermarked PDF");
+  const watermarkedPdf = await pdfjsLib.getDocument({ data: watermarked.bytes.slice(0), disableWorker: true, verbosity: 0 }).promise;
+  const watermarkedText = await (await watermarkedPdf.getPage(1)).getTextContent();
+  expect(watermarkedText.items.map((item) => item.str)).toContain("REVIEW COPY");
+  await expectNoHorizontalOverflow(page);
+
+  await page.goto(appPath("/crop-pdf"));
+  await page.locator('input[type="file"]').setInputFiles({ name: "finishing.pdf", mimeType: "application/pdf", buffer: source });
+  await page.getByRole("button", { name: "Trim 5%" }).click();
+  const cropped = await downloadBytes(page, "Download cropped PDF");
+  const croppedPdf = await PDFDocument.load(cropped.bytes);
+  expect(croppedPdf.getPage(0).getCropBox().width).toBeCloseTo(550.8, 1);
+  expect(croppedPdf.getPage(0).getCropBox().height).toBeCloseTo(712.8, 1);
+  await expectNoHorizontalOverflow(page);
+});
+
 test("signing places a signature and exports it in the PDF", async ({ page }, testInfo) => {
   test.skip(!primaryExportProjects.has(testInfo.project.name), "Signed output validation runs on the primary desktop and phone engines.");
   await page.goto(appPath("/sign-pdf"));
