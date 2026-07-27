@@ -57,8 +57,8 @@ describe("PDFArrow tool registry", () => {
     expect(TOOL_CATEGORY_PAGES.every(({ seoTitle, metaDescription, guidance }) => seoTitle.includes("PDFArrow") && metaDescription.length > 80 && guidance.length === 3)).toBe(true);
   });
 
-  it("provides substantial, unique guidance for the ten highest-intent tools", () => {
-    expect(HIGH_INTENT_TOOL_IDS).toHaveLength(10);
+  it("provides substantial, unique guidance for the eleven highest-intent tools", () => {
+    expect(HIGH_INTENT_TOOL_IDS).toHaveLength(11);
     for (const toolId of HIGH_INTENT_TOOL_IDS) {
       const tool = TOOL_REGISTRY.find(({ id }) => id === toolId);
       expect(tool, toolId).toBeTruthy();
@@ -73,6 +73,11 @@ describe("PDFArrow tool registry", () => {
       expect(tool.faqEntries).toHaveLength(5);
       expect(tool.privacySummary.length).toBeGreaterThan(80);
     }
+    const translate = TOOL_REGISTRY.find(({ id }) => id === "translate-pdf");
+    expect(translate.steps.join(" ")).toContain("source");
+    expect(translate.steps.join(" ")).toContain("target");
+    expect(translate.verificationChecklist.join(" ")).toContain("does not preserve");
+    expect(translate.faqEntries.some(({ answer }) => answer.includes("English as the target"))).toBe(true);
   });
 
   it("keeps tool structured data focused on currently supported search features", () => {
