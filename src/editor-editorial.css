@@ -818,6 +818,78 @@ main.editor-shell .annotation-controls button:hover {
   }
 }
 
+.reference-compact-tools-backdrop {
+  display: contents;
+}
+
+.reference-compact-tools-backdrop > .reference-compact-tools-menu {
+  position: fixed;
+  top: 126px;
+  right: 8px;
+  z-index: 950;
+  width: min(480px, calc(100vw - 16px));
+  max-height: calc(100dvh - 144px);
+  padding: 10px;
+  overflow-y: auto;
+  border: 1px solid #d7deea;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 18px 46px rgba(23, 37, 62, 0.22);
+}
+
+.reference-compact-tools-backdrop .mobile-more-header {
+  display: none;
+}
+
+.reference-compact-tools-backdrop .mobile-more-scroll {
+  display: grid;
+  gap: 12px;
+}
+
+.reference-compact-tools-backdrop .reference-compact-tools-grid,
+.reference-compact-tools-backdrop .reference-compact-tools-footer {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.reference-compact-tools-backdrop .reference-compact-tools-grid button,
+.reference-compact-tools-backdrop .reference-compact-tools-footer button {
+  display: flex;
+  min-width: 0;
+  min-height: 54px;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: #f7f9fc;
+  color: #2c3545;
+  font: 700 11px/1.2 "DM Sans", Arial, sans-serif;
+}
+
+.reference-compact-tools-backdrop .reference-compact-tools-grid button {
+  flex-direction: column;
+}
+
+.reference-compact-tools-backdrop .reference-compact-tools-footer {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.reference-compact-tools-backdrop .mobile-more-section h3 {
+  margin: 0 0 7px;
+  color: #667085;
+  font: 750 10px/1.2 "DM Sans", Arial, sans-serif;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.reference-compact-tools-backdrop .mobile-more-section + .mobile-more-section {
+  padding-top: 10px;
+  border-top: 1px solid #e5e7eb;
+}
+
 /* Dedicated touch layout: the document owns the viewport and editing actions
    live in a stable bottom dock instead of overlapping flex groups. */
 @media (max-width: 600px) {
@@ -910,36 +982,149 @@ main.editor-shell .annotation-controls button:hover {
     content: "Move";
   }
 
-  main.editor-shell .reference-compact-tools-menu {
+  .reference-compact-tools-backdrop {
     position: fixed !important;
-    inset: auto 8px 130px 8px !important;
-    z-index: 950 !important;
-    width: auto !important;
-    max-height: min(62dvh, 520px) !important;
-    padding: 12px !important;
-    overflow-y: auto !important;
-    border: 1px solid #d7deea !important;
-    border-radius: 20px !important;
-    background: #fff !important;
-    box-shadow: 0 20px 52px rgba(23, 37, 62, 0.24) !important;
+    inset: 0 !important;
+    z-index: 940 !important;
+    display: flex !important;
+    align-items: flex-end !important;
+    justify-content: stretch !important;
+    background: rgba(15, 23, 42, 0.36) !important;
+    backdrop-filter: blur(3px) !important;
   }
 
-  main.editor-shell .reference-compact-tools-grid {
+  .reference-compact-tools-backdrop > .reference-compact-tools-menu {
+    position: relative !important;
+    inset: auto !important;
+    z-index: 950 !important;
+    display: flex !important;
+    width: 100% !important;
+    max-width: none !important;
+    max-height: min(82dvh, 720px) !important;
+    flex-direction: column !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    border: 1px solid #d7deea !important;
+    border-bottom: 0 !important;
+    border-radius: 22px 22px 0 0 !important;
+    background: #fff !important;
+    box-shadow: 0 -16px 54px rgba(23, 37, 62, 0.24) !important;
+    animation: mobile-more-sheet-in 180ms ease-out !important;
+  }
+
+  .reference-compact-tools-backdrop .mobile-more-header {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 2 !important;
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) 44px !important;
+    align-items: center !important;
+    min-height: 78px !important;
+    padding: 18px 16px 10px !important;
+    border-bottom: 1px solid #e5e7eb !important;
+    background: #fff !important;
+  }
+
+  .reference-compact-tools-backdrop .mobile-more-drag-handle {
+    position: absolute !important;
+    top: 8px !important;
+    left: 50% !important;
+    width: 38px !important;
+    height: 4px !important;
+    border-radius: 999px !important;
+    background: #c8cdd5 !important;
+    transform: translateX(-50%) !important;
+  }
+
+  .reference-compact-tools-backdrop .mobile-more-header h2,
+  .reference-compact-tools-backdrop .mobile-more-header p {
+    margin: 0 !important;
+  }
+
+  .reference-compact-tools-backdrop .mobile-more-header h2 {
+    color: #172033 !important;
+    font: 750 19px/1.15 "Funnel Display", "DM Sans", Arial, sans-serif !important;
+  }
+
+  .reference-compact-tools-backdrop .mobile-more-header p {
+    margin-top: 3px !important;
+    color: #697386 !important;
+    font-size: 11px !important;
+  }
+
+  .reference-compact-tools-backdrop .mobile-more-close {
+    display: inline-flex !important;
+    width: 44px !important;
+    height: 44px !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border: 1px solid #d9dee7 !important;
+    border-radius: 12px !important;
+    background: #fff !important;
+    color: #283244 !important;
+  }
+
+  .reference-compact-tools-backdrop .mobile-more-scroll {
+    display: grid !important;
+    gap: 14px !important;
+    min-height: 0 !important;
+    padding: 14px 16px max(18px, env(safe-area-inset-bottom)) !important;
+    overflow-y: auto !important;
+    overscroll-behavior: contain !important;
+  }
+
+  .reference-compact-tools-backdrop .mobile-more-section h3 {
+    margin-bottom: 8px !important;
+  }
+
+  .reference-compact-tools-backdrop .mobile-more-section + .mobile-more-section {
+    padding-top: 12px !important;
+  }
+
+  .reference-compact-tools-backdrop .reference-compact-tools-grid {
+    display: grid !important;
     grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
     gap: 7px !important;
   }
 
-  main.editor-shell .reference-compact-tools-grid button,
-  main.editor-shell .reference-compact-tools-footer button {
+  .reference-compact-tools-backdrop .reference-compact-tools-grid button,
+  .reference-compact-tools-backdrop .reference-compact-tools-footer button {
+    display: flex !important;
+    min-width: 0 !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 6px !important;
+    padding: 8px !important;
+    border: 1px solid transparent !important;
     min-height: 58px !important;
+    border-radius: 12px !important;
+    background: #f7f8fa !important;
+    color: #2c3545 !important;
+    font-family: "DM Sans", Arial, sans-serif !important;
+    font-weight: 700 !important;
     font-size: 11px !important;
   }
 
-  main.editor-shell .reference-compact-tools-footer {
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  .reference-compact-tools-backdrop .reference-compact-tools-grid button {
+    flex-direction: column !important;
   }
 
-  main.editor-shell .reference-compact-tools-footer button:disabled {
+  .reference-compact-tools-backdrop .reference-compact-tools-grid button.is-active {
+    border-color: #b9d3ff !important;
+    background: #edf4ff !important;
+    color: #2851eb !important;
+  }
+
+  .reference-compact-tools-backdrop .reference-compact-tools-footer {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 7px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+  }
+
+  .reference-compact-tools-backdrop .reference-compact-tools-footer button:disabled {
     cursor: not-allowed !important;
     opacity: 0.45 !important;
   }
@@ -1001,5 +1186,16 @@ main.editor-shell .annotation-controls button:hover {
   main.editor-shell .workspace.is-managing-pages .thumbnail-list {
     padding-bottom: 150px !important;
     scroll-padding-bottom: 150px;
+  }
+}
+
+@keyframes mobile-more-sheet-in {
+  from { transform: translateY(22px); opacity: 0.6; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reference-compact-tools-backdrop .reference-compact-tools-menu {
+    animation: none !important;
   }
 }

@@ -128,6 +128,15 @@ import { applyNativePdfFormAnnotation, createEditorExportDocument } from "./tool
 import { verifySignedPdfExport } from "./tools/pdfExportVerification.js";
 import { sanitizeReplacedPdfBytes } from "./tools/pdfExportSanitizer.js";
 import { closePdfPrintTarget, createPdfPrintTarget, renderPdfDocumentForPrint } from "./tools/pdfPrint.js";
+import {
+  calculatePdfReviewRenderMetrics,
+  clampPdfReviewPage,
+  clampPdfReviewZoom,
+  PDF_REVIEW_MAX_ZOOM,
+  PDF_REVIEW_MIN_ZOOM,
+  PDF_REVIEW_ZOOM_STEP,
+} from "./tools/pdfReview.js";
+import { MOBILE_EDITOR_MORE_GROUPS } from "./tools/mobileEditorMore.js";
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
   "pdfjs-dist/build/pdf.worker.mjs",
@@ -238,28 +247,26 @@ const TOOL_PERSISTENT_INSTRUCTIONS = Object.freeze({
   comment: { label: "Note", instruction: "Click the page to place a note, then type your comment." },
 });
 
-const compactEditorTools = [
-  { id: "select", label: "Select", icon: MousePointer2 },
-  { id: "text", label: "Add Text", icon: Type },
-  { id: "editText", label: "Edit Text", icon: ScanText },
-  { id: "signature", label: "Sign", icon: PenLine },
-  { id: "draw", label: "Draw", icon: Paintbrush },
-  { id: "highlight", label: "Highlight", icon: Highlighter },
-  { id: "textHighlight", label: "Text Highlight", icon: Type },
-  { id: "erase", label: "Erase", icon: Eraser },
-  { id: "image", label: "Image", icon: ImageIcon },
-  { id: "stamp", label: "Stamp", icon: Stamp },
-  { id: "link", label: "Link", icon: Link },
-  { id: "note", label: "Note", icon: StickyNote },
-  { id: "checkbox", label: "Check", icon: Check },
-  { id: "field", label: "Text field", icon: FilePlus2 },
-  { id: "date", label: "Date", icon: CalendarDays },
-  { id: "initials", label: "Initials", icon: Type },
-  { id: "arrow", label: "Arrow", icon: Send },
-  { id: "line", label: "Line", icon: Minus },
-  { id: "rectangle", label: "Rectangle", icon: RectangleHorizontal },
-  { id: "circle", label: "Circle", icon: Circle },
-];
+const mobileMoreToolIcons = {
+  editText: ScanText,
+  draw: Paintbrush,
+  erase: Eraser,
+  highlight: Highlighter,
+  textHighlight: Type,
+  whiteout: Eraser,
+  image: ImageIcon,
+  stamp: Stamp,
+  link: Link,
+  note: StickyNote,
+  checkbox: Check,
+  field: FilePlus2,
+  date: CalendarDays,
+  initials: Type,
+  arrow: Send,
+  line: Minus,
+  rectangle: RectangleHorizontal,
+  circle: Circle,
+};
 
 const requestFieldTools = [
   { id: "signature", label: "Signature", icon: PenLine },
@@ -1949,6 +1956,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   const zoomMenuRef = useRef(null);
   const shapeMenuRef = useRef(null);
   const compactToolsMenuRef = useRef(null);
+  const compactToolsCloseRef = useRef(null);
   const canvasColumnRef = useRef(null);
   const publicDocumentRecoveryRef = useRef(new Set());
   const trackedDocumentOpenRef = useRef(new Set());
@@ -2937,17 +2945,23 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
 
     const closeCompactToolsMenu = (event) => {
       if (event?.type === "keydown" && event.key !== "Escape") return;
-      if (event?.type === "pointerdown" && compactToolsMenuRef.current?.contains(event.target)) return;
+      if (event?.type === "pointerdown" && (compactToolsMenuRef.current?.contains(event.target) || event.target?.closest?.(".reference-compact-tools-menu"))) return;
       setIsCompactToolsMenuOpen(false);
     };
 
     window.addEventListener("pointerdown", closeCompactToolsMenu);
     window.addEventListener("keydown", closeCompactToolsMenu);
     window.addEventListener("resize", closeCompactToolsMenu);
+    const focusFrame = window.requestAnimationFrame(() => compactToolsCloseRef.current?.focus());
+    const shouldLockScroll = window.matchMedia("(max-width: 600px)").matches;
+    const previousBodyOverflow = document.body.style.overflow;
+    if (shouldLockScroll) document.body.style.overflow = "hidden";
     return () => {
+      window.cancelAnimationFrame(focusFrame);
       window.removeEventListener("pointerdown", closeCompactToolsMenu);
       window.removeEventListener("keydown", closeCompactToolsMenu);
       window.removeEventListener("resize", closeCompactToolsMenu);
+      if (shouldLockScroll) document.body.style.overflow = previousBodyOverflow;
     };
   }, [isCompactToolsMenuOpen]);
 
@@ -4702,6 +4716,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
           if (currentReview?.url) URL.revokeObjectURL(currentReview.url);
           return {
             url: URL.createObjectURL(exported.blob),
+            bytes: exported.bytes.slice(0),
             name: exported.name,
             verification: signatureVerification,
           };
@@ -4944,6 +4959,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       return;
     }
     if (nextTool === "erase") showToast("Click an annotation or existing text item to erase it.");
+    if (nextTool === "whiteout") showToast("Drag over content to cover it with a permanent white box.");
     if (nextTool === "stamp") showToast("Click the page to place an Approved stamp.");
     if (nextTool === "link") showToast("Click the page, then enter the link address.");
     if (nextTool === "checkbox") showToast("Click the exact spot where you want the checkmark.");
@@ -5340,7 +5356,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
             type="button"
             className={`reference-toolbar-button reference-compact-tools-trigger ${isCompactToolsMenuOpen ? "is-active" : ""}`}
             aria-label="More editing tools"
-            aria-haspopup="menu"
+            aria-haspopup="dialog"
             aria-expanded={isCompactToolsMenuOpen}
             aria-controls="compact-editor-tools-menu"
             onClick={() => {
@@ -5350,46 +5366,93 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
           >
             <Grid2X2 size={23} /><span>More</span>
           </button>
-          {isCompactToolsMenuOpen && (
-            <div id="compact-editor-tools-menu" className="reference-compact-tools-menu" role="menu" aria-label="More editing tools">
-              <div className="reference-compact-tools-grid">
-                {compactEditorTools.map(({ id, label, icon: Icon }) => (
+          {isCompactToolsMenuOpen && createPortal(
+            <div
+              className="reference-compact-tools-backdrop"
+              onPointerDown={(event) => {
+                if (event.target === event.currentTarget) setIsCompactToolsMenuOpen(false);
+              }}
+            >
+              <section
+                id="compact-editor-tools-menu"
+                className="reference-compact-tools-menu"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="compact-editor-tools-title"
+                onPointerDown={(event) => event.stopPropagation()}
+              >
+                <header className="mobile-more-header">
+                  <span className="mobile-more-drag-handle" aria-hidden="true" />
+                  <div>
+                    <h2 id="compact-editor-tools-title">More tools</h2>
+                    <p>Everything else for editing this PDF.</p>
+                  </div>
                   <button
-                    key={id}
+                    ref={compactToolsCloseRef}
                     type="button"
-                    role="menuitem"
-                    className={tool === id || (id === "note" && tool === "comment") ? "is-active" : ""}
-                    onClick={() => activateReferenceTool(id)}
+                    className="mobile-more-close"
+                    aria-label="Close more tools"
+                    onClick={() => setIsCompactToolsMenuOpen(false)}
                   >
-                    <Icon size={20} /><span>{label}</span>
+                    <X size={20} />
                   </button>
-                ))}
-              </div>
-              <div className="reference-compact-tools-footer">
-                <button type="button" role="menuitem" onClick={() => {
-                  undo();
-                  setIsCompactToolsMenuOpen(false);
-                }} disabled={!undoStack.length}><Undo2 size={19} /><span>Undo</span></button>
-                <button type="button" role="menuitem" onClick={() => {
-                  redo();
-                  setIsCompactToolsMenuOpen(false);
-                }} disabled={!redoStack.length}><Redo2 size={19} /><span>Redo</span></button>
-                <button type="button" role="menuitem" onClick={() => {
-                  setIsSearchOpen((value) => !value);
-                  setIsCommentsOpen(false);
-                  setIsCompactToolsMenuOpen(false);
-                }}><Search size={19} /><span>Search document</span></button>
-                <button type="button" role="menuitem" onClick={() => {
-                  setIsManagePagesOpen((value) => !value);
-                  setIsPagesCollapsed(false);
-                  setIsCompactToolsMenuOpen(false);
-                }}><PanelsTopLeft size={19} /><span>Manage pages</span></button>
-                <button type="button" role="menuitem" onClick={() => {
-                  setIsCompactToolsMenuOpen(false);
-                  void printPdf();
-                }}><Printer size={19} /><span>Print document</span></button>
-              </div>
-            </div>
+                </header>
+                <div className="mobile-more-scroll">
+                  {MOBILE_EDITOR_MORE_GROUPS.map((group) => (
+                    <section key={group.id} className="mobile-more-section" aria-labelledby={`mobile-more-${group.id}`}>
+                      <h3 id={`mobile-more-${group.id}`}>{group.label}</h3>
+                      <div className="reference-compact-tools-grid">
+                        {group.tools.map(({ id, label }) => {
+                          const Icon = mobileMoreToolIcons[id];
+                          return (
+                            <button
+                              key={id}
+                              type="button"
+                              className={tool === id || (id === "note" && tool === "comment") ? "is-active" : ""}
+                              onClick={() => activateReferenceTool(id)}
+                            >
+                              <Icon size={20} /><span>{label}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </section>
+                  ))}
+                  <section className="mobile-more-section mobile-more-document-actions" aria-labelledby="mobile-more-document-title">
+                    <h3 id="mobile-more-document-title">Document</h3>
+                    <div className="reference-compact-tools-footer">
+                      <button type="button" onClick={() => {
+                        redo();
+                        setIsCompactToolsMenuOpen(false);
+                      }} disabled={!redoStack.length}><Redo2 size={19} /><span>Redo</span></button>
+                      <button type="button" onClick={() => {
+                        setIsSearchOpen((value) => !value);
+                        setIsCommentsOpen(false);
+                        setIsCompactToolsMenuOpen(false);
+                      }}><Search size={19} /><span>Search</span></button>
+                      <button type="button" onClick={() => {
+                        setIsManagePagesOpen((value) => !value);
+                        setIsPagesCollapsed(false);
+                        setIsCompactToolsMenuOpen(false);
+                      }}><PanelsTopLeft size={19} /><span>Manage pages</span></button>
+                      <button type="button" onClick={() => {
+                        setIsCompactToolsMenuOpen(false);
+                        void openShareSettings();
+                      }}><Share2 size={19} /><span>Share</span></button>
+                      <button type="button" onClick={() => {
+                        setIsCompactToolsMenuOpen(false);
+                        void printPdf();
+                      }}><Printer size={19} /><span>Print</span></button>
+                      <button type="button" onClick={() => {
+                        setIsCompactToolsMenuOpen(false);
+                        void exportPdf();
+                      }}><Download size={19} /><span>Export</span></button>
+                    </div>
+                  </section>
+                </div>
+              </section>
+            </div>,
+            document.body,
           )}
         </div>
       </section>
@@ -8183,7 +8246,130 @@ function LinkModal({ initialUrl = "https://", isEditing = false, onClose, onSave
 }
 
 function SignedPdfReviewModal({ review, onClose }) {
-  if (!review) return null;
+  const canvasRef = useRef(null);
+  const stageRef = useRef(null);
+  const [pdfDocument, setPdfDocument] = useState(null);
+  const [pageCount, setPageCount] = useState(review.verification.pageCount || 1);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [zoomPercent, setZoomPercent] = useState(100);
+  const [availableWidth, setAvailableWidth] = useState(0);
+  const [reviewStatus, setReviewStatus] = useState("loading");
+  const [reviewError, setReviewError] = useState("");
+  const [retryNonce, setRetryNonce] = useState(0);
+
+  useEffect(() => {
+    const closeOnEscape = (event) => {
+      if (event.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [onClose]);
+
+  useEffect(() => {
+    let active = true;
+    let loadingTask;
+
+    const loadReview = async () => {
+      setReviewStatus("loading");
+      setReviewError("");
+      setPdfDocument(null);
+      try {
+        const sourceBytes = review.bytes
+          ? review.bytes.slice(0)
+          : new Uint8Array(await (await fetch(review.url)).arrayBuffer());
+        loadingTask = pdfjsLib.getDocument({ data: sourceBytes });
+        const loadedDocument = await loadingTask.promise;
+        if (!active) {
+          await loadedDocument.destroy();
+          return;
+        }
+        setPdfDocument(loadedDocument);
+        setPageCount(loadedDocument.numPages);
+        setCurrentPage((page) => clampPdfReviewPage(page, loadedDocument.numPages));
+      } catch (error) {
+        if (!active) return;
+        console.error("Signed PDF review failed to load", error);
+        setReviewError("This signed PDF could not be opened for review.");
+        setReviewStatus("error");
+      }
+    };
+
+    void loadReview();
+    return () => {
+      active = false;
+      void loadingTask?.destroy?.();
+    };
+  }, [retryNonce, review.bytes, review.url]);
+
+  useLayoutEffect(() => {
+    const stage = stageRef.current;
+    if (!stage) return undefined;
+    const measure = () => setAvailableWidth(Math.max(1, stage.clientWidth - 40));
+    measure();
+    const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(measure);
+    observer?.observe(stage);
+    window.addEventListener("resize", measure);
+    return () => {
+      observer?.disconnect();
+      window.removeEventListener("resize", measure);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!pdfDocument || !availableWidth) return undefined;
+    let active = true;
+    let renderTask;
+
+    const renderPage = async () => {
+      setReviewStatus("rendering");
+      setReviewError("");
+      try {
+        const pageNumber = clampPdfReviewPage(currentPage, pdfDocument.numPages);
+        const page = await pdfDocument.getPage(pageNumber);
+        if (!active) return;
+        const baseViewport = page.getViewport({ scale: 1 });
+        const metrics = calculatePdfReviewRenderMetrics({
+          pageWidth: baseViewport.width,
+          pageHeight: baseViewport.height,
+          availableWidth,
+          zoomPercent,
+          devicePixelRatio: window.devicePixelRatio,
+        });
+        const canvas = canvasRef.current;
+        const context = canvas?.getContext("2d", { alpha: false });
+        if (!canvas || !context) throw new Error("The PDF review canvas is unavailable.");
+        canvas.width = metrics.canvasWidth;
+        canvas.height = metrics.canvasHeight;
+        canvas.style.width = `${metrics.cssWidth}px`;
+        canvas.style.height = `${metrics.cssHeight}px`;
+        const viewport = page.getViewport({ scale: metrics.renderScale });
+        renderTask = page.render({ canvasContext: context, viewport, background: "#ffffff" });
+        await renderTask.promise;
+        page.cleanup();
+        if (active) setReviewStatus("ready");
+      } catch (error) {
+        if (!active || error?.name === "RenderingCancelledException") return;
+        console.error("Signed PDF review page failed to render", error);
+        setReviewError(`Page ${currentPage} could not be rendered.`);
+        setReviewStatus("error");
+      }
+    };
+
+    void renderPage();
+    return () => {
+      active = false;
+      renderTask?.cancel?.();
+    };
+  }, [availableWidth, currentPage, pdfDocument, retryNonce, zoomPercent]);
+
+  const changePage = (nextPage) => {
+    setCurrentPage(clampPdfReviewPage(nextPage, pageCount));
+  };
+
+  const changeZoom = (nextZoom) => {
+    setZoomPercent(clampPdfReviewZoom(nextZoom));
+  };
+
   return (
     <div className="modal-backdrop signed-pdf-review-backdrop" role="dialog" aria-modal="true" aria-labelledby="signed-pdf-review-title">
       <section className="signed-pdf-review-modal">
@@ -8195,7 +8381,34 @@ function SignedPdfReviewModal({ review, onClose }) {
           </div>
           <button type="button" className="modal-close" aria-label="Close signed PDF review" onClick={onClose}><X size={20} /></button>
         </header>
-        <iframe src={review.url} title={`Review ${review.name}`} />
+        <nav className="signed-pdf-review-toolbar" aria-label="Signed PDF review controls">
+          <div className="signed-pdf-review-page-controls">
+            <button type="button" aria-label="Previous page" disabled={currentPage <= 1 || !pdfDocument} onClick={() => changePage(currentPage - 1)}><ChevronLeft size={19} /></button>
+            <span>Page <strong>{currentPage}</strong> of {pageCount}</span>
+            <button type="button" aria-label="Next page" disabled={currentPage >= pageCount || !pdfDocument} onClick={() => changePage(currentPage + 1)}><ChevronRight size={19} /></button>
+          </div>
+          <div className="signed-pdf-review-zoom-controls">
+            <button type="button" aria-label="Zoom out" disabled={zoomPercent <= PDF_REVIEW_MIN_ZOOM} onClick={() => changeZoom(zoomPercent - PDF_REVIEW_ZOOM_STEP)}><Minus size={18} /></button>
+            <span>{zoomPercent}%</span>
+            <button type="button" aria-label="Zoom in" disabled={zoomPercent >= PDF_REVIEW_MAX_ZOOM} onClick={() => changeZoom(zoomPercent + PDF_REVIEW_ZOOM_STEP)}><Plus size={18} /></button>
+          </div>
+        </nav>
+        <div ref={stageRef} className="signed-pdf-review-stage" aria-live="polite">
+          <canvas ref={canvasRef} aria-label={`Page ${currentPage} of ${pageCount} from ${review.name}`} />
+          {(reviewStatus === "loading" || reviewStatus === "rendering") && (
+            <div className="signed-pdf-review-feedback" role="status">
+              <LoaderCircle size={24} className="spin" />
+              <span>{reviewStatus === "loading" ? "Opening your signed PDF…" : `Rendering page ${currentPage}…`}</span>
+            </div>
+          )}
+          {reviewStatus === "error" && (
+            <div className="signed-pdf-review-feedback is-error" role="alert">
+              <FileText size={26} />
+              <strong>{reviewError}</strong>
+              <button type="button" onClick={() => setRetryNonce((value) => value + 1)}>Retry page</button>
+            </div>
+          )}
+        </div>
         <footer>
           <button type="button" className="modal-secondary" onClick={onClose}>Done</button>
           <a className="modal-primary" href={review.url} download={review.name}><Download size={16} /> Download another copy</a>

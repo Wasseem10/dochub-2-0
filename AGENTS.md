@@ -28,6 +28,8 @@ The floating bottom zoom and page navigator follows the selected July 17, 2026 c
 
 The mobile editor must be intentionally touch-first rather than a compressed desktop toolbar. Use one compact filename header, an unobstructed document canvas, a six-action bottom tool dock with generous tap targets, and a separate bottom-sheet More menu containing every tool hidden from the dock. Keep the zoom/page capsule below the tool dock, place contextual settings above it, eliminate overlapping toolbar groups and horizontal page gutters, and enlarge transform handles for touch.
 
+The mobile More sheet uses grouped Edit & mark up, Insert, Shapes, and Document sections with a dimmed backdrop, an explicit close control, safe-area padding, and scrolling within the sheet. It must include Edit Text, Draw, Erase, Highlight, Text Highlight, Whiteout, Image, Stamp, Link, Note, Check, Text field, Date, Initials, Arrow, Line, Rectangle, Circle, Redo, Search, Manage Pages, Share, Print, and Export without duplicating the six dock actions.
+
 New text boxes must open at a readable minimum size, auto-grow while typing, use Arial as the dependable default PDF font, save on blur, and keep one shared blue selection model with eight resize handles, rotation, keyboard nudging, deletion, and history. The contextual text bar must use clear labels and only operational font/style controls.
 
 While a text box has keyboard focus, hide its transform controls so the writing area stays unobstructed; restore them only after focus leaves the text.
@@ -85,6 +87,8 @@ While Draw is active, newly completed strokes must remain unselected so transfor
 The Translate PDF workflow must let users choose the document's source language and must include English as a translation target. Do not assume every uploaded document starts in English, and never allow the source and target language to remain identical.
 
 Every editor Print control must print the generated edited PDF itself, never the surrounding editor interface, toolbars, sidebars, or browser page chrome.
+
+Signed-export review must never rely on an iframe or a browser PDF plugin. Render the exported bytes with PDF.js canvas pages and provide working page navigation, zoom, explicit loading, page-level retry, and a retained verified-download action.
 
 If an editor PDF page renderer is released or fails, rebuild it from the saved source bytes and give the user an explicit page-level retry. A PDF page must never silently disappear or remain as an endless blank loading surface.
 
