@@ -24,6 +24,8 @@ The selected July 23, 2026 editor redesign is Precision Review Studio (ideation 
 
 The primary desktop editor toolbar is a slim 64px floating white rounded card on the light workspace, with compact icon-over-label buttons, subtle group dividers, soft shadow, and a pale PDFArrow-blue active state. Center the full control group on desktop rather than splitting actions across the sides. Avoid a tall or bulky ribbon; retain only working PDFArrow actions.
 
+Editor toolbar hover and selected states use an Apple-like neutral gray interaction system: soft gray hover, a slightly deeper gray selected surface, charcoal icons and labels, and a subtle inset border. Do not use blue for toolbar hover or selected-tool feedback; reserve blue for primary actions and document selection affordances.
+
 The floating bottom zoom and page navigator follows the selected July 17, 2026 compact rail concept: one low-profile white capsule, borderless Lucide controls, a bordered zoom select, a pale-blue current-page field, one subtle divider, and restrained shadow. Keep zoom out/in, zoom preset, first/previous/next/last page, current page, and total page count functional and aligned.
 
 The mobile editor must be intentionally touch-first rather than a compressed desktop toolbar. Use one compact filename header, an unobstructed document canvas, a six-action bottom tool dock with generous tap targets, and a separate bottom-sheet More menu containing every tool hidden from the dock. Keep the zoom/page capsule below the tool dock, place contextual settings above it, eliminate overlapping toolbar groups and horizontal page gutters, and enlarge transform handles for touch.
