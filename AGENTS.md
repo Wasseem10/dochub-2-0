@@ -36,6 +36,8 @@ While a text box has keyboard focus, hide its transform controls so the writing 
 
 Manage Pages expands the persistent thumbnail rail into a labeled organizer with insert, duplicate, rotate, delete, drag reorder, keyboard reorder, and per-page quick actions. Signature and initials dialogs must disable empty saves and expose labeled controls and a typed keyboard-accessible alternative to drawing.
 
+On phones, Manage Pages is a full-screen touch workspace rather than a widened sidebar. Use a clear Done action, Undo and Redo, Add blank and Import PDF shortcuts, readable page previews, a dedicated touch drag handle, and finger-sized move, duplicate, rotate, and delete controls on every page.
+
 The selected July 26, 2026 signature-dialog redesign is Signature Proof (ideation option 3): use a wide, compact white proofing dialog with an oxblood-underlined Draw/Type/Upload command strip, a bordered signature sheet with one clear signing baseline and explicit 100% placement scale, a flat keyboard-accessible Type escape hatch, a working page-preview toggle, and restrained neutral actions. Avoid generic blue pill tabs, oversized dashed drop areas, and vague instructional filler.
 
 Every released PDF tool must have its own simple landing page using the current landing page as its visual source of truth: DM Sans hero typography, blue `#2851eb` actions, white and powder-blue surfaces, and compact type. Keep one centered upload card as the dominant action. Do not use green, mint, or cream on tool landing pages. Secondary settings and explanatory content must not compete with the upload action before a file is chosen.

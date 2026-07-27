@@ -51,3 +51,32 @@ export function rotateEditorPageRecord(page, image = page?.image || "") {
     rotation: ((Number(page.rotation || 0) + 90) % 360 + 360) % 360,
   };
 }
+
+export function reorderEditorPageState({ pages, annotations, detectedTextItems, fromIndex, toIndex }) {
+  if (
+    fromIndex < 0
+    || fromIndex >= pages.length
+    || toIndex < 0
+    || toIndex >= pages.length
+    || fromIndex === toIndex
+  ) {
+    return { pages, annotations, detectedTextItems, pageIndex: clampIndex(fromIndex, pages.length) };
+  }
+
+  const remapIndex = (index) => {
+    if (index === fromIndex) return toIndex;
+    if (fromIndex < toIndex && index > fromIndex && index <= toIndex) return index - 1;
+    if (toIndex < fromIndex && index >= toIndex && index < fromIndex) return index + 1;
+    return index;
+  };
+  const nextPages = [...pages];
+  const [movedPage] = nextPages.splice(fromIndex, 1);
+  nextPages.splice(toIndex, 0, movedPage);
+
+  return {
+    pages: nextPages.map((page, index) => ({ ...page, number: index + 1 })),
+    annotations: annotations.map((annotation) => ({ ...annotation, page: remapIndex(annotation.page) })),
+    detectedTextItems: detectedTextItems.map((item) => ({ ...item, pageNumber: remapIndex(item.pageNumber) })),
+    pageIndex: toIndex,
+  };
+}
