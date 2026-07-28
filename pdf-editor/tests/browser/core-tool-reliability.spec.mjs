@@ -77,6 +77,116 @@ test("merge and split preserve valid native PDF pages", async ({ page }, testInf
   await expectNoHorizontalOverflow(page);
 });
 
+test("compression creates a smaller valid visual PDF", async ({ page }, testInfo) => {
+  test.skip(!primaryExportProjects.has(testInfo.project.name), "Pixel compression output is validated on the primary desktop and phone engines.");
+  test.setTimeout(90_000);
+  const source = await imageHeavyPdf();
+  await page.goto(appPath("/compress-pdf"));
+  await page.locator('input[type="file"]').setInputFiles({ name: "image-heavy.pdf", mimeType: "application/pdf", buffer: source });
+  await expect(page.getByText("1 page ready")).toBeVisible();
+  await page.getByLabel("Compression level").selectOption("maximum");
+  const compressed = await downloadBytes(page, "Download compressed PDF");
+  expect(compressed.download.suggestedFilename()).toBe("image-heavy-compressed.pdf");
+  expect(compressed.bytes.length).toBeLessThan(source.length);
+  expect((await PDFDocument.load(compressed.bytes)).getPageCount()).toBe(1);
+  await expectNoHorizontalOverflow(page);
+});
+
+test("balanced compression preserves searchable text and form fields", async ({ page }, testInfo) => {
+  test.skip(!primaryExportProjects.has(testInfo.project.name), "Structure-preserving compression is validated on the primary desktop and phone engines.");
+  test.setTimeout(90_000);
+  const source = await structuredPdf();
+  await page.goto(appPath("/compress-pdf"));
+  await page.locator('input[type="file"]').setInputFiles({ name: "structured.pdf", mimeType: "application/pdf", buffer: source });
+  await page.getByLabel("Compression level").selectOption("balanced");
+  const compressed = await downloadBytes(page, "Download compressed PDF");
+  expect(compressed.bytes.length).toBeLessThan(source.length);
+  const parsed = await PDFDocument.load(compressed.bytes);
+  expect(parsed.getForm().getFields().map((field) => field.getName())).toContain("invoice.customer");
+  const rendered = await pdfjsLib.getDocument({ data: compressed.bytes.slice(0), disableWorker: true, verbosity: 0 }).promise;
+  const content = await (await rendered.getPage(1)).getTextContent();
+  expect(content.items.map((item) => item.str).join(" ")).toContain("SEARCHABLE INVOICE 42000");
+  await expectNoHorizontalOverflow(page);
+});
+
+test("batch compression reports measured savings, previews output, and downloads a ZIP", async ({ page }, testInfo) => {
+  test.skip(!primaryExportProjects.has(testInfo.project.name), "Batch compression output is validated on the primary desktop and phone engines.");
+  test.setTimeout(120_000);
+  const first = await imageHeavyPdf();
+  const second = await imageHeavyPdf();
+  await page.goto(appPath("/compress-pdf"));
+  await page.locator('input[type="file"]').setInputFiles([
+    { name: "photos-one.pdf", mimeType: "application/pdf", buffer: first },
+    { name: "photos-two.pdf", mimeType: "application/pdf", buffer: second },
+  ]);
+  await expect(page.getByText("2 PDFs · 2 pages ready")).toBeVisible();
+  await page.getByLabel("Compression level").selectOption("maximum");
+  const batch = await downloadBytes(page, "Compress and download ZIP");
+  expect(batch.download.suggestedFilename()).toBe("pdfarrow-compressed.zip");
+  const files = unzipSync(batch.bytes);
+  expect(Object.keys(files).sort()).toEqual([
+    "photos-one-compressed.pdf",
+    "photos-two-compressed.pdf",
+  ]);
+  await expect(page.getByRole("region", { name: "Compression results" })).toContainText("% smaller");
+  await expect(page.getByRole("img", { name: "Compressed first page of photos-one.pdf" })).toBeVisible();
+  const cachedBatch = await downloadBytes(page, "Download results ZIP");
+  expect(cachedBatch.download.suggestedFilename()).toBe("pdfarrow-compressed.zip");
+  expect(Object.keys(unzipSync(cachedBatch.bytes)).sort()).toEqual([
+    "photos-one-compressed.pdf",
+    "photos-two-compressed.pdf",
+  ]);
+  await expectNoHorizontalOverflow(page);
+});
+
+test("compression measures larger attempts and keeps the original", async ({ page }, testInfo) => {
+  test.skip(!primaryExportProjects.has(testInfo.project.name), "Honest larger-output handling is validated on the primary desktop and phone engines.");
+  test.setTimeout(90_000);
+  const source = await textPdf("SMALL SEARCHABLE ORIGINAL");
+  await page.goto(appPath("/compress-pdf"));
+  await page.locator('input[type="file"]').setInputFiles({ name: "already-small.pdf", mimeType: "application/pdf", buffer: source });
+  await page.getByLabel("Compression level").selectOption("maximum");
+  await page.getByRole("button", { name: "Download compressed PDF" }).click();
+  const results = page.getByRole("region", { name: "Compression results" });
+  await expect(results).toContainText("attempted");
+  await expect(results).toContainText("larger");
+  await expect(results).toContainText("kept original");
+  await expect(results.getByRole("button", { name: "Download" })).toHaveCount(0);
+  await expectNoHorizontalOverflow(page);
+});
+
+test("PDF to Word and Word to PDF produce valid searchable documents", async ({ page }, testInfo) => {
+  test.skip(!primaryExportProjects.has(testInfo.project.name), "Office output validation runs on the primary desktop and phone engines.");
+  await page.goto(appPath("/pdf-to-word"));
+  await page.locator('input[type="file"]').setInputFiles({ name: "quarterly.pdf", mimeType: "application/pdf", buffer: await textPdf("QUARTERLY TOTAL 42000") });
+  await expect(page.getByText("quarterly.pdf")).toBeVisible();
+  const word = await downloadBytes(page, "Download DOCX");
+  expect(word.download.suggestedFilename()).toBe("quarterly.docx");
+  const docxFiles = unzipSync(word.bytes);
+  expect(docxFiles["word/document.xml"]).toBeTruthy();
+  expect(strFromU8(docxFiles["word/document.xml"])).toContain("QUARTERLY TOTAL 42000");
+
+  await page.goto(appPath("/pdf-to-word"));
+  await page.locator('input[type="file"]').setInputFiles({ name: "quarterly.pdf", mimeType: "application/pdf", buffer: await textPdf("QUARTERLY TOTAL 42000") });
+  await page.getByLabel("Conversion mode").selectOption({ label: "Visual fidelity" });
+  const visualWord = await downloadBytes(page, "Download DOCX");
+  const visualDocxFiles = unzipSync(visualWord.bytes);
+  expect(Object.keys(visualDocxFiles).some((path) => path.startsWith("word/media/"))).toBe(true);
+  expect(strFromU8(visualDocxFiles["word/document.xml"])).toContain("w:drawing");
+
+  const sourceDocx = new Document({ sections: [{ children: [new Paragraph({ children: [new TextRun({ text: "SEARCHABLE WORD REPORT 42000", bold: true })] })] }] });
+  await page.goto(appPath("/word-to-pdf"));
+  await page.locator('input[type="file"]').setInputFiles({ name: "report.docx", mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document", buffer: await Packer.toBuffer(sourceDocx) });
+  await expect(page.getByText("report.docx")).toBeVisible();
+  const pdf = await downloadBytes(page, "Download PDF");
+  expect(pdf.download.suggestedFilename()).toBe("report.pdf");
+  expect((await PDFDocument.load(pdf.bytes)).getPageCount()).toBe(1);
+  const rendered = await pdfjsLib.getDocument({ data: pdf.bytes.slice(0), disableWorker: true, verbosity: 0 }).promise;
+  const content = await (await rendered.getPage(1)).getTextContent();
+  expect(content.items.map((item) => item.str).join(" ")).toContain("SEARCHABLE WORD REPORT 42000");
+  await expectNoHorizontalOverflow(page);
+});
+
 test("mobile delete and rotate tools expose focused controls and preserve native pages", async ({ page }, testInfo) => {
   test.skip(!phoneExportProjects.has(testInfo.project.name), "This focused workflow validates both released phone engines.");
   const source = await textPdf("KEEP PAGE ONE", "REMOVE PAGE TWO", "ROTATE PAGE THREE");
@@ -143,94 +253,6 @@ test("mobile page numbers, watermarks, and crops produce verifiable PDF output",
   const croppedPdf = await PDFDocument.load(cropped.bytes);
   expect(croppedPdf.getPage(0).getCropBox().width).toBeCloseTo(550.8, 1);
   expect(croppedPdf.getPage(0).getCropBox().height).toBeCloseTo(712.8, 1);
-  await expectNoHorizontalOverflow(page);
-});
-
-test("compression creates a smaller valid visual PDF", async ({ page }, testInfo) => {
-  test.skip(!primaryExportProjects.has(testInfo.project.name), "Pixel compression output is validated on the primary desktop and phone engines.");
-  test.setTimeout(90_000);
-  const source = await imageHeavyPdf();
-  await page.goto(appPath("/compress-pdf"));
-  await page.locator('input[type="file"]').setInputFiles({ name: "image-heavy.pdf", mimeType: "application/pdf", buffer: source });
-  await expect(page.getByText("1 page ready")).toBeVisible();
-  await page.getByLabel("Compression level").selectOption("maximum");
-  const compressed = await downloadBytes(page, "Download compressed PDF");
-  expect(compressed.download.suggestedFilename()).toBe("image-heavy-compressed.pdf");
-  expect(compressed.bytes.length).toBeLessThan(source.length);
-  expect((await PDFDocument.load(compressed.bytes)).getPageCount()).toBe(1);
-  await expectNoHorizontalOverflow(page);
-});
-
-test("balanced compression preserves searchable text and form fields", async ({ page }, testInfo) => {
-  test.skip(!primaryExportProjects.has(testInfo.project.name), "Structure-preserving compression is validated on the primary desktop and phone engines.");
-  test.setTimeout(90_000);
-  const source = await structuredPdf();
-  await page.goto(appPath("/compress-pdf"));
-  await page.locator('input[type="file"]').setInputFiles({ name: "structured.pdf", mimeType: "application/pdf", buffer: source });
-  await page.getByLabel("Compression level").selectOption("balanced");
-  const compressed = await downloadBytes(page, "Download compressed PDF");
-  expect(compressed.bytes.length).toBeLessThan(source.length);
-  const parsed = await PDFDocument.load(compressed.bytes);
-  expect(parsed.getForm().getFields().map((field) => field.getName())).toContain("invoice.customer");
-  const rendered = await pdfjsLib.getDocument({ data: compressed.bytes.slice(0), disableWorker: true, verbosity: 0 }).promise;
-  const content = await (await rendered.getPage(1)).getTextContent();
-  expect(content.items.map((item) => item.str).join(" ")).toContain("SEARCHABLE INVOICE 42000");
-  await expectNoHorizontalOverflow(page);
-});
-
-test("batch compression reports measured savings, previews output, and downloads a ZIP", async ({ page }, testInfo) => {
-  test.skip(!primaryExportProjects.has(testInfo.project.name), "Batch compression output is validated on the primary desktop and phone engines.");
-  test.setTimeout(120_000);
-  const first = await imageHeavyPdf();
-  const second = await imageHeavyPdf();
-  await page.goto(appPath("/compress-pdf"));
-  await page.locator('input[type="file"]').setInputFiles([
-    { name: "photos-one.pdf", mimeType: "application/pdf", buffer: first },
-    { name: "photos-two.pdf", mimeType: "application/pdf", buffer: second },
-  ]);
-  await expect(page.getByText("2 PDFs · 2 pages ready")).toBeVisible();
-  await page.getByLabel("Compression level").selectOption("maximum");
-  const batch = await downloadBytes(page, "Compress and download ZIP");
-  expect(batch.download.suggestedFilename()).toBe("pdfarrow-compressed.zip");
-  const files = unzipSync(batch.bytes);
-  expect(Object.keys(files).sort()).toEqual([
-    "photos-one-compressed.pdf",
-    "photos-two-compressed.pdf",
-  ]);
-  await expect(page.getByRole("region", { name: "Compression results" })).toContainText("% smaller");
-  await expect(page.getByRole("img", { name: "Compressed first page of photos-one.pdf" })).toBeVisible();
-  await expectNoHorizontalOverflow(page);
-});
-
-test("PDF to Word and Word to PDF produce valid searchable documents", async ({ page }, testInfo) => {
-  test.skip(!primaryExportProjects.has(testInfo.project.name), "Office output validation runs on the primary desktop and phone engines.");
-  await page.goto(appPath("/pdf-to-word"));
-  await page.locator('input[type="file"]').setInputFiles({ name: "quarterly.pdf", mimeType: "application/pdf", buffer: await textPdf("QUARTERLY TOTAL 42000") });
-  await expect(page.getByText("quarterly.pdf")).toBeVisible();
-  const word = await downloadBytes(page, "Download DOCX");
-  expect(word.download.suggestedFilename()).toBe("quarterly.docx");
-  const docxFiles = unzipSync(word.bytes);
-  expect(docxFiles["word/document.xml"]).toBeTruthy();
-  expect(strFromU8(docxFiles["word/document.xml"])).toContain("QUARTERLY TOTAL 42000");
-
-  await page.goto(appPath("/pdf-to-word"));
-  await page.locator('input[type="file"]').setInputFiles({ name: "quarterly.pdf", mimeType: "application/pdf", buffer: await textPdf("QUARTERLY TOTAL 42000") });
-  await page.getByLabel("Conversion mode").selectOption({ label: "Visual fidelity" });
-  const visualWord = await downloadBytes(page, "Download DOCX");
-  const visualDocxFiles = unzipSync(visualWord.bytes);
-  expect(Object.keys(visualDocxFiles).some((path) => path.startsWith("word/media/"))).toBe(true);
-  expect(strFromU8(visualDocxFiles["word/document.xml"])).toContain("w:drawing");
-
-  const sourceDocx = new Document({ sections: [{ children: [new Paragraph({ children: [new TextRun({ text: "SEARCHABLE WORD REPORT 42000", bold: true })] })] }] });
-  await page.goto(appPath("/word-to-pdf"));
-  await page.locator('input[type="file"]').setInputFiles({ name: "report.docx", mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document", buffer: await Packer.toBuffer(sourceDocx) });
-  await expect(page.getByText("report.docx")).toBeVisible();
-  const pdf = await downloadBytes(page, "Download PDF");
-  expect(pdf.download.suggestedFilename()).toBe("report.pdf");
-  expect((await PDFDocument.load(pdf.bytes)).getPageCount()).toBe(1);
-  const rendered = await pdfjsLib.getDocument({ data: pdf.bytes.slice(0), disableWorker: true, verbosity: 0 }).promise;
-  const content = await (await rendered.getPage(1)).getTextContent();
-  expect(content.items.map((item) => item.str).join(" ")).toContain("SEARCHABLE WORD REPORT 42000");
   await expectNoHorizontalOverflow(page);
 });
 
