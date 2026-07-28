@@ -48,7 +48,7 @@ export function ToolDirectoryPage() {
         title={directoryMetadata.title}
         description={directoryMetadata.description}
         canonicalUrl="/tools"
-        schemas={[{ "@context": "https://schema.org", "@type": "CollectionPage", name: "PDFArrow PDF tools", url: absoluteSiteUrl("/tools"), mainEntity: { "@type": "ItemList", numberOfItems: releasedTools.length, itemListElement: releasedTools.map((tool, index) => ({ "@type": "ListItem", position: index + 1, name: tool.name, url: absoluteSiteUrl(tool.route) })) } }]}
+        schemas={[{ "@context": "https://schema.org", "@type": "CollectionPage", name: "PDFEnrich PDF tools", url: absoluteSiteUrl("/tools"), mainEntity: { "@type": "ItemList", numberOfItems: releasedTools.length, itemListElement: releasedTools.map((tool, index) => ({ "@type": "ListItem", position: index + 1, name: tool.name, url: absoluteSiteUrl(tool.route) })) } }]}
       />
 
       <section className="tools-catalog-intro" aria-labelledby="tools-catalog-title">

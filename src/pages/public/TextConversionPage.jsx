@@ -46,7 +46,7 @@ export function TextConversionPage({ tool }) {
     setStatus("converting");
     setError("");
     try {
-      const baseName = file.name.replace(/\.(pdf|txt)$/i, "") || "pdfarrow-document";
+      const baseName = file.name.replace(/\.(pdf|txt)$/i, "") || "pdfenrich-document";
       if (pdfToText) {
         const bytes = await file.arrayBuffer();
         const pdf = await pdfjsLib.getDocument({ data: bytes.slice(0) }).promise;

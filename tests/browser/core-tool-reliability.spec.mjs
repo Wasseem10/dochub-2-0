@@ -63,7 +63,7 @@ test("merge and split preserve valid native PDF pages", async ({ page }, testInf
   ]);
   await expect(page.getByText("2 PDFs ready · 3 pages")).toBeVisible();
   const merged = await downloadBytes(page, "Download merged PDF");
-  expect(merged.download.suggestedFilename()).toBe("merged-pdfarrow.pdf");
+  expect(merged.download.suggestedFilename()).toBe("merged-pdfenrich.pdf");
   expect((await PDFDocument.load(merged.bytes)).getPageCount()).toBe(3);
 
   await page.goto(appPath("/split-pdf"));
@@ -122,7 +122,7 @@ test("batch compression reports measured savings, previews output, and downloads
   await expect(page.getByText("2 PDFs · 2 pages ready")).toBeVisible();
   await page.getByLabel("Compression level").selectOption("maximum");
   const batch = await downloadBytes(page, "Compress and download ZIP");
-  expect(batch.download.suggestedFilename()).toBe("pdfarrow-compressed.zip");
+  expect(batch.download.suggestedFilename()).toBe("pdfenrich-compressed.zip");
   const files = unzipSync(batch.bytes);
   expect(Object.keys(files).sort()).toEqual([
     "photos-one-compressed.pdf",
@@ -131,7 +131,7 @@ test("batch compression reports measured savings, previews output, and downloads
   await expect(page.getByRole("region", { name: "Compression results" })).toContainText("% smaller");
   await expect(page.getByRole("img", { name: "Compressed first page of photos-one.pdf" })).toBeVisible();
   const cachedBatch = await downloadBytes(page, "Download results ZIP");
-  expect(cachedBatch.download.suggestedFilename()).toBe("pdfarrow-compressed.zip");
+  expect(cachedBatch.download.suggestedFilename()).toBe("pdfenrich-compressed.zip");
   expect(Object.keys(unzipSync(cachedBatch.bytes)).sort()).toEqual([
     "photos-one-compressed.pdf",
     "photos-two-compressed.pdf",

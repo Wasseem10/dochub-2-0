@@ -79,7 +79,7 @@ function friendlyPdfError(error) {
   const message = String(error?.message || "").toLowerCase();
   if (error?.name === "PasswordException" || message.includes("encrypted") || message.includes("password")) return "This PDF is encrypted. Use an authorized password-removal workflow before organizing it.";
   if (message.includes("invalid pdf") || message.includes("missing pdf") || message.includes("no pdf header") || message.includes("parse pdf")) return "This PDF appears corrupted or incomplete. Try downloading a fresh copy.";
-  return error?.message || "PDFArrow could not read this PDF. Try a valid, unencrypted file under 50 MB.";
+  return error?.message || "PDFEnrich could not read this PDF. Try a valid, unencrypted file under 50 MB.";
 }
 
 function PdfDropzone({ multiple, onFiles, disabled, label }) {
@@ -134,7 +134,7 @@ function MergeWorkspace({ tool }) {
     const operation = beginToolOperation(tool.id, { operation: "merge" });
     try {
       const bytes = await mergePdfDocuments(files);
-      downloadBytes(bytes, "application/pdf", "merged-pdfarrow.pdf");
+      downloadBytes(bytes, "application/pdf", "merged-pdfenrich.pdf");
       operation.succeed({ pageCountBucket: pageCountBucket(files.reduce((sum, file) => sum + file.pageCount, 0)) });
       setStatus("complete");
     } catch (mergeError) { operation.fail("pdf_processing"); setError(friendlyPdfError(mergeError)); setStatus("idle"); }
@@ -604,7 +604,7 @@ function CompressWorkspace({ tool }) {
     downloadBytes(
       createStoredZip(downloadable.map((result) => ({ name: result.outputName, data: result.output }))),
       "application/zip",
-      "pdfarrow-compressed.zip",
+      "pdfenrich-compressed.zip",
     );
   };
 
@@ -622,7 +622,7 @@ function CompressWorkspace({ tool }) {
           const output = await compressRecord(record, selectedPreset, index);
           const outputDetails = await inspectPdfBytes(output);
           if (outputDetails.pageCount !== record.pageCount) {
-            throw new Error(`The compressed copy changed from ${record.pageCount} to ${outputDetails.pageCount} pages, so PDFArrow kept the original.`);
+            throw new Error(`The compressed copy changed from ${record.pageCount} to ${outputDetails.pageCount} pages, so PDFEnrich kept the original.`);
           }
           const metrics = compressionSavings(record.bytes.length, output.length);
           if (!metrics.smaller) {

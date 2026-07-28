@@ -108,6 +108,6 @@ export async function createCompressedPdfFromJpegs(pages) {
     page.drawImage(image, { x: 0, y: 0, width, height });
   }
   pdf.setTitle("Compressed PDF");
-  pdf.setCreator("PDFArrow");
+  pdf.setCreator("PDFEnrich");
   return pdf.save({ useObjectStreams: true });
 }

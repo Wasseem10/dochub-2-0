@@ -26,12 +26,12 @@ import { TOOL_CATEGORIES, TOOL_REGISTRY } from "./tools/toolRegistry.js";
 const asset = (fileName) => `${import.meta.env.BASE_URL}homepage/${fileName}`;
 
 const faqs = [
-  ["Is PDFArrow really free?", "Yes. Supported core tools are free to use with no subscription, checkout, email requirement, or PDFArrow watermark."],
+  ["Is PDFEnrich really free?", "Yes. Supported core tools are free to use with no subscription, checkout, email requirement, or PDFEnrich watermark."],
   ["Do I need an account?", "No. Open, edit, and download supported files as a guest. Create an account only when you want cloud document history."],
   ["Are files processed in my browser?", "Supported editor, page, and image tools process files in your browser. Account-based cloud history uses Firebase and is clearly separate."],
   ["What is the editor file limit?", "The editor accepts valid, unencrypted PDFs up to 50 MB and 500 pages. Large documents open progressively, so later pages render as you visit them."],
-  ["Can PDFArrow perfectly rewrite original PDF text?", "Not always. The editor can change detected text overlays and add new content, but original fonts, spacing, and layout may vary. Always review the export."],
-  ["Does PDFArrow add a watermark?", "No. PDFArrow does not add a watermark to supported exports."],
+  ["Can PDFEnrich perfectly rewrite original PDF text?", "Not always. The editor can change detected text overlays and add new content, but original fonts, spacing, and layout may vary. Always review the export."],
+  ["Does PDFEnrich add a watermark?", "No. PDFEnrich does not add a watermark to supported exports."],
 ];
 
 const taskLanes = [
@@ -49,7 +49,7 @@ const taskLanes = [
     title: "Put every page exactly where it belongs.",
     copy: "Reorder, rotate, duplicate, remove, merge, and split pages with clear visual controls.",
     image: "organize-preview.png",
-    imageAlt: "PDFArrow page organizer with PDF page thumbnails ready to reorder",
+    imageAlt: "PDFEnrich page organizer with PDF page thumbnails ready to reorder",
     route: "/organize-pdf",
     cta: "Organize a PDF",
   },
@@ -58,7 +58,7 @@ const taskLanes = [
     title: "Move between PDF and the formats you use.",
     copy: "Turn PDFs into Word or images, and convert common files back into clean PDFs.",
     image: "convert-preview.png",
-    imageAlt: "PDFArrow conversion workspace showing PDF, Word, and image formats",
+    imageAlt: "PDFEnrich conversion workspace showing PDF, Word, and image formats",
     route: "/pdf-to-word",
     cta: "Convert a PDF",
   },
@@ -91,7 +91,7 @@ const footerNavigationGroups = [
   { title: "Tools", links: [["Edit PDF", "/edit-pdf"], ["Merge PDF", "/merge-pdf"], ["Split PDF", "/split-pdf"], ["Compress PDF", "/compress-pdf"], ["All tools", ROUTE_PATHS.tools]] },
   { title: "Edit & sign", links: [["Edit PDF", "/edit-pdf"], ["Annotate PDF", "/annotate-pdf"], ["Fill PDF", "/fill-pdf"], ["Sign PDF", "/sign-pdf"], ["PDF Form Filler", "/pdf-form-filler"]] },
   { title: "Convert", links: [["PDF to Word", "/pdf-to-word"], ["PDF to JPG", "/pdf-to-jpg"], ["PDF to PNG", "/pdf-to-png"], ["Word to PDF", "/word-to-pdf"], ["JPG to PDF", "/jpg-to-pdf"]] },
-  { title: "Company", links: [["About PDFArrow", ROUTE_PATHS.business], ["Pricing", ROUTE_PATHS.pricing], ["Comparisons", ROUTE_PATHS.compare], ["Resources", ROUTE_PATHS.resources], ["Security", ROUTE_PATHS.security]] },
+  { title: "Company", links: [["About PDFEnrich", ROUTE_PATHS.business], ["Pricing", ROUTE_PATHS.pricing], ["Comparisons", ROUTE_PATHS.compare], ["Resources", ROUTE_PATHS.resources], ["Security", ROUTE_PATHS.security]] },
   { title: "Support", links: [["Help Center", ROUTE_PATHS.support], ["Contact us", ROUTE_PATHS.contactSales], ["FAQs", "/#faq-title"], ["Privacy", ROUTE_PATHS.privacy]] },
 ];
 
@@ -120,7 +120,7 @@ function HomepageImage({ fileName, alt, width, height, sizes, eager = false }) {
 }
 
 function Brand() {
-  return <Link className="freepdf-brand" to={ROUTE_PATHS.home} aria-label="PDFArrow home"><BrandWordmark logo /></Link>;
+  return <Link className="freepdf-brand" to={ROUTE_PATHS.home} aria-label="PDFEnrich home"><BrandWordmark logo /></Link>;
 }
 
 function SiteHeader({ onChoose }) {
@@ -181,7 +181,7 @@ function SiteHeader({ onChoose }) {
       </div>
       {open && <nav className="freepdf-mobile-nav" aria-label="Mobile navigation">{links.map(([label, href], index) => <Link ref={index === 0 ? firstLinkRef : undefined} key={label} to={href} onClick={() => setOpen(false)}>{label}</Link>)}<Link to={ROUTE_PATHS.login} onClick={() => setOpen(false)}>Log in</Link><button type="button" onClick={() => { setOpen(false); onChoose(); }}>Choose a PDF</button></nav>}
     </div>
-    {toolsOpen && <div ref={toolsMenuRef} className="freepdf-tools-mega" id="freepdf-tools-menu" role="region" aria-label="PDFArrow tools">
+    {toolsOpen && <div ref={toolsMenuRef} className="freepdf-tools-mega" id="freepdf-tools-menu" role="region" aria-label="PDFEnrich tools">
       <div className="freepdf-tools-mega-grid">
         {toolsMenuColumns.map((categoryIds, columnIndex) => <div className="freepdf-tools-menu-column" key={columnIndex}>
           {categoryIds.map((categoryId) => {
@@ -250,25 +250,25 @@ function ComparisonTeaser() {
       <div>
         <small>Independent product comparisons</small>
         <h2 id="comparison-teaser-title">Choosing another PDF tool?</h2>
-        <p>See where PDFArrow is simpler, where established competitors go further, and which workflow fits the document in front of you.</p>
+        <p>See where PDFEnrich is simpler, where established competitors go further, and which workflow fits the document in front of you.</p>
       </div>
     </div>
     <div className="freepdf-comparison-vendors" aria-label="Available PDF editor comparisons">{vendors.map((vendor) => <span key={vendor}>{vendor}</span>)}</div>
-    <Link className="freepdf-comparison-link" to={ROUTE_PATHS.compare} onClick={() => trackComparisonCta("/", "homepage_teaser")}>Compare PDFArrow <ArrowRight size={16} /></Link>
+    <Link className="freepdf-comparison-link" to={ROUTE_PATHS.compare} onClick={() => trackComparisonCta("/", "homepage_teaser")}>Compare PDFEnrich <ArrowRight size={16} /></Link>
   </section>;
 }
 
 /* Legacy footer intentionally retired in favor of the utility footer below.
   return <footer className="freepdf-site-footer">
     <div className="freepdf-footer-surface">
-      <Link className="freepdf-footer-wordmark" to={ROUTE_PATHS.home} aria-label="PDFArrow home">
-        <span>PDF</span><strong>Arrow</strong>
+      <Link className="freepdf-footer-wordmark" to={ROUTE_PATHS.home} aria-label="PDFEnrich home">
+        <span>PDF</span><strong>Enrich</strong>
       </Link>
       <FooterToolDirectory />
       <div className="freepdf-footer-meta">
         <div><Brand /><p>Every PDF task, finally in one place.</p></div>
         <nav aria-label="Footer"><Link to={ROUTE_PATHS.tools}>All tools</Link><Link to={ROUTE_PATHS.support}>Support</Link><Link to={ROUTE_PATHS.privacy}>Privacy</Link><Link to={ROUTE_PATHS.terms}>Terms</Link></nav>
-        <span>© 2026 PDFArrow</span>
+        <span>© 2026 PDFEnrich</span>
       </div>
     </div>
   </footer>;
@@ -280,7 +280,7 @@ function ClosingAssurances() {
     { icon: Check, title: "No account needed", copy: "Edit, convert, and sign right away." },
     { icon: Globe2, title: "Works in your browser", copy: "No downloads or installations." },
   ];
-  return <section className="freepdf-closing-assurances" aria-label="PDFArrow benefits"><div>{assurances.map(({ icon: Icon, title, copy }) => <article key={title}><span><Icon size={26} aria-hidden="true" /></span><div><strong>{title}</strong><p>{copy}</p></div></article>)}</div></section>;
+  return <section className="freepdf-closing-assurances" aria-label="PDFEnrich benefits"><div>{assurances.map(({ icon: Icon, title, copy }) => <article key={title}><span><Icon size={26} aria-hidden="true" /></span><div><strong>{title}</strong><p>{copy}</p></div></article>)}</div></section>;
 }
 
 function SiteFooter() {
@@ -288,7 +288,7 @@ function SiteFooter() {
     <div className="freepdf-footer-surface">
       <div className="freepdf-footer-main">
         <div className="freepdf-footer-brand-block">
-          <Link className="freepdf-footer-brand" to={ROUTE_PATHS.home} aria-label="PDFArrow home"><BrandWordmark logo /></Link>
+          <Link className="freepdf-footer-brand" to={ROUTE_PATHS.home} aria-label="PDFEnrich home"><BrandWordmark logo /></Link>
           <p>Every PDF task, finally in one place.</p>
         </div>
         <section className="freepdf-footer-directory" aria-label="PDF tool directory">
@@ -299,7 +299,7 @@ function SiteFooter() {
         </section>
       </div>
       <div className="freepdf-footer-meta">
-        <span>© 2026 PDFArrow. All rights reserved.</span>
+        <span>© 2026 PDFEnrich. All rights reserved.</span>
         <nav aria-label="Footer legal"><Link to={ROUTE_PATHS.privacy}>Privacy</Link><Link to={ROUTE_PATHS.terms}>Terms</Link><Link to={ROUTE_PATHS.security}>Security</Link><Link to={ROUTE_PATHS.support}>Accessibility</Link></nav>
         <button type="button" className="freepdf-footer-language" aria-label="Language: English"><Globe2 size={16} /> English <ChevronDown size={15} /></button>
       </div>
@@ -319,7 +319,7 @@ export function LatticePdfLanding({ fileInputRef, onUpload, onSelectFiles, onDro
   }, []);
 
   return <main className="freepdf-page">
-    <PageMetadata title="Every PDF Task in One Place | PDFArrow" description="Edit, sign, fill, merge, split, organize, and convert PDFs without subscriptions, watermarks, or forced signup." canonicalUrl="/" schemas={[{ "@context": "https://schema.org", "@type": "WebSite", "@id": `${absoluteSiteUrl("/")}#website`, name: "PDFArrow", alternateName: "PDFArrow", url: absoluteSiteUrl("/"), inLanguage: "en-US" }, { "@context": "https://schema.org", "@type": "Organization", "@id": `${absoluteSiteUrl("/")}#organization`, name: "PDFArrow", url: absoluteSiteUrl("/"), logo: absoluteSiteUrl("/icon.svg") }]} />
+    <PageMetadata title="Every PDF Task in One Place | PDFEnrich" description="Edit, sign, fill, merge, split, organize, and convert PDFs without subscriptions, watermarks, or forced signup." canonicalUrl="/" schemas={[{ "@context": "https://schema.org", "@type": "WebSite", "@id": `${absoluteSiteUrl("/")}#website`, name: "PDFEnrich", alternateName: "PDFEnrich", url: absoluteSiteUrl("/"), inLanguage: "en-US" }, { "@context": "https://schema.org", "@type": "Organization", "@id": `${absoluteSiteUrl("/")}#organization`, name: "PDFEnrich", url: absoluteSiteUrl("/"), logo: absoluteSiteUrl("/icon.svg") }]} />
     <input ref={inputRef} className="hidden-input" type="file" accept="application/pdf,.pdf" onChange={onUpload} />
     <SiteHeader onChoose={choose} />
 
@@ -337,7 +337,7 @@ export function LatticePdfLanding({ fileInputRef, onUpload, onSelectFiles, onDro
           <Dropzone choose={choose} dragging={dragging} setDragging={setDragging} isUploading={isUploading} uploadError={uploadError} uploadStage={uploadStage} onDropFiles={onDropFiles} onUpload={onUpload} />
         </div>
 
-        <section className="freepdf-trust-strip" aria-label="PDFArrow promises">
+        <section className="freepdf-trust-strip" aria-label="PDFEnrich promises">
           <div><span className="freepdf-trust-icon is-lilac"><ShieldCheck size={23} /></span><span><strong>Secure by design</strong><small>Your file stays in this browser</small></span></div>
           <div><span className="freepdf-trust-icon is-yellow"><Zap size={23} /></span><span><strong>No signup needed</strong><small>Start working right away</small></span></div>
           <div><span className="freepdf-trust-icon is-blue"><Globe2 size={23} /></span><span><strong>Works anywhere</strong><small>On any modern browser</small></span></div>
@@ -347,7 +347,7 @@ export function LatticePdfLanding({ fileInputRef, onUpload, onSelectFiles, onDro
     </section>
 
     <section className="freepdf-task-section" aria-labelledby="task-lanes-title">
-      <div className="freepdf-section-heading freepdf-task-heading"><span>One home for every PDF</span><h2 id="task-lanes-title">From first edit to final export.</h2><p>PDFArrow keeps the work simple, visual, and close at hand.</p></div>
+      <div className="freepdf-section-heading freepdf-task-heading"><span>One home for every PDF</span><h2 id="task-lanes-title">From first edit to final export.</h2><p>PDFEnrich keeps the work simple, visual, and close at hand.</p></div>
       <div className="freepdf-task-lanes">{taskLanes.map((lane, index) => <article className={`freepdf-task-lane ${index % 2 ? "is-reversed" : ""}`} key={lane.eyebrow}>
         <div className="freepdf-task-copy"><span>{lane.eyebrow}</span><h3>{lane.title}</h3><p>{lane.copy}</p><Link to={lane.route}>{lane.cta} <ArrowRight size={17} /></Link></div>
         <Link className="freepdf-task-visual" to={lane.route} aria-label={lane.cta}><HomepageImage fileName={lane.image} alt={lane.imageAlt} width="1536" height="1024" sizes="(max-width: 760px) 100vw, 560px" /></Link>

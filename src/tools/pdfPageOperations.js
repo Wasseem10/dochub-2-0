@@ -42,7 +42,7 @@ export async function mergePdfDocuments(documents) {
     copied.forEach((page) => output.addPage(page));
   }
   output.setTitle("Merged PDF");
-  output.setCreator("PDFArrow");
+  output.setCreator("PDFEnrich");
   return output.save();
 }
 
@@ -63,7 +63,7 @@ export async function buildPdfFromPagePlan(sourceBytes, pagePlan, title = "Organ
   }
 
   output.setTitle(title);
-  output.setCreator("PDFArrow");
+  output.setCreator("PDFEnrich");
   return output.save();
 }
 
@@ -116,6 +116,6 @@ export async function addPageNumbersToPdf(sourceBytes, options = {}) {
   });
 
   pdf.setTitle("Numbered PDF");
-  pdf.setCreator("PDFArrow");
+  pdf.setCreator("PDFEnrich");
   return pdf.save();
 }

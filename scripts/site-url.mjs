@@ -1,6 +1,6 @@
 // Keep generated canonicals, sitemap URLs, and robots.txt correct even when a
 // deploy environment variable has not been configured yet.
-const FALLBACK_PRODUCTION_URL = "https://www.pdfarrow.com";
+const FALLBACK_PRODUCTION_URL = "https://pdfenrich.com";
 
 /** @param {string} value */
 function withProtocol(value) {

@@ -2,11 +2,11 @@
 
 ## Scope and product goal
 
-This audit covers only the editor shown after a PDF is uploaded. The current blue PDFArrow landing page is outside scope and remains unchanged. PDF Help is used only as a public product and interaction benchmark; PDFArrow keeps its own branding, code, text, icons, colors, and architecture.
+This audit covers only the editor shown after a PDF is uploaded. The current blue PDFEnrich landing page is outside scope and remains unchanged. PDF Help is used only as a public product and interaction benchmark; PDFEnrich keeps its own branding, code, text, icons, colors, and architecture.
 
 ## Feature inventory
 
-| Workflow | Reference behavior | PDFArrow phase 1 |
+| Workflow | Reference behavior | PDFEnrich phase 1 |
 | --- | --- | --- |
 | File actions | Print, Download, Done | Implemented in the editor header |
 | Page rail | Thumbnails, active-page outline, page number | Implemented for all document pages |
@@ -56,7 +56,7 @@ This audit covers only the editor shown after a PDF is uploaded. The current blu
 - The header and toolbar stay stable while the page changes, reducing layout movement.
 - Selection transforms happen locally on the overlay instead of rebuilding the PDF during every pointer move.
 
-## Problems found in the previous PDFArrow editor
+## Problems found in the previous PDFEnrich editor
 
 - A tall six-mode rail used too much horizontal space and hid common tools behind categories.
 - A second right-side action rail competed with the page and made the interface feel like a dashboard instead of an editor.

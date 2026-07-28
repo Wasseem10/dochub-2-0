@@ -28,8 +28,8 @@ const ALLOWED_EVENTS = new Set([
 const ALLOWED_PROPERTIES = new Set(["toolId", "fileSizeBucket", "pageCountBucket", "errorCategory", "result", "authMethod", "route", "operation", "durationBucket", "durationMs", "deviceClass", "browserFamily", "trafficSource", "referrerDomain", "landingPath"]);
 const ANALYTICS_COLLECTION = "productAnalyticsEvents";
 const VISITOR_KEY = "realpdf_analytics_visitor_id";
-const ATTRIBUTION_KEY = "pdfarrow_session_attribution_v1";
-const PAGE_VIEWS_KEY = "pdfarrow_session_page_views_v1";
+const ATTRIBUTION_KEY = "pdfenrich_session_attribution_v1";
+const PAGE_VIEWS_KEY = "pdfenrich_session_page_views_v1";
 const memoryPageViews = new Set();
 
 function safeHostname(value) {
@@ -108,7 +108,7 @@ async function persistProductEvent(event) {
       expiresAt: Timestamp.fromDate(new Date(Date.now() + OPTIONAL_ANALYTICS_RETENTION_DAYS * 24 * 60 * 60 * 1000)),
     });
   } catch (error) {
-    if (import.meta.env.DEV) console.warn("[PDFArrow analytics] Event storage failed", error?.code || error?.message);
+    if (import.meta.env.DEV) console.warn("[PDFEnrich analytics] Event storage failed", error?.code || error?.message);
   }
 }
 
@@ -186,7 +186,7 @@ export function trackProductEvent(name, properties = {}) {
     window.dispatchEvent(new CustomEvent("realpdf:analytics", { detail: event }));
     queueProductEventPersistence(event);
   }
-  if (import.meta.env.DEV) console.info("[PDFArrow analytics]", event);
+  if (import.meta.env.DEV) console.info("[PDFEnrich analytics]", event);
   return true;
 }
 

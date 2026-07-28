@@ -11,12 +11,12 @@
       }
     ],
     "visibleTools": [
-      "PDFarrow_forwardDOCPDF to WordTop",
-      "PDFarrow_forwardXLSPDF to Excel",
-      "PDFarrow_forwardJPGPDF to JPG",
-      "PDFarrow_forwardPNGPDF to PNG",
-      "PDFarrow_forwardPPTPDF to PPTX",
-      "PDFarrow_forwardTXTPDF to Text"
+      "PDFenrich_forwardDOCPDF to WordTop",
+      "PDFenrich_forwardXLSPDF to Excel",
+      "PDFenrich_forwardJPGPDF to JPG",
+      "PDFenrich_forwardPNGPDF to PNG",
+      "PDFenrich_forwardPPTPDF to PPTX",
+      "PDFenrich_forwardTXTPDF to Text"
     ]
   },
   "faq": {

@@ -1,7 +1,7 @@
 /* Release-critical overrides. This stylesheet intentionally loads last. */
 
 /* Older auth-mark rules styled every nested span as a logo tile. Restore the
-   shared PDFArrow wordmark as plain typography. */
+   shared PDFEnrich wordmark as plain typography. */
 .auth-shell .auth-realpdf-brand > .brand-wordmark {
   position: static !important;
   display: inline-flex !important;
@@ -15,7 +15,7 @@
   line-height: .92 !important;
 }
 
-/* July 23, 2026 — PDFArrow authentication refresh.
+/* July 23, 2026 — PDFEnrich authentication refresh.
    A familiar sign-in rhythm inside an original, document-first workspace. */
 .auth-shell {
   min-height: 100dvh !important;
@@ -37,7 +37,7 @@
 .auth-shell .auth-showcase::before {
   position: absolute;
   inset: 0;
-  background: url("/pdfarrow-logo.png") no-repeat -150px calc(100% + 250px) / 720px auto;
+  background: url("/pdfenrich-logo.png") no-repeat -150px calc(100% + 250px) / 720px auto;
   opacity: .035;
   content: "";
   pointer-events: none;

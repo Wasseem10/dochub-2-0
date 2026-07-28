@@ -90,7 +90,7 @@ function friendlyPdfError(error) {
   if (error?.name === "PasswordException" || message.includes("password")) return "This PDF is encrypted. Remove its password with an authorized tool, then try again.";
   if (message.includes("invalid pdf") || message.includes("missing pdf") || message.includes("no pdf header") || message.includes("parse pdf")) return "This PDF appears corrupted or incomplete. Try downloading a fresh copy.";
   if (message.includes("supports up to")) return error.message;
-  return "PDFArrow could not read this PDF. Try a valid, unencrypted PDF under 20 MB.";
+  return "PDFEnrich could not read this PDF. Try a valid, unencrypted PDF under 20 MB.";
 }
 
 function ConversionDropzone({ accept, label, hint, onFile, disabled }) {
@@ -243,7 +243,7 @@ function PdfToWordWorkspace({ tool }) {
       }
       const bytes = await createDocxFromPdfPages(conversionPages, { mode, title: file.name.replace(/\.pdf$/i, "") });
       setProgress(100);
-      downloadBytes(bytes, "application/vnd.openxmlformats-officedocument.wordprocessingml.document", `${file.name.replace(/\.pdf$/i, "") || "pdfarrow-document"}.docx`);
+      downloadBytes(bytes, "application/vnd.openxmlformats-officedocument.wordprocessingml.document", `${file.name.replace(/\.pdf$/i, "") || "pdfenrich-document"}.docx`);
       operation.succeed({ result: mode, pageCountBucket: pageCountBucket(pages.length) });
       setStatus("complete");
       window.setTimeout(() => setStatus("idle"), 1800);
@@ -347,7 +347,7 @@ function WordToPdfWorkspace({ tool }) {
       const bytes = await createPdfFromRenderedDocxPages(renderedPages, { title: file.name.replace(/\.docx$/i, "") });
       setSearchableWordCount(renderedPages.reduce((total, page) => total + page.textItems.length, 0));
       setProgress(100);
-      downloadBytes(bytes, "application/pdf", `${file.name.replace(/\.docx$/i, "") || "pdfarrow-document"}.pdf`);
+      downloadBytes(bytes, "application/pdf", `${file.name.replace(/\.docx$/i, "") || "pdfenrich-document"}.pdf`);
       operation.succeed({ pageCountBucket: pageCountBucket(renderedPages.length) });
       setStatus("complete");
       window.setTimeout(() => setStatus("idle"), 1800);
@@ -372,7 +372,7 @@ function WordToPdfWorkspace({ tool }) {
       <aside className="conversion-settings-card">
         <span>PDF settings</span>
         <h2>Preserve the visible pages</h2>
-        <div className="office-mode-note"><strong>Visual pages + searchable text</strong><p>PDFArrow renders each DOCX page at high resolution, then adds an invisible text layer so words remain searchable and selectable in standard PDF readers.</p></div>
+        <div className="office-mode-note"><strong>Visual pages + searchable text</strong><p>PDFEnrich renders each DOCX page at high resolution, then adds an invisible text layer so words remain searchable and selectable in standard PDF readers.</p></div>
         <div className="conversion-summary"><Check size={18} /><span>{file ? "DOCX ready to convert" : "Add a DOCX to continue"}</span></div>
         {status === "converting" && <div className="conversion-progress-bar"><i style={{ width: `${progress}%` }} /></div>}
         <button className="conversion-primary-action" type="button" disabled={!file || status === "reading" || status === "converting"} onClick={convert}>{status === "converting" ? <><LoaderCircle className="is-spinning" size={18} /> Converting {progress}%</> : <><Download size={18} /> Download PDF</>}</button>
@@ -392,7 +392,7 @@ export function OfficeConversionPage({ tool }) {
         <div><small>Available · runs in your browser</small><h1>{tool.heroHeadline}.</h1><p>{tool.heroSubheadline}</p></div>
       </section>
       {pdfToWord ? <PdfToWordWorkspace tool={tool} /> : <WordToPdfWorkspace tool={tool} />}
-      <section className="conversion-privacy-note"><Check size={19} /><div><strong>Private browser processing</strong><p>This conversion runs locally in your browser. PDFArrow does not upload the file to an Office, OCR, or AI service.</p></div></section>
+      <section className="conversion-privacy-note"><Check size={19} /><div><strong>Private browser processing</strong><p>This conversion runs locally in your browser. PDFEnrich does not upload the file to an Office, OCR, or AI service.</p></div></section>
       <ToolGuideContent tool={tool} />
     </main>
   );

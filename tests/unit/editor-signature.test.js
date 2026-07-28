@@ -48,7 +48,7 @@ describe("editor signature validation", () => {
     persistEditorSignatureLibrary(signatures, storage);
 
     expect(loadEditorSignatureLibrary(storage)).toEqual(signatures);
-    values.set("pdfarrow.signature-library.v1", "{broken");
+    values.set("pdfenrich.signature-library.v1", "{broken");
     expect(loadEditorSignatureLibrary(storage)).toEqual([]);
   });
 });

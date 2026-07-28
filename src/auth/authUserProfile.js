@@ -13,7 +13,7 @@ export function createAuthUserProfile(firebaseUser, providerId = "", now = new D
   return {
     uid: firebaseUser.uid,
     email: firebaseUser.email.trim().toLowerCase().slice(0, 160),
-    displayName: (firebaseUser.displayName || firebaseUser.email.split("@")[0] || "PDFArrow user").trim().slice(0, 120),
+    displayName: (firebaseUser.displayName || firebaseUser.email.split("@")[0] || "PDFEnrich user").trim().slice(0, 120),
     provider: normalizeAuthProvider(providerId, firebaseUser.providerData),
     lastSignInAt,
   };

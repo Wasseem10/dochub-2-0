@@ -17,10 +17,10 @@ describe("PDF password protection", () => {
   it("turns worker startup timeouts into actionable retry guidance", () => {
     const timeout = { code: "QPDF_TIMEOUT", message: "QPDF worker timed out." };
     expect(formatQpdfProtectionError(timeout, "unlock")).toBe(
-      "Password removal took too long in this browser. Close other PDFArrow tabs and try again.",
+      "Password removal took too long in this browser. Close other PDFEnrich tabs and try again.",
     );
     expect(formatQpdfProtectionError(timeout, "protect")).toBe(
-      "Password protection took too long in this browser. Close other PDFArrow tabs and try again.",
+      "Password protection took too long in this browser. Close other PDFEnrich tabs and try again.",
     );
   });
 

@@ -89,8 +89,8 @@
   font-weight: 900;
 }
 
-.comparison-hero-marks span.is-pdfarrow,
-.comparison-company-marks span.is-pdfarrow { border-color: #c6d4ff; color: var(--comparison-blue); }
+.comparison-hero-marks span.is-pdfenrich,
+.comparison-company-marks span.is-pdfenrich { border-color: #c6d4ff; color: var(--comparison-blue); }
 .comparison-hero-marks b,
 .comparison-company-marks b { color: #9aa5b8; font-size: 12px; text-transform: uppercase; }
 
@@ -305,12 +305,12 @@
 }
 
 .comparison-choice-grid article { padding: 34px; border: 1px solid #dce4ef; background: #fff; }
-.comparison-choice-grid article.is-pdfarrow { border-color: #cbd7ff; background: #f7f9ff; }
+.comparison-choice-grid article.is-pdfenrich { border-color: #cbd7ff; background: #f7f9ff; }
 .comparison-choice-grid article > span { display: flex; align-items: center; gap: 9px; font-size: 18px; font-weight: 900; }
 .comparison-choice-grid ul { display: grid; gap: 17px; margin: 28px 0 0; padding: 0; list-style: none; }
 .comparison-choice-grid li { display: flex; align-items: flex-start; gap: 10px; color: #536077; line-height: 1.55; }
 .comparison-choice-grid li svg { flex: 0 0 auto; margin-top: 3px; color: var(--comparison-blue); }
-.comparison-choice-grid article:not(.is-pdfarrow) li svg { color: var(--comparison-accent); }
+.comparison-choice-grid article:not(.is-pdfenrich) li svg { color: var(--comparison-accent); }
 .comparison-choice-grid a { display: inline-flex; align-items: center; gap: 7px; margin-top: 28px; color: var(--comparison-blue); font-weight: 900; text-decoration: none; }
 
 .comparison-faq { display: grid; grid-template-columns: .85fr 1.15fr; gap: 64px; padding: 70px 0; border-top: 1px solid #dce4ef; }

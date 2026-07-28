@@ -145,7 +145,7 @@ export function OwnerAnalyticsPanel({ searchQuery = "" }) {
       setStatus("error");
       setMessage(error?.code === "permission-denied"
         ? "Analytics access is waiting for the owner-only Firestore rule to be deployed."
-        : "PDFArrow could not load analytics right now. Try refreshing in a moment.");
+        : "PDFEnrich could not load analytics right now. Try refreshing in a moment.");
     }
   }, [range]);
 
@@ -233,7 +233,7 @@ export function OwnerAnalyticsPanel({ searchQuery = "" }) {
             <div className="owner-auth-row is-head" role="row"><span>Name</span><span>Email</span><span>Method</span><span>Last sign-in</span></div>
             {visibleSignInProfiles.map((profile) => (
               <div className="owner-auth-row" role="row" key={profile.id}>
-                <strong>{profile.displayName || "PDFArrow user"}</strong>
+                <strong>{profile.displayName || "PDFEnrich user"}</strong>
                 <a href={`mailto:${profile.email}`}>{profile.email}</a>
                 <span><i className={`is-${profile.provider}`} />{profile.provider === "google" ? "Google" : "Email and password"}</span>
                 <time dateTime={profile.lastSignInAt}>{formatSignInTime(profile.lastSignInAt)}</time>
@@ -332,7 +332,7 @@ export function OwnerAnalyticsPanel({ searchQuery = "" }) {
               </div>
             ))}
           </div>
-        ) : <div className="owner-analytics-empty"><Activity size={24} /><strong>No activity in this period</strong><p>Events will appear after people use this PDFArrow release.</p></div>}
+        ) : <div className="owner-analytics-empty"><Activity size={24} /><strong>No activity in this period</strong><p>Events will appear after people use this PDFEnrich release.</p></div>}
       </article>
     </section>
   );

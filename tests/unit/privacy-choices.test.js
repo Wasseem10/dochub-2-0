@@ -19,10 +19,10 @@ function createStorage(initialEntries = {}) {
 function installBrowser({ globalPrivacyControl = false } = {}) {
   const localStorage = createStorage({
     realpdf_analytics_visitor_id: "visitor-id",
-    pdfarrow_session_attribution_v1: "attribution",
+    pdfenrich_session_attribution_v1: "attribution",
   });
   const sessionStorage = createStorage({
-    pdfarrow_session_page_views_v1: "page-view",
+    pdfenrich_session_page_views_v1: "page-view",
   });
   const dispatchedEvents = [];
 
@@ -70,8 +70,8 @@ describe("privacy choices", () => {
 
     expect(choice.analytics).toBe(false);
     expect(browser.localStorage.getItem("realpdf_analytics_visitor_id")).toBeNull();
-    expect(browser.localStorage.getItem("pdfarrow_session_attribution_v1")).toBeNull();
-    expect(browser.sessionStorage.getItem("pdfarrow_session_page_views_v1")).toBeNull();
+    expect(browser.localStorage.getItem("pdfenrich_session_attribution_v1")).toBeNull();
+    expect(browser.sessionStorage.getItem("pdfenrich_session_page_views_v1")).toBeNull();
     expect(browser.dispatchedEvents.at(-1)).toMatchObject({
       type: PRIVACY_CHOICE_EVENT,
       detail: { analytics: false, source: "user" },

@@ -33,7 +33,7 @@ export function MarketingHeader() {
   return (
     <header ref={headerRef} className="marketing-header">
       <div className="marketing-header-row">
-        <Link className="marketing-brand" to={ROUTE_PATHS.home} onClick={closeMenus} aria-label="PDFArrow home"><BrandWordmark logo /></Link>
+        <Link className="marketing-brand" to={ROUTE_PATHS.home} onClick={closeMenus} aria-label="PDFEnrich home"><BrandWordmark logo /></Link>
         <nav className="marketing-desktop-nav" aria-label="Public navigation">
           <Link to={ROUTE_PATHS.about}>About</Link>
           <Link to={ROUTE_PATHS.features}>Features</Link>

@@ -25,7 +25,7 @@ const principles = [
   {
     icon: FileCheck2,
     title: "Honest about the result",
-    copy: "PDFArrow shows real limits, measured outcomes, and review guidance instead of hiding tradeoffs behind vague success messages.",
+    copy: "PDFEnrich shows real limits, measured outcomes, and review guidance instead of hiding tradeoffs behind vague success messages.",
   },
 ];
 
@@ -40,28 +40,28 @@ export function AboutPage() {
   return (
     <main className="about-page">
       <PageMetadata
-        title="About PDFArrow | A simpler browser-first PDF workspace"
-        description="Meet PDFArrow, a browser-first PDF workspace built to make editing, organizing, converting, signing, scanning, and reviewing documents feel straightforward."
+        title="About PDFEnrich | A simpler browser-first PDF workspace"
+        description="Meet PDFEnrich, a browser-first PDF workspace built to make editing, organizing, converting, signing, scanning, and reviewing documents feel straightforward."
         canonicalUrl={ROUTE_PATHS.about}
         schemas={[{
           "@context": "https://schema.org",
           "@type": "AboutPage",
-          name: "About PDFArrow",
+          name: "About PDFEnrich",
           url: absoluteSiteUrl(ROUTE_PATHS.about),
           mainEntity: {
             "@type": "Organization",
-            name: "PDFArrow",
+            name: "PDFEnrich",
             url: absoluteSiteUrl("/"),
-            logo: absoluteSiteUrl("/pdfarrow-logo.png"),
+            logo: absoluteSiteUrl("/pdfenrich-logo.png"),
           },
         }]}
       />
 
       <section className="about-hero">
         <div className="about-hero-copy">
-          <span><Sparkles size={15} /> About PDFArrow</span>
+          <span><Sparkles size={15} /> About PDFEnrich</span>
           <h1>PDF work should feel <em>clear, fast, and human.</em></h1>
-          <p>PDFArrow is a browser-first document workspace for the everyday jobs that make PDFs useful: editing, organizing, converting, signing, scanning, protecting, and reviewing.</p>
+          <p>PDFEnrich is a browser-first document workspace for the everyday jobs that make PDFs useful: editing, organizing, converting, signing, scanning, protecting, and reviewing.</p>
           <div>
             <Link className="about-primary" to={ROUTE_PATHS.editPdf}>Choose a PDF <ArrowRight size={17} /></Link>
             <Link className="about-secondary" to={ROUTE_PATHS.tools}>Explore all tools</Link>
@@ -69,7 +69,7 @@ export function AboutPage() {
         </div>
         <figure className="about-product-frame">
           <div><span>THE WORKSPACE</span><small>Built around your document</small></div>
-          <img src="/product-assets/pdfarrow-editor-workspace.png" alt="The PDFArrow editor with a document open and editing tools visible" />
+          <img src="/product-assets/pdfenrich-editor-workspace.png" alt="The PDFEnrich editor with a document open and editing tools visible" />
         </figure>
       </section>
 
@@ -77,7 +77,7 @@ export function AboutPage() {
         <header>
           <span>What guides us</span>
           <h2 id="about-principles-title">Useful software without the maze.</h2>
-          <p>Every PDFArrow workflow is designed around three practical promises.</p>
+          <p>Every PDFEnrich workflow is designed around three practical promises.</p>
         </header>
         <div>{principles.map(({ icon: Icon, title, copy }) => <article key={title}><span><Icon size={22} /></span><h3>{title}</h3><p>{copy}</p></article>)}</div>
       </section>
@@ -106,8 +106,8 @@ export function AboutPage() {
 
       <section className="about-closing">
         <span><Layers3 size={21} /></span>
-        <div><small>START WITH THE DOCUMENT</small><h2>Pick a PDF. PDFArrow will make the next step clear.</h2></div>
-        <Link to={ROUTE_PATHS.editPdf}>Open PDFArrow <ArrowRight size={17} /></Link>
+        <div><small>START WITH THE DOCUMENT</small><h2>Pick a PDF. PDFEnrich will make the next step clear.</h2></div>
+        <Link to={ROUTE_PATHS.editPdf}>Open PDFEnrich <ArrowRight size={17} /></Link>
       </section>
     </main>
   );

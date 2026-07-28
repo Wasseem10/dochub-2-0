@@ -19,7 +19,7 @@ export function formatQpdfProtectionError(error, operation) {
   }
   if (detail.includes("qpdf_timeout") || detail.includes("timed out")) {
     const task = operation === "unlock" ? "Password removal" : "Password protection";
-    return `${task} took too long in this browser. Close other PDFArrow tabs and try again.`;
+    return `${task} took too long in this browser. Close other PDFEnrich tabs and try again.`;
   }
   return operation === "unlock"
     ? "This PDF could not be unlocked in the browser."

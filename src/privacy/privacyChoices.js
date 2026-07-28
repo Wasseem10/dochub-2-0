@@ -1,11 +1,11 @@
-export const PRIVACY_CHOICE_STORAGE_KEY = "pdfarrow.privacy-choices.v1";
-export const PRIVACY_CHOICE_EVENT = "pdfarrow:privacy-choice-changed";
+export const PRIVACY_CHOICE_STORAGE_KEY = "pdfenrich.privacy-choices.v1";
+export const PRIVACY_CHOICE_EVENT = "pdfenrich:privacy-choice-changed";
 
 const OPTIONAL_ANALYTICS_STORAGE_KEYS = Object.freeze([
   "realpdf_analytics_visitor_id",
-  "pdfarrow_session_attribution_v1",
-  "pdfarrow_session_page_views_v1",
-  "pdfarrow_reported_diagnostics",
+  "pdfenrich_session_attribution_v1",
+  "pdfenrich_session_page_views_v1",
+  "pdfenrich_reported_diagnostics",
 ]);
 
 export function globalPrivacyControlEnabled() {

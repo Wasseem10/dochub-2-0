@@ -1924,7 +1924,7 @@ export function EditorBrandButton({ onDashboard }) {
       className="reference-brand-name reference-brand-button"
       onClick={onDashboard}
       title="Back to dashboard"
-      aria-label="Back to PDFArrow dashboard"
+      aria-label="Back to PDFEnrich dashboard"
     >
       <BrandWordmark logo />
     </button>
@@ -3017,7 +3017,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       publicTool,
       notice: intent === "share" || intent === "signature-request"
         ? `Sign in to save this document before creating a persistent ${intent === "signature-request" ? "signing" : "sharing"} link.`
-        : "Your document is safe in this browser. Sign in to save it to your PDFArrow account.",
+        : "Your document is safe in this browser. Sign in to save it to your PDFEnrich account.",
     });
   };
 
@@ -3043,7 +3043,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       navigate(editorPath(claimedDocument.id), { state: { publicTool, postAuthAction: "save" } });
       return true;
     }
-    showToast("Saved to your PDFArrow workspace.");
+    showToast("Saved to your PDFEnrich workspace.");
     return true;
   };
 
@@ -5153,7 +5153,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
         </div>
       </header>
       <header className="file-header">
-        <button type="button" className="editor-home-button" onClick={() => navigate(ROUTE_PATHS.home)} title="Back to PDFArrow home" aria-label="Back to PDFArrow home"><Home size={21} /></button>
+        <button type="button" className="editor-home-button" onClick={() => navigate(ROUTE_PATHS.home)} title="Back to PDFEnrich home" aria-label="Back to PDFEnrich home"><Home size={21} /></button>
         <button
           type="button"
           className="pdfnet-brand"
@@ -6408,19 +6408,19 @@ function AuthPage({ mode, setMode, onBack, onComplete, onPasswordReset, authRead
   const isPasswordReset = mode === "forgot-password";
   const authMetadata = isSignup
     ? {
-        title: "Create Your PDFArrow Account",
-        description: "Create a PDFArrow account to keep optional cloud history and workspace preferences together.",
+        title: "Create Your PDFEnrich Account",
+        description: "Create a PDFEnrich account to keep optional cloud history and workspace preferences together.",
         canonicalUrl: ROUTE_PATHS.signup,
       }
     : isPasswordReset
       ? {
-          title: "Reset Your PDFArrow Password",
-          description: "Request a PDFArrow password reset and return to your document workspace.",
+          title: "Reset Your PDFEnrich Password",
+          description: "Request a PDFEnrich password reset and return to your document workspace.",
           canonicalUrl: ROUTE_PATHS.forgotPassword,
         }
       : {
-          title: "Sign In to PDFArrow",
-          description: "Sign in to continue to your PDFArrow document workspace.",
+          title: "Sign In to PDFEnrich",
+          description: "Sign in to continue to your PDFEnrich document workspace.",
           canonicalUrl: ROUTE_PATHS.login,
         };
   const [name, setName] = useState("");
@@ -6439,7 +6439,7 @@ function AuthPage({ mode, setMode, onBack, onComplete, onPasswordReset, authRead
       if (hasManualAuthInputRef.current) return;
       const emailField = emailInputRef.current;
       const passwordField = passwordInputRef.current;
-      if (emailField?.value.trim().toLowerCase() !== "preview@pdfarrow.local") return;
+      if (emailField?.value.trim().toLowerCase() !== "preview@pdfenrich.local") return;
       emailField.value = "";
       if (passwordField) passwordField.value = "";
       setEmail("");
@@ -6496,7 +6496,7 @@ function AuthPage({ mode, setMode, onBack, onComplete, onPasswordReset, authRead
       <PageMetadata {...authMetadata} noIndex />
       <main className="auth-shell">
         <section className="auth-card" aria-label={isSignup ? "Create account" : isPasswordReset ? "Reset password" : "Log in"}>
-          <button type="button" className="auth-brand" onClick={onBack} aria-label="Back to PDFArrow home">
+          <button type="button" className="auth-brand" onClick={onBack} aria-label="Back to PDFEnrich home">
             <BrandWordmark logo />
           </button>
           <h2>{isSignup ? "Create Account" : isPasswordReset ? "Reset Password" : "Sign In"}</h2>
@@ -6568,12 +6568,12 @@ function AuthPage({ mode, setMode, onBack, onComplete, onPasswordReset, authRead
             </button>
           </form>
           <div className="auth-switch">
-            <span>{isSignup ? "Already have an account?" : isPasswordReset ? "Remembered your password?" : "New to PDFArrow?"}</span>
+            <span>{isSignup ? "Already have an account?" : isPasswordReset ? "Remembered your password?" : "New to PDFEnrich?"}</span>
             <button type="button" onClick={isPasswordReset ? () => setMode("login") : switchMode}>{isSignup ? "Sign In" : isPasswordReset ? "Back to Sign In" : "Sign Up"}</button>
           </div>
           <p className="auth-privacy">By continuing, you acknowledge the <a href={ROUTE_PATHS.privacy}>Privacy Policy</a> and <a href={ROUTE_PATHS.terms}>Terms</a>.</p>
           <footer className="auth-product-footer">
-            <button type="button" onClick={onBack}>One account for every PDFArrow workspace</button>
+            <button type="button" onClick={onBack}>One account for every PDFEnrich workspace</button>
           </footer>
         </section>
       </main>
@@ -7696,7 +7696,7 @@ export function UploadLanding({
     if (["Trash", "Billing", "Team", "Integrations"].includes(activeSection)) {
       const sectionDetails = {
         Trash: [Trash2, "Deleted documents", "Files moved to trash will be available here before permanent removal."],
-        Billing: [CreditCard, "Plans and billing", "Manage your PDFArrow plan, invoices, and payment details."],
+        Billing: [CreditCard, "Plans and billing", "Manage your PDFEnrich plan, invoices, and payment details."],
         Team: [Users, "Workspace members", "Invite teammates and manage document collaboration access."],
         Integrations: [Plug, "Connected apps", "Connect cloud storage and workflow tools to your PDF workspace."],
       };
@@ -7779,7 +7779,7 @@ export function UploadLanding({
     <main className="upload-shell lumin-home dashboard-editorial-theme">
       <input ref={fileInputRef} className="hidden-input" type="file" accept="application/pdf" onChange={onUpload} />
       <aside className="lumin-home-rail">
-        <button type="button" className="dashboard-brand" aria-label="PDFArrow dashboard" onClick={() => setActiveSection("Home")}><BrandWordmark logo /></button>
+        <button type="button" className="dashboard-brand" aria-label="PDFEnrich dashboard" onClick={() => setActiveSection("Home")}><BrandWordmark logo /></button>
         <nav className="upload-nav" aria-label="Primary">
           {primaryNav.map(({ label, section: navSection = label, icon: Icon, badge, anchor }) => (
             <button key={label} type="button" className={!anchor && navSection === activeSection ? "is-active" : ""} onClick={() => {
@@ -8634,7 +8634,7 @@ function SignatureModal({ defaultName, mode = "signature", onClose, onSave }) {
 
   const saveSignature = () => {
     if (mode === "initials" && !typedName.trim()) {
-      setError("Enter your name so PDFArrow can create your initials.");
+      setError("Enter your name so PDFEnrich can create your initials.");
       return;
     }
     if (tab === "upload" && !uploadedImage) {
