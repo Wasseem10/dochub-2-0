@@ -130,6 +130,28 @@ test("batch compression reports measured savings, previews output, and downloads
   ]);
   await expect(page.getByRole("region", { name: "Compression results" })).toContainText("% smaller");
   await expect(page.getByRole("img", { name: "Compressed first page of photos-one.pdf" })).toBeVisible();
+  const cachedBatch = await downloadBytes(page, "Download results ZIP");
+  expect(cachedBatch.download.suggestedFilename()).toBe("pdfarrow-compressed.zip");
+  expect(Object.keys(unzipSync(cachedBatch.bytes)).sort()).toEqual([
+    "photos-one-compressed.pdf",
+    "photos-two-compressed.pdf",
+  ]);
+  await expectNoHorizontalOverflow(page);
+});
+
+test("compression measures larger attempts and keeps the original", async ({ page }, testInfo) => {
+  test.skip(!primaryExportProjects.has(testInfo.project.name), "Honest larger-output handling is validated on the primary desktop and phone engines.");
+  test.setTimeout(90_000);
+  const source = await textPdf("SMALL SEARCHABLE ORIGINAL");
+  await page.goto(appPath("/compress-pdf"));
+  await page.locator('input[type="file"]').setInputFiles({ name: "already-small.pdf", mimeType: "application/pdf", buffer: source });
+  await page.getByLabel("Compression level").selectOption("maximum");
+  await page.getByRole("button", { name: "Download compressed PDF" }).click();
+  const results = page.getByRole("region", { name: "Compression results" });
+  await expect(results).toContainText("attempted");
+  await expect(results).toContainText("larger");
+  await expect(results).toContainText("kept original");
+  await expect(results.getByRole("button", { name: "Download" })).toHaveCount(0);
   await expectNoHorizontalOverflow(page);
 });
 

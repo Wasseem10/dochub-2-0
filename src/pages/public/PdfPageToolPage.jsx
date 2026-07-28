@@ -458,6 +458,41 @@ function CompressWorkspace({ tool }) {
     setStatus("idle");
   };
 
+  const showCompressionPreview = async (source, result = null) => {
+    if (!source) return;
+    setPreview({
+      fileId: source.id,
+      fileName: source.file.name,
+      original: "",
+      compressed: "",
+      status: "loading",
+      error: "",
+    });
+    try {
+      const [original, compressed] = await Promise.all([
+        renderCompressionPreview(source.bytes),
+        result?.output ? renderCompressionPreview(result.output) : Promise.resolve(""),
+      ]);
+      setPreview({
+        fileId: source.id,
+        fileName: source.file.name,
+        original,
+        compressed,
+        status: "ready",
+        error: "",
+      });
+    } catch {
+      setPreview({
+        fileId: source.id,
+        fileName: source.file.name,
+        original: "",
+        compressed: "",
+        status: "error",
+        error: "The first-page comparison could not be rendered. Your PDF and any measured compression result are still available.",
+      });
+    }
+  };
+
   const loadPdfs = async (fileList) => {
     const incoming = Array.from(fileList || []);
     if (!incoming.length) return;
@@ -501,12 +536,7 @@ function CompressWorkspace({ tool }) {
       }
       if (loaded.length) setFiles((current) => [...current, ...loaded]);
       if (loaded[0] && !preview) {
-        setPreview({
-          fileId: loaded[0].id,
-          fileName: loaded[0].file.name,
-          original: await renderCompressionPreview(loaded[0].bytes),
-          compressed: "",
-        });
+        await showCompressionPreview(loaded[0]);
       }
       if (skipped.length) {
         const summary = skipped.slice(0, 3).join("; ");
@@ -562,12 +592,20 @@ function CompressWorkspace({ tool }) {
   const showResultPreview = async (result) => {
     const source = files.find((file) => file.id === result.fileId);
     if (!source || result.status !== "success") return;
-    setPreview({
-      fileId: source.id,
-      fileName: source.file.name,
-      original: await renderCompressionPreview(source.bytes),
-      compressed: await renderCompressionPreview(result.output),
-    });
+    await showCompressionPreview(source, result);
+  };
+
+  const downloadCompressionResults = (downloadable = successfulResults) => {
+    if (!downloadable.length) return;
+    if (downloadable.length === 1 && files.length === 1) {
+      downloadBytes(downloadable[0].output, "application/pdf", downloadable[0].outputName);
+      return;
+    }
+    downloadBytes(
+      createStoredZip(downloadable.map((result) => ({ name: result.outputName, data: result.output }))),
+      "application/zip",
+      "pdfarrow-compressed.zip",
+    );
   };
 
   const compressPdfs = async () => {
@@ -582,12 +620,16 @@ function CompressWorkspace({ tool }) {
       for (const [index, record] of files.entries()) {
         try {
           const output = await compressRecord(record, selectedPreset, index);
+          const outputDetails = await inspectPdfBytes(output);
+          if (outputDetails.pageCount !== record.pageCount) {
+            throw new Error(`The compressed copy changed from ${record.pageCount} to ${outputDetails.pageCount} pages, so PDFArrow kept the original.`);
+          }
           const metrics = compressionSavings(record.bytes.length, output.length);
           if (!metrics.smaller) {
             nextResults.push({
               fileId: record.id,
               fileName: record.file.name,
-              status: "skipped",
+              status: "kept-original",
               message: selectedPreset.structurePreserving
                 ? "Already optimized with PDF features intact. Try Maximum reduction only if a flattened copy is acceptable."
                 : "The original is already smaller than the flattened result.",
@@ -621,15 +663,7 @@ function CompressWorkspace({ tool }) {
         return;
       }
       await showResultPreview(downloadable[0]);
-      if (downloadable.length === 1 && files.length === 1) {
-        downloadBytes(downloadable[0].output, "application/pdf", downloadable[0].outputName);
-      } else {
-        downloadBytes(
-          createStoredZip(downloadable.map((result) => ({ name: result.outputName, data: result.output }))),
-          "application/zip",
-          "pdfarrow-compressed.zip",
-        );
-      }
+      downloadCompressionResults(downloadable);
       operation.succeed({ result: preset, pageCountBucket: pageCountBucket(totalPages), batchSize: files.length });
       setProgress(100);
       setStatus("complete");
@@ -656,12 +690,24 @@ function CompressWorkspace({ tool }) {
             }}><Trash2 size={16} /></button>
           </article>)}</div>}
           {results.length > 0 && <section className="compression-results" aria-label="Compression results">
-            <header><strong>Measured results</strong><small>{successfulResults.length} smaller file{successfulResults.length === 1 ? "" : "s"}</small></header>
+            <header>
+              <div><strong>Measured results</strong><small>{successfulResults.length} smaller · {results.filter((result) => result.status === "kept-original").length} kept original</small></div>
+              {successfulResults.length > 0 && <button type="button" className="compression-download-all" onClick={() => downloadCompressionResults()}>
+                <Download size={15} /> {successfulResults.length > 1 || files.length > 1 ? "Download results ZIP" : "Download result PDF"}
+              </button>}
+            </header>
             {results.map((result) => <article key={result.fileId} className={`is-${result.status}`}>
               <div><strong>{result.fileName}</strong>{result.status === "success"
-                ? <small>{formatBytes(result.metrics.originalBytes)} → {formatBytes(result.metrics.compressedBytes)} · {result.metrics.savedPercent.toFixed(1)}% smaller</small>
-                : <small>{result.message}</small>}</div>
-              {result.status === "success" && <button type="button" onClick={() => void showResultPreview(result)}>Preview</button>}
+                ? <small>{formatBytes(result.metrics.originalBytes)} → {formatBytes(result.metrics.compressedBytes)} · saved {formatBytes(result.metrics.savedBytes)} · {result.metrics.savedPercent.toFixed(1)}% smaller</small>
+                : result.status === "kept-original"
+                  ? <small>{formatBytes(result.metrics.originalBytes)} → {formatBytes(result.metrics.compressedBytes)} attempted · {result.metrics.largerPercent.toFixed(1)}% larger · kept original</small>
+                  : <small>{result.message}</small>}
+                {result.status === "kept-original" && <span className="compression-result-note">{result.message}</span>}
+              </div>
+              {result.status === "success" && <div className="compression-result-actions">
+                <button type="button" onClick={() => void showResultPreview(result)}>Preview</button>
+                <button type="button" onClick={() => downloadBytes(result.output, "application/pdf", result.outputName)}><Download size={14} /> Download</button>
+              </div>}
             </article>)}
           </section>}
           <WorkflowErrorState message={error} onDismiss={() => setError("")} onRetry={files.length && status === "idle" ? compressPdfs : undefined} />
@@ -672,6 +718,7 @@ function CompressWorkspace({ tool }) {
           <label>Compression level<select value={preset} disabled={status === "working"} onChange={(event) => {
             setPreset(event.target.value);
             setResults([]);
+            setPreview((current) => current ? { ...current, compressed: "", status: current.original ? "ready" : "loading", error: "" } : null);
           }}>{Object.entries(PDF_COMPRESSION_PRESETS).map(([key, option]) => <option key={key} value={key}>{option.label}</option>)}</select></label>
           <div className="compression-preset-detail"><strong>{selectedPreset.impact}</strong><p>{selectedPreset.detail}</p></div>
           <div className="office-mode-note"><strong>{selectedPreset.structurePreserving ? "Document features stay intact" : "Flattened visual copy"}</strong><p>{selectedPreset.structurePreserving ? "Selectable text, links, forms, vectors, and page structure remain. Revalidate cryptographic signatures after changing the file." : "Every page becomes an image. Search, links, forms, layers, and accessibility tags are removed."}</p></div>
@@ -681,15 +728,22 @@ function CompressWorkspace({ tool }) {
               ? `${formatBytes(totalOriginalBytes)} → ${formatBytes(totalCompressedBytes)} · ${totalMetrics.savedPercent.toFixed(1)}% smaller`
               : `${files.length} PDF${files.length === 1 ? "" : "s"} · ${totalPages} page${totalPages === 1 ? "" : "s"} ready`}</span></div>
           <button className="conversion-primary-action" type="button" disabled={!files.length || status === "working" || status === "reading"} onClick={compressPdfs}>{status === "working" ? <><LoaderCircle className="is-spinning" size={18} /> Compressing {progress}%</> : <><Download size={18} /> {files.length > 1 ? "Compress and download ZIP" : "Download compressed PDF"}</>}</button>
-          {status === "complete" && <ExportSuccessState toolId={tool.id} onDownloadAgain={compressPdfs} onStartAnother={reset} relatedRoute="/organize-pdf" relatedName="Organize PDF" />}
+          {status === "complete" && <ExportSuccessState toolId={tool.id} onDownloadAgain={() => downloadCompressionResults()} onStartAnother={reset} relatedRoute="/organize-pdf" relatedName="Organize PDF" />}
         </aside>
       </div>
       {preview && <section className="compression-preview" aria-label={`Compression preview for ${preview.fileName}`}>
         <header><div><span>Visual check</span><h2>Compare the first page</h2></div><small>{preview.fileName}</small></header>
-        <div>
-          <figure><figcaption>Original</figcaption><img src={preview.original} alt={`Original first page of ${preview.fileName}`} /></figure>
-          <figure className={!preview.compressed ? "is-waiting" : ""}><figcaption>Compressed</figcaption>{preview.compressed ? <img src={preview.compressed} alt={`Compressed first page of ${preview.fileName}`} /> : <p>Compress the PDF to see the result beside the original.</p>}</figure>
-        </div>
+        {preview.status === "error" ? <div className="compression-preview-error" role="alert">
+          <p>{preview.error}</p>
+          <button type="button" onClick={() => {
+            const source = files.find((file) => file.id === preview.fileId);
+            const result = results.find((item) => item.fileId === preview.fileId && item.status === "success");
+            void showCompressionPreview(source, result);
+          }}><RotateCw size={15} /> Retry preview</button>
+        </div> : <div aria-live="polite">
+          <figure className={preview.status === "loading" ? "is-waiting" : ""}><figcaption>Original</figcaption>{preview.original ? <img src={preview.original} alt={`Original first page of ${preview.fileName}`} /> : <p>Rendering the original first page...</p>}</figure>
+          <figure className={!preview.compressed ? "is-waiting" : ""}><figcaption>Compressed</figcaption>{preview.compressed ? <img src={preview.compressed} alt={`Compressed first page of ${preview.fileName}`} /> : <p>{preview.status === "loading" ? "Preparing the comparison..." : "Compress the PDF to see the result beside the original."}</p>}</figure>
+        </div>}
         <p>Preview checks appearance only. Also reopen the downloaded PDF to verify text selection, links, forms, and signatures when those features matter.</p>
       </section>}
     </>

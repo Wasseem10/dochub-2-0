@@ -30,5 +30,12 @@ describe("PDF compression primitive", () => {
       smaller: true,
     });
     expect(compressionSavings(1_000, 1_100).smaller).toBe(false);
+    expect(compressionSavings(1_000, 1_100)).toMatchObject({
+      largerBytes: 100,
+      largerPercent: 10,
+      deltaBytes: 100,
+      savedBytes: 0,
+      savedPercent: 0,
+    });
   });
 });

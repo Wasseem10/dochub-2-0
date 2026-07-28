@@ -32,12 +32,17 @@ export function compressionSavings(originalBytes, compressedBytes) {
   const original = Math.max(0, Number(originalBytes) || 0);
   const compressed = Math.max(0, Number(compressedBytes) || 0);
   const savedBytes = Math.max(0, original - compressed);
+  const largerBytes = Math.max(0, compressed - original);
   const savedPercent = original ? savedBytes / original * 100 : 0;
+  const largerPercent = original ? largerBytes / original * 100 : 0;
   return {
     originalBytes: original,
     compressedBytes: compressed,
     savedBytes,
     savedPercent,
+    largerBytes,
+    largerPercent,
+    deltaBytes: compressed - original,
     smaller: compressed > 0 && compressed < original,
   };
 }
