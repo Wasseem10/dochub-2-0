@@ -27,8 +27,8 @@ export function PageMetadata({ title, description, canonicalUrl, schemas = [], n
     setMeta("og:url", absoluteCanonical, "property");
     const hasDedicatedSocialImage = hasToolShareImage(canonicalUrl) || isEditorialResourcePath(canonicalUrl);
     const resolvedSocialImage = absoluteSiteUrl(socialImage || (hasDedicatedSocialImage ? editorialShareImagePath(canonicalUrl) : "/og-editorial.png"));
-    const resolvedSocialAlt = socialImageAlt || `${title.replace(/ \| PDFArrow$/, "")} — PDFArrow guide and browser tool`;
-    setMeta("og:site_name", "PDFArrow", "property");
+    const resolvedSocialAlt = socialImageAlt || `${title.replace(/ \| PDFEnrich$/, "")} — PDFEnrich guide and browser tool`;
+    setMeta("og:site_name", "PDFEnrich", "property");
     setMeta("og:locale", "en_US", "property");
     setMeta("og:image", resolvedSocialImage, "property");
     setMeta("og:image:width", "1200", "property");
@@ -51,9 +51,9 @@ export function PageMetadata({ title, description, canonicalUrl, schemas = [], n
 
     trackPageView(canonicalUrl);
 
-    const scriptId = "pdfarrow-structured-data";
+    const scriptId = "pdfenrich-structured-data";
     document.getElementById(scriptId)?.remove();
-    document.getElementById("pdfarrow-prerender-structured-data")?.remove();
+    document.getElementById("pdfenrich-prerender-structured-data")?.remove();
     const pageSchema = {
       "@context": "https://schema.org",
       "@type": "WebPage",
@@ -62,7 +62,7 @@ export function PageMetadata({ title, description, canonicalUrl, schemas = [], n
       url: absoluteCanonical,
       inLanguage: "en-US",
       dateModified: publicPageLastModified(canonicalUrl),
-      isPartOf: { "@type": "WebSite", name: "PDFArrow", url: absoluteSiteUrl("/") },
+      isPartOf: { "@type": "WebSite", name: "PDFEnrich", url: absoluteSiteUrl("/") },
     };
     const pageSchemas = [pageSchema, ...schemas];
     if (pageSchemas.length) {

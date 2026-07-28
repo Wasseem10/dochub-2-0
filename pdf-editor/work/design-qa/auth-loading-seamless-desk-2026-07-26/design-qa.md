@@ -16,10 +16,10 @@
 ## Findings
 
 - No actionable P0, P1, or P2 differences remain.
-- Fonts and typography: the implementation uses PDFArrow's DM Sans/Funnel Display system, keeps the navy display heading and compact status copy, and matches the source hierarchy without the old generic card treatment.
+- Fonts and typography: the implementation uses PDFEnrich's DM Sans/Funnel Display system, keeps the navy display heading and compact status copy, and matches the source hierarchy without the old generic card treatment.
 - Spacing and layout rhythm: the document-to-wordmark journey, central copy, progress line, faded navigation rail, and emerging dashboard occupy the same major regions as the selected mock. The journey was widened after the first comparison to restore the source's open horizontal rhythm.
-- Colors and visual tokens: the page uses white, charcoal, soft neutral hairlines, official PDFArrow blue, oxblood PDF markers, and the destination dashboard's restrained citron accent. The background UI stays intentionally low contrast while the live status remains readable.
-- Image quality and asset fidelity: the official `runtime-public/pdfarrow-logo.png` is rendered through the cropped `brand-wordmark--logo` treatment. Supporting interface symbols use the project's Lucide icon library; there are no placeholder raster assets or improvised logo graphics.
+- Colors and visual tokens: the page uses white, charcoal, soft neutral hairlines, official PDFEnrich blue, oxblood PDF markers, and the destination dashboard's restrained citron accent. The background UI stays intentionally low contrast while the live status remains readable.
+- Image quality and asset fidelity: the official `runtime-public/pdfenrich-logo.png` is rendered through the cropped `brand-wordmark--logo` treatment. Supporting interface symbols use the project's Lucide icon library; there are no placeholder raster assets or improvised logo graphics.
 - Copy and content: “Opening your workspace,” “Restoring your saved session and documents,” and “Checking your saved sign-in” match the selected concept and retain the existing live-region semantics.
 - Interaction and accessibility: the loading section remains `role="status"` with polite announcements, decorative dashboard content is hidden from assistive technology, first-visit privacy controls are suppressed only during this short transition, and progress motion has a reduced-motion fallback.
 - Browser console: no errors were reported during the captured transition.
@@ -48,7 +48,7 @@
 ## Implementation checklist
 
 - [x] Replace the generic centered loading card.
-- [x] Use the official cropped PDFArrow wordmark.
+- [x] Use the official cropped PDFEnrich wordmark.
 - [x] Reveal the destination dashboard softly.
 - [x] Keep concise, accessible loading status.
 - [x] Add responsive and reduced-motion behavior.

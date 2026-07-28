@@ -17,10 +17,10 @@ export function ExportSuccessState({ toolId, onDownloadAgain, onStartAnother, re
     </div>
     <Link className="tool-export-related" to={relatedRoute}>Continue with {relatedName}<ArrowRight size={15} /></Link>
     <footer>
-      <small>Did PDFArrow complete your task?</small>
+      <small>Did PDFEnrich complete your task?</small>
       <span>
-        <button type="button" aria-label="Yes, PDFArrow completed my task" onClick={() => trackProductEvent("task_feedback_submitted", { toolId, result: "yes" })}><ThumbsUp size={14} /> Yes</button>
-        <button type="button" aria-label="No, PDFArrow did not complete my task" onClick={() => trackProductEvent("task_feedback_submitted", { toolId, result: "not_quite" })}><ThumbsDown size={14} /> Not quite</button>
+        <button type="button" aria-label="Yes, PDFEnrich completed my task" onClick={() => trackProductEvent("task_feedback_submitted", { toolId, result: "yes" })}><ThumbsUp size={14} /> Yes</button>
+        <button type="button" aria-label="No, PDFEnrich did not complete my task" onClick={() => trackProductEvent("task_feedback_submitted", { toolId, result: "not_quite" })}><ThumbsDown size={14} /> Not quite</button>
       </span>
     </footer>
   </section>;

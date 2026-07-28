@@ -7,7 +7,7 @@ describe("privacy-safe product analytics", () => {
     expect(trackProductEvent("not_allowed", { toolId: "edit-pdf" })).toBe(false);
     expect(trackProductEvent("pdf_downloaded", { toolId: "edit-pdf" })).toBe(true);
     expect(trackProductEvent("page_viewed", { route: "/edit-pdf", trafficSource: "organic" })).toBe(true);
-    expect(trackComparisonCta("/compare/pdfarrow-vs-dochub?source=test", "hero_try")).toBe(true);
+    expect(trackComparisonCta("/compare/pdfenrich-vs-dochub?source=test", "hero_try")).toBe(true);
   });
 
   it("bounds accepted strings before they are written", () => {

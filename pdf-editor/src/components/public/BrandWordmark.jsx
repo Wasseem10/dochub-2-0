@@ -6,9 +6,9 @@ export function BrandWordmark({ className = "", logo = false }) {
   return (
     <span className={classes} aria-hidden="true">
       {logo ? (
-        <img className="brand-wordmark-logo" src="/pdfarrow-logo.png" alt="" />
+        <img className="brand-wordmark-logo" src="/pdfenrich-logo.png" alt="" />
       ) : (
-        <span className="brand-wordmark-name">PDF<span className="brand-wordmark-arrow">Arrow</span></span>
+        <span className="brand-wordmark-name">PDF<span className="brand-wordmark-enrich">Enrich</span></span>
       )}
     </span>
   );

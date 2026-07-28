@@ -41,7 +41,7 @@ export function ToolGuideContent({ tool }) {
   const faqTopic = FAQ_TOPICS[tool.id] || `using ${tool.name}`;
   const guideSteps = GUIDE_STEP_OVERRIDES[tool.id] || [
     tool.steps[0] || "Choose a PDF using the upload box above.",
-    tool.steps[1] || `Use the ${tool.name} controls in the PDFArrow workspace.`,
+    tool.steps[1] || `Use the ${tool.name} controls in the PDFEnrich workspace.`,
     `Review the affected pages and adjust the ${actionName} settings as needed.`,
     "Move through every page to confirm the result is positioned correctly.",
     tool.verificationChecklist[1] || "Compare the result carefully with your source file.",
@@ -74,7 +74,7 @@ export function ToolGuideContent({ tool }) {
         <h2 id={`${tool.id}-guide-heading}`}>How to use {tool.name}</h2>
         <div className="tool-guide-workflow-grid">
           <figure>
-            <img src="/product-assets/pdfarrow-editor-workspace.png" alt="PDFArrow editor workspace showing a PDF and its editing toolbar" />
+            <img src="/product-assets/pdfenrich-editor-workspace.png" alt="PDFEnrich editor workspace showing a PDF and its editing toolbar" />
           </figure>
           <div className="tool-guide-workflow-copy">
             <ol>

@@ -76,7 +76,7 @@ export async function createPdfFromImages(images, options = {}) {
     });
   }
   pdf.setTitle(options.title || "Converted images");
-  pdf.setCreator("PDFArrow");
+  pdf.setCreator("PDFEnrich");
   return pdf.save();
 }
 

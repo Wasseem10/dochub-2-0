@@ -204,13 +204,13 @@ test("mobile page reordering, print preparation, and export preserve page order"
   test.skip(!phoneProjects.has(testInfo.project.name), "Editor tool coverage runs on Android and iPhone.");
   test.setTimeout(120_000);
   await page.addInitScript(() => {
-    globalThis.__pdfArrowPrintCapture = null;
+    globalThis.__pdfEnrichPrintCapture = null;
     const observer = new MutationObserver(() => {
       const frame = document.querySelector('iframe[title="PDF print document"]');
-      if (!frame?.contentWindow || frame.contentWindow.__pdfArrowPrintHooked) return;
-      frame.contentWindow.__pdfArrowPrintHooked = true;
+      if (!frame?.contentWindow || frame.contentWindow.__pdfEnrichPrintHooked) return;
+      frame.contentWindow.__pdfEnrichPrintHooked = true;
       frame.contentWindow.print = () => {
-        globalThis.__pdfArrowPrintCapture = {
+        globalThis.__pdfEnrichPrintCapture = {
           pages: frame.contentDocument?.querySelectorAll(".pdf-print-page").length || 0,
           editorShells: frame.contentDocument?.querySelectorAll(".editor-shell").length || 0,
         };
@@ -227,7 +227,7 @@ test("mobile page reordering, print preparation, and export preserve page order"
   await page.getByRole("button", { name: "Close thumbnails", exact: true }).click();
 
   await activateMobileTool(page, "Print document");
-  await expect.poll(() => page.evaluate(() => globalThis.__pdfArrowPrintCapture)).toEqual({ pages: 2, editorShells: 0 });
+  await expect.poll(() => page.evaluate(() => globalThis.__pdfEnrichPrintCapture)).toEqual({ pages: 2, editorShells: 0 });
   await expect(page.getByText("The PDF was sent to your printer dialog.")).toBeVisible();
 
   const exported = await downloadEditedPdf(page);

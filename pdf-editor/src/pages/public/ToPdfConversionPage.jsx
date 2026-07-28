@@ -41,7 +41,7 @@ const MODES = Object.freeze({
     extension: ".pptx",
     icon: Presentation,
     heading: "Keep your slides in presentation order",
-    detail: "PDFArrow rebuilds common text boxes, fills, shapes, and PNG or JPEG images on proportionally sized PDF pages.",
+    detail: "PDFEnrich rebuilds common text boxes, fills, shapes, and PNG or JPEG images on proportionally sized PDF pages.",
   },
   "html-to-pdf": {
     kind: "html",
@@ -240,7 +240,7 @@ export function ToPdfConversionPage({ tool }) {
     setError("");
     const operation = beginToolOperation(tool.id, { operation: "convert", slowAfterMs: 15000 });
     try {
-      const baseName = file.name.replace(/\.(xlsx|pptx|html?|xhtml)$/i, "") || "pdfarrow-document";
+      const baseName = file.name.replace(/\.(xlsx|pptx|html?|xhtml)$/i, "") || "pdfenrich-document";
       let bytes;
       let outputPageCount = 1;
       if (mode.kind === "excel") {

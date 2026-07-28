@@ -211,7 +211,7 @@ export async function createDocxFromPdfPages(pages, options = {}) {
     mode === "visual" ? visualPageParagraphs(page, index) : editablePageParagraphs(page, index, baseFontSize)
   ));
   const document = new Document({
-    creator: "PDFArrow",
+    creator: "PDFEnrich",
     title: options.title || "Converted PDF",
     description: mode === "visual" ? "PDF pages converted to visual Word pages" : "PDF text converted to editable Word paragraphs",
     styles: {
@@ -281,7 +281,7 @@ export async function createPdfFromRenderedDocxPages(pages, options = {}) {
     }
   }
   pdf.setTitle(options.title || "Converted Word document");
-  pdf.setCreator("PDFArrow");
-  pdf.setProducer("PDFArrow browser conversion");
+  pdf.setCreator("PDFEnrich");
+  pdf.setProducer("PDFEnrich browser conversion");
   return pdf.save();
 }

@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import { BrandWordmark } from "../../components/public/BrandWordmark.jsx";
 
-export function AuthLoadingScreen({ label = "Opening PDFArrow" }) {
+export function AuthLoadingScreen({ label = "Opening PDFEnrich" }) {
   return (
     <main className="auth-loading-shell" data-testid="auth-loading-screen">
       <div className="auth-loading-dashboard" aria-hidden="true">

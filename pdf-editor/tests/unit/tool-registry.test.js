@@ -13,7 +13,7 @@ const requiredFields = [
   "troubleshooting", "relatedTools", "canonicalUrl", "schemaType",
 ];
 
-describe("PDFArrow tool registry", () => {
+describe("PDFEnrich tool registry", () => {
   it("contains the complete 68-tool catalog with a valid unique schema", () => {
     expect(TOOL_REGISTRY).toHaveLength(68);
     expect(TOOL_CATEGORIES).toHaveLength(11);
@@ -54,7 +54,7 @@ describe("PDFArrow tool registry", () => {
   it("provides one unique indexable hub for every tool category", () => {
     expect(TOOL_CATEGORY_PAGES).toHaveLength(TOOL_CATEGORIES.length);
     expect(new Set(TOOL_CATEGORY_PAGES.map(({ route }) => route)).size).toBe(TOOL_CATEGORY_PAGES.length);
-    expect(TOOL_CATEGORY_PAGES.every(({ seoTitle, metaDescription, guidance }) => seoTitle.includes("PDFArrow") && metaDescription.length > 80 && guidance.length === 3)).toBe(true);
+    expect(TOOL_CATEGORY_PAGES.every(({ seoTitle, metaDescription, guidance }) => seoTitle.includes("PDFEnrich") && metaDescription.length > 80 && guidance.length === 3)).toBe(true);
   });
 
   it("provides substantial, unique guidance for the eleven highest-intent tools", () => {
@@ -62,7 +62,7 @@ describe("PDFArrow tool registry", () => {
     for (const toolId of HIGH_INTENT_TOOL_IDS) {
       const tool = TOOL_REGISTRY.find(({ id }) => id === toolId);
       expect(tool, toolId).toBeTruthy();
-      expect(tool.seoTitle).toContain("PDFArrow");
+      expect(tool.seoTitle).toContain("PDFEnrich");
       expect(tool.metaDescription.length).toBeGreaterThan(100);
       expect(tool.metaDescription.length).toBeLessThanOrEqual(160);
       expect(tool.heroHeadline).not.toContain("honest limits");

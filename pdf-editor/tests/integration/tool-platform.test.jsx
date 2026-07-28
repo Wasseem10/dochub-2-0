@@ -46,7 +46,7 @@ describe("public PDF tool platform", () => {
     const renderer = await render(<FeaturesPage />);
     const text = textOf(renderer.root);
     expect(text).toContain("Every feature you need to finish a PDF.");
-    expect(text).toContain("All working PDFArrow features");
+    expect(text).toContain("All working PDFEnrich features");
     expect(text).toContain("PDF to Excel");
     expect(text).toContain("PowerPoint to PDF");
     expect(text).toContain("OCR PDF");
@@ -329,7 +329,7 @@ describe("public PDF tool platform", () => {
     expect(textOf(root).includes("All tools")).toBe(true);
     expect(textOf(root).includes("Choose a PDF")).toBe(true);
     expect(textOf(root).includes("Comparisons")).toBe(true);
-    expect(root.findAllByProps({ src: "/pdfarrow-logo.png" })).toHaveLength(1);
+    expect(root.findAllByProps({ src: "/pdfenrich-logo.png" })).toHaveLength(1);
 
     await act(async () => root.findByProps({ "aria-label": "Open navigation" }).props.onClick());
     expect(root.findAllByProps({ className: "marketing-mobile-nav" })).toHaveLength(1);
@@ -342,7 +342,7 @@ describe("public PDF tool platform", () => {
     expect(footer.root.findAllByType("section").length).toBeGreaterThan(0);
     expect(textOf(footer.root).includes("Completely free")).toBe(true);
     expect(textOf(footer.root).includes("Comparisons")).toBe(true);
-    expect(footer.root.findAllByProps({ src: "/pdfarrow-logo.png" })).toHaveLength(1);
+    expect(footer.root.findAllByProps({ src: "/pdfenrich-logo.png" })).toHaveLength(1);
     await unmount(footer);
   });
 });

@@ -130,32 +130,32 @@
       {
         "href": "https://cosmicpdf.com/pdf-to-word/",
         "role": "A",
-        "text": "PDFarrow_forwardDOCPDF to WordTop"
+        "text": "PDFenrich_forwardDOCPDF to WordTop"
       },
       {
         "href": "https://cosmicpdf.com/pdf-to-excel/",
         "role": "A",
-        "text": "PDFarrow_forwardXLSPDF to Excel"
+        "text": "PDFenrich_forwardXLSPDF to Excel"
       },
       {
         "href": "https://cosmicpdf.com/pdf-to-jpg/",
         "role": "A",
-        "text": "PDFarrow_forwardJPGPDF to JPG"
+        "text": "PDFenrich_forwardJPGPDF to JPG"
       },
       {
         "href": "https://cosmicpdf.com/pdf-to-png/",
         "role": "A",
-        "text": "PDFarrow_forwardPNGPDF to PNG"
+        "text": "PDFenrich_forwardPNGPDF to PNG"
       },
       {
         "href": "https://cosmicpdf.com/pdf-to-powerpoint/",
         "role": "A",
-        "text": "PDFarrow_forwardPPTPDF to PPTX"
+        "text": "PDFenrich_forwardPPTPDF to PPTX"
       },
       {
         "href": "https://cosmicpdf.com/pdf-to-text/",
         "role": "A",
-        "text": "PDFarrow_forwardTXTPDF to Text"
+        "text": "PDFenrich_forwardTXTPDF to Text"
       },
       {
         "href": "https://cosmicpdf.com/word-to-pdf/",
@@ -488,8 +488,8 @@
         "PDFSign PDF",
         "PDFAnnotate",
         "PDFRedact PDF",
-        "PDFarrow_forwardDOCPDF to WordTop",
-        "PDFarrow_forwardXLSPDF to Excel"
+        "PDFenrich_forwardDOCPDF to WordTop",
+        "PDFenrich_forwardXLSPDF to Excel"
       ],
       "visibleHeadings": [
         "Edit your PDF in three clicks.",
@@ -512,12 +512,12 @@
         "PDFSign PDF",
         "PDFAnnotate",
         "PDFRedact PDF",
-        "PDFarrow_forwardDOCPDF to WordTop",
-        "PDFarrow_forwardXLSPDF to Excel",
-        "PDFarrow_forwardJPGPDF to JPG",
-        "PDFarrow_forwardPNGPDF to PNG",
-        "PDFarrow_forwardPPTPDF to PPTX",
-        "PDFarrow_forwardTXTPDF to Text",
+        "PDFenrich_forwardDOCPDF to WordTop",
+        "PDFenrich_forwardXLSPDF to Excel",
+        "PDFenrich_forwardJPGPDF to JPG",
+        "PDFenrich_forwardPNGPDF to PNG",
+        "PDFenrich_forwardPPTPDF to PPTX",
+        "PDFenrich_forwardTXTPDF to Text",
         "DOCarrow_forwardPDFWord to PDF",
         "JPGarrow_forwardPDFJPG to PDF",
         "XLSarrow_forwardPDFExcel to PDF",
@@ -650,12 +650,12 @@
       "PDFSign PDF",
       "PDFAnnotate",
       "PDFRedact PDF",
-      "PDFarrow_forwardDOCPDF to WordTop",
-      "PDFarrow_forwardXLSPDF to Excel",
-      "PDFarrow_forwardJPGPDF to JPG",
-      "PDFarrow_forwardPNGPDF to PNG",
-      "PDFarrow_forwardPPTPDF to PPTX",
-      "PDFarrow_forwardTXTPDF to Text",
+      "PDFenrich_forwardDOCPDF to WordTop",
+      "PDFenrich_forwardXLSPDF to Excel",
+      "PDFenrich_forwardJPGPDF to JPG",
+      "PDFenrich_forwardPNGPDF to PNG",
+      "PDFenrich_forwardPPTPDF to PPTX",
+      "PDFenrich_forwardTXTPDF to Text",
       "DOCarrow_forwardPDFWord to PDF",
       "JPGarrow_forwardPDFJPG to PDF",
       "XLSarrow_forwardPDFExcel to PDF",

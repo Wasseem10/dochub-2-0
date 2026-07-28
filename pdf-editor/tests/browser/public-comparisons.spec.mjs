@@ -4,7 +4,7 @@ const appPath = (path) => process.env.GITHUB_ACTIONS === "true" ? `/dochub-2-0${
 
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => {
-    localStorage.removeItem("pdfarrow.privacy-choices.v1");
+    localStorage.removeItem("pdfenrich.privacy-choices.v1");
   });
 });
 
@@ -13,7 +13,7 @@ test("homepage exposes comparisons and keeps first-visit privacy choices compact
   await page.goto(appPath("/"));
 
   await expect(page.getByRole("link", { name: "Compare", exact: true })).toBeVisible();
-  await expect(page.getByRole("link", { name: "Compare PDFArrow", exact: true })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Compare PDFEnrich", exact: true })).toBeVisible();
   const consent = page.locator(".privacy-consent");
   await expect(consent).toBeVisible();
   const consentBox = await consent.boundingBox();
@@ -39,6 +39,6 @@ test("comparison pages provide mobile navigation without horizontal overflow", a
   await expect(sectionNav).toBeVisible();
   await expect(sectionNav.getByRole("link", { name: "Features" })).toHaveAttribute("href", "#comparison-table");
   await expect(sectionNav.getByRole("link", { name: "Pricing" })).toHaveAttribute("href", "#plans");
-  await expect(page.getByRole("banner").locator(".marketing-brand img")).toHaveAttribute("src", "/pdfarrow-logo.png");
+  await expect(page.getByRole("banner").locator(".marketing-brand img")).toHaveAttribute("src", "/pdfenrich-logo.png");
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
 });

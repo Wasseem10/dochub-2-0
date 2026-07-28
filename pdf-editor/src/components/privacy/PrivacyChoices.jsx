@@ -38,7 +38,7 @@ export function PrivacyConsentBanner() {
     <aside className="privacy-consent" role="region" aria-labelledby="privacy-consent-title" aria-describedby="privacy-consent-copy">
       <div>
         <strong id="privacy-consent-title">Your privacy choices</strong>
-        <p id="privacy-consent-copy">Essential storage runs PDFArrow. Optional analytics never include document contents, file names, signatures, or form answers.</p>
+        <p id="privacy-consent-copy">Essential storage runs PDFEnrich. Optional analytics never include document contents, file names, signatures, or form answers.</p>
         <a href="/privacy#choices">Read the Privacy Policy</a>
       </div>
       <div className="privacy-consent-actions">
@@ -74,7 +74,7 @@ export function PrivacyChoicePanel() {
         <button type="button" onClick={() => choose(false)}>Keep analytics off</button>
         <button type="button" className="is-primary" disabled={gpcEnabled} onClick={() => choose(true)}>Allow optional analytics</button>
       </div>
-      {gpcEnabled && <p className="privacy-gpc-note">Your browser is sending Global Privacy Control, so PDFArrow keeps optional analytics off.</p>}
+      {gpcEnabled && <p className="privacy-gpc-note">Your browser is sending Global Privacy Control, so PDFEnrich keeps optional analytics off.</p>}
     </section>
   );
 }

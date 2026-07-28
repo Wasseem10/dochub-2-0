@@ -1,6 +1,6 @@
 {
-  "name": "PDFArrow",
-  "short_name": "PDFArrow",
+  "name": "PDFEnrich",
+  "short_name": "PDFEnrich",
   "description": "Browser-based tools for editing, organizing, converting, signing, and reviewing PDFs.",
   "start_url": "/",
   "display": "standalone",

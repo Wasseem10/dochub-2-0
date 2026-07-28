@@ -22,7 +22,7 @@ describe("competitor comparison content", () => {
 
   it("resolves canonical comparison paths", () => {
     expect(COMPARISON_PATHS).toContain("/compare");
-    expect(comparisonPath("dochub")).toBe("/compare/pdfarrow-vs-dochub");
-    expect(getComparisonBySlug("pdfarrow-vs-dochub")?.company).toBe("DocHub");
+    expect(comparisonPath("dochub")).toBe("/compare/pdfenrich-vs-dochub");
+    expect(getComparisonBySlug("pdfenrich-vs-dochub")?.company).toBe("DocHub");
   });
 });

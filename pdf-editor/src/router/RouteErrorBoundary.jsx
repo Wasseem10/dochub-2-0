@@ -13,7 +13,7 @@ export function RouteErrorBoundary() {
   return (
     <main className="route-state-page">
       <section className="route-state-card" role="alert" aria-describedby="route-error-description">
-        <span className="route-status-pill">PDFArrow</span>
+        <span className="route-status-pill">PDFEnrich</span>
         <h1>{title}</h1>
         <p id="route-error-description">{description}</p>
         {import.meta.env.DEV && technicalDetail && <pre className="route-error-detail">{technicalDetail}</pre>}

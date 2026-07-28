@@ -20,7 +20,7 @@ import { deleteLocalDocuments } from "../tools/localDocumentStore.js";
 import { AuthContext } from "./AuthContext.jsx";
 import { syncAuthUserProfile } from "./authUserProfile.js";
 
-const LOCAL_AUTH_STORAGE_KEY = "pdfarrow.local-auth-user.v1";
+const LOCAL_AUTH_STORAGE_KEY = "pdfenrich.local-auth-user.v1";
 
 function readLocalAuthUser() {
   try {
@@ -118,7 +118,7 @@ export default function FirebaseAuthProvider({ children }) {
       setAuthReady(true);
       if (user) {
         syncAuthUserProfile(user).catch((error) => {
-          if (import.meta.env.DEV) console.warn("[PDFArrow auth] Could not update the owner sign-in ledger", error?.code || error?.message);
+          if (import.meta.env.DEV) console.warn("[PDFEnrich auth] Could not update the owner sign-in ledger", error?.code || error?.message);
         });
       }
     });

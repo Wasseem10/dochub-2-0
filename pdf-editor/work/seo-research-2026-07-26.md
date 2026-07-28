@@ -1,4 +1,4 @@
-# PDFArrow SEO Research — July 26, 2026
+# PDFEnrich SEO Research — July 26, 2026
 
 ## Implemented in this pass
 

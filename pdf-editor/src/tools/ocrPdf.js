@@ -221,7 +221,7 @@ export async function createSearchablePdfFromOcrPages(pages, { title = "Searchab
     }
   }
   pdf.setTitle(pdfEncodableText(font, title));
-  pdf.setCreator("PDFArrow");
-  pdf.setProducer("PDFArrow browser OCR");
+  pdf.setCreator("PDFEnrich");
+  pdf.setProducer("PDFEnrich browser OCR");
   return pdf.save();
 }

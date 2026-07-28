@@ -43,8 +43,8 @@ export async function applyPermanentRedactions(sourceBytes, redactions, options 
 
   const output = await PDFDocument.create();
   output.setTitle("Redacted document");
-  output.setProducer("PDFArrow permanent redaction");
-  output.setCreator("PDFArrow");
+  output.setProducer("PDFEnrich permanent redaction");
+  output.setCreator("PDFEnrich");
   output.setSubject("Flattened PDF with permanent redactions");
   output.setKeywords(["redacted", "flattened"]);
 

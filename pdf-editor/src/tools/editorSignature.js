@@ -1,4 +1,4 @@
-export const EDITOR_SIGNATURE_LIBRARY_KEY = "pdfarrow.signature-library.v1";
+export const EDITOR_SIGNATURE_LIBRARY_KEY = "pdfenrich.signature-library.v1";
 export const MAX_SAVED_EDITOR_SIGNATURES = 3;
 
 export function canSaveEditorSignature({ mode = "signature", tab = "draw", typedName = "", hasInk = false, uploadedImage = "" } = {}) {

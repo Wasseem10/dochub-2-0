@@ -21,7 +21,7 @@ describe("simplified dashboard navigation", () => {
       renderer = TestRenderer.create(<EditorBrandButton onDashboard={onDashboard} />);
     });
 
-    const button = renderer.root.findByProps({ "aria-label": "Back to PDFArrow dashboard" });
+    const button = renderer.root.findByProps({ "aria-label": "Back to PDFEnrich dashboard" });
     await act(async () => button.props.onClick());
     expect(onDashboard).toHaveBeenCalledOnce();
     expect(button.props.title).toBe("Back to dashboard");
@@ -78,7 +78,7 @@ describe("simplified dashboard navigation", () => {
     await act(async () => uploadButton.props.onClick());
     expect(onSelectFiles).toHaveBeenCalledOnce();
 
-    const brand = renderer.root.findByProps({ "aria-label": "PDFArrow dashboard" });
+    const brand = renderer.root.findByProps({ "aria-label": "PDFEnrich dashboard" });
     await act(async () => brand.props.onClick());
     expect(onNavigate).toHaveBeenCalledWith(ROUTE_PATHS.dashboard);
 

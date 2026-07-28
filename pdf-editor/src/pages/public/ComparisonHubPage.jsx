@@ -11,8 +11,8 @@ export function ComparisonHubPage() {
   return (
     <main className="vendor-comparison-page comparison-hub">
       <PageMetadata
-        title="PDF editor comparisons | PDFArrow"
-        description="Compare PDFArrow with DocHub, Smallpdf, iLovePDF, Adobe Acrobat, and Sejda using current official product information."
+        title="PDF editor comparisons | PDFEnrich"
+        description="Compare PDFEnrich with DocHub, Smallpdf, iLovePDF, Adobe Acrobat, and Sejda using current official product information."
         canonicalUrl="/compare"
         schemas={[{
           "@context": "https://schema.org",
@@ -37,10 +37,10 @@ export function ComparisonHubPage() {
         <small>Research reviewed {COMPARISON_REVIEWED_LABEL}. Product details can change.</small>
       </section>
 
-      <section className="comparison-card-grid" aria-label="PDFArrow competitor comparisons">
+      <section className="comparison-card-grid" aria-label="PDFEnrich competitor comparisons">
         {COMPARISONS.map((item) => (
           <article key={item.slug} style={{ "--comparison-accent": item.accent }}>
-            <div className="comparison-company-marks"><span className="is-pdfarrow">PA</span><b>vs</b><span>{item.mark}</span></div>
+            <div className="comparison-company-marks"><span className="is-pdfenrich">PE</span><b>vs</b><span>{item.mark}</span></div>
             <p>{item.title}</p>
             <h2>{item.summary}</h2>
             <ul>
@@ -57,7 +57,7 @@ export function ComparisonHubPage() {
         <div><span>How we compare</span><h2>Useful context, not a manufactured winner.</h2></div>
         <div>
           <p>We compare account requirements, document processing, editing depth, signing workflows, available apps, integrations, and current cost models.</p>
-          <p>Competitor capabilities are sourced from official vendor pages linked on every comparison. PDFArrow statements describe the current released product.</p>
+          <p>Competitor capabilities are sourced from official vendor pages linked on every comparison. PDFEnrich statements describe the current released product.</p>
         </div>
       </section>
     </main>
