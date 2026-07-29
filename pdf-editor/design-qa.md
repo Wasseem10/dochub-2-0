@@ -1,40 +1,48 @@
-# Popular Tools literal icon match — Design QA
+# Quiet Editorial Recovery — Design QA
 
 ## Evidence
 
-- Exact user-provided source: `work/design-references/popular-tools-icons-exact-2026-07-29.png`
-- Extracted source-asset sheet: `work/design-qa/popular-tools-professional-2026-07-29/exact-source-icon-assets.png`
-- Desktop implementation: `work/design-qa/popular-tools-professional-2026-07-29/desktop-literal-source-assets.png`
-- Mobile implementation: `work/design-qa/popular-tools-professional-2026-07-29/mobile-literal-source-assets.png`
-- Side-by-side comparison: `work/design-qa/popular-tools-professional-2026-07-29/comparison-literal-source-assets.png`
-- Desktop viewport: 1866 × 843.
+- Selected source: `work/design-references/route-error-quiet-editorial-selected-2026-07-29.png`
+- Desktop implementation: `work/design-qa/route-error-desktop-final.png`
+- Mobile implementation: `work/design-qa/route-error-mobile-final.png`
+- Side-by-side comparison: `work/design-qa/route-error-comparison-final.png`
+- Desktop viewport: 1503 × 796.
 - Mobile viewport: 390 × 844.
-- State: homepage Popular Tools section at rest.
+- State: connection-interrupted route error.
 
-## Findings and comparison history
+## Comparison history
 
-### Previous pass — blocked
+### Pass 1 — blocked
 
-- P1: Layered library glyphs approximated the intended command anatomy but did not reproduce the user's selected icon paths exactly.
-- P2: Small differences were visible in the merge page overlap, compression arrows, pencil, refresh arrows, scissors, signature, checklist, organizer grid, OCR brackets, and lock.
+- P1: The source illustration was too small and low on the page.
+- P2: The headline wrapped to three lines instead of the selected two-line editorial lockup.
+- P2: The copy column began too far left relative to the source.
+- Fix: widened the copy area, matched its measured inset, and replaced the first illustration treatment with a dedicated source-faithful document asset.
+
+### Pass 2 — blocked
+
+- P2: The document stack, saved label, and powder-blue field were still smaller than the source.
+- P2: The recovery copy sat approximately 38px below the selected composition.
+- Fix: used the selected mock’s exact document illustration crop, matched its desktop scale and edge position, and moved the copy to the source baseline.
 
 ### Final pass — passed
 
-- Replaced every approximation with an individual transparent asset extracted from the exact user-provided screenshot.
-- The assets preserve the source's literal navy contours, PDFEnrich-blue command marks, internal spacing, and line geometry.
-- Each asset uses the same 150 × 150 intrinsic square and renders with `object-fit: contain`; no stretching, cropping, CSS redrawing, or library substitution remains.
-- The desktop implementation maintains the selected five-column card anatomy and the mobile implementation keeps two equal touch-friendly columns.
+- The generic centered error card is removed.
+- The final desktop composition matches the selected white editorial canvas, hairline header, two-line headline, compact safety copy, single blue action, quiet text links, and saved-document visual.
+- The official cropped PDFEnrich wordmark replaces the mock’s text-only placeholder, as required by the product brand system.
+- Mobile recomposes into one readable column with a full-width retry action, two supporting links, and an enlarged document visual without horizontal overflow.
 
-## Responsive and functional verification
+## Functional and accessibility verification
 
-- All ten desktop and mobile assets loaded successfully.
-- Browser geometry reported a 1.0 width-to-height ratio for all ten icons.
-- Mobile rendered size is 76 × 76 with a 150 × 150 natural size for every asset.
-- Mobile document width is 375px inside the 390px viewport, with no horizontal overflow.
-- All ten cards remain keyboard-accessible links to their existing PDF tool routes.
-- Browser console errors: none.
-- Focused icon suite: 11 tests passed.
-- TypeScript: passed.
-- Production build, prerender, sitemap generation, and public performance audit: passed.
+- `Reload page` performs a real browser reload and retains the requested route.
+- `PDF tools` navigates to `/tools`.
+- `Home` navigates to `/`.
+- The recovery section uses `role="alert"` and an explicit description association.
+- Keyboard focus treatments remain visible on the logo, button, and links.
+- The illustration is decorative and excluded from the accessibility tree.
+- Desktop and mobile browser console errors: none.
+- Mobile document width equals the viewport width: 390px.
+- Focused route-error tests: passed.
+- TypeScript and production build: passed.
 
 final result: passed
