@@ -32,6 +32,8 @@ The primary desktop editor toolbar is a slim 64px floating white rounded card on
 
 Editor toolbar hover and selected states use an Apple-like neutral gray interaction system: soft gray hover, a slightly deeper gray selected surface, charcoal icons and labels, and a subtle inset border. Do not use blue for toolbar hover or selected-tool feedback; reserve blue for primary actions and document selection affordances.
 
+Selecting an editor tool must not trigger a floating bottom-right guidance toast over the document. Put any necessary next-step guidance in the compact contextual strip beneath the toolbar, reserve transient toasts for real completion, warning, or error states, and keep those operational notices light and readable rather than black.
+
 The floating bottom zoom and page navigator follows the selected July 17, 2026 compact rail concept: one low-profile white capsule, borderless Lucide controls, a bordered zoom select, a pale-blue current-page field, one subtle divider, and restrained shadow. Keep zoom out/in, zoom preset, first/previous/next/last page, current page, and total page count functional and aligned.
 
 The mobile editor must be intentionally touch-first rather than a compressed desktop toolbar. Use one compact filename header, an unobstructed document canvas, a six-action bottom tool dock with generous tap targets, and a separate bottom-sheet More menu containing every tool hidden from the dock. Keep the zoom/page capsule below the tool dock, place contextual settings above it, eliminate overlapping toolbar groups and horizontal page gutters, and enlarge transform handles for touch.

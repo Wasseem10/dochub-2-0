@@ -2153,7 +2153,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   const currentPage = pages[pageIndex] || pages[0];
   const hasVisibleToolSettings = publicTool !== "request-signatures"
     && (selected?.type === "text"
-      || ["text", "field", "draw", "highlight", "textHighlight", "whiteout", "rectangle", "circle", "line", "arrow", "signature"].includes(tool)
+      || ["text", "editText", "field", "draw", "highlight", "textHighlight", "whiteout", "rectangle", "circle", "line", "arrow", "signature"].includes(tool)
       || Object.hasOwn(TOOL_PERSISTENT_INSTRUCTIONS, tool));
   const pageAnnotations = annotations.filter((annotation) => annotation.page === pageIndex);
   const pageDetectedTextItems = detectedTextItems.filter((item) => item.pageNumber === pageIndex && !item.isDeleted);
@@ -4986,12 +4986,12 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   }, [detectedTextCount, editorRouteState, location, navigate, view]);
 
   const activateReferenceTool = (nextTool) => {
+    setToast("");
     setIsShapeMenuOpen(false);
     setIsCompactToolsMenuOpen(false);
     setSelectedDetectedTextId(null);
     if (nextTool === "select") {
       setTool("select");
-      showToast("Select an object, then drag it to move it.");
       return;
     }
     if (nextTool === "image") {
@@ -5004,44 +5004,31 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       if (!activeSignature.content && !activeSignature.imageDataUrl) {
         setSignatureModalMode("signature");
         setSignatureModalOpen(true);
-      } else {
-        showToast("Click the page to place your signature.");
       }
       return;
     }
     if (nextTool === "editText") {
       setTool("editText");
-      showToast(detectedTextCount ? "Click existing PDF text to edit it." : "This page has no editable text layer. Use Add Text instead.");
       return;
     }
     if (nextTool === "textHighlight") {
       setTool("textHighlight");
-      showToast(detectedTextCount ? "Click existing PDF text to highlight it." : "Click the page to place a text highlight.");
       return;
     }
     if (nextTool === "note") {
       setTool("comment");
-      showToast("Click the page to place a note.");
       return;
-    }
-    if (nextTool === "erase") showToast("Click an annotation or existing text item to erase it.");
-    if (nextTool === "whiteout") showToast("Drag over content to cover it with a permanent white box.");
-    if (nextTool === "stamp") showToast("Click the page to place an Approved stamp.");
-    if (nextTool === "link") showToast("Click the page, then enter the link address.");
-    if (nextTool === "checkbox") showToast("Click the exact spot where you want the checkmark.");
-    if (["arrow", "line", "circle", "rectangle"].includes(nextTool)) {
-      showToast(`Drag on the page to draw a ${nextTool === "circle" ? "circle" : nextTool}.`);
     }
     setTool(nextTool);
   };
 
   const activateRequestField = (fieldType) => {
+    setToast("");
     setSelectedId(null);
     setSelectedDetectedTextId(null);
     setToolSettings((current) => ({ ...current, requestFieldType: fieldType }));
     setTool(fieldType === "checkbox" ? "checkbox" : "field");
     setActiveToolMode("fillSign");
-    showToast(`Click the page to place a required ${requestFieldLabels[fieldType].toLowerCase()} field.`);
   };
 
   const finishEditing = async () => {
@@ -5592,16 +5579,13 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
             aria-label={label}
             className={`ribbon-tool ${tool === id ? "is-active" : ""}`}
             onClick={() => {
+              setToast("");
               if (id === "signature" && !activeSignature.content && !activeSignature.imageDataUrl) {
                 setSignatureModalMode("signature");
                 setSignatureModalOpen(true);
               }
               if (id === "image") {
                 imageInputRef.current?.click();
-                showToast(pendingImage ? "Click the page to place the selected image." : "Choose a PNG or JPG to insert.");
-              }
-              if (id === "editText") {
-                showToast(detectedTextCount ? `${detectedTextCount} original PDF text item${detectedTextCount === 1 ? "" : "s"} ready. Click a blue outline to edit.` : "Upload a text-based PDF to edit the original words.");
               }
               setTool(id);
               setActiveToolMode((currentMode) => resolveModeForTool(id, currentMode));
@@ -6069,9 +6053,9 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
             selectedId={selectedId}
             onClose={() => setIsCommentsOpen(false)}
             onAddComment={() => {
+              setToast("");
               setTool("comment");
               setIsCommentsOpen(false);
-              showToast("Click the page to place a comment.");
             }}
             onSelect={goToComment}
           />
@@ -6231,7 +6215,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
           onSignIn={continueAuthAction}
         />
       )}
-      {toast && <div className="toast">{toast}</div>}
+      {toast && <div className="toast" role="status" aria-live="polite">{toast}</div>}
     </main>
   );
 }
@@ -6729,6 +6713,18 @@ export function ToolSettingsPanel({
     setFontSearch("");
   };
   const persistentInstruction = TOOL_PERSISTENT_INSTRUCTIONS[effectiveTool];
+
+  if (effectiveTool === "editText") {
+    return (
+      <div className="tool-settings tool-instruction-settings" role="status" aria-live="polite">
+        <ScanText size={17} aria-hidden="true" />
+        <strong>Edit Text</strong>
+        <span>{hasSelectableTextLayer
+          ? "Select an outlined text item on the page to edit it."
+          : "No editable text on this page. Use Add Text to place new text."}</span>
+      </div>
+    );
+  }
 
   if (persistentInstruction) {
     return (

@@ -104,3 +104,27 @@ describe("direct page tool guidance", () => {
     await act(async () => renderer.unmount());
   });
 });
+
+describe("edit text guidance", () => {
+  it.each([
+    [false, "No editable text on this page. Use Add Text to place new text."],
+    [true, "Select an outlined text item on the page to edit it."],
+  ])("keeps guidance inline when selectable text is %s", async (hasSelectableTextLayer, instruction) => {
+    let renderer;
+    await act(async () => {
+      renderer = TestRenderer.create(
+        <ToolSettingsPanel
+          tool="editText"
+          settings={{}}
+          setSettings={vi.fn()}
+          hasSelectableTextLayer={hasSelectableTextLayer}
+        />,
+      );
+    });
+
+    const status = renderer.root.findByProps({ role: "status" });
+    expect(status.findByType("strong").children.join("")).toBe("Edit Text");
+    expect(status.findByType("span").children.join("")).toBe(instruction);
+    await act(async () => renderer.unmount());
+  });
+});
