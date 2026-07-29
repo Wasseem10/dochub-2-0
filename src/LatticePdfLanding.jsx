@@ -17,6 +17,7 @@ import X from "lucide-react/dist/esm/icons/x.mjs";
 import Zap from "lucide-react/dist/esm/icons/zap.mjs";
 import { BrandWordmark } from "./components/public/BrandWordmark.jsx";
 import { PageMetadata } from "./components/public/PageMetadata.jsx";
+import { ProfessionalToolIcon } from "./components/public/ProfessionalToolIcon.jsx";
 import { absoluteSiteUrl } from "./config/site.js";
 import { trackComparisonCta } from "./analytics/productAnalytics.js";
 import { ROUTE_PATHS } from "./router/routePaths.js";
@@ -237,7 +238,7 @@ function Dropzone({ choose, dragging, setDragging, isUploading, uploadError, upl
 function PopularTools() {
   return <section className="freepdf-section freepdf-tools-section" aria-labelledby="popular-tools-title">
     <div className="freepdf-section-heading"><span>Popular tools</span><h2 id="popular-tools-title">Small tools for the jobs in between.</h2><p>Edit, sign, organize, convert, and finish PDFs with focused browser tools.</p></div>
-    <div className="freepdf-tool-grid">{homepageFeatureTools.map((tool) => <Link key={tool.id} className={`freepdf-tool-card is-${tool.tone}`} to={tool.route}><span className="freepdf-tool-icon"><ToolIcon name={tool.icon} size={26} /></span><div><h3>{tool.name}</h3><p>{tool.description}</p></div><ArrowRight size={17} aria-hidden="true" /></Link>)}</div>
+    <div className="freepdf-tool-grid">{homepageFeatureTools.map((tool) => <Link key={tool.id} className={`freepdf-tool-card is-${tool.tone}`} to={tool.route}><span className="freepdf-tool-icon"><ProfessionalToolIcon toolId={tool.id} /></span><div><h3>{tool.name}</h3><p>{tool.description}</p></div><ArrowRight size={17} aria-hidden="true" /></Link>)}</div>
     <Link className="freepdf-text-link" to={ROUTE_PATHS.tools}>Browse every PDF tool <ArrowRight size={16} /></Link>
   </section>;
 }
