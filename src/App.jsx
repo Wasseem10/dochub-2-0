@@ -10,6 +10,7 @@ import ArrowDownToLine from "lucide-react/dist/esm/icons/arrow-down-to-line.mjs"
 import AlignCenter from "lucide-react/dist/esm/icons/align-center.mjs";
 import AlignLeft from "lucide-react/dist/esm/icons/align-left.mjs";
 import AlignRight from "lucide-react/dist/esm/icons/align-right.mjs";
+import Bell from "lucide-react/dist/esm/icons/bell.mjs";
 import Box from "lucide-react/dist/esm/icons/box.mjs";
 import Building2 from "lucide-react/dist/esm/icons/building-2.mjs";
 import CalendarDays from "lucide-react/dist/esm/icons/calendar-days.mjs";
@@ -7106,7 +7107,7 @@ export function UploadLanding({
     .join("") || "U";
   const dashboardFirstName = currentUser?.name?.trim().split(/\s+/)[0]
     || currentUser?.email?.split("@")[0]
-    || "there";
+    || "";
   const dashboardAccountName = currentUser?.name?.trim()
     || currentUser?.email?.split("@")[0]
     || "Local";
@@ -7384,15 +7385,27 @@ export function UploadLanding({
   );
 
   const renderRecentDashboardCards = () => recentDashboardRows.length ? (
-    <div className="dashboard-recent-grid">
-      {recentDashboardRows.map((documentRecord, index) => (
-        <article key={documentRecord.id} className={`dashboard-recent-card is-tone-${quickActionDefinitions[index % quickActionDefinitions.length].tone}`}>
-          <button type="button" className="dashboard-recent-preview" onClick={() => onOpenDocument(documentRecord)}>{renderDocumentPreview(documentRecord)}</button>
-          <div className="dashboard-recent-card-footer">
-            <span className="dashboard-file-type-mark" aria-label="PDF document">PDF</span>
-            <button type="button" className="dashboard-recent-name" onClick={() => onOpenDocument(documentRecord)}><strong>{documentRecord.name}</strong><small>{formatDashboardRelativeDate(documentRecord.updatedAt)}</small></button>
-            {renderDashboardDocumentMenu(documentRecord)}
-          </div>
+    <div className="dashboard-recent-ledger">
+      {recentDashboardRows.map((documentRecord) => (
+        <article key={documentRecord.id} className="dashboard-recent-ledger-row">
+          <button type="button" className="dashboard-recent-ledger-file" onClick={() => onOpenDocument(documentRecord)}>
+            <span className="dashboard-recent-ledger-preview">{renderDocumentPreview(documentRecord, true)}</span>
+            <span>
+              <strong>{documentRecord.name}</strong>
+              <small>{documentRecord.size ? formatBytes(documentRecord.size) : "Local PDF"} · {documentRecord.status || "Ready to edit"}</small>
+            </span>
+          </button>
+          <time dateTime={documentRecord.updatedAt || undefined}>{formatDashboardRelativeDate(documentRecord.updatedAt)}</time>
+          <button
+            type="button"
+            className={`dashboard-favorite-button ${documentRecord.favorite ? "is-favorite" : ""}`}
+            aria-label={documentRecord.favorite ? `Remove ${documentRecord.name} from favorites` : `Add ${documentRecord.name} to favorites`}
+            aria-pressed={!!documentRecord.favorite}
+            onClick={() => onToggleFavorite(documentRecord)}
+          >
+            <Star size={16} fill={documentRecord.favorite ? "currentColor" : "none"} />
+          </button>
+          {renderDashboardDocumentMenu(documentRecord)}
         </article>
       ))}
     </div>
@@ -7724,10 +7737,11 @@ export function UploadLanding({
         onDrop={onDropFile}
       >
         <header className="dashboard-bright-welcome">
-          <div>
-            <h1>Welcome back, {dashboardFirstName}</h1>
-            <p>Your focused workspace for PDFs.</p>
+          <div className="dashboard-bright-welcome-copy">
+            <h1>{dashboardFirstName ? <>Welcome back, {dashboardFirstName}! <span aria-hidden="true">👋</span></> : "Your PDF workspace"}</h1>
+            <p>Everything you need to work with PDFs, in one place.</p>
           </div>
+          <img className="dashboard-bright-welcome-art" src="/dashboard-workspace-hero-2026-07-29.png" alt="" />
           {(isUploading || uploadError) && (
             <div className="dashboard-bright-upload-status" role="status">
               {isUploading && <span>{uploadStage.status}: {uploadStage.fileName}</span>}
@@ -7738,18 +7752,20 @@ export function UploadLanding({
 
         <section className="dashboard-bright-actions" aria-labelledby="dashboard-quick-actions-title">
           <header>
-            <h2 id="dashboard-quick-actions-title">Quick actions</h2>
-            <button type="button" onClick={() => setActiveSection("Features")}>All tools <ChevronRight size={16} /></button>
+            <h2 id="dashboard-quick-actions-title"><Zap size={15} aria-hidden="true" /> Quick actions</h2>
           </header>
           <div className="dashboard-bright-action-grid">
             {quickActionDefinitions.map(({ id, label, detail, icon: Icon, tone, action }) => (
               <button type="button" className={`dashboard-bright-action is-${tone}`} key={id} onClick={action}>
-                <i aria-hidden="true" />
                 <span><Icon size={27} strokeWidth={1.75} /></span>
-                <strong>{label}</strong>
-                <small>{detail}</small>
+                <span className="dashboard-bright-action-copy"><strong>{label}</strong><small>{detail}</small></span>
               </button>
             ))}
+            <button type="button" className="dashboard-bright-action dashboard-bright-all-tools" onClick={() => setActiveSection("Features")}>
+              <span><Grid2X2 size={25} strokeWidth={1.75} /></span>
+              <span className="dashboard-bright-action-copy"><strong>All tools</strong><small>Explore every PDF tool</small></span>
+              <ChevronRight size={17} aria-hidden="true" />
+            </button>
           </div>
           <span className="sr-only">Edit a PDF. Sign a PDF. Organize pages. Blank PDF.</span>
         </section>
@@ -7763,13 +7779,6 @@ export function UploadLanding({
             <button type="button" onClick={() => setActiveSection("Documents")}>View all <ChevronRight size={16} /></button>
           </header>
           {renderRecentDashboardCards()}
-        </section>
-
-        <section className="dashboard-premium-library dashboard-editorial-library dashboard-bright-library" aria-labelledby="dashboard-library-title">
-          <header className="sr-only">
-            <h2 id="dashboard-library-title">Document library</h2>
-          </header>
-          {renderDashboardLibraryList()}
         </section>
       </div>
     );
@@ -7823,10 +7832,20 @@ export function UploadLanding({
           </label>
           <div className="upload-top-actions">
             {(activeSection === "Home" || !["Documents", "Features", "Analytics"].includes(activeSection)) && <button type="button" className="dashboard-top-upload" onClick={onSelectFiles}><Upload size={18} /> Upload PDF</button>}
+            <button
+              type="button"
+              className={`dashboard-notification-button ${openPanel === "notifications" ? "is-active" : ""}`}
+              aria-label="Notifications"
+              aria-haspopup="dialog"
+              aria-expanded={openPanel === "notifications"}
+              onClick={() => setOpenPanel(openPanel === "notifications" ? null : "notifications")}
+            >
+              <Bell size={18} />
+            </button>
             <button type="button" className="top-avatar" aria-haspopup="dialog" aria-expanded={openPanel === "account"} onClick={() => setOpenPanel(openPanel === "account" ? null : "account")}><span>{userInitials}</span><i /><strong>{dashboardAccountName}</strong><ChevronDown size={15} /></button>
             {openPanel && (
               <div className={`workspace-popover ${openPanel === "account" ? "account-menu-popover" : ""}`} role={openPanel === "account" ? "dialog" : undefined} aria-label={openPanel === "account" ? "Account menu" : undefined}>
-                <button type="button" className="popover-close" onClick={closePanel}><X size={16} /></button>
+                <button type="button" className="popover-close" aria-label="Close panel" onClick={closePanel}><X size={16} /></button>
                 {openPanel === "invite" && (
                   <>
                     <h3>Invite members</h3>
