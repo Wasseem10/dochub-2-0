@@ -20,6 +20,30 @@ test("the editor opens neutrally and keeps resized desktop canvases visible", as
   expect(desktopLayout.pageWidth).toBeGreaterThan(500);
 });
 
+test("editor tool selection keeps floating guidance off the document", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.goto(appPath("/edit-pdf"));
+  await page.getByRole("button", { name: "Start with a blank page" }).click();
+
+  const editText = page.getByRole("button", { name: "Edit Text", exact: true });
+  await editText.click();
+  await expect(editText).toHaveAttribute("aria-pressed", "true");
+  await expect(page.locator(".toast")).toHaveCount(0);
+  await expect(page.locator(".tool-instruction-settings")).toContainText(
+    "No editable text on this page. Use Add Text to place new text.",
+  );
+
+  await page.getByRole("button", { name: "Erase", exact: true }).click();
+  await expect(page.locator(".toast")).toHaveCount(0);
+  await expect(page.locator(".tool-instruction-settings")).toContainText(
+    "Select an annotation or existing text item to remove it.",
+  );
+
+  await page.getByRole("button", { name: "Shapes", exact: true }).click();
+  await page.getByRole("menu", { name: "Shape tools" }).getByRole("menuitem", { name: "Line", exact: true }).click();
+  await expect(page.locator(".toast")).toHaveCount(0);
+});
+
 test("mobile zoom modes are named and custom zoom remains pannable", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto(appPath("/edit-pdf"));
