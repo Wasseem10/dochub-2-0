@@ -1,0 +1,30 @@
+{
+  "title": "PDFEnrich PDF email attachment size study",
+  "published": "2026-07-29",
+  "method": {
+    "source": "Seven public PDFEnrich regression fixtures",
+    "encoding": "RFC 4648 standard Base64",
+    "encodedLengthFormula": "4 * ceil(sourceBytes / 3)",
+    "overheadFormula": "(base64Bytes - sourceBytes) / sourceBytes * 100"
+  },
+  "observed": {
+    "fixtureCount": 7,
+    "minimumOverheadPercent": 33.33,
+    "maximumOverheadPercent": 34.94,
+    "interpretation": "Base64 encoding added about one-third before MIME boundaries, headers, body content, or other attachments."
+  },
+  "limitations": [
+    "The fixtures are synthetic and do not represent every PDF.",
+    "The study measures encoding overhead, not provider limits or delivery success.",
+    "The password-protected and malformed fixtures are included because transport encoding operates on bytes regardless of parseability."
+  ],
+  "fixtures": [
+    { "name": "complex-layout.pdf", "sourceBytes": 3611, "base64Bytes": 4816, "overheadPercent": 33.37, "pages": 2 },
+    { "name": "encrypted-sample.pdf", "sourceBytes": 2977, "base64Bytes": 3972, "overheadPercent": 33.42, "pages": null },
+    { "name": "large-100-pages.pdf", "sourceBytes": 154441, "base64Bytes": 205924, "overheadPercent": 33.34, "pages": 100 },
+    { "name": "malformed-sample.pdf", "sourceBytes": 83, "base64Bytes": 112, "overheadPercent": 34.94, "pages": null },
+    { "name": "scanned-clean.pdf", "sourceBytes": 129801, "base64Bytes": 173068, "overheadPercent": 33.33, "pages": 1 },
+    { "name": "scanned-degraded.pdf", "sourceBytes": 147071, "base64Bytes": 196096, "overheadPercent": 33.33, "pages": 1 },
+    { "name": "simple-searchable.pdf", "sourceBytes": 2583, "base64Bytes": 3444, "overheadPercent": 33.33, "pages": 2 }
+  ]
+}

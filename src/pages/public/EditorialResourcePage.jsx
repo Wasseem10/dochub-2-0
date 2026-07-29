@@ -26,6 +26,7 @@ function pageSchemas(page) {
     mainEntityOfPage: absoluteSiteUrl(page.path),
     author: { "@type": "Organization", name: "PDFEnrich", url: absoluteSiteUrl("/") },
     publisher: { "@type": "Organization", name: "PDFEnrich", url: absoluteSiteUrl("/") },
+    ...(page.sources ? { citation: page.sources.map(([, href]) => href) } : {}),
   };
   const breadcrumbSchema = {
     "@context": "https://schema.org",
@@ -145,6 +146,8 @@ export function EditorialResourcePage({ page }) {
       {page.kind === "benchmark" && <BenchmarkTable />}
 
       {page.downloads && <section id="downloads" className="editorial-downloads"><header><span className="public-eyebrow">Open evidence</span><h2>Download the files and check the work</h2><p>Files are provided for testing, adaptation, or verification. Intentionally malformed and encrypted fixtures are clearly labeled.</p></header><div>{page.downloads.map(([label, href, meta]) => <a key={href} href={href} download><span><Download size={20} /></span><strong>{label}</strong><small>{meta}</small><ExternalLink size={16} /></a>)}</div></section>}
+
+      {page.sources && <section className="editorial-related editorial-sources"><header><span className="public-eyebrow">Primary source</span><h2>Method references</h2></header><div>{page.sources.map(([label, href]) => <a key={href} href={href} target="_blank" rel="noreferrer"><strong>{label}</strong><p>Open the external standard used by this resource.</p><span>View source <ExternalLink size={15} /></span></a>)}</div></section>}
 
       <section className="editorial-related"><header><span className="public-eyebrow">Continue with purpose</span><h2>Related tools and original resources</h2></header><div>{page.related.map((item) => <Link key={item.path} to={item.path}><strong>{item.label}</strong><p>{item.description}</p><span>Open <ArrowRight size={15} /></span></Link>)}</div></section>
 

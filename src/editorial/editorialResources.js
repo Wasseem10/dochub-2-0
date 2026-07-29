@@ -1,5 +1,6 @@
 import { ROUTE_PATHS } from "../router/routePaths.js";
 import { PRODUCT_LAST_TESTED_ISO, PRODUCT_LAST_TESTED_LABEL, PRODUCT_RESPONSIBLE_PARTY } from "./toolEvidence.js";
+import { PDF_ATTACHMENT_SIZE_STUDY, SEARCH_GUIDES } from "./searchGuides.js";
 
 const common = {
   reviewedIso: PRODUCT_LAST_TESTED_ISO,
@@ -47,6 +48,17 @@ export const EDITORIAL_RESOURCE_PAGES = Object.freeze([
       toolLink("How to combine PDF files", ROUTE_PATHS.combinePdfGuide, "Build an ordered packet and inspect every file transition."),
       toolLink("How to fill and sign a PDF", ROUTE_PATHS.fillAndSignPdfGuide, "Complete fields, place a visual signature, and verify the submission copy."),
       toolLink("PDF to Word formatting", ROUTE_PATHS.pdfToWordGuide, "Choose editable, OCR, or visual-fidelity conversion."),
+      toolLink("PDF attachment size study", ROUTE_PATHS.pdfAttachmentSizeStudy, "Download measured raw and Base64-encoded fixture sizes."),
+      toolLink("Edit a PDF on iPhone", ROUTE_PATHS.editPdfOnIphoneGuide, "Use the touch editor from Safari and verify the Files download."),
+      toolLink("Edit a scanned PDF", ROUTE_PATHS.editScannedPdfGuide, "Decide whether the page needs OCR or a careful visual correction."),
+      toolLink("Compress a PDF to 1 MB", ROUTE_PATHS.compressPdfToOneMbGuide, "Work toward a fixed byte ceiling without hiding quality loss."),
+      toolLink("Compress a PDF for email", ROUTE_PATHS.compressPdfForEmailGuide, "Leave room for email encoding and message overhead."),
+      toolLink("Combine PDFs on Mac", ROUTE_PATHS.combinePdfOnMacGuide, "Arrange native PDF pages and verify every file transition."),
+      toolLink("Sign a PDF on Android", ROUTE_PATHS.signPdfOnAndroidGuide, "Place and verify a visual signature from a phone."),
+      toolLink("Fill a PDF without Adobe", ROUTE_PATHS.fillPdfWithoutAdobeGuide, "Choose the right workflow for interactive or flat forms."),
+      toolLink("PDF to Word without losing formatting", ROUTE_PATHS.pdfToWordWithoutFormattingLossGuide, "Choose editable text or visual fidelity deliberately."),
+      toolLink("Remove pages from a PDF", ROUTE_PATHS.removePagesFromPdfGuide, "Delete the correct pages from a copy and verify the result."),
+      toolLink("Rotate a PDF and save it", ROUTE_PATHS.rotatePdfAndSaveGuide, "Apply permanent page rotation instead of changing only the viewer."),
       toolLink("Editable template library", ROUTE_PATHS.templates, "Free DOCX templates plus practical completion guidance."),
       toolLink("Security", ROUTE_PATHS.security, "Current safeguards, limitations, and reporting path."),
       toolLink("Architecture", ROUTE_PATHS.architecture, "Where document processing, identity, analytics, and storage run."),
@@ -317,6 +329,8 @@ export const EDITORIAL_RESOURCE_PAGES = Object.freeze([
       toolLink("Word to PDF", "/word-to-pdf", "Export the reviewed DOCX back to a fixed searchable PDF."),
     ],
   },
+  ...SEARCH_GUIDES,
+  PDF_ATTACHMENT_SIZE_STUDY,
   {
     ...common,
     id: "templates",

@@ -98,6 +98,19 @@ for (const guide of practicalGuides) {
   }
 }
 
+const searchGuides = EDITORIAL_RESOURCE_PAGES.filter(({ kind }) => kind === "search-guide");
+if (searchGuides.length !== 10) fail("The long-tail search cluster must contain exactly ten guides");
+for (const guide of searchGuides) {
+  if (!("primaryAction" in guide) || !guide.primaryAction?.path || guide.sections.length < 4 || guide.related.length < 3) {
+    fail(`${guide.path} needs a direct tool action, four substantive sections, and three related links`);
+  }
+}
+
+const attachmentStudy = EDITORIAL_RESOURCE_PAGES.find(({ id }) => id === "pdf-attachment-size-study");
+if (!attachmentStudy || attachmentStudy.kind !== "study" || !("sources" in attachmentStudy) || !attachmentStudy.sources?.length) {
+  fail("The attachment-size study needs a primary external methodology source");
+}
+
 const expectedToolGuideLinks = new Map([
   ["edit-pdf", "/guides/how-to-edit-a-pdf"],
   ["compress-pdf", "/guides/compress-pdf-without-losing-quality"],
