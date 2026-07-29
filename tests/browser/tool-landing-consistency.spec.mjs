@@ -3,27 +3,30 @@ import { expect, test } from "@playwright/test";
 const appPath = (path) => process.env.GITHUB_ACTIONS === "true" ? `/dochub-2-0${path}` : path;
 
 const representativeTools = [
+  { path: "/fill-pdf", dropzone: ".editor-tool-dropzone", action: ".editor-tool-picker-label" },
   { path: "/merge-pdf", dropzone: ".conversion-dropzone" },
   { path: "/pdf-to-word", dropzone: ".conversion-dropzone" },
+  { path: "/pdf-to-jpg", dropzone: ".conversion-dropzone" },
+  { path: "/jpg-to-pdf", dropzone: ".conversion-dropzone" },
   { path: "/ocr-pdf", dropzone: ".conversion-dropzone" },
   { path: "/translate-pdf", dropzone: ".analysis-upload" },
   { path: "/redact-pdf", dropzone: ".redact-upload" },
 ];
 
-for (const { path, dropzone } of representativeTools) {
+for (const { path, dropzone, action = "button" } of representativeTools) {
   test(`${path} uses the shared Edit PDF upload-first landing system`, async ({ page }) => {
     await page.goto(appPath(path));
     const heading = page.locator("main h1").first();
     const upload = page.locator(dropzone).first();
-    const primaryAction = upload.locator("button").first();
+    const primaryAction = upload.locator(action).first();
 
     await expect(heading).toBeVisible();
     await expect(upload).toBeVisible();
     await expect(primaryAction).toBeVisible();
 
-    const visualTokens = await upload.evaluate((element) => {
+    const visualTokens = await upload.evaluate((element, actionSelector) => {
       const uploadStyle = getComputedStyle(element);
-      const buttonStyle = getComputedStyle(element.querySelector("button"));
+      const buttonStyle = getComputedStyle(element.querySelector(actionSelector));
       return {
         minHeight: Number.parseFloat(uploadStyle.minHeight),
         background: uploadStyle.backgroundColor,
@@ -31,7 +34,7 @@ for (const { path, dropzone } of representativeTools) {
         viewportWidth: document.documentElement.clientWidth,
         scrollWidth: document.documentElement.scrollWidth,
       };
-    });
+    }, action);
 
     expect(visualTokens.minHeight).toBeGreaterThanOrEqual(320);
     expect(visualTokens.background).toMatch(/rgba?\(255, 255, 255/);

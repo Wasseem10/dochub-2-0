@@ -20,6 +20,7 @@ const releasedToolPaths = TOOL_REGISTRY.filter(({ status }) => status !== "comin
 const expectedDirectoryMetadata = toolDirectoryMetadata(releasedToolPaths.length);
 const productPaths = [...new Set([...releasedToolPaths, ...COMPARISON_PATHS])];
 const productPathSet = new Set(productPaths);
+const prioritySearchToolPaths = new Set(TOOL_REGISTRY.filter(({ searchPriority }) => searchPriority).map(({ route }) => route));
 
 /** @param {unknown} condition @param {string} message */
 const requireMatch = (condition, message) => {
@@ -50,6 +51,10 @@ for (const url of sitemapUrls) {
   requireMatch(Boolean(structuredData), `${url.pathname}: missing prerendered structured data.`);
   requireMatch(!html.includes('"@type":"SoftwareApplication"'), `${url.pathname}: contains ineligible SoftwareApplication markup without a real review or rating.`);
   requireMatch(!html.includes('"@type":"HowTo"') && !html.includes('"@type":"FAQPage"'), `${url.pathname}: contains deprecated or restricted HowTo/FAQ rich-result markup.`);
+  if (prioritySearchToolPaths.has(url.pathname)) {
+    requireMatch(html.includes('"@type":"WebApplication"'), `${url.pathname}: primary search page is missing WebApplication structured data.`);
+    requireMatch(html.includes('"isAccessibleForFree":true') && html.includes('"price":"0"'), `${url.pathname}: primary search page is missing truthful free-access offer data.`);
+  }
   if (structuredData) {
     try { JSON.parse(structuredData); } catch { failures.push(`${url.pathname}: structured data is not valid JSON.`); }
   }

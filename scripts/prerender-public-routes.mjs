@@ -4,6 +4,7 @@ import { PUBLIC_PLACEHOLDER_ROUTES } from "../src/router/routes.js";
 import { ROUTE_PATHS } from "../src/router/routePaths.js";
 import { TOOL_CATEGORY_PAGES } from "../src/tools/toolCategoryPages.js";
 import { getRelatedTools, TOOL_REGISTRY } from "../src/tools/toolRegistry.js";
+import { toolSeoSchemas } from "../src/tools/toolSeoSchemas.js";
 import { EDITORIAL_RESOURCE_PAGES } from "../src/editorial/editorialResources.js";
 import { isEditorialResourcePath } from "../src/editorial/editorialRoutePaths.js";
 import { editorialShareImagePath, getToolEvidence, hasToolShareImage, PRODUCT_LAST_TESTED_LABEL, PRODUCT_RESPONSIBLE_PARTY } from "../src/editorial/toolEvidence.js";
@@ -191,9 +192,7 @@ function structuredDataFor(record) {
   }
   if (record.tool) {
     const tool = record.tool;
-    schemas.push(
-      { "@context": "https://schema.org", "@type": "BreadcrumbList", itemListElement: [{ "@type": "ListItem", position: 1, name: "PDF tools", item: `${siteUrl}/tools` }, { "@type": "ListItem", position: 2, name: tool.name, item: canonical }] },
-    );
+    schemas.push(...toolSeoSchemas(tool));
   }
   return `\n    <script id="pdfenrich-prerender-structured-data" type="application/ld+json">${escapeJson(schemas)}</script>`;
 }

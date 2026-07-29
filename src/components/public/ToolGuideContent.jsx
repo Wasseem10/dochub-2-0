@@ -70,6 +70,30 @@ export function ToolGuideContent({ tool }) {
         </div>
       </section>
 
+      {tool.searchPriority && (
+        <section className="tool-guide-search-intent" aria-labelledby={`${tool.id}-why-heading`}>
+          <header>
+            <span>Purpose-built PDF workflow</span>
+            <h2 id={`${tool.id}-why-heading}`}>Why use {tool.name} in PDFEnrich?</h2>
+            <p>{tool.longDescription}</p>
+          </header>
+          <div>
+            <article>
+              <h3>What you can do</h3>
+              <ul>{tool.benefits.map((benefit) => <li key={benefit}>{benefit}</li>)}</ul>
+            </article>
+            <article>
+              <h3>Common reasons to use it</h3>
+              <ul>{tool.useCases.map((useCase) => <li key={useCase}>{useCase}</li>)}</ul>
+            </article>
+            <article>
+              <h3>Check before sharing</h3>
+              <ul>{tool.verificationChecklist.map((item) => <li key={item}>{item}</li>)}</ul>
+            </article>
+          </div>
+        </section>
+      )}
+
       <section className="tool-guide-workflow" aria-labelledby={`${tool.id}-guide-heading`}>
         <h2 id={`${tool.id}-guide-heading}`}>How to use {tool.name}</h2>
         <div className="tool-guide-workflow-grid">

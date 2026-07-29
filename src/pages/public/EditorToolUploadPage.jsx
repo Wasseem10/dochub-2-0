@@ -48,7 +48,9 @@ export function EditorToolUploadPage({ toolId, fileInputRef, onUpload, onDropFil
   const [dragging, setDragging] = useState(false);
   const dropDepth = useRef(0);
   const tool = TOOL_BY_ID.get(toolId) || TOOL_BY_ID.get("edit-pdf");
-  const [headline, subheadline] = UPLOAD_COPY[tool.id] || [tool.name, tool.shortDescription];
+  const [headline, subheadline] = tool.searchPriority
+    ? [tool.heroHeadline, tool.heroSubheadline]
+    : UPLOAD_COPY[tool.id] || [tool.name, tool.shortDescription];
   const isUploading = Boolean(uploadStage?.status && !["idle", "complete", "error"].includes(uploadStage.status));
   const requiresAccountForCloudAction = ["request-signatures", "share-pdf"].includes(tool.id);
 

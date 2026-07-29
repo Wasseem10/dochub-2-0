@@ -376,7 +376,7 @@ export function ImageConversionPage({ tool }) {
       <PageMetadata title={tool.seoTitle} description={tool.metaDescription} canonicalUrl={tool.canonicalUrl} schemas={toolSeoSchemas(tool)} />
       <nav className="tool-breadcrumbs" aria-label="Breadcrumb"><Link to={ROUTE_PATHS.tools}>PDF tools</Link><span>/</span><span aria-current="page">{tool.name}</span></nav>
       <section className="conversion-hero">
-        <div><small>Available now · runs in your browser</small><h1>{tool.name} online.</h1><p>{tool.shortDescription} Free to use and ready in seconds.</p></div>
+        <div><small>Available now · runs in your browser</small><h1>{tool.heroHeadline}.</h1><p>{tool.heroSubheadline}</p></div>
       </section>
       {imagesToPdf ? <ImagesToPdfWorkspace tool={tool} /> : <PdfToImagesWorkspace tool={tool} />}
       <section className="conversion-privacy-note"><Check size={19} /><div><strong>Private browser processing</strong><p>This conversion runs locally in your browser. PDFEnrich does not send these files to an Office, OCR, or AI service.</p></div></section>

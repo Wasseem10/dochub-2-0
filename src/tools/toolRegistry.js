@@ -1,5 +1,5 @@
 import { absoluteSiteUrl } from "../config/site.js";
-import { HIGH_INTENT_TOOL_CONTENT } from "./highIntentToolContent.js";
+import { HIGH_INTENT_TOOL_CONTENT, PRIMARY_SEARCH_TOOL_IDS } from "./highIntentToolContent.js";
 
 /** @typedef {"available" | "beta" | "partial" | "coming-soon"} ToolStatus */
 /** @typedef {[string, string, string, string, string, ToolStatus, string[], string[], string]} ToolDefinition */
@@ -35,6 +35,8 @@ import { HIGH_INTENT_TOOL_CONTENT } from "./highIntentToolContent.js";
  * @property {string} privacySummary
  * @property {string[]} verificationChecklist
  * @property {FaqEntry[]} troubleshooting
+ * @property {boolean} searchPriority
+ * @property {string[]} searchRelatedTools
  * @property {string[]} relatedTools
  * @property {string} canonicalUrl
  * @property {string} schemaType
@@ -292,9 +294,11 @@ function buildBaseTool([slug, name, shortDescription, category, icon, status, su
       { question: "What should I do if the result looks wrong?", answer: "Keep the source file, try a simpler supported document, and do not distribute the result until every affected page has been reviewed." },
     ],
     ...highIntentContent,
+    searchPriority: PRIMARY_SEARCH_TOOL_IDS.includes(slug),
+    searchRelatedTools: highIntentContent.searchRelatedTools || [],
     relatedTools: /** @type {string[]} */ ([]),
     canonicalUrl: absoluteSiteUrl(route),
-    schemaType: isUsable ? "SoftwareApplication" : "WebPage",
+    schemaType: PRIMARY_SEARCH_TOOL_IDS.includes(slug) ? "WebApplication" : "WebPage",
   };
 }
 
@@ -302,11 +306,22 @@ const builtTools = definitions.map(buildBaseTool);
 
 /** @param {ToolRecord} tool @param {ToolRecord[]} tools */
 function buildRelatedToolIds(tool, tools) {
-  const related = tools.filter((candidate) => candidate.category === tool.category && candidate.id !== tool.id);
+  /** @type {ToolRecord[]} */
+  const related = [];
+  for (const id of tool.searchRelatedTools) {
+    const candidate = tools.find((item) => item?.id === id);
+    if (candidate && candidate.id !== tool.id) related.push(candidate);
+  }
+  for (const candidate of tools) {
+    if (related.length >= 3) break;
+    if (!candidate || candidate.category !== tool.category || candidate.id === tool.id) continue;
+    if (!related.some((item) => item?.id === candidate.id)) related.push(candidate);
+  }
   for (const fallbackId of DEFAULT_RELATED_TOOL_IDS) {
     if (related.length >= 3) break;
-    const candidate = tools.find((item) => item.id === fallbackId);
-    if (candidate && candidate.id !== tool.id && candidate.category !== tool.category) related.push(candidate);
+    const candidate = tools.find((item) => item?.id === fallbackId);
+    const candidateId = candidate?.id;
+    if (candidate && candidateId !== tool.id && !related.some((item) => item?.id === candidateId)) related.push(candidate);
   }
   return related.slice(0, 3).map((candidate) => candidate.id);
 }
@@ -372,6 +387,10 @@ export function validateToolRegistry(tools = TOOL_REGISTRY) {
     if (!CATEGORY_BY_ID.has(tool.category)) errors.push(`${tool.id} has invalid category ${tool.category}.`);
     for (const relatedId of tool.relatedTools) {
       if (!tools.some((candidate) => candidate.id === relatedId)) errors.push(`${tool.id} references missing related tool ${relatedId}.`);
+    }
+    for (const relatedId of tool.searchRelatedTools) {
+      if (relatedId === tool.id) errors.push(`${tool.id} cannot recommend itself.`);
+      if (!tools.some((candidate) => candidate.id === relatedId)) errors.push(`${tool.id} references missing search-related tool ${relatedId}.`);
     }
   }
   return errors;
