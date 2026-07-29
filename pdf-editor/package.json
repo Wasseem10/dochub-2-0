@@ -19,6 +19,7 @@
     "test:quality": "npm run build && npm run audit:quality && node scripts/run-priority-one-quality.mjs && node scripts/audit-product-quality.mjs --record-passed"
   },
   "dependencies": {
+    "@tabler/icons-react": "3.45.0",
     "@vitejs/plugin-react": "5.0.4",
     "docx": "^9.7.1",
     "docx-preview": "^0.4.0",
