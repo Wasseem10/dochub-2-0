@@ -28,6 +28,9 @@ service cloud.firestore {
           "route",
           "operation",
           "durationBucket",
+          "durationMs",
+          "deviceClass",
+          "browserFamily",
           "trafficSource",
           "referrerDomain",
           "landingPath"
@@ -41,6 +44,9 @@ service cloud.firestore {
         && (!("route" in properties) || (properties.route is string && properties.route.size() <= 160))
         && (!("operation" in properties) || (properties.operation is string && properties.operation.size() <= 80))
         && (!("durationBucket" in properties) || (properties.durationBucket is string && properties.durationBucket.size() <= 40))
+        && (!("durationMs" in properties) || (properties.durationMs is number && properties.durationMs >= 0 && properties.durationMs <= 1800000))
+        && (!("deviceClass" in properties) || properties.deviceClass in ["desktop", "mobile", "unknown"])
+        && (!("browserFamily" in properties) || properties.browserFamily in ["chrome", "edge", "firefox", "safari", "other", "unknown"])
         && (!("trafficSource" in properties) || properties.trafficSource in ["organic", "referral", "social", "email", "paid", "campaign", "direct"])
         && (!("referrerDomain" in properties) || (properties.referrerDomain is string && properties.referrerDomain.size() <= 120))
         && (!("landingPath" in properties) || (properties.landingPath is string && properties.landingPath.size() <= 160));
@@ -202,6 +208,7 @@ service cloud.firestore {
           "account_signed_up",
           "account_logged_in",
           "pdf_downloaded",
+          "result_downloaded",
           "task_feedback_submitted",
           "client_error",
           "unhandled_rejection",

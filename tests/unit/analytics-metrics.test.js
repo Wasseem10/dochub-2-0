@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { priorityOneToolCoverage } from "../../config/priority-one-quality.mjs";
-import { analyticsRangeStart, createDailyAnalyticsSeries, createToolQualityScorecard, filterAnalyticsEvents, groupAnalyticsProperty, PRIORITY_ONE_TOOL_IDS, summarizeAnalyticsEvents } from "../../src/analytics/analyticsMetrics.js";
+import { analyticsRangeStart, createDailyAnalyticsSeries, createGoogleSearchConversionFunnel, createToolQualityScorecard, filterAnalyticsEvents, groupAnalyticsProperty, PRIORITY_ONE_TOOL_IDS, summarizeAnalyticsEvents } from "../../src/analytics/analyticsMetrics.js";
 
 const now = new Date("2026-07-20T12:00:00.000Z");
 
@@ -76,6 +76,30 @@ describe("owner analytics metrics", () => {
       p95DurationMs: 800,
       failedByDevice: { desktop: 0, mobile: 1, unknown: 0 },
     }]);
+  });
+
+  it("builds an ordered visitor-level Google search conversion funnel", () => {
+    const funnelEvents = [
+      { name: "page_viewed", visitorId: "complete", occurredAt: { toDate: () => new Date("2026-07-20T08:04:00.000Z") }, clientOccurredAt: "2026-07-20T08:00:00.000Z", properties: { trafficSource: "organic", referrerDomain: "google.com" } },
+      { name: "upload_started", visitorId: "complete", clientOccurredAt: "2026-07-20T08:01:00.000Z", properties: {} },
+      { name: "export_succeeded", visitorId: "complete", clientOccurredAt: "2026-07-20T08:02:00.000Z", properties: {} },
+      { name: "account_signed_up", visitorId: "complete", clientOccurredAt: "2026-07-20T08:03:00.000Z", properties: {} },
+      { name: "page_viewed", visitorId: "upload-only", clientOccurredAt: "2026-07-20T09:00:00.000Z", properties: { trafficSource: "organic", referrerDomain: "www.google.co.uk" } },
+      { name: "upload_started", visitorId: "upload-only", clientOccurredAt: "2026-07-20T09:01:00.000Z", properties: {} },
+      { name: "page_viewed", visitorId: "direct", clientOccurredAt: "2026-07-20T10:00:00.000Z", properties: { trafficSource: "direct", referrerDomain: "" } },
+      { name: "account_signed_up", visitorId: "out-of-order", clientOccurredAt: "2026-07-20T07:00:00.000Z", properties: {} },
+      { name: "page_viewed", visitorId: "out-of-order", clientOccurredAt: "2026-07-20T11:00:00.000Z", properties: { trafficSource: "organic", referrerDomain: "google.ca" } },
+    ];
+    expect(createGoogleSearchConversionFunnel(funnelEvents)).toEqual({
+      googleVisitors: 3,
+      uploads: 2,
+      completedPdfs: 1,
+      signups: 1,
+      visitToUploadRate: 67,
+      uploadToCompletionRate: 50,
+      completionToSignupRate: 100,
+      visitToSignupRate: 33,
+    });
   });
 
   it("keeps the production scorecard aligned with the release-gate manifest", () => {

@@ -236,6 +236,63 @@
   white-space: nowrap;
 }
 
+.owner-google-funnel ol {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.owner-google-funnel li {
+  display: grid;
+  min-width: 0;
+  padding: 18px 18px 16px 0;
+  border-right: 1px solid var(--analytics-soft-line);
+}
+
+.owner-google-funnel li:not(:first-child) {
+  padding-left: 18px;
+}
+
+.owner-google-funnel li:last-child {
+  border-right: 0;
+}
+
+.owner-google-funnel li small {
+  color: var(--analytics-accent);
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: .08em;
+}
+
+.owner-google-funnel li span {
+  margin-top: 8px;
+  color: var(--analytics-muted);
+  font-size: 10px;
+}
+
+.owner-google-funnel li strong {
+  margin-top: 3px;
+  color: var(--analytics-ink);
+  font: 400 27px/1 Georgia, "Times New Roman", serif;
+}
+
+.owner-google-funnel li p,
+.owner-google-funnel footer {
+  color: #92908b;
+  font-size: 9px;
+}
+
+.owner-google-funnel li p {
+  margin: 6px 0 0;
+}
+
+.owner-google-funnel footer {
+  padding-top: 13px;
+  border-top: 1px solid var(--analytics-soft-line);
+}
+
 .owner-auth-ledger {
   padding: 0;
   overflow: hidden;
@@ -748,5 +805,21 @@
 
   .owner-analytics-row.is-head {
     display: none;
+  }
+
+  .owner-google-funnel ol {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .owner-google-funnel li:nth-child(2) {
+    border-right: 0;
+  }
+
+  .owner-google-funnel li:nth-child(n + 3) {
+    border-top: 1px solid var(--analytics-soft-line);
+  }
+
+  .owner-google-funnel li:nth-child(3) {
+    padding-left: 0;
   }
 }

@@ -1,5 +1,6 @@
 import { OPTIONAL_ANALYTICS_RETENTION_DAYS } from "../privacy/privacyConfig.js";
 import { optionalAnalyticsAllowed } from "../privacy/privacyChoices.js";
+import { queueGoogleAnalyticsEvent } from "./googleAnalytics.js";
 
 const ALLOWED_EVENTS = new Set([
   "homepage_viewed",
@@ -31,6 +32,30 @@ const VISITOR_KEY = "realpdf_analytics_visitor_id";
 const ATTRIBUTION_KEY = "pdfenrich_session_attribution_v1";
 const PAGE_VIEWS_KEY = "pdfenrich_session_page_views_v1";
 const memoryPageViews = new Set();
+const ATTRIBUTED_CONVERSION_EVENTS = new Set([
+  "upload_started",
+  "document_opened",
+  "export_started",
+  "export_succeeded",
+  "export_failed",
+  "pdf_downloaded",
+  "result_downloaded",
+  "account_signed_up",
+]);
+const FIRESTORE_ANALYTICS_PROPERTIES = new Set([
+  "toolId",
+  "fileSizeBucket",
+  "pageCountBucket",
+  "errorCategory",
+  "result",
+  "authMethod",
+  "route",
+  "operation",
+  "durationBucket",
+  "trafficSource",
+  "referrerDomain",
+  "landingPath",
+]);
 
 function safeHostname(value) {
   try {
@@ -100,7 +125,7 @@ async function persistProductEvent(event) {
     if (!db) return;
     await addDoc(collection(db, ANALYTICS_COLLECTION), {
       name: event.name,
-      properties: event.properties,
+      properties: analyticsPersistenceProperties(event.properties),
       actorId: auth?.currentUser?.uid || null,
       visitorId: visitorId(),
       occurredAt: serverTimestamp(),
@@ -181,10 +206,14 @@ export function sanitizeAnalyticsProperties(properties = {}) {
 
 export function trackProductEvent(name, properties = {}) {
   if (!ALLOWED_EVENTS.has(name)) return false;
-  const event = { name, properties: sanitizeAnalyticsProperties(properties) };
+  const attribution = typeof window !== "undefined" && ATTRIBUTED_CONVERSION_EVENTS.has(name)
+    ? currentTrafficAttribution()
+    : {};
+  const event = { name, properties: sanitizeAnalyticsProperties({ ...attribution, ...properties }) };
   if (typeof window !== "undefined") {
     window.dispatchEvent(new CustomEvent("realpdf:analytics", { detail: event }));
     queueProductEventPersistence(event);
+    queueGoogleAnalyticsEvent(event);
   }
   if (import.meta.env.DEV) console.info("[PDFEnrich analytics]", event);
   return true;
@@ -257,6 +286,10 @@ export function trackPageView(route = "/") {
   trackProductEvent("page_viewed", properties);
   if (normalizedRoute === "/") trackProductEvent("homepage_viewed", properties);
   return true;
+}
+
+export function analyticsPersistenceProperties(properties = {}) {
+  return Object.fromEntries(Object.entries(properties).filter(([key]) => FIRESTORE_ANALYTICS_PROPERTIES.has(key)));
 }
 
 export function trackComparisonCta(route, placement) {
