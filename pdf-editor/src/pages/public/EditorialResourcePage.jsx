@@ -9,7 +9,10 @@ import ShieldCheck from "lucide-react/dist/esm/icons/shield-check.mjs";
 import { PageMetadata } from "../../components/public/PageMetadata.jsx";
 import evidenceRecords from "../../../config/priority-two-evidence.mjs";
 import { absoluteSiteUrl } from "../../config/site.js";
+import { editorialShareImagePath } from "../../editorial/toolEvidence.js";
 import { ROUTE_PATHS } from "../../router/routePaths.js";
+
+const articleDateTime = (date) => `${date}T00:00:00Z`;
 
 function pageSchemas(page) {
   const articleSchema = {
@@ -17,8 +20,9 @@ function pageSchemas(page) {
     "@type": page.kind === "benchmark" ? "TechArticle" : "Article",
     headline: page.title,
     description: page.metaDescription,
-    dateModified: page.reviewedIso,
-    datePublished: page.publishedIso || "2026-07-21",
+    image: absoluteSiteUrl(editorialShareImagePath(page.path)),
+    dateModified: articleDateTime(page.reviewedIso),
+    datePublished: articleDateTime(page.publishedIso || "2026-07-21"),
     mainEntityOfPage: absoluteSiteUrl(page.path),
     author: { "@type": "Organization", name: "PDFEnrich", url: absoluteSiteUrl("/") },
     publisher: { "@type": "Organization", name: "PDFEnrich", url: absoluteSiteUrl("/") },

@@ -19,6 +19,8 @@ const template = await readFile("dist/index.html", "utf8");
 const escapeHtml = (value) => String(value).replaceAll("&", "&amp;").replaceAll('"', "&quot;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
 /** @param {unknown} value */
 const escapeJson = (value) => JSON.stringify(value).replaceAll("<", "\\u003c");
+/** @param {string} date */
+const articleDateTime = (date) => `${date}T00:00:00Z`;
 const releasedToolCount = TOOL_REGISTRY.filter(({ status }) => status !== "coming-soon").length;
 const directoryMetadata = toolDirectoryMetadata(releasedToolCount);
 /** @typedef {{ path: string, title: string, description: string, noIndex: boolean, tool?: import("../src/tools/toolRegistry.js").ToolRecord, category?: (typeof TOOL_CATEGORY_PAGES)[number], resource?: (typeof EDITORIAL_RESOURCE_PAGES)[number], comparison?: (typeof COMPARISONS)[number], kind?: string }} RouteRecord */
@@ -181,7 +183,7 @@ function structuredDataFor(record) {
     mainEntity: { "@type": "ItemList", numberOfItems: TOOL_REGISTRY.length, itemListElement: TOOL_REGISTRY.map((tool, index) => ({ "@type": "ListItem", position: index + 1, name: tool.name, url: `${siteUrl}${tool.route}` })) },
   });
   if (record.resource) schemas.push(
-    { "@context": "https://schema.org", "@type": record.resource.kind === "benchmark" ? "TechArticle" : "Article", headline: record.resource.title, description: record.resource.metaDescription, datePublished: "publishedIso" in record.resource ? record.resource.publishedIso : "2026-07-21", dateModified: record.resource.reviewedIso, mainEntityOfPage: canonical, author: { "@type": "Organization", name: "PDFEnrich", url: `${siteUrl}/` }, publisher: { "@type": "Organization", name: "PDFEnrich", url: `${siteUrl}/` } },
+    { "@context": "https://schema.org", "@type": record.resource.kind === "benchmark" ? "TechArticle" : "Article", headline: record.resource.title, description: record.resource.metaDescription, image: `${siteUrl}${editorialShareImagePath(record.path)}`, datePublished: articleDateTime("publishedIso" in record.resource ? record.resource.publishedIso : "2026-07-21"), dateModified: articleDateTime(record.resource.reviewedIso), mainEntityOfPage: canonical, author: { "@type": "Organization", name: "PDFEnrich", url: `${siteUrl}/` }, publisher: { "@type": "Organization", name: "PDFEnrich", url: `${siteUrl}/` } },
     { "@context": "https://schema.org", "@type": "BreadcrumbList", itemListElement: [{ "@type": "ListItem", position: 1, name: "Resources", item: `${siteUrl}${ROUTE_PATHS.resources}` }, { "@type": "ListItem", position: 2, name: record.resource.title, item: canonical }] },
   );
   if (record.category) {
