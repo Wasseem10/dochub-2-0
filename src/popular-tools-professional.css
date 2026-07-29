@@ -1,5 +1,5 @@
 .freepdf-tools-section {
-  padding-top: 52px;
+  padding-top: 40px;
   padding-right: max(24px, calc((100% - 1390px) / 2));
   padding-bottom: 68px;
   padding-left: max(24px, calc((100% - 1390px) / 2));
@@ -7,8 +7,25 @@
 }
 
 .freepdf-tools-section .freepdf-section-heading {
-  max-width: 790px;
-  margin-bottom: 36px;
+  max-width: 1000px;
+  margin-bottom: 27px;
+}
+
+.freepdf-tools-section .freepdf-section-heading > span {
+  margin-bottom: 21px;
+  font-size: 14px;
+  line-height: 18px;
+}
+
+.freepdf-tools-section .freepdf-section-heading h2 {
+  font-size: 60px;
+  line-height: 1.03;
+  letter-spacing: -0.01em;
+}
+
+.freepdf-tools-section .freepdf-section-heading p {
+  font-size: 18px;
+  line-height: 28px;
 }
 
 .freepdf-tool-grid {
@@ -16,7 +33,7 @@
 }
 
 .freepdf-tool-card {
-  min-height: 248px;
+  min-height: 270px;
   align-items: stretch;
   padding: 24px 22px 22px;
   border: 1px solid #dce2eb;
@@ -49,8 +66,8 @@
 .freepdf-tool-card.is-blue .freepdf-tool-icon {
   display: grid;
   width: 100%;
-  height: 96px;
-  margin: 0 0 18px;
+  height: 110px;
+  margin: 0 0 25px;
   place-items: center;
   border-bottom: 1px solid #dce2eb;
   border-radius: 0;
@@ -58,24 +75,104 @@
   color: #101a30;
 }
 
-.freepdf-tool-icon svg {
-  width: 62px;
-  height: 62px;
-  overflow: visible;
-  vector-effect: non-scaling-stroke;
-  transition: color 180ms ease, transform 180ms ease;
+.professional-tool-glyph {
+  position: relative;
+  top: -8px;
+  display: block;
+  width: 84px;
+  height: 84px;
+  color: #101a30;
+  scale: 1.38;
+  transition: transform 180ms ease;
 }
 
-.freepdf-tool-card:hover .freepdf-tool-icon svg,
-.freepdf-tool-card:focus-visible .freepdf-tool-icon svg {
+.professional-tool-glyph svg {
+  position: absolute;
+  display: block;
+  overflow: visible;
+  vector-effect: non-scaling-stroke;
+}
+
+.professional-tool-glyph__base {
+  inset: 0;
+  width: 84px;
+  height: 84px;
+}
+
+.professional-tool-glyph__command {
+  top: 38px;
+  left: 39px;
+  width: 40px;
+  height: 40px;
   color: #2851eb;
+}
+
+.professional-tool-glyph.is-merge-pdf .professional-tool-glyph__command {
+  top: 47px;
+  left: 51px;
+  width: 27px;
+  height: 27px;
+}
+
+.professional-tool-glyph.is-compress-pdf .professional-tool-glyph__command {
+  top: 30px;
+  left: 25px;
+  width: 36px;
+  height: 36px;
+}
+
+.professional-tool-glyph.is-sign-pdf .professional-tool-glyph__command {
+  top: 41px;
+  left: 21px;
+  width: 53px;
+  height: 36px;
+  color: #101a30;
+}
+
+.professional-tool-glyph.is-sign-pdf .professional-tool-glyph__accent {
+  top: 67px;
+  left: 37px;
+  width: 41px;
+  height: 17px;
+  color: #2851eb;
+}
+
+.professional-tool-glyph.is-fill-pdf .professional-tool-glyph__command,
+.professional-tool-glyph.is-organize-pdf .professional-tool-glyph__command {
+  top: 31px;
+  left: 30px;
+  width: 42px;
+  height: 42px;
+}
+
+.professional-tool-glyph.is-ocr-pdf .professional-tool-glyph__base {
+  inset: 6px;
+  width: 72px;
+  height: 72px;
+}
+
+.professional-tool-glyph.is-ocr-pdf .professional-tool-glyph__command {
+  top: 28px;
+  left: 23px;
+  width: 38px;
+  height: 38px;
+}
+
+.freepdf-tool-icon svg {
+  overflow: visible;
+  vector-effect: non-scaling-stroke;
+  transition: color 180ms ease;
+}
+
+.freepdf-tool-card:hover .professional-tool-glyph,
+.freepdf-tool-card:focus-visible .professional-tool-glyph {
   transform: translateY(-1px);
 }
 
 .freepdf-tool-card h3 {
   margin: 0 0 8px;
   color: #0b1427;
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 700;
   letter-spacing: -0.01em;
 }
@@ -84,7 +181,7 @@
   max-width: none;
   margin: 0;
   color: #536078;
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1.48;
 }
 
@@ -114,6 +211,23 @@
     gap: 11px;
   }
 
+  .freepdf-tools-section .freepdf-section-heading > span {
+    margin-bottom: 12px;
+    font-size: 12px;
+    line-height: 16px;
+  }
+
+  .freepdf-tools-section .freepdf-section-heading h2 {
+    font-size: clamp(36px, 11.2vw, 44px);
+    line-height: 1.03;
+    letter-spacing: -0.035em;
+  }
+
+  .freepdf-tools-section .freepdf-section-heading p {
+    font-size: 16px;
+    line-height: 24px;
+  }
+
   .freepdf-tool-card {
     min-height: 190px;
     padding: 17px 15px 16px;
@@ -128,9 +242,18 @@
     margin-bottom: 14px;
   }
 
-  .freepdf-tool-icon svg {
-    width: 45px;
-    height: 45px;
+  .professional-tool-glyph {
+    top: 0;
+    width: 84px;
+    height: 84px;
+    scale: 1;
+    transform: scale(0.72);
+    transform-origin: center;
+  }
+
+  .freepdf-tool-card:hover .professional-tool-glyph,
+  .freepdf-tool-card:focus-visible .professional-tool-glyph {
+    transform: scale(0.72) translateY(-1px);
   }
 
   .freepdf-tool-card h3 {
@@ -156,7 +279,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .freepdf-tool-card,
-  .freepdf-tool-icon svg {
+  .professional-tool-glyph {
     transition: none;
   }
 }
