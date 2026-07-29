@@ -5,6 +5,7 @@ import evidenceRecords from "../config/priority-two-evidence.mjs";
 import { priorityOneBrowserProjects, priorityOneScenarioCoverage, priorityOneToolCoverage } from "../config/priority-one-quality.mjs";
 import { EDITORIAL_RESOURCE_PAGES } from "../src/editorial/editorialResources.js";
 import { EDITORIAL_RESOURCE_PATHS } from "../src/editorial/editorialRoutePaths.js";
+import { TOOL_REGISTRY } from "../src/tools/toolRegistry.js";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const publicRoot = path.join(root, "runtime-public");
@@ -87,6 +88,27 @@ for (const page of EDITORIAL_RESOURCE_PAGES) {
   await requirePng(`/share/${shareSlug}.png`, 1200, 630);
   const downloads = "downloads" in page ? page.downloads : undefined;
   for (const download of downloads || []) await requireFile(download[1], `${page.path} download ${download[0]}`);
+}
+
+const practicalGuides = EDITORIAL_RESOURCE_PAGES.filter(({ kind }) => kind === "guide");
+if (practicalGuides.length !== 5) fail("The first practical guide cluster must contain exactly five guides");
+for (const guide of practicalGuides) {
+  if (!("primaryAction" in guide) || !guide.primaryAction?.path || !("guideToolId" in guide) || !guide.guideToolId || !("workedExample" in guide) || !guide.workedExample?.result) {
+    fail(`${guide.path} needs a direct tool action and a verified worked example`);
+  }
+}
+
+const expectedToolGuideLinks = new Map([
+  ["edit-pdf", "/guides/how-to-edit-a-pdf"],
+  ["compress-pdf", "/guides/compress-pdf-without-losing-quality"],
+  ["merge-pdf", "/guides/how-to-combine-pdf-files"],
+  ["fill-pdf", "/guides/how-to-fill-and-sign-pdf"],
+  ["sign-pdf", "/guides/how-to-fill-and-sign-pdf"],
+  ["pdf-to-word", "/guides/pdf-to-word-formatting"],
+]);
+for (const [toolId, guidePath] of expectedToolGuideLinks) {
+  const tool = TOOL_REGISTRY.find(({ id }) => id === toolId);
+  if (tool?.supportGuide?.path !== guidePath) fail(`${toolId} must link back to ${guidePath}`);
 }
 
 const benchmarkPath = await requireFile("/research/benchmark/q3-2026-results.json");
