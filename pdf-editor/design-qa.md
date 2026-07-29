@@ -1,49 +1,44 @@
-# Apple-Gray Editor Toolbar States — QA
+# Finish Export Chooser — Design QA
 
 ## Evidence
 
-- Source visual truth: `C:/Users/wasse/AppData/Local/Temp/codex-clipboard-e5bf49af-47cd-4b74-b85c-25c848c7cb7f.png`
-- Browser-rendered implementation: `work/design-qa/apple-gray-toolbar-2026-07-27/implementation-full-1280x720.png`
-- Source pixels: 741 × 131.
-- Implementation pixels and CSS viewport: 1280 × 720 at device pixel ratio 1.25; the browser capture is normalized to CSS viewport pixels.
-- State: desktop editor with the thumbnail rail open, Select active, and a blank document loaded.
+- Source visual truth: `C:/Users/wasse/AppData/Local/Temp/codex-clipboard-0ae04c8a-48f8-41b7-bc31-f0c8315e1d72.png`
+- Desktop implementation: `work/design-qa/finish-export-chooser-2026-07-29/desktop-1302x777.jpg`
+- Mobile implementation: `work/design-qa/finish-export-chooser-2026-07-29/mobile-390x844.jpg`
+- Full side-by-side comparison: `work/design-qa/finish-export-chooser-2026-07-29/comparison-source-vs-implementation.jpg`
+- Focused modal comparison: `work/design-qa/finish-export-chooser-2026-07-29/focused-modal-comparison.jpg`
+- Source and desktop viewport: 1302 × 777.
+- Mobile verification viewport: 390 × 844.
 
-## Comparison
+## Fidelity summary
 
-- Full-view evidence confirms the toolbar anatomy, icon positions, labels, dividers, and spacing remain unchanged from the supplied editor reference.
-- A separate crop was unnecessary because the toolbar is rendered at full CSS scale and remains readable across the top of the 1280px implementation capture. Exact browser color samples were used for focused state verification.
-- The supplied screenshot established the component and the blue state being replaced; the user's Apple-gray direction established the new palette.
+- Preserved the reference’s dimmed editor context, compact white chooser, two-column format grid, radio selection, close control, and clear download action.
+- Kept PDF, PNG, Word, Excel, JPG, and PowerPoint as the six visible choices.
+- Added the active document name, page count, short format descriptions, and a recommended PDF state so the choice is clearer without changing the reference hierarchy.
+- Used the existing PDFEnrich typography, blue primary action, neutral borders, and Lucide icon system.
 
-## State verification
+## Responsive adaptation
 
-- Default: transparent surface with the existing charcoal editor copy.
-- Hover: `#F2F2F7` surface with `#1D1D1F` icons and labels.
-- Selected: `#E8E8ED` surface, `#1D1D1F` icons and labels, and a 14%-opacity charcoal inset border.
-- Selected hover: `#DEDEE3`.
-- Keyboard focus: visible 2px neutral-gray outline.
-- Activated Add Text in the browser and confirmed `aria-pressed="true"` plus the selected gray treatment, then restored Select.
-- Browser console: no errors.
+- Desktop uses the compact centered two-column dialog shown in the reference.
+- Mobile uses a bottom sheet with safe-area padding, a two-column touch grid, and full-width actions.
+- At 390 × 844, document width and viewport width are both 390px; there is no horizontal overflow.
+- Secondary descriptions collapse on small screens so all six formats and both actions remain visible.
 
-## Required fidelity surfaces
+## Functional verification
 
-- Fonts and typography: unchanged; compact DM Sans labels retain their existing size, weight, and truncation behavior.
-- Spacing and layout rhythm: unchanged; 56px controls, group dividers, toolbar density, and card dimensions match the existing editor.
-- Colors and visual tokens: blue hover and selected-tool feedback are removed. Neutral interaction tokens have sufficient contrast while reserving blue for primary actions and document affordances.
-- Image and icon fidelity: unchanged Lucide toolbar icons remain sharp and correctly aligned; no raster or placeholder assets were introduced.
-- Copy and content: unchanged.
-
-## Findings
-
-- No actionable P0, P1, or P2 differences remain.
-
-## Comparison history
-
-- Pass 1: the implementation preserved the source toolbar structure and replaced the requested blue interaction states with the approved Apple-like neutral gray system. No blocking visual fixes were needed after the browser comparison.
+- Finish saves the active document and opens the chooser without navigating away.
+- Choosing Word updates the radio state and primary action label.
+- A real Word export completed from the editor; the downloaded DOCX contained `word/document.xml` and embedded page media.
+- PDF preserves the existing edited-PDF and signed-export review workflow.
+- PNG and JPG render every page and package multi-page exports as ZIP files.
+- Excel extracts readable rows; PowerPoint creates one rendered PDF page per slide.
+- Progress and conversion errors remain visible in the chooser.
 
 ## Automated verification
 
 - TypeScript: passed.
-- Focused editor tests: 9 passed across 2 files.
-- `git diff --check`: passed.
+- Focused export Vitest suite: 3 tests passed.
+- Production Vite build: passed.
+- Visual comparison: no actionable P0, P1, or P2 differences remain.
 
 final result: passed

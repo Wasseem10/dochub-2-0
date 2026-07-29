@@ -23,6 +23,7 @@ import "./dashboard-bright.css";
 import "./tool-landing-editorial.css";
 import "./homepage-reference.css";
 import "./comparison-pages.css";
+import "./components/editor/finish-export-modal.css";
 import { migratePdfEnrichStorage } from "./brand/storageMigration.js";
 import { installProductionMonitoring } from "./monitoring/productionMonitoring.js";
 
