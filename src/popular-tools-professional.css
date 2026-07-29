@@ -76,92 +76,13 @@
 }
 
 .professional-tool-glyph {
-  position: relative;
-  top: -8px;
   display: block;
-  width: 84px;
-  height: 84px;
-  color: #101a30;
-  scale: 1.38;
+  width: 112px;
+  height: 112px;
+  object-fit: contain;
+  aspect-ratio: 1;
+  user-select: none;
   transition: transform 180ms ease;
-}
-
-.professional-tool-glyph svg {
-  position: absolute;
-  display: block;
-  overflow: visible;
-  vector-effect: non-scaling-stroke;
-}
-
-.professional-tool-glyph__base {
-  inset: 0;
-  width: 84px;
-  height: 84px;
-}
-
-.professional-tool-glyph__command {
-  top: 38px;
-  left: 39px;
-  width: 40px;
-  height: 40px;
-  color: #2851eb;
-}
-
-.professional-tool-glyph.is-merge-pdf .professional-tool-glyph__command {
-  top: 47px;
-  left: 51px;
-  width: 27px;
-  height: 27px;
-}
-
-.professional-tool-glyph.is-compress-pdf .professional-tool-glyph__command {
-  top: 30px;
-  left: 25px;
-  width: 36px;
-  height: 36px;
-}
-
-.professional-tool-glyph.is-sign-pdf .professional-tool-glyph__command {
-  top: 41px;
-  left: 21px;
-  width: 53px;
-  height: 36px;
-  color: #101a30;
-}
-
-.professional-tool-glyph.is-sign-pdf .professional-tool-glyph__accent {
-  top: 67px;
-  left: 37px;
-  width: 41px;
-  height: 17px;
-  color: #2851eb;
-}
-
-.professional-tool-glyph.is-fill-pdf .professional-tool-glyph__command,
-.professional-tool-glyph.is-organize-pdf .professional-tool-glyph__command {
-  top: 31px;
-  left: 30px;
-  width: 42px;
-  height: 42px;
-}
-
-.professional-tool-glyph.is-ocr-pdf .professional-tool-glyph__base {
-  inset: 6px;
-  width: 72px;
-  height: 72px;
-}
-
-.professional-tool-glyph.is-ocr-pdf .professional-tool-glyph__command {
-  top: 28px;
-  left: 23px;
-  width: 38px;
-  height: 38px;
-}
-
-.freepdf-tool-icon svg {
-  overflow: visible;
-  vector-effect: non-scaling-stroke;
-  transition: color 180ms ease;
 }
 
 .freepdf-tool-card:hover .professional-tool-glyph,
@@ -243,17 +164,13 @@
   }
 
   .professional-tool-glyph {
-    top: 0;
-    width: 84px;
-    height: 84px;
-    scale: 1;
-    transform: scale(0.72);
-    transform-origin: center;
+    width: 76px;
+    height: 76px;
   }
 
   .freepdf-tool-card:hover .professional-tool-glyph,
   .freepdf-tool-card:focus-visible .professional-tool-glyph {
-    transform: scale(0.72) translateY(-1px);
+    transform: translateY(-1px);
   }
 
   .freepdf-tool-card h3 {
