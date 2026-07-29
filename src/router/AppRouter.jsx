@@ -22,7 +22,7 @@ import { LazyAppContent, LazyAuthRouteProvider, LazyGuestAppRoute } from "./Lazy
 import { OwnerRoute } from "./OwnerRoute.jsx";
 import { ProtectedRoute } from "./ProtectedRoute.jsx";
 import { PublicOnlyRoute } from "./PublicOnlyRoute.jsx";
-import { RouteErrorBoundary } from "./RouteErrorBoundary.jsx";
+import { RouteErrorBoundary, RouteErrorView } from "./RouteErrorBoundary.jsx";
 import { APP_ROUTE_SECTIONS, PUBLIC_PLACEHOLDER_ROUTES } from "./routes.js";
 import { ROUTE_PATHS } from "./routePaths.js";
 import { PUBLIC_TOOL_MODULE_LOADERS } from "./publicToolModules.js";
@@ -211,6 +211,7 @@ export const appRouteObjects = [
         ],
       },
       { path: ROUTE_PATHS.signPattern, element: <PublicToolBoundary><LazySigningRequestPage /></PublicToolBoundary> },
+      ...(import.meta.env.DEV ? [{ path: "/__route-error-preview", element: <RouteErrorView /> }] : []),
       { path: "*", element: <NotFoundPage /> },
     ],
   },
