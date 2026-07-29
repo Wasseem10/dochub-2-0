@@ -54,4 +54,19 @@ describe("original editorial resource inventory", () => {
       expect(guide.sections).toHaveLength(5);
     }
   });
+
+  it("publishes ten distinct long-tail guides and one reproducible attachment study", () => {
+    const searchGuides = EDITORIAL_RESOURCE_PAGES.filter(({ kind }) => kind === "search-guide");
+    expect(searchGuides).toHaveLength(10);
+    for (const guide of searchGuides) {
+      expect(guide.path).toMatch(/^\/guides\//);
+      expect(guide.primaryAction.path).toMatch(/^\//);
+      expect(guide.sections.length).toBeGreaterThanOrEqual(4);
+      expect(guide.related.length).toBeGreaterThanOrEqual(3);
+    }
+    const study = EDITORIAL_RESOURCE_PAGES.find(({ id }) => id === "pdf-attachment-size-study");
+    expect(study).toMatchObject({ kind: "study", path: "/research/pdf-email-attachment-size-study" });
+    expect(study.downloads).toHaveLength(3);
+    expect(study.sources[0][1]).toMatch(/^https:\/\//);
+  });
 });

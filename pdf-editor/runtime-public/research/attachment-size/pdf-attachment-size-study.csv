@@ -1,0 +1,8 @@
+fixture,source_bytes,base64_bytes,overhead_percent,pages,notes
+complex-layout.pdf,3611,4816,33.37,2,Parseable complex layout fixture
+encrypted-sample.pdf,2977,3972,33.42,,Password required for page inspection
+large-100-pages.pdf,154441,205924,33.34,100,Parseable progressive rendering fixture
+malformed-sample.pdf,83,112,34.94,,Intentionally not parseable
+scanned-clean.pdf,129801,173068,33.33,1,Parseable clean scan fixture
+scanned-degraded.pdf,147071,196096,33.33,1,Parseable degraded scan fixture
+simple-searchable.pdf,2583,3444,33.33,2,Parseable searchable fixture
