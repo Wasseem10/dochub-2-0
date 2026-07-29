@@ -82,6 +82,7 @@ import { db, isCloudPersistenceConfigured, storage } from "./firebase";
 import { useAuth } from "./auth/AuthContext.jsx";
 import { beginToolOperation, fileSizeBucket, pageCountBucket, trackProductEvent, trackToolUpload, trackUploadValidationFailure } from "./analytics/productAnalytics.js";
 import { AuthRequiredModal } from "./components/editor/AuthRequiredModal.jsx";
+import { FinishExportModal } from "./components/editor/FinishExportModal.jsx";
 import { AccountDeletionCard } from "./components/app/AccountDeletionCard.jsx";
 import { BrandWordmark } from "./components/public/BrandWordmark.jsx";
 import { PageMetadata } from "./components/public/PageMetadata.jsx";
@@ -129,6 +130,7 @@ import { applyNativePdfFormAnnotation, createEditorExportDocument } from "./tool
 import { verifySignedPdfExport } from "./tools/pdfExportVerification.js";
 import { sanitizeReplacedPdfBytes } from "./tools/pdfExportSanitizer.js";
 import { closePdfPrintTarget, createPdfPrintTarget, renderPdfDocumentForPrint } from "./tools/pdfPrint.js";
+import { createEditorFormatDownload } from "./tools/editorFinishExport.js";
 import {
   calculatePdfReviewRenderMetrics,
   clampPdfReviewPage,
@@ -597,7 +599,9 @@ function downloadBlob(blob, name, toolId = "edit-pdf") {
   window.document.body.appendChild(anchor);
   anchor.click();
   trackProductEvent("result_downloaded", { toolId });
-  trackProductEvent("pdf_downloaded", { toolId });
+  if (blob.type === "application/pdf" || /\.pdf$/i.test(name)) {
+    trackProductEvent("pdf_downloaded", { toolId });
+  }
   anchor.remove();
   window.setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
@@ -2003,6 +2007,11 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   const [draggedPageIndex, setDraggedPageIndex] = useState(null);
   const [pageDropIndex, setPageDropIndex] = useState(null);
   const [isExporting, setIsExporting] = useState(false);
+  const [finishExportOpen, setFinishExportOpen] = useState(false);
+  const [finishExportFormat, setFinishExportFormat] = useState("pdf");
+  const [finishExportProgress, setFinishExportProgress] = useState(0);
+  const [finishExportError, setFinishExportError] = useState("");
+  const [isFinishExporting, setIsFinishExporting] = useState(false);
   const [signedExportReview, setSignedExportReview] = useState(null);
   const [uploadError, setUploadError] = useState("");
   const [uploadStage, setUploadStage] = useState({ status: "idle", percent: 0, fileName: "" });
@@ -5037,7 +5046,66 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
 
   const finishEditing = async () => {
     await saveActiveDocument(true);
-    navigate(currentUser?.uid ? ROUTE_PATHS.documents : ROUTE_PATHS.home);
+    setFinishExportFormat("pdf");
+    setFinishExportProgress(0);
+    setFinishExportError("");
+    setFinishExportOpen(true);
+  };
+
+  const closeFinishExport = () => {
+    if (isFinishExporting) return;
+    setFinishExportOpen(false);
+    setFinishExportError("");
+    setFinishExportProgress(0);
+  };
+
+  const downloadFinishedDocument = async () => {
+    if (isFinishExporting || isExporting) return;
+    setIsFinishExporting(true);
+    setFinishExportProgress(4);
+    setFinishExportError("");
+    const toolIdByFormat = {
+      png: "pdf-to-png",
+      jpg: "pdf-to-jpg",
+      word: "pdf-to-word",
+      excel: "pdf-to-excel",
+      powerpoint: "pdf-to-powerpoint",
+    };
+    const conversionToolId = toolIdByFormat[finishExportFormat] || (publicTool || "edit-pdf");
+    const operation = finishExportFormat === "pdf"
+      ? null
+      : beginToolOperation(conversionToolId, { operation: "convert", slowAfterMs: 15000 });
+    try {
+      if (finishExportFormat === "pdf") {
+        const exportedPdf = await exportPdf();
+        if (!exportedPdf) throw new Error("The edited PDF could not be downloaded.");
+        setFinishExportOpen(false);
+        return;
+      }
+      const exportedPdf = await exportPdf({ download: false, showResult: false, analytics: false });
+      if (!exportedPdf) throw new Error("The edited PDF could not be prepared.");
+      setFinishExportProgress(8);
+      const converted = await createEditorFormatDownload({
+        format: finishExportFormat,
+        pdfBytes: exportedPdf.bytes,
+        fileName: exportedPdf.name,
+        onProgress: setFinishExportProgress,
+      });
+      downloadBlob(converted.blob, converted.name, conversionToolId);
+      operation?.succeed({
+        result: finishExportFormat,
+        pageCountBucket: pageCountBucket(pages.length),
+      });
+      setFinishExportProgress(100);
+      setFinishExportOpen(false);
+      showToast(converted.message);
+    } catch (error) {
+      operation?.fail("editor_format_export_failed", { result: finishExportFormat });
+      console.error("Finished document conversion failed", error);
+      setFinishExportError(error.message || "This format could not be created. Choose another format and try again.");
+    } finally {
+      setIsFinishExporting(false);
+    }
   };
 
   if (view === "landing") {
@@ -6062,6 +6130,23 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
               showToast("Signature ready. Move over the page to preview it, then click to place.");
             }
           }}
+        />
+      )}
+      {finishExportOpen && (
+        <FinishExportModal
+          fileName={fileName}
+          pageCount={pages.length}
+          selectedFormat={finishExportFormat}
+          onSelectFormat={(format) => {
+            setFinishExportFormat(format);
+            setFinishExportError("");
+            setFinishExportProgress(0);
+          }}
+          onClose={closeFinishExport}
+          onDownload={downloadFinishedDocument}
+          isWorking={isFinishExporting || isExporting}
+          progress={finishExportProgress}
+          error={finishExportError}
         />
       )}
       {shareModalOpen && (

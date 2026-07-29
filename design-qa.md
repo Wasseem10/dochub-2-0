@@ -1,53 +1,44 @@
-# Responsive Dashboard Redesign — QA
+# Finish Export Chooser — Design QA
 
 ## Evidence
 
-- Source visual truth: `C:/Users/wasse/Downloads/ChatGPT Image Jul 29, 2026, 03_19_44 PM.png`
-- Final desktop implementation: `work/design-qa/dashboard-responsive-2026-07-29/desktop-1920x1000-final.png`
-- Final mobile implementation: `work/design-qa/dashboard-responsive-2026-07-29/mobile-390-full-final.png`
-- Required side-by-side comparison: `work/design-qa/dashboard-responsive-2026-07-29/comparison-source-vs-desktop-final.png`
-- Source viewport: 1728 × 910.
-- Desktop verification viewport: 1920 × 1000.
-- Mobile verification viewport: 390 × 844, with a full-page capture for document-list coverage.
+- Source visual truth: `C:/Users/wasse/AppData/Local/Temp/codex-clipboard-0ae04c8a-48f8-41b7-bc31-f0c8315e1d72.png`
+- Desktop implementation: `work/design-qa/finish-export-chooser-2026-07-29/desktop-1302x777.jpg`
+- Mobile implementation: `work/design-qa/finish-export-chooser-2026-07-29/mobile-390x844.jpg`
+- Full side-by-side comparison: `work/design-qa/finish-export-chooser-2026-07-29/comparison-source-vs-implementation.jpg`
+- Focused modal comparison: `work/design-qa/finish-export-chooser-2026-07-29/focused-modal-comparison.jpg`
+- Source and desktop viewport: 1302 × 777.
+- Mobile verification viewport: 390 × 844.
 
 ## Fidelity summary
 
-- Preserved the reference hierarchy: white application shell, compact left navigation, centered search, blue upload action, document-led welcome area, quick actions, and a dense recent-document list.
-- Replaced the reference's fake AI, storage, upgrade, and activity widgets with real PDFEnrich tools and saved-document data.
-- Used a dedicated PDFEnrich dashboard illustration rather than CSS-drawn placeholder artwork.
-- Matched the reference's compact icon tiles and restrained blue/lilac/coral/aqua/orange accent system without adding gradients.
-- Kept the current PDFEnrich wordmark and existing app navigation rather than copying the reference's product identity.
+- Preserved the reference’s dimmed editor context, compact white chooser, two-column format grid, radio selection, close control, and clear download action.
+- Kept PDF, PNG, Word, Excel, JPG, and PowerPoint as the six visible choices.
+- Added the active document name, page count, short format descriptions, and a recommended PDF state so the choice is clearer without changing the reference hierarchy.
+- Used the existing PDFEnrich typography, blue primary action, neutral borders, and Lucide icon system.
 
 ## Responsive adaptation
 
-- Desktop uses an eight-column compact action row and a wide, dense document ledger.
-- Tablet reduces the action row to four columns with no horizontal clipping.
-- Mobile uses a two-column touch-first action grid, a labeled Upload PDF button, a compact search row, and a single-column recent-document ledger.
-- The mobile artwork is composed as its own shallow banner below the greeting instead of shrinking behind the copy.
-- Filenames, dates, favorite controls, and overflow menus remain readable and tappable at 390px.
+- Desktop uses the compact centered two-column dialog shown in the reference.
+- Mobile uses a bottom sheet with safe-area padding, a two-column touch grid, and full-width actions.
+- At 390 × 844, document width and viewport width are both 390px; there is no horizontal overflow.
+- Secondary descriptions collapse on small screens so all six formats and both actions remain visible.
 
 ## Functional verification
 
-- Dashboard upload action remains connected to the existing PDF picker.
-- All seven quick actions retain their existing tool routes; All tools opens the in-app catalog.
-- Recent-document rows use the saved document records and real first-page thumbnail renderer.
-- Favorite and document action controls remain functional.
-- The new notification button opens the existing notifications panel; the panel has an accessible close label.
-- Anonymous users receive the neutral `Your PDF workspace` heading instead of the awkward `Welcome back, there`.
-- Browser console: no errors at desktop or mobile widths.
+- Finish saves the active document and opens the chooser without navigating away.
+- Choosing Word updates the radio state and primary action label.
+- A real Word export completed from the editor; the downloaded DOCX contained `word/document.xml` and embedded page media.
+- PDF preserves the existing edited-PDF and signed-export review workflow.
+- PNG and JPG render every page and package multi-page exports as ZIP files.
+- Excel extracts readable rows; PowerPoint creates one rendered PDF page per slide.
+- Progress and conversion errors remain visible in the chooser.
 
 ## Automated verification
 
 - TypeScript: passed.
-- Dashboard integration tests: 4 passed.
-- Editorial audit: passed.
-- Sitemap generation: 124 public routes.
+- Focused export Vitest suite: 3 tests passed.
 - Production Vite build: passed.
-- `git diff --check`: passed.
-
-## Findings
-
-- No actionable P0, P1, or P2 visual or responsive differences remain.
-- Deliberate deviations from the source are limited to real product behavior, removal of unsupported promotional widgets, and mobile-specific composition.
+- Visual comparison: no actionable P0, P1, or P2 differences remain.
 
 final result: passed
