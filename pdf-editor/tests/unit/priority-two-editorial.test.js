@@ -41,4 +41,17 @@ describe("original editorial resource inventory", () => {
       expect(new Set(values).size).toBe(values.length);
     }
   });
+
+  it("publishes five worked practical guides with direct tool actions", () => {
+    const guides = EDITORIAL_RESOURCE_PAGES.filter(({ kind }) => kind === "guide");
+    expect(guides).toHaveLength(5);
+    for (const guide of guides) {
+      expect(guide.path).toMatch(/^\/guides\//);
+      expect(guide.publishedIso).toBe("2026-07-29");
+      expect(guide.primaryAction.path).toMatch(/^\//);
+      expect(guide.guideToolId).toBeTruthy();
+      expect(guide.workedExample.result.length).toBeGreaterThan(50);
+      expect(guide.sections).toHaveLength(5);
+    }
+  });
 });

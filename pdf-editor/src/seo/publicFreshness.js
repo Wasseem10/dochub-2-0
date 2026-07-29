@@ -11,6 +11,11 @@ const PAGE_LAST_MODIFIED_OVERRIDES = new Map([
   ["/pdf-to-jpg", "2026-07-29"],
   ["/jpg-to-pdf", "2026-07-29"],
   ["/translate-pdf", "2026-07-29"],
+  ["/guides/how-to-edit-a-pdf", "2026-07-29"],
+  ["/guides/compress-pdf-without-losing-quality", "2026-07-29"],
+  ["/guides/how-to-combine-pdf-files", "2026-07-29"],
+  ["/guides/how-to-fill-and-sign-pdf", "2026-07-29"],
+  ["/guides/pdf-to-word-formatting", "2026-07-29"],
 ]);
 
 export function publicPageLastModified(path = "/") {

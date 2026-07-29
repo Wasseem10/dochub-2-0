@@ -36,6 +36,7 @@ import { HIGH_INTENT_TOOL_CONTENT, PRIMARY_SEARCH_TOOL_IDS } from "./highIntentT
  * @property {string[]} verificationChecklist
  * @property {FaqEntry[]} troubleshooting
  * @property {boolean} searchPriority
+ * @property {{ label: string, path: string }} [supportGuide]
  * @property {string[]} searchRelatedTools
  * @property {string[]} relatedTools
  * @property {string} canonicalUrl

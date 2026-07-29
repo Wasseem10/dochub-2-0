@@ -94,7 +94,7 @@ def title_from_slug(slug: str) -> str:
     return " ".join(special.get(part, part.capitalize()) for part in slug.split("-"))
 
 
-def make_share_card(slug: str, title: str, kicker: str) -> None:
+def make_share_card(slug: str, title: str, kicker: str, footer: str = "Tested July 21, 2026") -> None:
     image = Image.new("RGB", (1200, 630), "#F5F9FF")
     draw = ImageDraw.Draw(image)
     draw.rounded_rectangle((55, 48, 1145, 582), radius=36, fill="#FFFFFF", outline="#D5E2F4", width=2)
@@ -109,8 +109,9 @@ def make_share_card(slug: str, title: str, kicker: str) -> None:
     draw_wrapped(draw, (84, y + 22), "Original methods, real examples, and clearly stated limits.", font(23), "#5E6D84", 760, line_gap=7, max_lines=2)
     draw.text((84, 520), "PDF", font=font(24, True), fill="#12213A")
     offset = draw.textbbox((0, 0), "PDF", font=font(24, True))[2]
-    draw.text((84 + offset, 520), "Arrow", font=font(24, True), fill="#2851EB")
-    draw.text((900, 525), "Tested July 21, 2026", font=font(16, True), fill="#6A7890")
+    draw.text((84 + offset, 520), "Enrich", font=font(24, True), fill="#2851EB")
+    footer_width = draw.textbbox((0, 0), footer, font=font(16, True))[2]
+    draw.text((1114 - footer_width, 525), footer, font=font(16, True), fill="#6A7890")
     image.save(SHARE / f"{slug}.png", optimize=True)
 
 
@@ -152,6 +153,11 @@ RESOURCE_SHARES = {
     "research-pdf-conversion-benchmark": ("Q3 2026 browser PDF fidelity benchmark", "Open methodology"),
     "guides-redact-pdf-safely": ("How to prove redacted PDF text is actually gone", "Safety guide"),
     "guides-ocr-quality": ("OCR quality by scan and document type", "Field guide"),
+    "guides-how-to-edit-a-pdf": ("How to edit a PDF without breaking the original layout", "Practical guide", "Reviewed July 29, 2026"),
+    "guides-compress-pdf-without-losing-quality": ("Compress a PDF without losing the features you need", "Decision guide", "Reviewed July 29, 2026"),
+    "guides-how-to-combine-pdf-files": ("Combine PDF files in the right order without lowering quality", "Packet guide", "Reviewed July 29, 2026"),
+    "guides-how-to-fill-and-sign-pdf": ("Fill and sign a PDF correctly before submitting it", "Completion guide", "Reviewed July 29, 2026"),
+    "guides-pdf-to-word-formatting": ("Choose the right PDF to Word layout mode", "Formatting guide", "Reviewed July 29, 2026"),
     "templates": ("Free editable DOCX templates with completion guidance", "Template library"),
     "workflows-education-pdf-workflow": ("A reviewable PDF workflow for educators", "Workflow playbook"),
     "workflows-recruiting-pdf-workflow": ("Private, consistent candidate PDF packets", "Workflow playbook"),
@@ -688,8 +694,9 @@ def main() -> None:
     for record in EVIDENCE:
         make_share_card(record["toolId"], title_from_slug(record["toolId"]), "Working PDF tool")
         make_demo(record)
-    for slug, (title, kicker) in RESOURCE_SHARES.items():
-        make_share_card(slug, title, kicker)
+    for slug, values in RESOURCE_SHARES.items():
+        title, kicker, *footer = values
+        make_share_card(slug, title, kicker, footer[0] if footer else "Reviewed July 21, 2026")
 
     simple = FIXTURES / "simple-searchable.pdf"
     complex_pdf = FIXTURES / "complex-layout.pdf"

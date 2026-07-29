@@ -18,7 +18,7 @@ function pageSchemas(page) {
     headline: page.title,
     description: page.metaDescription,
     dateModified: page.reviewedIso,
-    datePublished: "2026-07-21",
+    datePublished: page.publishedIso || "2026-07-21",
     mainEntityOfPage: absoluteSiteUrl(page.path),
     author: { "@type": "Organization", name: "PDFEnrich", url: absoluteSiteUrl("/") },
     publisher: { "@type": "Organization", name: "PDFEnrich", url: absoluteSiteUrl("/") },
@@ -88,6 +88,28 @@ function EditorialMatrix({ matrix }) {
   return <section className="editorial-table-section"><div className="editorial-table-scroll"><table><caption>{matrix.caption}</caption><thead><tr>{matrix.columns.map((column) => <th key={column}>{column}</th>)}</tr></thead><tbody>{matrix.rows.map((row) => <tr key={row[0]}>{row.map((cell, index) => index === 0 ? <th key={cell} scope="row">{cell}</th> : <td key={cell}>{cell}</td>)}</tr>)}</tbody></table></div></section>;
 }
 
+function EditorialWorkedExample({ page }) {
+  if (!page.workedExample || !page.guideToolId) return null;
+  const example = page.workedExample;
+  return (
+    <section className="editorial-worked-example" aria-labelledby={`${page.id}-example-heading`}>
+      <figure>
+        <img src={`/editorial/demos/${page.guideToolId}.png`} width="1200" height="675" loading="lazy" alt={example.caption} />
+        <figcaption>{example.caption}</figcaption>
+      </figure>
+      <article>
+        <span className="public-eyebrow">Worked product example</span>
+        <h2 id={`${page.id}-example-heading`}>{example.title}</h2>
+        <dl>
+          <div><dt>Input</dt><dd>{example.input}</dd></div>
+          <div><dt>Action</dt><dd>{example.action}</dd></div>
+          <div><dt>Verified result</dt><dd>{example.result}</dd></div>
+        </dl>
+      </article>
+    </section>
+  );
+}
+
 export function EditorialResourcePage({ page }) {
   return (
     <main className={`editorial-page editorial-${page.kind}`}>
@@ -98,11 +120,13 @@ export function EditorialResourcePage({ page }) {
         <span className="public-eyebrow">{page.eyebrow}</span>
         <h1>{page.title}</h1>
         <p>{page.lede}</p>
+        {page.primaryAction && <Link className="editorial-primary-action" to={page.primaryAction.path}>{page.primaryAction.label}<ArrowRight size={17} /></Link>}
         <div className="editorial-byline"><CalendarCheck size={18} /><span>Reviewed <time dateTime={page.reviewedIso}>{page.reviewedLabel}</time></span><i /> <span>Responsible team: {page.owner}</span></div>
       </header>
 
       <section className="editorial-facts" aria-label="Resource summary">{page.facts.map(([label, value]) => <article key={label}><small>{label}</small><strong>{value}</strong></article>)}</section>
 
+      <EditorialWorkedExample page={page} />
       {page.kind === "redaction" && <RedactionProof />}
       {page.kind === "architecture" && <ArchitectureFlow />}
 

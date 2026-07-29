@@ -76,6 +76,7 @@ export function ToolGuideContent({ tool }) {
             <span>Purpose-built PDF workflow</span>
             <h2 id={`${tool.id}-why-heading}`}>Why use {tool.name} in PDFEnrich?</h2>
             <p>{tool.longDescription}</p>
+            {tool.supportGuide && <Link className="tool-guide-deep-link" to={tool.supportGuide.path}>{tool.supportGuide.label}<ArrowRight size={15} /></Link>}
           </header>
           <div>
             <article>

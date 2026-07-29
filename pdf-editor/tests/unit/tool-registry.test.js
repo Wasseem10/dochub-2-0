@@ -89,6 +89,18 @@ describe("PDFEnrich tool registry", () => {
     expect(priorityTools.every(({ searchRelatedTools, relatedTools }) => searchRelatedTools.length === 3 && relatedTools.join("|") === searchRelatedTools.join("|"))).toBe(true);
   });
 
+  it("links the first guide cluster back from its matching tools", () => {
+    const guideLinks = Object.fromEntries(TOOL_REGISTRY.filter(({ supportGuide }) => supportGuide).map(({ id, supportGuide }) => [id, supportGuide.path]));
+    expect(guideLinks).toMatchObject({
+      "edit-pdf": "/guides/how-to-edit-a-pdf",
+      "compress-pdf": "/guides/compress-pdf-without-losing-quality",
+      "merge-pdf": "/guides/how-to-combine-pdf-files",
+      "fill-pdf": "/guides/how-to-fill-and-sign-pdf",
+      "sign-pdf": "/guides/how-to-fill-and-sign-pdf",
+      "pdf-to-word": "/guides/pdf-to-word-formatting",
+    });
+  });
+
   it("adds truthful free WebApplication markup only to the ten primary search pages", () => {
     const prioritySchemas = toolSeoSchemas(TOOL_REGISTRY.find(({ id }) => id === "pdf-to-word"));
     expect(prioritySchemas.map((schema) => schema["@type"])).toEqual(["BreadcrumbList", "WebApplication"]);
