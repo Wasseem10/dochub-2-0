@@ -3,6 +3,7 @@ import { trackPageView } from "../../analytics/productAnalytics.js";
 import { absoluteSiteUrl } from "../../config/site.js";
 import { editorialShareImagePath, hasToolShareImage } from "../../editorial/toolEvidence.js";
 import { isEditorialResourcePath } from "../../editorial/editorialRoutePaths.js";
+import { PRIVACY_CHOICE_EVENT } from "../../privacy/privacyChoices.js";
 import { publicPageLastModified } from "../../seo/publicFreshness.js";
 
 function setMeta(name, content, attribute = "name") {
@@ -50,6 +51,10 @@ export function PageMetadata({ title, description, canonicalUrl, schemas = [], n
     canonical.setAttribute("href", absoluteCanonical);
 
     trackPageView(canonicalUrl);
+    const trackAcceptedPageView = (event) => {
+      if (event.detail?.analytics === true) trackPageView(canonicalUrl);
+    };
+    window.addEventListener(PRIVACY_CHOICE_EVENT, trackAcceptedPageView);
 
     const scriptId = "pdfenrich-structured-data";
     document.getElementById(scriptId)?.remove();
@@ -72,7 +77,10 @@ export function PageMetadata({ title, description, canonicalUrl, schemas = [], n
       script.textContent = JSON.stringify(pageSchemas);
       document.head.appendChild(script);
     }
-    return () => document.getElementById(scriptId)?.remove();
+    return () => {
+      window.removeEventListener(PRIVACY_CHOICE_EVENT, trackAcceptedPageView);
+      document.getElementById(scriptId)?.remove();
+    };
   }, [canonicalUrl, description, noIndex, schemas, socialImage, socialImageAlt, title]);
   return null;
 }

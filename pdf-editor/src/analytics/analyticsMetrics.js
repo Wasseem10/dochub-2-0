@@ -123,6 +123,65 @@ export function summarizeAnalyticsEvents(events) {
   };
 }
 
+function isGoogleOrganicEvent(event) {
+  const source = event.properties?.trafficSource;
+  const referrer = String(event.properties?.referrerDomain || "").toLowerCase();
+  return source === "organic" && /(^|\.)google\./.test(referrer);
+}
+
+function percentage(value, total) {
+  return total ? Math.round((value / total) * 100) : 0;
+}
+
+function conversionEventTime(event) {
+  const clientDate = new Date(event?.clientOccurredAt || 0);
+  if (!Number.isNaN(clientDate.getTime()) && clientDate.getTime() > 0) return clientDate.getTime();
+  return eventDate(event).getTime();
+}
+
+export function createGoogleSearchConversionFunnel(events) {
+  const visitors = new Map();
+  const orderedEvents = [...events].sort((left, right) => conversionEventTime(left) - conversionEventTime(right));
+
+  for (const event of orderedEvents) {
+    const visitorId = event.visitorId;
+    if (!visitorId) continue;
+    const existing = visitors.get(visitorId) || {
+      googleVisitAt: null,
+      uploadAt: null,
+      completionAt: null,
+      signupAt: null,
+    };
+    const timestamp = conversionEventTime(event);
+    if (!existing.googleVisitAt && event.name === "page_viewed" && isGoogleOrganicEvent(event)) {
+      existing.googleVisitAt = timestamp;
+    } else if (existing.googleVisitAt && !existing.uploadAt && event.name === "upload_started" && timestamp >= existing.googleVisitAt) {
+      existing.uploadAt = timestamp;
+    } else if (existing.uploadAt && !existing.completionAt && event.name === "export_succeeded" && timestamp >= existing.uploadAt) {
+      existing.completionAt = timestamp;
+    } else if (existing.completionAt && !existing.signupAt && event.name === "account_signed_up" && timestamp >= existing.completionAt) {
+      existing.signupAt = timestamp;
+    }
+    visitors.set(visitorId, existing);
+  }
+
+  const googleVisitors = [...visitors.values()].filter(({ googleVisitAt }) => googleVisitAt).length;
+  const uploads = [...visitors.values()].filter(({ uploadAt }) => uploadAt).length;
+  const completedPdfs = [...visitors.values()].filter(({ completionAt }) => completionAt).length;
+  const signups = [...visitors.values()].filter(({ signupAt }) => signupAt).length;
+
+  return {
+    googleVisitors,
+    uploads,
+    completedPdfs,
+    signups,
+    visitToUploadRate: percentage(uploads, googleVisitors),
+    uploadToCompletionRate: percentage(completedPdfs, uploads),
+    completionToSignupRate: percentage(signups, completedPdfs),
+    visitToSignupRate: percentage(signups, googleVisitors),
+  };
+}
+
 export function groupAnalyticsProperty(events, property, { eventName = "page_viewed", limit = 6 } = {}) {
   const counts = new Map();
   for (const event of events) {

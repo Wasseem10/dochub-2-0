@@ -137,7 +137,7 @@ export default function FirebaseAuthProvider({ children }) {
         } catch {
           return { ok: false, error: "This browser blocked local workspace storage. Allow site storage and try again." };
         }
-        trackProductEvent(mode === "signup" ? "account_signed_up" : "account_logged_in", { authMethod: "local" });
+        trackProductEvent(mode === "signup" ? "account_signed_up" : "account_logged_in", { authMethod: "email" });
         setCurrentUser(user);
         return { ok: true, user };
       }
@@ -154,7 +154,7 @@ export default function FirebaseAuthProvider({ children }) {
         const additionalUserInfo = getAdditionalUserInfo(credential);
         const isNewAccount = provider === "google" ? Boolean(additionalUserInfo?.isNewUser) : mode === "signup";
         trackProductEvent(isNewAccount ? "account_signed_up" : "account_logged_in", {
-          authMethod: provider === "google" ? "google" : "password",
+          authMethod: provider === "google" ? "google" : "email",
         });
         setCurrentUser(user);
         return { ok: true, user };

@@ -11,8 +11,9 @@ import AlertTriangle from "lucide-react/dist/esm/icons/alert-triangle.mjs";
 import CheckCircle2 from "lucide-react/dist/esm/icons/check-circle-2.mjs";
 import Gauge from "lucide-react/dist/esm/icons/gauge.mjs";
 import LifeBuoy from "lucide-react/dist/esm/icons/life-buoy.mjs";
+import Search from "lucide-react/dist/esm/icons/search.mjs";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { analyticsRangeStart, createDailyAnalyticsSeries, createToolQualityScorecard, filterAnalyticsEvents, groupAnalyticsProperty, summarizeAnalyticsEvents } from "../../analytics/analyticsMetrics.js";
+import { analyticsRangeStart, createDailyAnalyticsSeries, createGoogleSearchConversionFunnel, createToolQualityScorecard, filterAnalyticsEvents, groupAnalyticsProperty, summarizeAnalyticsEvents } from "../../analytics/analyticsMetrics.js";
 import { db } from "../../firebase.js";
 import "./owner-analytics.css";
 
@@ -161,6 +162,7 @@ export function OwnerAnalyticsPanel({ searchQuery = "" }) {
   const recentEvents = filteredEvents.slice(0, 12);
   const trafficSources = useMemo(() => groupAnalyticsProperty(filteredEvents, "trafficSource"), [filteredEvents]);
   const landingPages = useMemo(() => groupAnalyticsProperty(filteredEvents, "landingPath"), [filteredEvents]);
+  const googleSearchFunnel = useMemo(() => createGoogleSearchConversionFunnel(filteredEvents), [filteredEvents]);
   const toolQuality = useMemo(() => createToolQualityScorecard(filteredEvents), [filteredEvents]);
   const diagnosticEvents = filteredEvents.filter((event) => ["client_error", "unhandled_rejection", "slow_operation", "export_failed"].includes(event.name)).slice(0, 10);
   const normalizedIdentityQuery = searchQuery.trim().toLowerCase();
@@ -221,6 +223,29 @@ export function OwnerAnalyticsPanel({ searchQuery = "" }) {
           </article>
         ))}
       </div>
+
+      <article className="owner-analytics-activity owner-google-funnel">
+        <div className="owner-analytics-section-title">
+          <div><h2>Google search conversion</h2><p>Consented visitors followed anonymously from landing page to registration</p></div>
+          <strong><Search size={16} /> {googleSearchFunnel.visitToSignupRate}% overall</strong>
+        </div>
+        <ol aria-label="Google search conversion funnel">
+          {[
+            ["Google visitors", googleSearchFunnel.googleVisitors, "Organic landing sessions"],
+            ["Uploaded a PDF", googleSearchFunnel.uploads, `${googleSearchFunnel.visitToUploadRate}% of visitors`],
+            ["Completed a PDF", googleSearchFunnel.completedPdfs, `${googleSearchFunnel.uploadToCompletionRate}% of uploaders`],
+            ["Created an account", googleSearchFunnel.signups, `${googleSearchFunnel.completionToSignupRate}% of completers`],
+          ].map(([label, value, detail], index) => (
+            <li key={label}>
+              <small>0{index + 1}</small>
+              <span>{label}</span>
+              <strong>{value.toLocaleString()}</strong>
+              <p>{detail}</p>
+            </li>
+          ))}
+        </ol>
+        <footer>Counts require optional analytics consent and use a random browser visitor ID. No PDF names, content, form answers, or account email addresses enter the funnel.</footer>
+      </article>
 
       <article className="owner-analytics-activity owner-auth-ledger">
         <div className="owner-analytics-section-title">
