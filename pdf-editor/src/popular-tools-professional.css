@@ -1,9 +1,9 @@
 .freepdf-tools-section {
-  padding-top: 40px;
+  padding-top: 52px;
   padding-right: max(24px, calc((100% - 1390px) / 2));
-  padding-bottom: 68px;
+  padding-bottom: 78px;
   padding-left: max(24px, calc((100% - 1390px) / 2));
-  background: #f8fafc;
+  background: #f3f7fd;
 }
 
 .freepdf-tools-section .freepdf-section-heading {
@@ -29,18 +29,18 @@
 }
 
 .freepdf-tool-grid {
-  gap: 18px;
+  gap: 20px;
 }
 
 .freepdf-tool-card {
-  min-height: 270px;
+  min-height: 302px;
   align-items: stretch;
-  padding: 24px 22px 22px;
-  border: 1px solid #dce2eb;
-  border-radius: 10px;
+  padding: 18px 20px 22px;
+  border: 1px solid #dbe4f0;
+  border-radius: 15px;
   background: #fff;
-  box-shadow: none;
-  text-align: left;
+  box-shadow: 0 8px 24px rgba(34, 55, 96, 0.045);
+  text-align: center;
   transform: translateY(0);
   transition:
     border-color 180ms ease,
@@ -49,9 +49,9 @@
 }
 
 .freepdf-tool-card:hover {
-  border-color: #aebbd0;
-  box-shadow: 0 12px 28px rgba(22, 34, 58, 0.075);
-  transform: translateY(-2px);
+  border-color: #b8c8df;
+  box-shadow: 0 18px 38px rgba(33, 61, 112, 0.1);
+  transform: translateY(-3px);
 }
 
 .freepdf-tool-card:focus-visible {
@@ -66,10 +66,9 @@
 .freepdf-tool-card.is-blue .freepdf-tool-icon {
   display: grid;
   width: 100%;
-  height: 110px;
-  margin: 0 0 25px;
+  height: 158px;
+  margin: 0 0 18px;
   place-items: center;
-  border-bottom: 1px solid #dce2eb;
   border-radius: 0;
   background: transparent;
   color: #101a30;
@@ -77,32 +76,45 @@
 
 .professional-tool-glyph {
   display: block;
-  width: 112px;
-  height: 112px;
+  width: 156px;
+  height: 156px;
   object-fit: contain;
   aspect-ratio: 1;
   user-select: none;
-  transition: transform 180ms ease;
+  filter: drop-shadow(0 10px 12px rgba(25, 48, 93, 0.09));
+  transition: filter 180ms ease, transform 180ms ease;
+}
+
+.professional-tool-glyph[data-tool-icon="merge-pdf"],
+.professional-tool-glyph[data-tool-icon="organize-pdf"] {
+  width: 180px;
+  height: 180px;
+}
+
+.professional-tool-glyph[data-tool-icon="pdf-to-word"] {
+  width: 188px;
+  height: 188px;
 }
 
 .freepdf-tool-card:hover .professional-tool-glyph,
 .freepdf-tool-card:focus-visible .professional-tool-glyph {
-  transform: translateY(-1px);
+  filter: drop-shadow(0 13px 16px rgba(25, 48, 93, 0.13));
+  transform: translateY(-3px) scale(1.015);
 }
 
 .freepdf-tool-card h3 {
-  margin: 0 0 8px;
+  margin: 0 0 7px;
   color: #0b1427;
-  font-size: 18px;
+  font-size: 17px;
   font-weight: 700;
   letter-spacing: -0.01em;
 }
 
 .freepdf-tool-card p {
-  max-width: none;
+  max-width: 205px;
   margin: 0;
   color: #536078;
-  font-size: 14px;
+  font-size: 13px;
   line-height: 1.48;
 }
 
@@ -115,7 +127,7 @@
 
 @media (max-width: 1100px) {
   .freepdf-tool-grid {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 
@@ -150,8 +162,8 @@
   }
 
   .freepdf-tool-card {
-    min-height: 190px;
-    padding: 17px 15px 16px;
+    min-height: 224px;
+    padding: 13px 13px 16px;
   }
 
   .freepdf-tool-icon,
@@ -159,13 +171,24 @@
   .freepdf-tool-card.is-lilac .freepdf-tool-icon,
   .freepdf-tool-card.is-yellow .freepdf-tool-icon,
   .freepdf-tool-card.is-blue .freepdf-tool-icon {
-    height: 64px;
-    margin-bottom: 14px;
+    height: 104px;
+    margin-bottom: 10px;
   }
 
   .professional-tool-glyph {
-    width: 76px;
-    height: 76px;
+    width: 108px;
+    height: 108px;
+  }
+
+  .professional-tool-glyph[data-tool-icon="merge-pdf"],
+  .professional-tool-glyph[data-tool-icon="organize-pdf"] {
+    width: 122px;
+    height: 122px;
+  }
+
+  .professional-tool-glyph[data-tool-icon="pdf-to-word"] {
+    width: 128px;
+    height: 128px;
   }
 
   .freepdf-tool-card:hover .professional-tool-glyph,
@@ -174,11 +197,12 @@
   }
 
   .freepdf-tool-card h3 {
-    margin-bottom: 7px;
+    margin-bottom: 6px;
     font-size: 14px;
   }
 
   .freepdf-tool-card p {
+    max-width: 150px;
     font-size: 11px;
     line-height: 1.42;
   }
@@ -190,7 +214,7 @@
   }
 
   .freepdf-tool-card {
-    min-height: 184px;
+    min-height: 220px;
   }
 }
 
