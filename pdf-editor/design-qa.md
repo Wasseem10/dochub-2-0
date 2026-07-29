@@ -1,49 +1,57 @@
-# Popular Tools Professional Icon System — Design QA
+# Popular Tools Exact Icon Match — Design QA
 
 ## Evidence
 
-- User-provided current design: `C:/Users/wasse/AppData/Local/Temp/codex-clipboard-2d5c2ef8-501a-4ab1-83a0-520cfa522f70.png`
-- Selected direction: Professional Document Commands, option 2.
-- Refined source of truth: `work/design-references/popular-tools-professional-selected-2026-07-29.png`
-- Desktop implementation: `work/design-qa/popular-tools-professional-2026-07-29/desktop-1866x843-final.jpg`
-- Mobile implementation: `work/design-qa/popular-tools-professional-2026-07-29/mobile-390x844.jpg`
-- Source-to-implementation comparison: `work/design-qa/popular-tools-professional-2026-07-29/comparison-source-vs-implementation-final.jpg`
-- Desktop verification viewport: 1866 × 843.
-- Mobile verification viewport: 390 × 844.
+- Source visual truth: `work/design-references/popular-tools-professional-selected-2026-07-29.png`
+- Desktop implementation: `work/design-qa/popular-tools-professional-2026-07-29/desktop-exact-icons-final-v3.png`
+- Mobile implementation: `work/design-qa/popular-tools-professional-2026-07-29/mobile-exact-icons-final-v3.png`
+- Full comparison: `work/design-qa/popular-tools-professional-2026-07-29/comparison-exact-icons-final-v5.jpg`
+- Source pixels: 1866 × 843 at 1× density.
+- Desktop implementation pixels: 1866 × 842 at 1× density.
+- Desktop CSS viewport override: 1881 × 849, yielding a 1866px captured content viewport.
+- Mobile CSS viewport: 390 × 844.
+- State: homepage Popular Tools section at rest.
 
-## Fidelity summary
+## Findings and comparison history
 
-- Preserved the requested simple 5-by-2 card grid and the existing ten high-value PDF tools.
-- Replaced the playful pastel icon tiles with large, centered document-command glyphs, fine card borders, and a restrained navy-and-blue system.
-- Matched the refined mock's wider editorial grid, compact heading rhythm, flat white cards, and left-aligned descriptions.
-- Kept the cards calm at rest while providing a subtle blue hover/focus cue and a small lift.
+### Pass 1 — blocked
 
-## Icon quality
+- P1: The first implementation used one generic monochrome Tabler glyph per card, so its icon anatomy did not match the selected source.
+- P2: The cards and icon fields were narrower and more compact than the source.
+- Fix: widened the grid to 1390px, matched the 270px card height, and replaced every generic glyph with a layered production document-outline plus command-mark composition.
 
-- All tool symbols are production Tabler SVG components rather than generated bitmap icons.
-- Every symbol uses a native `0 0 24 24` viewBox, a uniform `1.65` stroke, round line caps, and round joins.
-- Desktop icons render at exactly 62 × 62 CSS pixels; mobile icons render at exactly 45 × 45 CSS pixels.
-- Runtime geometry inspection confirmed no transforms, stretching, clipping, or horizontal overflow.
-- Each of the ten tools has its own semantically appropriate glyph, including a grid-document symbol for Organize PDF.
+### Pass 2 — blocked
 
-## Responsive adaptation
+- P2: The composed icons were too small and heavy compared with the source.
+- P2: The heading typography and vertical rhythm were visibly smaller than the source.
+- Fix: matched the 84px icon canvas and source-scale optical size, reduced the SVG stroke to 0.65, moved the icons to the measured source position, and matched the source heading sizes, label spacing, paragraph scale, divider position, and card text rhythm.
 
-- Desktop uses a 1390px editorial grid with five equal columns.
-- Mobile uses two equal 167.1px columns with 45px icons and touch-friendly full-card links.
-- At the mobile verification width, document and viewport widths are both 375px, so there is no horizontal overflow.
+### Final pass — passed
 
-## Functional verification
+- The ten icons now follow the source's exact document-command anatomy: merge/add, compress/minimize, edit/pencil, convert/refresh, split/scissors, sign/signature, fill/checklist, organize/grid, OCR/scan, and protect/lock.
+- Navy document outlines and PDFEnrich-blue command details match the selected source direction.
+- All visible icon layers come from the production Tabler library; no raster crops, generated icon bitmaps, handcrafted SVGs, or stretched assets are used.
+- Desktop cards measure 263.6 × 270px and begin at the same 238px content inset and 209px vertical position as the source.
+- Every icon remains square. Browser geometry reported a 1.0 width-to-height ratio for all ten icons.
 
-- All ten cards remain real links to their existing tool routes.
-- Keyboard focus is visible and the card remains the interactive target, not the decorative icon.
-- Icon SVGs are hidden from assistive technology so each link has one clean accessible name.
+## Required fidelity surfaces
 
-## Automated verification
+- Fonts and typography: source-matched 14px eyebrow, 60px/1.03 heading, 18px supporting copy, 18px tool titles, and 14px descriptions.
+- Spacing and layout: source-matched 1390px five-column grid, 18px gaps, 270px cards, 110px icon field, and 25px text handoff.
+- Colors and tokens: white cards, neutral hairlines, navy outlines, and `#2851eb` command accents.
+- Image and icon quality: production vector layers with native `0 0 24 24` viewBoxes, round joins, consistent strokes, and square scaling.
+- Copy and content: all ten tool names and descriptions match the selected source.
 
+## Responsive and functional verification
+
+- Mobile uses two equal columns with no horizontal overflow.
+- Mobile document width and viewport width are both 375px.
+- All ten icons remain square at the mobile breakpoint.
+- All ten cards remain keyboard-accessible links to their existing PDF tool routes.
+- Merge PDF navigation was exercised successfully.
+- Browser console errors: none.
+- Focused icon suite: 11 tests passed.
 - TypeScript: passed.
-- Focused icon Vitest suite: 11 tests passed.
-- Production Vite build, prerender, sitemap generation, and performance audit: passed.
-- Browser geometry check: 10 unique icons, consistent viewBox and sizing, no transforms.
-- Visual comparison: no actionable P0, P1, or P2 differences remain.
+- Production build, prerender, sitemap, and public performance audit: passed.
 
 final result: passed

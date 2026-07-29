@@ -22,16 +22,16 @@ const EXPECTED_TOOL_IDS = [
 describe("ProfessionalToolIcon", () => {
   it("defines one production icon for every homepage tool", () => {
     expect(Object.keys(PROFESSIONAL_TOOL_ICONS)).toEqual(EXPECTED_TOOL_IDS);
-    expect(new Set(Object.values(PROFESSIONAL_TOOL_ICONS)).size).toBe(EXPECTED_TOOL_IDS.length);
+    expect(Object.values(PROFESSIONAL_TOOL_ICONS).every(({ Base, Command }) => Base && Command)).toBe(true);
   });
 
-  it.each(EXPECTED_TOOL_IDS)("renders a geometrically stable SVG for %s", (toolId) => {
+  it.each(EXPECTED_TOOL_IDS)("renders stable production SVG layers for %s", (toolId) => {
     const markup = renderToStaticMarkup(<ProfessionalToolIcon toolId={toolId} />);
 
-    expect(markup).toContain("<svg");
+    expect(markup.match(/<svg/g)?.length).toBeGreaterThanOrEqual(2);
     expect(markup).toContain('viewBox="0 0 24 24"');
     expect(markup).toContain(`data-tool-icon="${toolId}"`);
-    expect(markup).toContain('stroke-width="1.65"');
+    expect(markup).toContain('stroke-width="0.65"');
     expect(markup).not.toContain("transform=");
   });
 });
