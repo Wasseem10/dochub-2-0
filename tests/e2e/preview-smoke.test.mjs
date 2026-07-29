@@ -150,7 +150,9 @@ for (const [path, expectedHeading, expectedDetail] of [
     assert.match(html, new RegExp(expectedHeading, "i"));
     assert.match(html, new RegExp(expectedDetail, "i"));
     assert.match(html, /PDFEnrich Product Engineering/);
-    assert.match(html, /dateModified/);
+    assert.match(html, /"dateModified":"\d{4}-\d{2}-\d{2}T00:00:00Z"/);
+    assert.match(html, /"datePublished":"\d{4}-\d{2}-\d{2}T00:00:00Z"/);
+    assert.match(html, /"image":"https:\/\/pdfenrich\.com\/share\//);
     assert.match(html, /og:image:width" content="1200"/);
     assert.match(html, /application\/ld\+json/);
   });
