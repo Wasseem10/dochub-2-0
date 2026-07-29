@@ -96,7 +96,8 @@ describe("public PDF tool platform", () => {
       />,
     );
     expect(editor.root.findAllByType("input").some((input) => input.props.type === "file" && input.props.accept.includes("application/pdf"))).toBe(true);
-    expect(textOf(editor.root).includes("Sign a PDF online")).toBe(true);
+    expect(textOf(editor.root).includes("Sign a PDF exactly where the signature belongs")).toBe(true);
+    expect(textOf(editor.root).includes("Why use Sign PDF in PDFEnrich?")).toBe(true);
     expect(textOf(editor.root).includes("Choose a PDF")).toBe(true);
     expect(textOf(editor.root).includes("No account required")).toBe(true);
     expect(textOf(editor.root).includes("No file uploads to our servers")).toBe(true);
@@ -104,6 +105,12 @@ describe("public PDF tool platform", () => {
     expect(textOf(editor.root).includes("Is this a digital certificate signature?")).toBe(true);
     expect(editor.root.findAllByType("button")).toHaveLength(1);
     await unmount(editor);
+
+    const fill = await render(<EditorToolUploadPage toolId="fill-pdf" fileInputRef={{ current: null }} onUpload={() => {}} onDropFiles={() => {}} uploadError="" uploadStage={{ status: "idle" }} />);
+    expect(textOf(fill.root).includes("Fill out a PDF online without printing it")).toBe(true);
+    expect(textOf(fill.root).includes("Why use Fill PDF in PDFEnrich?")).toBe(true);
+    expect(textOf(fill.root).includes("Does Fill PDF work with interactive form fields?")).toBe(true);
+    await unmount(fill);
 
     const protect = await render(<EditorToolUploadPage toolId="protect-pdf" fileInputRef={{ current: null }} onUpload={() => {}} onDropFiles={() => {}} uploadError="" uploadStage={{ status: "idle" }} />);
     expect(textOf(protect.root).includes("Protect a PDF with a password")).toBe(true);
@@ -128,11 +135,15 @@ describe("public PDF tool platform", () => {
     const toPdf = await render(<ImageConversionPage tool={TOOL_BY_ID.get("jpg-to-pdf")} />);
     expect(toPdf.root.findAllByType("input").some((input) => input.props.type === "file" && input.props.multiple)).toBe(true);
     expect(textOf(toPdf.root).includes("Set the page layout")).toBe(true);
+    expect(textOf(toPdf.root).includes("Combine JPG images into one ordered PDF")).toBe(true);
+    expect(textOf(toPdf.root).includes("Why use JPG to PDF in PDFEnrich?")).toBe(true);
     await unmount(toPdf);
 
-    const fromPdf = await render(<ImageConversionPage tool={TOOL_BY_ID.get("pdf-to-png")} />);
+    const fromPdf = await render(<ImageConversionPage tool={TOOL_BY_ID.get("pdf-to-jpg")} />);
     expect(fromPdf.root.findAllByType("input").some((input) => input.props.type === "file" && !input.props.multiple)).toBe(true);
     expect(textOf(fromPdf.root).includes("Choose output quality")).toBe(true);
+    expect(textOf(fromPdf.root).includes("Convert PDF pages to high-quality JPG images")).toBe(true);
+    expect(textOf(fromPdf.root).includes("Why use PDF to JPG in PDFEnrich?")).toBe(true);
     await unmount(fromPdf);
   });
 

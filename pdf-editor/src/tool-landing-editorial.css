@@ -231,6 +231,90 @@
   line-height: 1.55;
 }
 
+.tool-guide-search-intent {
+  display: grid;
+  grid-template-columns: minmax(260px, .8fr) minmax(0, 1.65fr);
+  gap: 72px;
+  padding: 66px 0;
+  border-top: 1px solid var(--tool-line);
+}
+
+.tool-guide-search-intent > header > span {
+  color: var(--tool-blue);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+
+.tool-guide-search-intent > header h2 {
+  max-width: 12ch;
+  margin: 13px 0 18px;
+  font-size: clamp(30px, 3.6vw, 47px);
+  font-weight: 760;
+  letter-spacing: -.055em;
+  line-height: 1.03;
+}
+
+.tool-guide-search-intent > header p {
+  max-width: 47ch;
+  margin-bottom: 0;
+  color: var(--tool-body);
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.tool-guide-search-intent > div {
+  display: grid;
+  align-content: start;
+}
+
+.tool-guide-search-intent article {
+  display: grid;
+  grid-template-columns: minmax(150px, .52fr) minmax(0, 1fr);
+  gap: 26px;
+  padding: 22px 0;
+  border-top: 1px solid var(--tool-line);
+}
+
+.tool-guide-search-intent article:last-child {
+  border-bottom: 1px solid var(--tool-line);
+}
+
+.tool-guide-search-intent article h3 {
+  margin: 1px 0 0;
+  font-size: 15px;
+  font-weight: 740;
+  letter-spacing: -.025em;
+}
+
+.tool-guide-search-intent article ul {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  color: #3d4659;
+  font-size: 13px;
+  line-height: 1.55;
+  list-style: none;
+}
+
+.tool-guide-search-intent article li {
+  position: relative;
+  padding-left: 17px;
+}
+
+.tool-guide-search-intent article li::before {
+  position: absolute;
+  top: .62em;
+  left: 0;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #c8d4ff;
+  content: "";
+}
+
 .tool-guide-workflow {
   padding: 64px 0 72px;
   border-top: 1px solid var(--tool-line);
@@ -449,6 +533,8 @@
   .editor-tool-upload-hero,
   .editor-tool-upload-page .tool-guide-content { width: min(100% - 32px, 740px); }
   .tool-guide-workflow-grid { grid-template-columns: 1fr; gap: 38px; }
+  .tool-guide-search-intent { grid-template-columns: 1fr; gap: 34px; }
+  .tool-guide-search-intent > header h2 { max-width: 17ch; }
   .editor-tool-upload-page .tool-guide-related > div { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .tool-guide-faq { grid-template-columns: 240px 1fr; gap: 38px; }
 }
@@ -490,6 +576,22 @@
   .tool-guide-step-icon { width: min(210px, 70vw); height: 100px; }
   .tool-guide-step-number { left: calc(50% - min(105px, 35vw) - 8px); }
   .tool-guide-simple-steps p { max-width: 300px; }
+
+  .tool-guide-search-intent {
+    gap: 28px;
+    padding: 48px 0;
+  }
+
+  .tool-guide-search-intent > header h2 {
+    margin-top: 10px;
+    font-size: 34px;
+  }
+
+  .tool-guide-search-intent article {
+    grid-template-columns: 1fr;
+    gap: 12px;
+    padding: 19px 0;
+  }
 
   .tool-guide-workflow { padding: 50px 0 56px; }
   .tool-guide-workflow > h2,

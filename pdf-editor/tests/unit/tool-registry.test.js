@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { FOOTER_TOOL_GROUPS, getToolMenuGroups, MEGA_MENU_CATEGORY_IDS } from "../../src/tools/toolNavigation.js";
 import { TOOL_CATEGORY_PAGES } from "../../src/tools/toolCategoryPages.js";
-import { HIGH_INTENT_TOOL_IDS } from "../../src/tools/highIntentToolContent.js";
+import { HIGH_INTENT_TOOL_IDS, PRIMARY_SEARCH_TOOL_IDS } from "../../src/tools/highIntentToolContent.js";
 import { TOOL_CATEGORIES, TOOL_REGISTRY, validateToolRegistry } from "../../src/tools/toolRegistry.js";
 import { toolSeoSchemas } from "../../src/tools/toolSeoSchemas.js";
 
@@ -10,7 +10,7 @@ const requiredFields = [
   "icon", "accentColor", "status", "supportedInputTypes", "supportedOutputTypes", "uploadEnabled",
   "opensEditor", "workflowType", "currentLimitations", "availabilityLabel", "seoTitle", "metaDescription", "heroHeadline",
   "heroSubheadline", "benefits", "steps", "useCases", "faqEntries", "privacySummary", "verificationChecklist",
-  "troubleshooting", "relatedTools", "canonicalUrl", "schemaType",
+  "troubleshooting", "searchPriority", "searchRelatedTools", "relatedTools", "canonicalUrl", "schemaType",
 ];
 
 describe("PDFEnrich tool registry", () => {
@@ -57,8 +57,8 @@ describe("PDFEnrich tool registry", () => {
     expect(TOOL_CATEGORY_PAGES.every(({ seoTitle, metaDescription, guidance }) => seoTitle.includes("PDFEnrich") && metaDescription.length > 80 && guidance.length === 3)).toBe(true);
   });
 
-  it("provides substantial, unique guidance for the eleven highest-intent tools", () => {
-    expect(HIGH_INTENT_TOOL_IDS).toHaveLength(11);
+  it("provides substantial, unique guidance for every researched high-intent tool", () => {
+    expect(HIGH_INTENT_TOOL_IDS).toHaveLength(14);
     for (const toolId of HIGH_INTENT_TOOL_IDS) {
       const tool = TOOL_REGISTRY.find(({ id }) => id === toolId);
       expect(tool, toolId).toBeTruthy();
@@ -80,8 +80,24 @@ describe("PDFEnrich tool registry", () => {
     expect(translate.faqEntries.some(({ answer }) => answer.includes("English as the target"))).toBe(true);
   });
 
-  it("keeps tool structured data focused on currently supported search features", () => {
-    expect(toolSeoSchemas(TOOL_REGISTRY.find(({ id }) => id === "pdf-to-word")).map((schema) => schema["@type"])).toEqual(["BreadcrumbList"]);
+  it("marks the ten primary search pages and gives them curated tool journeys", () => {
+    expect(PRIMARY_SEARCH_TOOL_IDS).toHaveLength(10);
+    expect(new Set(PRIMARY_SEARCH_TOOL_IDS).size).toBe(10);
+    const priorityTools = TOOL_REGISTRY.filter(({ searchPriority }) => searchPriority);
+    expect(priorityTools.map(({ id }) => id)).toEqual(expect.arrayContaining(PRIMARY_SEARCH_TOOL_IDS));
+    expect(priorityTools).toHaveLength(10);
+    expect(priorityTools.every(({ searchRelatedTools, relatedTools }) => searchRelatedTools.length === 3 && relatedTools.join("|") === searchRelatedTools.join("|"))).toBe(true);
+  });
+
+  it("adds truthful free WebApplication markup only to the ten primary search pages", () => {
+    const prioritySchemas = toolSeoSchemas(TOOL_REGISTRY.find(({ id }) => id === "pdf-to-word"));
+    expect(prioritySchemas.map((schema) => schema["@type"])).toEqual(["BreadcrumbList", "WebApplication"]);
+    expect(prioritySchemas[1]).toMatchObject({
+      applicationCategory: "UtilitiesApplication",
+      operatingSystem: "Any",
+      isAccessibleForFree: true,
+      offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+    });
     expect(toolSeoSchemas(TOOL_REGISTRY.find(({ id }) => id === "rotate-pdf")).map((schema) => schema["@type"])).toEqual(["BreadcrumbList"]);
   });
 });
