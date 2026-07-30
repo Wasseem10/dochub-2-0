@@ -120,8 +120,51 @@ export function canMergeDetectedTextRuns(previous, next, {
     && previous.italic === next.italic
     && Math.abs(previousSize - nextSize) <= fontTolerance
     && Math.abs(Number(previous.rotation || 0) - Number(next.rotation || 0)) <= 0.25;
-  const maximumInlineGap = Math.max(1.5, Number(averageHeight || 0) * 0.45);
-  return sameStyle && Number(gap) <= maximumInlineGap;
+  const previousText = String(previous.originalText ?? previous.currentText ?? "");
+  const nextText = String(next.originalText ?? next.currentText ?? "");
+  const crossesExplicitWhitespace = /\s$/.test(previousText) || /^\s/.test(nextText);
+
+  // PDF.js can split a single word into touching font/glyph runs. Join only
+  // those fragments. A normal inter-word gap must remain a separate edit
+  // target so replacing one phrase cannot erase neighboring page text.
+  const maximumFragmentGap = Math.max(
+    0.15,
+    Math.min(0.35, Number(averageHeight || 0) * 0.025),
+  );
+  return sameStyle
+    && !crossesExplicitWhitespace
+    && Number(gap) <= maximumFragmentGap;
+}
+
+export function splitDetectedTextRun(text, {
+  measure = (value) => String(value ?? "").length,
+} = {}) {
+  const value = String(text ?? "");
+  const matches = Array.from(value.matchAll(/\S+/g));
+  if (matches.length <= 1) {
+    return value.trim()
+      ? [{ text: value.trim(), startRatio: 0, widthRatio: 1 }]
+      : [];
+  }
+
+  const measuredTotal = Number(measure(value));
+  const total = Number.isFinite(measuredTotal) && measuredTotal > 0
+    ? measuredTotal
+    : value.length;
+
+  return matches.map((match) => {
+    const start = match.index || 0;
+    const measuredStart = Number(measure(value.slice(0, start)));
+    const measuredWidth = Number(measure(match[0]));
+    return {
+      text: match[0],
+      startRatio: Math.max(0, Math.min(1, (Number.isFinite(measuredStart) ? measuredStart : start) / total)),
+      widthRatio: Math.max(
+        0.001,
+        Math.min(1, (Number.isFinite(measuredWidth) ? measuredWidth : match[0].length) / total),
+      ),
+    };
+  });
 }
 
 function splitLongToken(token, size, maxWidth, measure) {
