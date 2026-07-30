@@ -10,6 +10,7 @@ import ArrowDownToLine from "lucide-react/dist/esm/icons/arrow-down-to-line.mjs"
 import AlignCenter from "lucide-react/dist/esm/icons/align-center.mjs";
 import AlignLeft from "lucide-react/dist/esm/icons/align-left.mjs";
 import AlignRight from "lucide-react/dist/esm/icons/align-right.mjs";
+import AlertTriangle from "lucide-react/dist/esm/icons/alert-triangle.mjs";
 import Bell from "lucide-react/dist/esm/icons/bell.mjs";
 import Box from "lucide-react/dist/esm/icons/box.mjs";
 import Building2 from "lucide-react/dist/esm/icons/building-2.mjs";
@@ -76,13 +77,13 @@ import { degrees, PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import * as pdfjsLib from "pdfjs-dist";
 import "pdfjs-dist/build/pdf.worker.mjs";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
-import { collection, deleteDoc, doc, getDocs, setDoc } from "firebase/firestore";
-import { deleteObject, getDownloadURL, ref as storageReference, uploadString } from "firebase/storage";
-import { db, isCloudPersistenceConfigured, storage } from "./firebase";
+import { db, storage } from "./firebase";
 import { useAuth } from "./auth/AuthContext.jsx";
 import { beginToolOperation, fileSizeBucket, pageCountBucket, trackProductEvent, trackToolUpload, trackUploadValidationFailure } from "./analytics/productAnalytics.js";
+import { logRedactedClientError } from "./monitoring/productionMonitoring.js";
 import { AuthRequiredModal } from "./components/editor/AuthRequiredModal.jsx";
 import { FinishExportModal } from "./components/editor/FinishExportModal.jsx";
+import { PrivateCloudSaveDialog } from "./components/editor/PrivateCloudSaveDialog.jsx";
 import { AccountDeletionCard } from "./components/app/AccountDeletionCard.jsx";
 import { BrandWordmark } from "./components/public/BrandWordmark.jsx";
 import { PageMetadata } from "./components/public/PageMetadata.jsx";
@@ -90,21 +91,45 @@ import { isAnalyticsOwner } from "./config/adminAccess.js";
 import { ToolIcon } from "./tools/ToolIcon.jsx";
 import { TOOL_CATEGORIES, TOOL_REGISTRY } from "./tools/toolRegistry.js";
 import { createSecurePdfShare, revokeSecurePdfShare } from "./sharing/securePdfSharing.js";
-import { createSigningRequestUrl } from "./signing/signingRequest.js";
+import { createSigningRequestUrl, storeSigningRequest } from "./signing/signingRequest.js";
 import { OwnerAnalyticsPanel } from "./pages/app/OwnerAnalyticsPanel.jsx";
 import { LatticePdfLanding } from "./LatticePdfLanding.jsx";
 import { EditorRouteStatePage } from "./pages/app/EditorRouteStatePage.jsx";
 import { EditorToolUploadPage } from "./pages/public/EditorToolUploadPage.jsx";
 import { resolveEditorDocument } from "./router/editorRouteState.js";
-import { currentLocationPath, editorPath, publicEditorDocumentPath, publicEditorPath, ROUTE_PATHS } from "./router/routePaths.js";
+import { currentLocationPath, editorPath, publicEditorDocumentPath, publicEditorPath, ROUTE_PATHS, sharePath } from "./router/routePaths.js";
 import { getEditorToolPreset, resolveEditorActiveTool } from "./tools/editorToolPresets.js";
 import { calculateEditorFitZoom, EDITOR_ZOOM_MODE, editorZoomLabel } from "./tools/editorZoom.js";
-import { claimGuestDocument, editorActionNeedsAccount, GUEST_OWNER_ID, recoverDocumentAsGuest, resolveEditorStorageOwnerId } from "./tools/guestDocumentSession.js";
+import { claimGuestDocument, editorActionNeedsAccount, resolveEditorStorageOwnerId } from "./tools/guestDocumentSession.js";
 import { clearEditorSession, loadEditorSession, saveEditorSession } from "./tools/editorSessionStore.js";
 import { loadLocalDocuments, saveLocalDocuments } from "./tools/localDocumentStore.js";
-import { planCloudDocumentSync, runWithConcurrency } from "./tools/cloudDocumentSync.js";
+import { sanitizePdfDisplayName } from "./tools/safeFileName.js";
+import {
+  createCloudIdempotencyKey,
+  downloadPrivateCloudPdf,
+  getPrivateCloudStatus,
+  isPrivateCloudConfigured,
+  listPrivateCloudDocuments,
+  readCloudHistoryPreference,
+  removePrivateCloudDocument,
+  restorePrivateCloudDocument,
+  savePrivateCloudPdf,
+  setPrivateCloudHistoryEnabled,
+  sha256Hex,
+  writeCloudHistoryPreference,
+} from "./cloud/privateCloudDocuments.js";
+import {
+  deleteLegacyCloudDocument,
+  listLegacyCloudDocuments,
+  loadLegacyCloudDocument,
+} from "./cloud/legacyCloudDocumentMigration.js";
 import { extractPdfFormAnnotations } from "./tools/pdfFormFields.js";
-import { getPdfLoadErrorMessage, MAX_PDF_EDITOR_PAGES, validatePdfUpload } from "./tools/pdfUploadValidation.js";
+import {
+  getPdfLoadErrorMessage,
+  MAX_PDF_EDITOR_PAGES,
+  validatePdfFileContent,
+  validatePdfUpload,
+} from "./tools/pdfUploadValidation.js";
 import { takePendingPdfFile } from "./tools/pendingPdfFile.js";
 import { drawFlattenedInputAnnotation } from "./tools/pdfEditorAnnotationExport.js";
 import { attachPdfCommentAnnotation } from "./tools/pdfCommentAnnotations.js";
@@ -292,7 +317,10 @@ const requestFieldLabels = {
 };
 
 function makeId(prefix) {
-  return `${prefix}-${Math.random().toString(36).slice(2, 9)}`;
+  const randomId = typeof globalThis.crypto?.randomUUID === "function"
+    ? globalThis.crypto.randomUUID()
+    : Array.from(globalThis.crypto.getRandomValues(new Uint8Array(16)), (byte) => byte.toString(16).padStart(2, "0")).join("");
+  return `${prefix}-${randomId}`;
 }
 
 function clamp(value, min, max) {
@@ -336,88 +364,66 @@ function safeLoadDocuments(userId) {
   }
 }
 
-function cloudDocumentPayloadPath(userId, documentId) {
-  return `users/${userId}/documents/${documentId}/document.json`;
-}
-
-function toCloudDocumentMetadata(userId, documentRecord) {
-  const payloadPath = cloudDocumentPayloadPath(userId, documentRecord.id);
+function privateCloudPlaceholder(userId, metadata) {
+  const cloudDocumentId = String(metadata?.id || metadata?.documentId || "");
+  if (!/^doc_[A-Za-z0-9_-]{24}$/.test(cloudDocumentId)) return null;
+  const sizeBytes = Number(metadata.sizeBytes || metadata.size || 0);
+  const pageCount = Number(metadata.pageCount || 1);
   return {
-    id: documentRecord.id,
+    id: `cloud-${cloudDocumentId}`,
     ownerId: userId,
-    name: documentRecord.name || "Untitled document.pdf",
-    size: documentRecord.size || 0,
-    source: documentRecord.source || "blank",
-    pageCount: documentRecord.pageCount || documentRecord.pages?.length || 1,
-    status: documentRecord.status || "Ready",
-    location: documentRecord.location || "My documents",
-    favorite: !!documentRecord.favorite,
-    uploadedAt: documentRecord.uploadedAt || nowIso(),
-    updatedAt: documentRecord.updatedAt || nowIso(),
-    payloadPath,
+    name: sanitizePdfDisplayName(
+      metadata.displayName || metadata.fileName || metadata.name || "Private cloud document.pdf",
+    ),
+    size: Number.isFinite(sizeBytes) ? Math.max(0, sizeBytes) : 0,
+    source: "pdf",
+    pageCount: Number.isFinite(pageCount) ? clamp(Math.floor(pageCount), 1, MAX_PDF_EDITOR_PAGES) : 1,
+    status: metadata.deletionStatus === "soft_deleted" || metadata.state === "trashed"
+      ? "Trash"
+      : "Private cloud",
+    location: "Private cloud",
+    favorite: false,
+    uploadedAt: metadata.createdAt || metadata.updatedAt || nowIso(),
+    updatedAt: metadata.updatedAt || metadata.createdAt || nowIso(),
+    pages: [],
+    annotations: [],
+    detectedTextItems: [],
+    cloudDocumentId,
+    cloudVersionId: metadata.currentVersionId || metadata.versionId || "",
+    cloudChecksumSha256: metadata.checksumSha256 || metadata.checksum || "",
+    retentionUntil: metadata.retentionUntil || null,
+    cloudOnly: true,
   };
 }
 
-function mergeDocumentsByUpdatedAt(localDocuments, cloudDocuments) {
-  const records = new Map();
-  [...localDocuments, ...cloudDocuments].forEach((documentRecord) => {
-    if (!documentRecord?.id) return;
-    const current = records.get(documentRecord.id);
-    const currentTime = current?.updatedAt ? new Date(current.updatedAt).getTime() : 0;
-    const nextTime = documentRecord.updatedAt ? new Date(documentRecord.updatedAt).getTime() : 0;
-    if (!current || nextTime >= currentTime) records.set(documentRecord.id, documentRecord);
-  });
-  return Array.from(records.values()).sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0));
-}
-
-async function uploadDocumentRecordToCloud(userId, documentRecord) {
-  if (!isCloudPersistenceConfigured || !userId || !documentRecord?.id) return;
-  const payloadPath = cloudDocumentPayloadPath(userId, documentRecord.id);
-  const compactRecord = compactDocumentRecordForStorage(documentRecord);
-  const payload = JSON.stringify({
-    ...compactRecord,
-    cloudBacked: true,
-    cloudPayloadPath: payloadPath,
-  });
-  await uploadString(storageReference(storage, payloadPath), payload, "raw", {
-    contentType: "application/json",
-  });
-  await setDoc(doc(db, "users", userId, "documents", documentRecord.id), toCloudDocumentMetadata(userId, documentRecord), { merge: true });
-}
-
-async function deleteDocumentRecordFromCloud(userId, documentId) {
-  if (!isCloudPersistenceConfigured || !userId || !documentId) return;
-  await deleteDoc(doc(db, "users", userId, "documents", documentId));
-  try {
-    await deleteObject(storageReference(storage, cloudDocumentPayloadPath(userId, documentId)));
-  } catch {
-    // The metadata delete is enough if the payload was never uploaded or was already removed.
-  }
-}
-
-async function loadCloudDocumentRecords(userId) {
-  if (!isCloudPersistenceConfigured || !userId) return [];
-  const snapshot = await getDocs(collection(db, "users", userId, "documents"));
-  const records = await Promise.all(snapshot.docs.map(async (metadataDoc) => {
-    const metadata = metadataDoc.data();
-    if (!metadata?.payloadPath) return { ...metadata, id: metadataDoc.id };
-
-    try {
-      const payloadUrl = await getDownloadURL(storageReference(storage, metadata.payloadPath));
-      const response = await fetch(payloadUrl);
-      const payload = await response.json();
-      return {
-        ...payload,
-        ...metadata,
-        id: metadataDoc.id,
-        cloudBacked: true,
-        cloudPayloadPath: metadata.payloadPath,
-      };
-    } catch {
-      return { ...metadata, id: metadataDoc.id, cloudBacked: true };
+function mergeLocalAndPrivateCloudDocuments(userId, localDocuments, cloudDocuments) {
+  const localByCloudId = new Map(
+    localDocuments
+      .filter((documentRecord) => documentRecord?.cloudDocumentId)
+      .map((documentRecord) => [documentRecord.cloudDocumentId, documentRecord]),
+  );
+  const merged = [...localDocuments];
+  for (const metadata of cloudDocuments || []) {
+    const placeholder = privateCloudPlaceholder(userId, metadata);
+    if (!placeholder) continue;
+    const local = localByCloudId.get(placeholder.cloudDocumentId);
+    if (local) {
+      const index = merged.findIndex((documentRecord) => documentRecord.id === local.id);
+      if (index >= 0) {
+        merged[index] = {
+          ...local,
+          cloudDocumentId: placeholder.cloudDocumentId,
+          cloudVersionId: placeholder.cloudVersionId,
+          cloudChecksumSha256: placeholder.cloudChecksumSha256,
+          cloudUpdatedAt: placeholder.updatedAt,
+          cloudOnly: false,
+        };
+      }
+    } else {
+      merged.push(placeholder);
     }
-  }));
-  return records;
+  }
+  return merged.sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0));
 }
 
 function arrayBufferToDataUrl(buffer) {
@@ -470,6 +476,25 @@ function readImageFile(file) {
     };
     reader.readAsDataURL(file);
   });
+}
+
+function mergeLocalAndLegacyCloudDocuments(localDocuments, legacyDocuments) {
+  const merged = [...localDocuments];
+  for (const legacy of legacyDocuments || []) {
+    const index = merged.findIndex((documentRecord) => documentRecord.id === legacy.id);
+    if (index >= 0) {
+      merged[index] = {
+        ...legacy,
+        ...merged[index],
+        legacyCloudDocumentId: legacy.legacyCloudDocumentId,
+        legacyCloudPayloadPath: legacy.legacyCloudPayloadPath,
+        cloudOnly: false,
+      };
+    } else {
+      merged.push(legacy);
+    }
+  }
+  return merged.sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0));
 }
 
 function createBlankDocumentThumbnail(documentRecord) {
@@ -594,7 +619,7 @@ function downloadBlob(blob, name, toolId = "edit-pdf") {
   const url = URL.createObjectURL(blob);
   const anchor = window.document.createElement("a");
   anchor.href = url;
-  anchor.download = name;
+  anchor.download = sanitizePdfDisplayName(name);
   anchor.style.display = "none";
   window.document.body.appendChild(anchor);
   anchor.click();
@@ -1975,6 +2000,8 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   } = useAuth();
   const isPublicEditor = view === "tool-upload" || view === "public-editor";
   const storageOwnerId = resolveEditorStorageOwnerId(isPublicEditor, currentUser);
+  const currentUserIdRef = useRef(currentUser?.uid || "");
+  currentUserIdRef.current = currentUser?.uid || "";
   const fileInputRef = useRef(null);
   const sourceFileRef = useRef(null);
   const pdfDocumentRef = useRef(null);
@@ -1984,6 +2011,10 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   const pdfPageHydrationTasksRef = useRef(new Map());
   const pdfPageRenderGenerationRef = useRef(new Map());
   const pagesRef = useRef([]);
+  const storageOwnerIdRef = useRef(storageOwnerId);
+  storageOwnerIdRef.current = storageOwnerId;
+  const previousStorageOwnerIdRef = useRef(storageOwnerId);
+  const activeDocumentOwnerIdRef = useRef("");
   const authHandoffStartedRef = useRef(false);
   const appendFileInputRef = useRef(null);
   const imageInputRef = useRef(null);
@@ -1995,16 +2026,25 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   const mobilePageOrganizerDoneRef = useRef(null);
   const pagePointerDragRef = useRef(null);
   const canvasColumnRef = useRef(null);
-  const publicDocumentRecoveryRef = useRef(new Set());
   const trackedDocumentOpenRef = useRef(new Set());
   const pendingLandingFileConsumedRef = useRef(false);
+  const cloudSaveOperationRef = useRef({
+    ownerId: "",
+    documentId: "",
+    checksumSha256: "",
+    key: "",
+  });
+  const cloudSaveAbortRef = useRef(null);
   const lastPagePointRef = useRef({ x: 0.52, y: 0.28 });
   const editorClipboardRef = useRef(null);
   const detectedTextEditHistoryRef = useRef(new Map());
   const [documents, setDocuments] = useState([]);
-  const [documentCatalogReady, setDocumentCatalogReady] = useState(!isCloudPersistenceConfigured);
+  const documentsRef = useRef([]);
+  const [documentCatalogReady, setDocumentCatalogReady] = useState(false);
   const [editorRouteState, setEditorRouteState] = useState("idle");
   const [activeDocumentId, setActiveDocumentId] = useState(null);
+  const activeDocumentIdRef = useRef(null);
+  activeDocumentIdRef.current = activeDocumentId;
   const [pages, setPages] = useState([]);
   const [pdfBytes, setPdfBytes] = useState(null);
   const [fileName, setFileName] = useState("New Document");
@@ -2022,13 +2062,26 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   const [saved, setSaved] = useState(true);
   const [saveState, setSaveState] = useState("saved");
   const [isOffline, setIsOffline] = useState(() => typeof navigator !== "undefined" && !navigator.onLine);
-  const [cloudSyncStatus, setCloudSyncStatus] = useState(isCloudPersistenceConfigured ? "idle" : "local");
+  const [cloudHistoryEnabled, setCloudHistoryEnabled] = useState(() => (
+    readCloudHistoryPreference(currentUser?.uid)
+  ));
+  const [cloudCatalogStatus, setCloudCatalogStatus] = useState(
+    isPrivateCloudConfigured ? "idle" : "local-only",
+  );
+  const [cloudSaveDialogOpen, setCloudSaveDialogOpen] = useState(false);
+  const [cloudTrashDocuments, setCloudTrashDocuments] = useState([]);
+  const [cloudTrashStatus, setCloudTrashStatus] = useState("idle");
+  const [cloudSaveStage, setCloudSaveStage] = useState("idle");
+  const [cloudSaveProgress, setCloudSaveProgress] = useState(0);
+  const [cloudSaveError, setCloudSaveError] = useState("");
   const [lastSavedAt, setLastSavedAt] = useState(null);
   const [undoStack, setUndoStack] = useState([]);
   const [redoStack, setRedoStack] = useState([]);
   const [draft, setDraft] = useState(null);
   const [signatureText, setSignatureText] = useState("");
-  const [savedSignatures, setSavedSignatures] = useState(loadEditorSignatureLibrary);
+  const [savedSignatures, setSavedSignatures] = useState(() => (
+    loadEditorSignatureLibrary(undefined, storageOwnerId)
+  ));
   const [viewMode, setViewMode] = useState("list");
   const [draggedPageIndex, setDraggedPageIndex] = useState(null);
   const [pageDropIndex, setPageDropIndex] = useState(null);
@@ -2065,7 +2118,8 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   const [documentSearchQuery, setDocumentSearchQuery] = useState("");
   const [activeSearchIndex, setActiveSearchIndex] = useState(0);
   const [activeSignature, setActiveSignature] = useState(() => (
-    loadEditorSignatureLibrary()[0] || { content: "", imageDataUrl: "", fontFamily: DEFAULT_SIGNATURE_FONT }
+    loadEditorSignatureLibrary(undefined, storageOwnerId)[0]
+      || { content: "", imageDataUrl: "", fontFamily: DEFAULT_SIGNATURE_FONT }
   ));
   const [signaturePreviewPoint, setSignaturePreviewPoint] = useState(null);
   const [pendingImage, setPendingImage] = useState(null);
@@ -2088,6 +2142,15 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     whiteoutOpacity: 1,
     requestFieldType: "signature",
   });
+
+  useEffect(() => {
+    const ownerSignatures = loadEditorSignatureLibrary(undefined, storageOwnerId);
+    const nextActiveSignature = ownerSignatures[0]
+      || { content: "", imageDataUrl: "", fontFamily: DEFAULT_SIGNATURE_FONT };
+    setSavedSignatures(ownerSignatures);
+    setActiveSignature(nextActiveSignature);
+    setSignatureText(nextActiveSignature.content || "");
+  }, [storageOwnerId]);
 
   const ensurePdfDocumentProxy = useCallback(async () => {
     if (pdfDocumentRef.current) return pdfDocumentRef.current;
@@ -2176,6 +2239,12 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   const selected = useMemo(() => annotations.find((annotation) => annotation.id === selectedId), [annotations, selectedId]);
   const selectedDetectedText = useMemo(() => detectedTextItems.find((item) => item.id === selectedDetectedTextId), [detectedTextItems, selectedDetectedTextId]);
   const activeDocument = useMemo(() => documents.find((document) => document.id === activeDocumentId), [documents, activeDocumentId]);
+  const isCurrentEditorOperation = (userId, ownerId, documentId) => (
+    currentUserIdRef.current === userId
+    && storageOwnerIdRef.current === ownerId
+    && activeDocumentOwnerIdRef.current === ownerId
+    && activeDocumentIdRef.current === documentId
+  );
   const currentPage = pages[pageIndex] || pages[0];
   const hasVisibleToolSettings = publicTool !== "request-signatures"
     && (selected?.type === "text"
@@ -2220,8 +2289,48 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   }, [pages]);
 
   useEffect(() => {
+    documentsRef.current = documents;
+  }, [documents]);
+
+  useEffect(() => {
     pdfBytesRef.current = pdfBytes;
   }, [pdfBytes]);
+
+  useEffect(() => {
+    const previousOwnerId = previousStorageOwnerIdRef.current;
+    previousStorageOwnerIdRef.current = storageOwnerId;
+    if (previousOwnerId === storageOwnerId) return;
+
+    activeDocumentOwnerIdRef.current = "";
+    sourceFileRef.current = null;
+    pdfBytesRef.current = null;
+    const previousPdfDocument = pdfDocumentRef.current;
+    pdfDocumentRef.current = null;
+    pdfHydrationTokenRef.current += 1;
+    pdfPageHydrationTasksRef.current.clear();
+    pdfPageRenderGenerationRef.current.clear();
+    editorClipboardRef.current = null;
+    detectedTextEditHistoryRef.current.clear();
+    setActiveDocumentId(null);
+    setDocuments([]);
+    documentsRef.current = [];
+    setDocumentCatalogReady(false);
+    setPages([]);
+    setPdfBytes(null);
+    setAnnotations([]);
+    setDetectedTextItems([]);
+    setSelectedId(null);
+    setSelectedDetectedTextId(null);
+    setUndoStack([]);
+    setRedoStack([]);
+    setPendingImage(null);
+    setEditorRouteState("idle");
+    setCloudSaveDialogOpen(false);
+    cloudSaveAbortRef.current?.abort();
+    cloudSaveAbortRef.current = null;
+    cloudSaveOperationRef.current = { ownerId: "", documentId: "", checksumSha256: "", key: "" };
+    void previousPdfDocument?.destroy?.().catch?.(() => {});
+  }, [storageOwnerId]);
 
   useEffect(() => {
     if (editorRouteState !== "ready" || currentPage?.source !== "pdf") return undefined;
@@ -2373,12 +2482,9 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     if (saveState === "unsaved") return "Unsaved changes";
     if (saveState === "saving") return "Saving...";
     if (isOffline) return lastSavedAt ? "Saved offline" : "Offline";
-    if (cloudSyncStatus === "syncing") return "Syncing to cloud...";
-    if (cloudSyncStatus === "error") return "Saved locally";
-    if (!currentUser?.uid && lastSavedAt) return "Saved in this browser";
-    if (currentUser?.uid && cloudSyncStatus === "synced") return "Saved to cloud";
-    return lastSavedAt ? `Saved ${formatDateTime(lastSavedAt)}` : "Saved";
-  }, [cloudSyncStatus, currentUser?.uid, isOffline, lastSavedAt, saveState]);
+    if (lastSavedAt) return `Saved in this browser · ${formatDateTime(lastSavedAt)}`;
+    return "Saved in this browser";
+  }, [isOffline, lastSavedAt, saveState]);
 
   useEffect(() => {
     setActiveToolMode((currentMode) => resolveModeForTool(tool, currentMode));
@@ -2399,131 +2505,180 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     let cancelled = false;
     setDocumentCatalogReady(false);
     loadLocalDocuments(storageOwnerId)
-      .then((localDocuments) => {
-        if (!cancelled) setDocuments(localDocuments.length ? localDocuments : safeLoadDocuments(storageOwnerId));
+      .then(async (localDocuments) => {
+        const browserDocuments = localDocuments.length ? localDocuments : safeLoadDocuments(storageOwnerId);
+        const legacyDocuments = !isPublicEditor && currentUser?.uid && db && storage
+          ? await listLegacyCloudDocuments({ db, userId: currentUser.uid }).catch(() => [])
+          : [];
+        if (!cancelled) {
+          setDocuments(mergeLocalAndLegacyCloudDocuments(browserDocuments, legacyDocuments));
+        }
       })
       .catch(() => {
         if (!cancelled) setDocuments(safeLoadDocuments(storageOwnerId));
       })
       .finally(() => {
-        if (!cancelled && (isPublicEditor || !currentUser?.uid || !isCloudPersistenceConfigured)) setDocumentCatalogReady(true);
+        if (!cancelled) setDocumentCatalogReady(true);
       });
     return () => { cancelled = true; };
   }, [currentUser?.uid, isPublicEditor, storageOwnerId]);
 
   useEffect(() => {
-    if (view !== "public-editor" || !documentId || !documentCatalogReady || !currentUser?.uid) return undefined;
-    if (documents.some((documentRecord) => documentRecord.id === documentId)) return undefined;
-    const recoveryKey = `${currentUser.uid}:${documentId}`;
-    if (publicDocumentRecoveryRef.current.has(recoveryKey)) return undefined;
-    publicDocumentRecoveryRef.current.add(recoveryKey);
-    let cancelled = false;
-
-    const recoverDocument = async () => {
-      const localDocuments = await loadLocalDocuments(currentUser.uid).catch(() => safeLoadDocuments(currentUser.uid));
-      let candidate = localDocuments.find((documentRecord) => documentRecord.id === documentId);
-      if (!candidate && isCloudPersistenceConfigured) {
-        const cloudDocuments = await loadCloudDocumentRecords(currentUser.uid).catch(() => []);
-        candidate = cloudDocuments.find((documentRecord) => documentRecord.id === documentId);
-      }
-      const recoveredDocument = recoverDocumentAsGuest(candidate);
-      if (!recoveredDocument || cancelled) return;
-      const guestDocuments = await loadLocalDocuments(GUEST_OWNER_ID).catch(() => documents);
-      const nextDocuments = [recoveredDocument, ...guestDocuments.filter((documentRecord) => documentRecord.id !== documentId)];
-      await saveLocalDocuments(GUEST_OWNER_ID, nextDocuments);
-      if (!cancelled) {
-        setDocuments(nextDocuments);
-        setEditorRouteState("loading");
-      }
-    };
-
-    recoverDocument().catch(() => {});
-    return () => { cancelled = true; };
-  }, [currentUser?.uid, documentCatalogReady, documentId, documents, view]);
-
-  useEffect(() => {
     if (isPublicEditor || !currentUser?.uid) {
-      setCloudSyncStatus(isCloudPersistenceConfigured ? "idle" : "local");
-      setDocumentCatalogReady(true);
+      setCloudHistoryEnabled(false);
+      setCloudCatalogStatus("local-only");
       return undefined;
     }
-
-    if (!isCloudPersistenceConfigured) {
-      setCloudSyncStatus("local");
-      setDocumentCatalogReady(true);
+    if (!documentCatalogReady) return undefined;
+    if (!isPrivateCloudConfigured) {
+      setCloudHistoryEnabled(false);
+      setCloudCatalogStatus("not-configured");
       return undefined;
     }
 
     let cancelled = false;
-    setDocumentCatalogReady(false);
-    setCloudSyncStatus("syncing");
-    loadCloudDocumentRecords(currentUser.uid)
-      .then(async (cloudDocuments) => {
+    setCloudCatalogStatus("checking");
+    getPrivateCloudStatus({ expectedUserId: currentUser.uid })
+      .then(async (status) => {
+        if (cancelled) return;
+        const enabled = status?.enabled === true;
+        setCloudHistoryEnabled(enabled);
+        writeCloudHistoryPreference(currentUser.uid, enabled);
+        if (!enabled) {
+          setDocuments((records) => records.filter((documentRecord) => (
+            !documentRecord.cloudOnly || documentRecord.legacyCloudDocumentId
+          )));
+          setCloudCatalogStatus("local-only");
+          return;
+        }
+        setCloudCatalogStatus("loading");
+        const cloudDocuments = await listPrivateCloudDocuments({ expectedUserId: currentUser.uid });
         if (cancelled) return;
         const localDocuments = await loadLocalDocuments(currentUser.uid).catch(() => safeLoadDocuments(currentUser.uid));
-        const mergedDocuments = mergeDocumentsByUpdatedAt(localDocuments, cloudDocuments);
-        if (mergedDocuments.length) {
-          await saveLocalDocuments(currentUser.uid, mergedDocuments);
-          setDocuments(mergedDocuments);
-          if (cloudDocuments.length) {
-            showToast(`Loaded ${cloudDocuments.length} cloud document${cloudDocuments.length === 1 ? "" : "s"}.`);
-          }
-          if (localDocuments.length) {
-            syncDocumentsToCloud([], mergedDocuments);
-          }
+        if (cancelled || storageOwnerIdRef.current !== currentUser.uid) return;
+        setDocuments((records) => mergeLocalAndPrivateCloudDocuments(
+          currentUser.uid,
+          mergeLocalAndLegacyCloudDocuments(
+            localDocuments,
+            records.filter((documentRecord) => documentRecord.legacyCloudDocumentId),
+          ),
+          cloudDocuments?.documents || cloudDocuments || [],
+        ));
+        setCloudCatalogStatus("ready");
+        const cloudCount = (cloudDocuments?.documents || cloudDocuments || []).length;
+        if (cloudCount) {
+          showToast(`Loaded ${cloudCount} private cloud document${cloudCount === 1 ? "" : "s"}.`);
         }
-        if (!localDocuments.length) setCloudSyncStatus("synced");
-        setDocumentCatalogReady(true);
       })
       .catch(() => {
         if (cancelled) return;
-        setCloudSyncStatus("error");
-        setDocumentCatalogReady(true);
-        showToast("Cloud sync is unavailable. Changes are saved locally.");
+        setCloudCatalogStatus("error");
+        setCloudHistoryEnabled(readCloudHistoryPreference(currentUser.uid));
+        showToast("Private cloud history is unavailable. Local editing still works.");
       });
 
     return () => {
       cancelled = true;
     };
-  }, [currentUser?.uid, isPublicEditor]);
+  }, [currentUser?.uid, documentCatalogReady, isPublicEditor]);
+
+  useEffect(() => {
+    if (
+      appSection !== "Trash"
+      || isPublicEditor
+      || !currentUser?.uid
+      || !isPrivateCloudConfigured
+      || !cloudHistoryEnabled
+    ) {
+      if (appSection !== "Trash") setCloudTrashDocuments([]);
+      setCloudTrashStatus("idle");
+      return undefined;
+    }
+    let cancelled = false;
+    setCloudTrashStatus("loading");
+    listPrivateCloudDocuments({ includeDeleted: true, expectedUserId: currentUser.uid })
+      .then((response) => {
+        if (cancelled || storageOwnerIdRef.current !== currentUser.uid) return;
+        const records = response?.documents || response || [];
+        setCloudTrashDocuments(records
+          .filter((record) => record.state === "trashed" || record.deletionStatus === "soft_deleted")
+          .map((record) => privateCloudPlaceholder(currentUser.uid, record))
+          .filter(Boolean));
+        setCloudTrashStatus("ready");
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setCloudTrashStatus("error");
+      });
+    return () => { cancelled = true; };
+  }, [appSection, cloudHistoryEnabled, currentUser?.uid, isPublicEditor]);
 
   const showToast = (message) => {
     setToast(message);
     window.setTimeout(() => setToast(""), 2600);
   };
 
-  const syncDocumentsToCloud = (previousDocuments, nextDocuments) => {
-    if (!currentUser?.uid || !isCloudPersistenceConfigured) {
-      setCloudSyncStatus(currentUser?.uid ? "local" : "idle");
-      return;
+  const changePrivateCloudHistory = async (enabled) => {
+    if (!currentUser?.uid || !isPrivateCloudConfigured) {
+      showToast("Private cloud storage is not connected. Local documents were not uploaded.");
+      return false;
     }
-
-    const { uploads, deletes } = planCloudDocumentSync(previousDocuments, nextDocuments);
-    if (!uploads.length && !deletes.length) {
-      setCloudSyncStatus("synced");
-      return;
+    const operationOwnerId = currentUser.uid;
+    setCloudCatalogStatus("updating");
+    try {
+      await setPrivateCloudHistoryEnabled(enabled, { expectedUserId: operationOwnerId });
+      if (storageOwnerIdRef.current !== operationOwnerId) return false;
+      setCloudHistoryEnabled(enabled);
+      writeCloudHistoryPreference(operationOwnerId, enabled);
+      if (!enabled) {
+        setDocuments((records) => records.filter((documentRecord) => (
+          !documentRecord.cloudOnly || documentRecord.legacyCloudDocumentId
+        )));
+        setCloudCatalogStatus("local-only");
+        showToast("Cloud history hidden. Existing private cloud copies were not deleted.");
+        return true;
+      }
+      const response = await listPrivateCloudDocuments({ expectedUserId: operationOwnerId });
+      if (storageOwnerIdRef.current !== operationOwnerId) return false;
+      const localDocuments = await loadLocalDocuments(operationOwnerId).catch(() => []);
+      if (storageOwnerIdRef.current !== operationOwnerId) return false;
+      setDocuments((records) => mergeLocalAndPrivateCloudDocuments(
+        operationOwnerId,
+        mergeLocalAndLegacyCloudDocuments(
+          localDocuments,
+          records.filter((documentRecord) => documentRecord.legacyCloudDocumentId),
+        ),
+        response?.documents || response || [],
+      ));
+      setCloudCatalogStatus("ready");
+      showToast("Private cloud history enabled. Local documents remain browser-only.");
+      return true;
+    } catch (error) {
+      logRedactedClientError("Private cloud preference update failed", error);
+      setCloudCatalogStatus("error");
+      showToast("The private cloud preference could not be changed.");
+      return false;
     }
-    setCloudSyncStatus("syncing");
-
-    runWithConcurrency([
-      ...uploads.map((documentRecord) => () => uploadDocumentRecordToCloud(currentUser.uid, documentRecord)),
-      ...deletes.map((documentRecord) => () => deleteDocumentRecordFromCloud(currentUser.uid, documentRecord.id)),
-    ])
-      .then(() => setCloudSyncStatus("synced"))
-      .catch(() => {
-        setCloudSyncStatus("error");
-        showToast("Saved locally. Cloud sync needs Firebase Storage and Firestore permissions.");
-      });
   };
 
   const replaceDocuments = async (nextDocuments) => {
-    const previousDocuments = documents;
+    const ownerId = storageOwnerId;
+    if (storageOwnerIdRef.current !== ownerId) return false;
+    const previousDocuments = documentsRef.current;
+    documentsRef.current = nextDocuments;
     setDocuments(nextDocuments);
     try {
-      await saveLocalDocuments(storageOwnerId, nextDocuments.map(compactDocumentRecordForStorage));
-      if (currentUser?.uid && !isPublicEditor) syncDocumentsToCloud(previousDocuments, nextDocuments);
+      const localRecords = nextDocuments
+        .filter((documentRecord) => !documentRecord.cloudOnly)
+        .map(compactDocumentRecordForStorage);
+      await saveLocalDocuments(ownerId, localRecords);
+      if (storageOwnerIdRef.current !== ownerId) return false;
       return true;
     } catch {
+      if (storageOwnerIdRef.current === ownerId && documentsRef.current === nextDocuments) {
+        documentsRef.current = previousDocuments;
+        setDocuments(previousDocuments);
+      }
       setSaveState("error");
       setUploadError("This browser could not preserve the working copy. Keep this tab open and try again.");
       return false;
@@ -2551,15 +2706,6 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
           return localDocuments.length ? localDocuments : safeLoadDocuments(ownerId);
         },
       }) : null;
-      let cloudSaveStatus = "local";
-      if (claimedDocument && ["save", "share", "signature-request"].includes(intent) && isCloudPersistenceConfigured) {
-        try {
-          await uploadDocumentRecordToCloud(user.uid, claimedDocument);
-          cloudSaveStatus = "synced";
-        } catch {
-          cloudSaveStatus = "error";
-        }
-      }
       const returnTo = claimedDocument
         ? editorPath(claimedDocument.id)
         : guestDocumentId
@@ -2569,7 +2715,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
         : ROUTE_PATHS.dashboard;
       navigate(returnTo, {
         replace: true,
-        state: claimedDocument ? { publicTool: location.state?.publicTool, postAuthAction: intent, cloudSaveStatus } : undefined,
+        state: claimedDocument ? { publicTool: location.state?.publicTool, postAuthAction: intent } : undefined,
       });
     } catch {
       navigate(fallbackEditorPath, { replace: true, state: { publicTool: location.state?.publicTool } });
@@ -2598,8 +2744,10 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     showToast("Signed out.");
   };
 
-  const upsertDocument = async (document) => {
-    const persistedDocuments = await loadLocalDocuments(storageOwnerId).catch(() => documents);
+  const upsertDocument = async (document, expectedOwnerId = storageOwnerId) => {
+    if (storageOwnerIdRef.current !== expectedOwnerId) return false;
+    const persistedDocuments = await loadLocalDocuments(expectedOwnerId).catch(() => documentsRef.current);
+    if (storageOwnerIdRef.current !== expectedOwnerId) return false;
     const nextDocuments = [document, ...persistedDocuments.filter((item) => item.id !== document.id)];
     return replaceDocuments(nextDocuments);
   };
@@ -2611,10 +2759,13 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
 
   const saveActiveDocument = async (immediate = false) => {
     if (!activeDocumentId) return false;
+    const saveOwnerId = storageOwnerId;
+    const saveDocumentId = activeDocumentId;
+    if (activeDocumentOwnerIdRef.current && activeDocumentOwnerIdRef.current !== saveOwnerId) return false;
     const stamp = nowIso();
     setSaveState(immediate ? "saved" : "saving");
-    const nextDocuments = documents.map((document) => (
-      document.id === activeDocumentId
+    const nextDocuments = documentsRef.current.map((document) => (
+      document.id === saveDocumentId
         ? {
           ...document,
           name: fileName,
@@ -2627,7 +2778,11 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
         : document
     ));
     const persisted = await replaceDocuments(nextDocuments);
-    if (!persisted) return false;
+    if (
+      !persisted
+      || storageOwnerIdRef.current !== saveOwnerId
+      || activeDocumentIdRef.current !== saveDocumentId
+    ) return false;
     setLastSavedAt(stamp);
     setSaved(true);
     window.setTimeout(() => setSaveState("saved"), immediate ? 0 : 180);
@@ -2637,6 +2792,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   const persistEditorSession = async (pendingAction = "") => {
     if (!activeDocumentId) return false;
     return saveEditorSession(activeDocumentId, {
+      ownerId: storageOwnerId,
       fileName,
       sourceFile: sourceFileRef.current,
       pageIndex,
@@ -2658,7 +2814,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     });
   };
 
-  const duplicateActiveDocument = () => {
+  const duplicateActiveDocument = async () => {
     if (!pages.length) return;
     const stamp = nowIso();
     const nextName = fileName.toLowerCase().endsWith(".pdf")
@@ -2680,6 +2836,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     const duplicateRecord = {
       ...(activeDocument || {}),
       id: makeId("doc"),
+      ownerId: storageOwnerId,
       name: nextName,
       size: activeDocument?.size || 0,
       source: activeDocument?.source || (pdfBytes ? "pdf" : "blank"),
@@ -2690,9 +2847,21 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       pages: clonedPages,
       annotations: clonedAnnotations,
       detectedTextItems: clonedDetectedTextItems,
+      cloudDocumentId: "",
+      cloudVersionId: "",
+      cloudChecksumSha256: "",
+      cloudUpdatedAt: "",
+      cloudOnly: false,
+      legacyCloudDocumentId: undefined,
+      legacyCloudPayloadPath: undefined,
     };
 
-    upsertDocument(duplicateRecord);
+    const persisted = await upsertDocument(duplicateRecord);
+    if (!persisted) {
+      showToast("The copy could not be saved in this browser.");
+      return;
+    }
+    activeDocumentOwnerIdRef.current = storageOwnerId;
     setActiveDocumentId(duplicateRecord.id);
     setFileName(nextName);
     setPages(clonedPages);
@@ -2895,6 +3064,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     if (!activeDocumentId || !pages.length) return undefined;
     const timer = window.setTimeout(() => {
       saveEditorSession(activeDocumentId, {
+        ownerId: storageOwnerId,
         fileName,
         sourceFile: sourceFileRef.current,
         pageIndex,
@@ -3046,14 +3216,20 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       showToast("The guest draft could not be preserved. Keep this tab open and try again.");
       return false;
     }
-    await persistEditorSession(intent);
+    if (!(await persistEditorSession(intent))) {
+      showToast("This browser could not preserve the editor session. Keep this tab open and try again.");
+      return false;
+    }
     setAuthRequiredAction(intent);
     return false;
   };
 
   const continueAuthAction = async () => {
     const intent = authRequiredAction || "save";
-    await persistEditorSession(intent);
+    if (!(await persistEditorSession(intent))) {
+      showToast("This browser could not preserve the editor session. Keep this tab open and try again.");
+      return;
+    }
     setAuthRequiredAction("");
     openAuth("login", {
       from: { pathname: location.pathname, search: location.search },
@@ -3062,7 +3238,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       publicTool,
       notice: intent === "share" || intent === "signature-request"
         ? `Sign in to save this document before creating a persistent ${intent === "signature-request" ? "signing" : "sharing"} link.`
-        : "Your document is safe in this browser. Sign in to save it to your PDFEnrich account.",
+        : "Your document is safe in this browser. Sign in only if you want to create a private cloud copy.",
     });
   };
 
@@ -3088,8 +3264,150 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       navigate(editorPath(claimedDocument.id), { state: { publicTool, postAuthAction: "save" } });
       return true;
     }
-    showToast("Saved to your PDFEnrich workspace.");
+    cloudSaveOperationRef.current = {
+      ownerId: currentUser.uid,
+      documentId: activeDocumentId,
+      checksumSha256: "",
+      key: "",
+    };
+    setCloudSaveStage("idle");
+    setCloudSaveProgress(0);
+    setCloudSaveError("");
+    setCloudSaveDialogOpen(true);
     return true;
+  };
+
+  const saveActiveDocumentToPrivateCloud = async () => {
+    if (!currentUser?.uid || !activeDocumentId) return;
+    const operationOwnerId = currentUser.uid;
+    const operationDocumentId = activeDocumentId;
+    const operationCloudDocumentId = activeDocument?.cloudDocumentId || "";
+    const operationLegacyDocumentId = activeDocument?.legacyCloudDocumentId || "";
+    if (!isPrivateCloudConfigured) {
+      setCloudSaveStage("error");
+      setCloudSaveError("Private cloud storage is not connected on this deployment. Nothing was uploaded.");
+      return;
+    }
+    setCloudSaveStage("preparing");
+    setCloudSaveProgress(0);
+    setCloudSaveError("");
+    try {
+      if (!(await saveActiveDocument(true))) throw new Error("The local working copy could not be prepared.");
+      const exported = await exportPdf({
+        download: false,
+        showResult: false,
+        analytics: false,
+      });
+      if (!exported?.blob) throw new Error("The edited PDF could not be prepared for private saving.");
+      if (
+        storageOwnerIdRef.current !== operationOwnerId
+        || activeDocumentOwnerIdRef.current !== operationOwnerId
+        || activeDocumentIdRef.current !== operationDocumentId
+      ) {
+        throw new DOMException("Cloud save cancelled after the account changed.", "AbortError");
+      }
+
+      const checksumSha256 = await sha256Hex(exported.blob);
+      const previousOperation = cloudSaveOperationRef.current;
+      const idempotencyKey = (
+        previousOperation.ownerId === operationOwnerId
+        && previousOperation.documentId === operationDocumentId
+        && previousOperation.checksumSha256 === checksumSha256
+        && previousOperation.key
+      ) ? previousOperation.key : createCloudIdempotencyKey();
+      cloudSaveOperationRef.current = {
+        ownerId: operationOwnerId,
+        documentId: operationDocumentId,
+        checksumSha256,
+        key: idempotencyKey,
+      };
+      cloudSaveAbortRef.current?.abort();
+      const abortController = new AbortController();
+      cloudSaveAbortRef.current = abortController;
+
+      setCloudSaveStage("uploading");
+      const result = await savePrivateCloudPdf({
+        blob: exported.blob,
+        fileName: exported.name || fileName,
+        cloudDocumentId: operationCloudDocumentId,
+        checksumSha256,
+        idempotencyKey,
+        expectedUserId: operationOwnerId,
+        signal: abortController.signal,
+        onProgress: (progress) => {
+          if (
+            storageOwnerIdRef.current !== operationOwnerId
+            || activeDocumentOwnerIdRef.current !== operationOwnerId
+          ) return;
+          setCloudSaveProgress(progress);
+          if (progress >= 100) setCloudSaveStage("verifying");
+        },
+      });
+      if (
+        storageOwnerIdRef.current !== operationOwnerId
+        || activeDocumentOwnerIdRef.current !== operationOwnerId
+        || activeDocumentIdRef.current !== operationDocumentId
+      ) return;
+
+      writeCloudHistoryPreference(operationOwnerId, true);
+      setCloudHistoryEnabled(true);
+      setCloudCatalogStatus("ready");
+      let legacyCleanupConfirmed = true;
+      if (operationLegacyDocumentId) {
+        try {
+          await deleteLegacyCloudDocument({
+            db,
+            storage,
+            userId: operationOwnerId,
+            documentId: operationLegacyDocumentId,
+          });
+        } catch {
+          legacyCleanupConfirmed = false;
+        }
+      }
+      const stamp = result.updatedAt || nowIso();
+      const nextDocuments = documentsRef.current.map((documentRecord) => (
+        documentRecord.id === operationDocumentId
+          ? {
+            ...documentRecord,
+            cloudDocumentId: result.documentId,
+            cloudVersionId: result.versionId,
+            cloudChecksumSha256: result.checksumSha256,
+            cloudUpdatedAt: stamp,
+            cloudOnly: false,
+            ...(legacyCleanupConfirmed ? {
+              legacyCloudDocumentId: undefined,
+              legacyCloudPayloadPath: undefined,
+            } : {}),
+          }
+          : documentRecord
+      ));
+      const localLinkConfirmed = await replaceDocuments(nextDocuments);
+      if (!localLinkConfirmed) {
+        setCloudSaveProgress(100);
+        setCloudSaveStage("saved");
+        setCloudSaveError("");
+        showToast("Private cloud copy confirmed, but this browser could not update its local link.");
+        return;
+      }
+      setCloudSaveProgress(100);
+      setCloudSaveStage("saved");
+      setCloudSaveError("");
+      cloudSaveAbortRef.current = null;
+      cloudSaveOperationRef.current = { ownerId: "", documentId: "", checksumSha256: "", key: "" };
+      showToast(legacyCleanupConfirmed
+        ? "Private cloud copy confirmed."
+        : "Private cloud copy confirmed. The older cloud copy still needs cleanup.");
+    } catch (error) {
+      if (
+        error?.name === "AbortError"
+        || storageOwnerIdRef.current !== operationOwnerId
+        || activeDocumentOwnerIdRef.current !== operationOwnerId
+      ) return;
+      logRedactedClientError("Private cloud save failed", error);
+      setCloudSaveStage("error");
+      setCloudSaveError(error?.message || "The private cloud save did not finish. Your browser copy is still safe.");
+    }
   };
 
   const openShareSettings = async () => {
@@ -3099,23 +3417,44 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
 
   const createDocumentShare = async ({ expirationDays }) => {
     if (!currentUser?.uid || !db) throw new Error("Secure sharing is not configured for this account.");
+    const operationUserId = currentUser.uid;
+    const operationOwnerId = storageOwnerIdRef.current;
+    const operationDocumentId = activeDocumentIdRef.current;
+    const sourceDocumentId = (
+      activeDocument?.id === operationDocumentId
+      && activeDocumentOwnerIdRef.current === operationOwnerId
+    ) ? activeDocument.cloudDocumentId : "";
     const exported = await exportPdf({ download: false, showResult: false });
     if (!exported) throw new Error("The current PDF could not be prepared for sharing.");
+    if (!isCurrentEditorOperation(operationUserId, operationOwnerId, operationDocumentId)) {
+      throw new Error("The active account or document changed. Create the sharing link again.");
+    }
     const result = await createSecurePdfShare({
       db,
       storage,
-      userId: currentUser.uid,
+      userId: operationUserId,
       pdfBlob: exported.blob,
       fileName: exported.name,
       expirationDays,
+      sourceDocumentId,
     });
+    if (!isCurrentEditorOperation(operationUserId, operationOwnerId, operationDocumentId)) {
+      try {
+        await revokeSecurePdfShare({ db, storage, userId: operationUserId, token: result.token });
+      } catch (cleanupError) {
+        logRedactedClientError("Stale sharing link cleanup failed", cleanupError);
+      }
+      throw new Error("The active account or document changed. Create the sharing link again.");
+    }
     showToast("Secure sharing link created.");
-    return { ...result, url: `${window.location.origin}/share/${result.token}` };
+    return { ...result, url: `${window.location.origin}${sharePath(result.token)}` };
   };
 
   const revokeDocumentShare = async (token) => {
-    await revokeSecurePdfShare({ db, storage, userId: currentUser?.uid, token });
-    showToast("Sharing link revoked.");
+    const operationUserId = currentUser?.uid || "";
+    if (!operationUserId) throw new Error("Sign in before revoking a sharing link.");
+    await revokeSecurePdfShare({ db, storage, userId: operationUserId, token });
+    if (currentUserIdRef.current === operationUserId) showToast("Sharing link revoked.");
   };
 
   const handleLandingDropFiles = (files) => {
@@ -3179,26 +3518,35 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     };
   };
 
-  const loadPdfFile = async (file) => {
+  const loadPdfFile = async (file, { cloudDocumentRecord = null } = {}) => {
     if (!file) return;
-    setUploadStage({ status: "validating", percent: 8, fileName: file.name });
-    const validationError = validatePdfUpload(file);
+    const loadOwnerId = storageOwnerId;
+    const displayFileName = sanitizePdfDisplayName(file.name);
+    setUploadStage({ status: "validating", percent: 8, fileName: displayFileName });
+    const validationError = validatePdfUpload(file) || await validatePdfFileContent(file);
     if (validationError) {
       trackUploadValidationFailure(publicTool || "edit-pdf", "invalid_pdf");
       setUploadError(validationError);
-      setUploadStage({ status: "error", percent: 0, fileName: file.name });
+      setUploadStage({ status: "error", percent: 0, fileName: displayFileName });
       return;
     }
 
     try {
+      const workingFile = file.name === displayFileName
+        ? file
+        : new File([file], displayFileName, { type: "application/pdf", lastModified: file.lastModified });
       setUploadError("");
-      sourceFileRef.current = file;
-      setUploadStage({ status: "reading", percent: 18, fileName: file.name });
-      const { buffer, documentProxy, loadedPages, detectedItems, detectedFormFields } = await parsePdfFile(file, {
+      sourceFileRef.current = workingFile;
+      setUploadStage({ status: "reading", percent: 18, fileName: displayFileName });
+      const { buffer, documentProxy, loadedPages, detectedItems, detectedFormFields } = await parsePdfFile(workingFile, {
         startPercent: 24,
         endPercent: 80,
         stagePrefix: "Rendering page",
       });
+      if (storageOwnerIdRef.current !== loadOwnerId) {
+        await documentProxy?.destroy?.().catch?.(() => {});
+        return;
+      }
 
       try { await pdfDocumentRef.current?.destroy?.(); } catch { /* Replace the active PDF even if cleanup fails. */ }
       pdfHydrationTokenRef.current += 1;
@@ -3206,32 +3554,39 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       pdfPageHydrationTasksRef.current.clear();
       pdfPageRenderGenerationRef.current.clear();
 
-      setUploadStage({ status: "Saving workspace copy", percent: 88, fileName: file.name });
+      setUploadStage({ status: "Saving browser copy", percent: 88, fileName: displayFileName });
       const stamp = nowIso();
       const documentRecord = {
-        id: makeId("doc"),
-        ownerId: storageOwnerId,
-        name: file.name,
+        id: cloudDocumentRecord?.id || makeId("doc"),
+        ownerId: loadOwnerId,
+        name: displayFileName,
         size: file.size,
         source: "pdf",
         pageCount: loadedPages.length,
         status: "Ready",
         location: "My documents",
-        uploadedAt: stamp,
+        uploadedAt: cloudDocumentRecord?.uploadedAt || stamp,
         updatedAt: stamp,
         pdfDataUrl: await arrayBufferToDataUrl(buffer.slice(0)),
         pages: loadedPages,
         annotations: detectedFormFields,
         detectedTextItems: detectedItems,
+        cloudDocumentId: cloudDocumentRecord?.cloudDocumentId || "",
+        cloudVersionId: cloudDocumentRecord?.cloudVersionId || "",
+        cloudChecksumSha256: cloudDocumentRecord?.cloudChecksumSha256 || "",
+        cloudUpdatedAt: cloudDocumentRecord?.cloudUpdatedAt || cloudDocumentRecord?.updatedAt || "",
+        cloudOnly: false,
       };
 
-      const persisted = await upsertDocument(documentRecord);
+      const persisted = await upsertDocument(documentRecord, loadOwnerId);
       if (!persisted) throw new Error("The working copy could not be stored.");
-      trackToolUpload(publicTool || "edit-pdf", file, { pageCount: loadedPages.length });
+      if (storageOwnerIdRef.current !== loadOwnerId) return;
+      trackToolUpload(publicTool || "edit-pdf", workingFile, { pageCount: loadedPages.length });
+      activeDocumentOwnerIdRef.current = loadOwnerId;
       setActiveDocumentId(documentRecord.id);
       setPages(loadedPages);
       setPdfBytes(buffer);
-      setFileName(file.name);
+      setFileName(displayFileName);
       setPageIndex(0);
       setAnnotations(detectedFormFields);
       setDetectedTextItems(detectedItems);
@@ -3245,7 +3600,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       setSaved(true);
       setSaveState("saved");
       setLastSavedAt(stamp);
-      setUploadStage({ status: "complete", percent: 100, fileName: file.name });
+      setUploadStage({ status: "complete", percent: 100, fileName: displayFileName });
       showToast(detectedFormFields.length
         ? `Found ${detectedFormFields.length} fillable field${detectedFormFields.length === 1 ? "" : "s"}.`
         : detectedItems.length
@@ -3254,9 +3609,10 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       navigate(isPublicEditor ? publicEditorDocumentPath(publicTool, documentRecord.id) : editorPath(documentRecord.id), { state: { publicTool } });
       window.setTimeout(() => setUploadStage({ status: "idle", percent: 0, fileName: "" }), 900);
     } catch (error) {
+      if (storageOwnerIdRef.current !== loadOwnerId || error?.name === "AbortError") return;
       trackUploadValidationFailure(publicTool || "edit-pdf", "invalid_pdf");
       setUploadError(getPdfLoadErrorMessage(error));
-      setUploadStage({ status: "error", percent: 0, fileName: file.name });
+      setUploadStage({ status: "error", percent: 0, fileName: displayFileName });
     }
   };
 
@@ -3277,9 +3633,11 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
 
   const mergeAndAppendPdfFile = async (file) => {
     if (!file) return;
+    const appendOwnerId = storageOwnerId;
+    const appendDocumentId = activeDocumentId;
     setIsPageAppendMenuOpen(false);
     setUploadStage({ status: "validating", percent: 8, fileName: file.name });
-    const validationError = validatePdfUpload(file);
+    const validationError = validatePdfUpload(file) || await validatePdfFileContent(file);
     if (validationError) {
       setUploadError(validationError);
       setUploadStage({ status: "error", percent: 0, fileName: file.name });
@@ -3295,6 +3653,11 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
         stagePrefix: "Rendering append page",
         progressive: false,
       });
+      if (
+        storageOwnerIdRef.current !== appendOwnerId
+        || activeDocumentIdRef.current !== appendDocumentId
+        || activeDocumentOwnerIdRef.current !== appendOwnerId
+      ) return;
       const pageOffset = pages.length;
       const appendedPages = loadedPages.map((page, index) => ({
         ...page,
@@ -3328,6 +3691,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       showToast(`Appended ${appendedPages.length} page${appendedPages.length === 1 ? "" : "s"} from ${file.name}.`);
       window.setTimeout(() => setUploadStage({ status: "idle", percent: 0, fileName: "" }), 900);
     } catch {
+      if (storageOwnerIdRef.current !== appendOwnerId) return;
       setUploadError("We could not append that PDF. Try a smaller or unprotected PDF file.");
       setUploadStage({ status: "error", percent: 0, fileName: file.name });
     }
@@ -3340,6 +3704,8 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
 
   const loadImageForPlacement = async (file) => {
     if (!file) return;
+    const imageOwnerId = storageOwnerId;
+    const imageDocumentId = activeDocumentId;
     const isSupportedImage = file.type === "image/png"
       || file.type === "image/jpeg"
       || file.name.toLowerCase().endsWith(".png")
@@ -3356,6 +3722,11 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
 
     try {
       const image = await readImageFile(file);
+      if (
+        storageOwnerIdRef.current !== imageOwnerId
+        || activeDocumentIdRef.current !== imageDocumentId
+        || activeDocumentOwnerIdRef.current !== imageOwnerId
+      ) return;
       setPendingImage(image);
       setTool("image");
       showToast("Image ready. Click the PDF page to place it.");
@@ -3376,6 +3747,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   };
 
   const startBlankDocument = async () => {
+    const blankOwnerId = storageOwnerId;
     const stamp = nowIso();
     const blankPages = [{ id: makeId("blank-page"), number: 1, originalIndex: null, width: BASE_PAGE_WIDTH, height: BASE_PAGE_HEIGHT, source: "blank" }];
     const documentRecord = {
@@ -3395,8 +3767,9 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       detectedTextItems: [],
     };
 
-    const wasPersisted = await upsertDocument(documentRecord);
-    if (!wasPersisted) return;
+    const wasPersisted = await upsertDocument(documentRecord, blankOwnerId);
+    if (!wasPersisted || storageOwnerIdRef.current !== blankOwnerId) return;
+    activeDocumentOwnerIdRef.current = blankOwnerId;
     setActiveDocumentId(documentRecord.id);
     setPages(blankPages);
     setPdfBytes(null);
@@ -3577,7 +3950,8 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   };
 
   const hydrateDocument = useCallback(async (documentRecord) => {
-    const session = await loadEditorSession(documentRecord.id);
+    const hydrateOwnerId = storageOwnerId;
+    const session = await loadEditorSession(documentRecord.id, hydrateOwnerId);
     const documentPages = (documentRecord.pages || []).map((page, index) => ({
       ...page,
       number: index + 1,
@@ -3588,9 +3962,15 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     pdfHydrationTokenRef.current += 1;
     pdfPageHydrationTasksRef.current.clear();
     pdfPageRenderGenerationRef.current.clear();
-    pdfDocumentRef.current = sourceBytes
+    const nextPdfDocument = sourceBytes
       ? await pdfjsLib.getDocument({ data: sourceBytes.slice(0) }).promise
       : null;
+    if (storageOwnerIdRef.current !== hydrateOwnerId) {
+      await nextPdfDocument?.destroy?.().catch?.(() => {});
+      return;
+    }
+    pdfDocumentRef.current = nextPdfDocument;
+    activeDocumentOwnerIdRef.current = hydrateOwnerId;
     setActiveDocumentId(documentRecord.id);
     setPages(documentPages);
     setAnnotations(documentRecord.annotations || []);
@@ -3626,68 +4006,182 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   }, []);
 
   const openDocument = async (documentRecord) => {
-    if (documentRecord.ownerId && documentRecord.ownerId !== currentUser?.uid) {
+    if (documentRecord.ownerId && documentRecord.ownerId !== storageOwnerIdRef.current) {
       setEditorRouteState("unauthorized");
       navigate(editorPath(documentRecord.id));
       return;
     }
+    const operationOwnerId = storageOwnerIdRef.current;
+    if (documentRecord.ownerId && documentRecord.ownerId !== operationOwnerId) {
+      setEditorRouteState("unauthorized");
+      return;
+    }
     setEditorRouteState("loading");
+    if (documentRecord.cloudOnly && documentRecord.legacyCloudDocumentId) {
+      try {
+        setUploadStage({ status: "Opening older cloud copy", percent: 24, fileName: documentRecord.name });
+        const migratedRecord = await loadLegacyCloudDocument({
+          storage,
+          userId: currentUser.uid,
+          documentId: documentRecord.legacyCloudDocumentId,
+        });
+        const persisted = await upsertDocument(migratedRecord);
+        if (!persisted) throw new Error("The browser copy could not be preserved.");
+        await hydrateDocument(migratedRecord);
+        navigate(editorPath(migratedRecord.id));
+        setUploadStage({ status: "complete", percent: 100, fileName: migratedRecord.name });
+        showToast("Older cloud copy opened locally. Choose private cloud save to migrate it.");
+      } catch (error) {
+        logRedactedClientError("Older cloud document migration failed", error);
+        setUploadStage({ status: "error", percent: 0, fileName: documentRecord.name });
+        setEditorRouteState("error");
+        showToast("The older cloud copy could not be opened. No data was changed.");
+      }
+      return;
+    }
+    if (documentRecord.cloudOnly && documentRecord.cloudDocumentId) {
+      try {
+        setUploadStage({ status: "Downloading private copy", percent: 24, fileName: documentRecord.name });
+        const blob = await downloadPrivateCloudPdf(documentRecord.cloudDocumentId, {
+          expectedUserId: operationOwnerId,
+        });
+        if (storageOwnerIdRef.current !== operationOwnerId) return;
+        const file = new File([blob], documentRecord.name, { type: "application/pdf" });
+        await loadPdfFile(file, { cloudDocumentRecord: documentRecord });
+      } catch (error) {
+        logRedactedClientError("Private cloud document download failed", error);
+        setUploadStage({ status: "error", percent: 0, fileName: documentRecord.name });
+        setEditorRouteState(error?.status === 401 || error?.status === 403 ? "unauthorized" : "error");
+        showToast("The private cloud copy could not be opened. Your local documents are unchanged.");
+      }
+      return;
+    }
     await hydrateDocument(documentRecord);
     navigate(editorPath(documentRecord.id));
   };
 
-  const renameActiveDocument = () => {
+  const renameActiveDocument = async () => {
     const nextName = window.prompt("Rename document", fileName);
     if (!nextName?.trim()) return;
+    const safeName = sanitizePdfDisplayName(nextName);
     const stamp = nowIso();
-    setFileName(nextName.trim());
-    replaceDocuments(documents.map((item) => (
-      item.id === activeDocumentId ? { ...item, name: nextName.trim(), updatedAt: stamp } : item
+    const persisted = await replaceDocuments(documentsRef.current.map((item) => (
+      item.id === activeDocumentId ? { ...item, name: safeName, updatedAt: stamp } : item
     )));
+    if (!persisted) {
+      showToast("The new name could not be saved in this browser.");
+      return;
+    }
+    setFileName(safeName);
     setLastSavedAt(stamp);
     markUnsaved();
   };
 
-  const renameDocument = (documentRecord) => {
+  const renameDocument = async (documentRecord) => {
     const nextName = window.prompt("Rename document", documentRecord.name);
     if (!nextName?.trim()) return;
+    const safeName = sanitizePdfDisplayName(nextName);
     const stamp = nowIso();
-    replaceDocuments(documents.map((item) => (
-      item.id === documentRecord.id ? { ...item, name: nextName.trim(), updatedAt: stamp } : item
+    const persisted = await replaceDocuments(documentsRef.current.map((item) => (
+      item.id === documentRecord.id ? { ...item, name: safeName, updatedAt: stamp } : item
     )));
+    if (!persisted) {
+      showToast("The new name could not be saved in this browser.");
+      return;
+    }
     if (activeDocumentId === documentRecord.id) {
-      setFileName(nextName.trim());
+      setFileName(safeName);
       setLastSavedAt(stamp);
     }
   };
 
-  const deleteDocument = (documentRecord) => {
-    if (!window.confirm(`Delete "${documentRecord.name}" from this browser?`)) return;
-    clearEditorSession(documentRecord.id);
-    replaceDocuments(documents.filter((item) => item.id !== documentRecord.id));
+  const deleteDocument = async (documentRecord) => {
+    const deletesCloudCopy = Boolean(documentRecord.cloudDocumentId);
+    const deletesLegacyCopy = Boolean(documentRecord.legacyCloudDocumentId);
+    const confirmed = window.confirm(deletesCloudCopy || deletesLegacyCopy
+      ? `Delete the cloud copy of "${documentRecord.name}" and remove this browser copy?`
+      : `Delete "${documentRecord.name}" from this browser?`);
+    if (!confirmed) return;
+    const operationOwnerId = storageOwnerIdRef.current;
+    if (documentRecord.ownerId && documentRecord.ownerId !== operationOwnerId) {
+      showToast("This document does not belong to the active browser workspace.");
+      return;
+    }
+    if (deletesLegacyCopy) {
+      try {
+        await deleteLegacyCloudDocument({
+          db,
+          storage,
+          userId: operationOwnerId,
+          documentId: documentRecord.legacyCloudDocumentId,
+        });
+      } catch (error) {
+        logRedactedClientError("Older cloud document deletion failed", error);
+        showToast("The older cloud deletion was not confirmed, so the document was not removed.");
+        return;
+      }
+    }
+    if (deletesCloudCopy) {
+      try {
+        await removePrivateCloudDocument(documentRecord.cloudDocumentId, {
+          expectedUserId: operationOwnerId,
+        });
+        if (storageOwnerIdRef.current !== operationOwnerId) return;
+      } catch (error) {
+        logRedactedClientError("Private cloud document deletion failed", error);
+        showToast("Cloud deletion was not confirmed, so the document was not removed.");
+        return;
+      }
+    }
+    if (storageOwnerIdRef.current !== operationOwnerId) return;
+    await clearEditorSession(documentRecord.id, operationOwnerId);
+    const localRemovalConfirmed = await replaceDocuments(
+      documentsRef.current.filter((item) => item.id !== documentRecord.id),
+    );
+    if (!localRemovalConfirmed) {
+      showToast(deletesCloudCopy
+        ? "The cloud copy moved to Trash, but the browser copy could not be removed."
+        : deletesLegacyCopy
+          ? "The older cloud copy was deleted, but the browser copy could not be removed."
+          : "The browser copy could not be removed.");
+      return;
+    }
     if (activeDocumentId === documentRecord.id) {
+      activeDocumentOwnerIdRef.current = "";
       setActiveDocumentId(null);
       setPages([]);
       setAnnotations([]);
       setPdfBytes(null);
       navigate(ROUTE_PATHS.documents);
     }
+    showToast(deletesCloudCopy
+      ? "Moved to private cloud Trash."
+      : deletesLegacyCopy
+        ? "Older cloud copy deleted."
+        : "Browser copy deleted.");
   };
 
-  const toggleDocumentFavorite = (documentRecord) => {
+  const toggleDocumentFavorite = async (documentRecord) => {
     const stamp = nowIso();
-    replaceDocuments(documents.map((item) => (
+    const persisted = await replaceDocuments(documentsRef.current.map((item) => (
       item.id === documentRecord.id ? { ...item, favorite: !item.favorite, updatedAt: stamp } : item
     )));
-    showToast(documentRecord.favorite ? "Removed from favorites." : "Added to favorites.");
+    showToast(persisted
+      ? documentRecord.favorite ? "Removed from favorites." : "Added to favorites."
+      : "The favorite change could not be saved.");
   };
 
-  const duplicateDocument = (documentRecord) => {
+  const duplicateDocument = async (documentRecord) => {
+    if (documentRecord.cloudOnly) {
+      showToast("Open the cloud document first, then choose Make a copy.");
+      return;
+    }
     const stamp = nowIso();
     const copyName = documentRecord.name.replace(/(\.pdf)?$/i, " copy.pdf");
     const duplicatedDocument = {
       ...documentRecord,
       id: makeId("doc-copy"),
+      ownerId: storageOwnerId,
       name: copyName,
       favorite: false,
       uploadedAt: stamp,
@@ -3695,26 +4189,70 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       pages: (documentRecord.pages || []).map((page) => ({ ...page, id: makeId("page") })),
       annotations: (documentRecord.annotations || []).map((annotation) => ({ ...annotation, id: makeId("annotation") })),
       detectedTextItems: (documentRecord.detectedTextItems || []).map((item) => ({ ...item, id: makeId("detected-text") })),
+      cloudDocumentId: "",
+      cloudVersionId: "",
+      cloudChecksumSha256: "",
+      cloudUpdatedAt: "",
+      cloudOnly: false,
+      legacyCloudDocumentId: undefined,
+      legacyCloudPayloadPath: undefined,
     };
-    replaceDocuments([duplicatedDocument, ...documents]);
-    showToast("Document copied.");
+    const persisted = await replaceDocuments([duplicatedDocument, ...documentsRef.current]);
+    showToast(persisted ? "Document copied." : "The copy could not be saved in this browser.");
   };
 
-  const moveDocument = (documentRecord) => {
+  const moveDocument = async (documentRecord) => {
     const currentLocation = documentRecord.location || "My documents";
     const nextLocation = window.prompt("Move to folder", currentLocation);
     if (!nextLocation?.trim()) return;
     const stamp = nowIso();
-    replaceDocuments(documents.map((item) => (
+    const persisted = await replaceDocuments(documentsRef.current.map((item) => (
       item.id === documentRecord.id ? { ...item, location: nextLocation.trim(), updatedAt: stamp } : item
     )));
-    showToast(`Moved to ${nextLocation.trim()}.`);
+    showToast(persisted ? `Moved to ${nextLocation.trim()}.` : "The move could not be saved.");
   };
 
   const downloadStoredDocument = async (documentRecord) => {
+    const operationOwnerId = storageOwnerIdRef.current;
+    if (documentRecord.ownerId && documentRecord.ownerId !== operationOwnerId) {
+      showToast("This document does not belong to the active browser workspace.");
+      return;
+    }
     if (documentRecord.pdfDataUrl) {
       const buffer = await dataUrlToArrayBuffer(documentRecord.pdfDataUrl);
       downloadBlob(new Blob([buffer], { type: "application/pdf" }), documentRecord.name);
+      return;
+    }
+    if (documentRecord.cloudDocumentId) {
+      try {
+        const blob = await downloadPrivateCloudPdf(documentRecord.cloudDocumentId, {
+          expectedUserId: operationOwnerId,
+        });
+        if (storageOwnerIdRef.current !== operationOwnerId) return;
+        downloadBlob(blob, documentRecord.name);
+      } catch (error) {
+        logRedactedClientError("Private cloud document download failed", error);
+        showToast("The private cloud download could not be completed.");
+      }
+      return;
+    }
+    if (documentRecord.legacyCloudDocumentId) {
+      try {
+        const migratedRecord = await loadLegacyCloudDocument({
+          storage,
+          userId: operationOwnerId,
+          documentId: documentRecord.legacyCloudDocumentId,
+        });
+        if (!migratedRecord.pdfDataUrl) {
+          showToast("Open this older cloud copy first so PDFEnrich can rebuild it safely.");
+          return;
+        }
+        const buffer = await dataUrlToArrayBuffer(migratedRecord.pdfDataUrl);
+        downloadBlob(new Blob([buffer], { type: "application/pdf" }), migratedRecord.name);
+      } catch (error) {
+        logRedactedClientError("Older cloud document download failed", error);
+        showToast("The older cloud download could not be completed.");
+      }
       return;
     }
 
@@ -4057,6 +4595,61 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     }
     setSelectedId(finalized.id);
     setTool("select");
+  };
+
+  const restoreCloudDocument = async (documentRecord) => {
+    if (!documentRecord?.cloudDocumentId) return;
+    const operationOwnerId = storageOwnerIdRef.current;
+    if (!operationOwnerId || (documentRecord.ownerId && documentRecord.ownerId !== operationOwnerId)) return;
+    try {
+      await restorePrivateCloudDocument(documentRecord.cloudDocumentId, {
+        expectedUserId: operationOwnerId,
+      });
+      if (storageOwnerIdRef.current !== operationOwnerId) return;
+      const response = await listPrivateCloudDocuments({ expectedUserId: operationOwnerId });
+      if (storageOwnerIdRef.current !== operationOwnerId) return;
+      const localDocuments = await loadLocalDocuments(operationOwnerId).catch(() => []);
+      if (storageOwnerIdRef.current !== operationOwnerId) return;
+      setDocuments((records) => mergeLocalAndPrivateCloudDocuments(
+        operationOwnerId,
+        mergeLocalAndLegacyCloudDocuments(
+          localDocuments,
+          records.filter((record) => record.legacyCloudDocumentId),
+        ),
+        response?.documents || response || [],
+      ));
+      setCloudTrashDocuments((records) => records.filter((record) => (
+        record.cloudDocumentId !== documentRecord.cloudDocumentId
+      )));
+      showToast("Private cloud document restored.");
+    } catch (error) {
+      logRedactedClientError("Private cloud restore failed", error);
+      showToast("The private cloud document could not be restored.");
+    }
+  };
+
+  const permanentlyDeleteCloudDocument = async (documentRecord) => {
+    if (!documentRecord?.cloudDocumentId) return;
+    const operationOwnerId = storageOwnerIdRef.current;
+    if (!operationOwnerId || (documentRecord.ownerId && documentRecord.ownerId !== operationOwnerId)) return;
+    const confirmed = window.confirm(
+      `Permanently delete every version of "${documentRecord.name}"? This cannot be undone.`,
+    );
+    if (!confirmed) return;
+    try {
+      await removePrivateCloudDocument(documentRecord.cloudDocumentId, {
+        permanent: true,
+        expectedUserId: operationOwnerId,
+      });
+      if (storageOwnerIdRef.current !== operationOwnerId) return;
+      setCloudTrashDocuments((records) => records.filter((record) => (
+        record.cloudDocumentId !== documentRecord.cloudDocumentId
+      )));
+      showToast("Every private cloud version was permanently deleted.");
+    } catch (error) {
+      logRedactedClientError("Private cloud permanent deletion failed", error);
+      showToast("Permanent deletion was not confirmed. The document remains in Trash.");
+    }
   };
 
   const undo = () => {
@@ -4837,7 +5430,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     return exported;
     } catch (error) {
       operation?.fail("editor_export_failed");
-      console.error("PDF export failed", error);
+      logRedactedClientError("PDF export failed", error);
       showToast("Export failed. Try saving locally, then export again.");
       return null;
     } finally {
@@ -4862,7 +5455,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       showToast("The PDF was sent to your printer dialog.");
     } catch (error) {
       closePdfPrintTarget(printTarget);
-      console.error("PDF print preparation failed", error);
+      logRedactedClientError("PDF print preparation failed", error);
       showToast("Print preparation failed. Download the PDF and try again.");
     }
   };
@@ -4886,7 +5479,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
 
   const deleteSavedSignature = (signatureId) => {
     const nextSignatures = removeSavedEditorSignature(savedSignatures, signatureId);
-    persistEditorSignatureLibrary(nextSignatures);
+    persistEditorSignatureLibrary(nextSignatures, undefined, storageOwnerId);
     setSavedSignatures(nextSignatures);
     if (activeSignature.id === signatureId) {
       const nextActive = nextSignatures[0] || { content: "", imageDataUrl: "", fontFamily: DEFAULT_SIGNATURE_FONT };
@@ -4917,22 +5510,61 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       required: annotation.required !== false,
     }));
     if (!requestFields.length) throw new Error("Place at least one field on the PDF before creating the request.");
+    const operationUserId = currentUser.uid;
+    const operationOwnerId = storageOwnerIdRef.current;
+    const operationDocumentId = activeDocumentIdRef.current;
+    const sourceDocumentId = (
+      activeDocument?.id === operationDocumentId
+      && activeDocumentOwnerIdRef.current === operationOwnerId
+    ) ? activeDocument.cloudDocumentId : "";
     const exported = await exportPdf({ download: false, showResult: false });
     if (!exported) throw new Error("The signing copy could not be created.");
-    const share = await createSecurePdfShare({ db, storage, userId: currentUser.uid, pdfBlob: exported.blob, fileName: exported.name, expirationDays });
-    const url = createSigningRequestUrl({
-      origin: window.location.origin,
-      token: share.token,
-      payload: {
-        requestId: share.token,
-        recipient: { name: recipientName, email: recipient },
-        requester: { name: currentUser.name || currentUser.email, email: currentUser.email },
-        message,
-        createdAt: new Date(),
-        expiresAt: share.expiresAt,
-        fields: requestFields,
-      },
-    });
+    if (!isCurrentEditorOperation(operationUserId, operationOwnerId, operationDocumentId)) {
+      throw new Error("The active account or document changed. Create the signing request again.");
+    }
+
+    let share = null;
+    try {
+      share = await createSecurePdfShare({
+        db,
+        storage,
+        userId: operationUserId,
+        pdfBlob: exported.blob,
+        fileName: exported.name,
+        expirationDays,
+        sourceDocumentId,
+      });
+      if (!isCurrentEditorOperation(operationUserId, operationOwnerId, operationDocumentId)) {
+        throw new Error("The active account or document changed. Create the signing request again.");
+      }
+      await storeSigningRequest({
+        db,
+        userId: operationUserId,
+        token: share.token,
+        payload: {
+          recipient: { name: recipientName, email: recipient },
+          requester: { name: currentUser.name || currentUser.email, email: currentUser.email },
+          message,
+          createdAt: new Date(),
+          expiresAt: share.expiresAt,
+          fields: requestFields,
+        },
+      });
+      if (!isCurrentEditorOperation(operationUserId, operationOwnerId, operationDocumentId)) {
+        throw new Error("The active account or document changed. Create the signing request again.");
+      }
+    } catch (error) {
+      if (share?.token) {
+        try {
+          await revokeSecurePdfShare({ db, storage, userId: operationUserId, token: share.token });
+        } catch (cleanupError) {
+          logRedactedClientError("Incomplete signing request cleanup failed", cleanupError);
+        }
+      }
+      throw error;
+    }
+
+    const url = createSigningRequestUrl({ origin: window.location.origin, token: share.token });
     showToast("Secure signing link created.");
     return { ...share, url };
   };
@@ -4964,7 +5596,11 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       setEditorRouteState("not-found");
       return;
     }
-    if (activeDocumentId === documentId && pages.length) {
+    if (
+      activeDocumentId === documentId
+      && activeDocumentOwnerIdRef.current === storageOwnerId
+      && pages.length
+    ) {
       setEditorRouteState("ready");
       return;
     }
@@ -4981,6 +5617,10 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     }
 
     setEditorRouteState("loading");
+    if (resolved.document.cloudOnly && resolved.document.cloudDocumentId) {
+      openDocument(resolved.document).catch(() => setEditorRouteState("error"));
+      return;
+    }
     hydrateDocument(resolved.document).catch(() => setEditorRouteState("error"));
   }, [activeDocumentId, documentCatalogReady, documentId, documents, hydrateDocument, pages.length, storageOwnerId, view]);
 
@@ -5006,9 +5646,10 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     }
 
     if (postAuthAction === "save") {
-      showToast(location.state?.cloudSaveStatus === "error"
-        ? "Saved to your account. Cloud sync will retry when available."
-        : "This document is now saved to your account.");
+      setCloudSaveStage("idle");
+      setCloudSaveProgress(0);
+      setCloudSaveError("");
+      setCloudSaveDialogOpen(true);
     } else if (postAuthAction === "share") {
       setShareModalOpen(true);
     } else if (postAuthAction === "signature-request") {
@@ -5123,7 +5764,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       showToast(converted.message);
     } catch (error) {
       operation?.fail("editor_format_export_failed", { result: finishExportFormat });
-      console.error("Finished document conversion failed", error);
+      logRedactedClientError("Finished document conversion failed", error);
       setFinishExportError(error.message || "This format could not be created. Choose another format and try again.");
     } finally {
       setIsFinishExporting(false);
@@ -5205,6 +5846,14 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
         currentUser={currentUser}
         onLogout={logout}
         onUpgrade={() => setUpgradeModalOpen(true)}
+        cloudHistoryEnabled={cloudHistoryEnabled}
+        cloudCatalogStatus={cloudCatalogStatus}
+        cloudConfigured={isPrivateCloudConfigured}
+        onCloudHistoryChange={changePrivateCloudHistory}
+        cloudTrashDocuments={cloudTrashDocuments}
+        cloudTrashStatus={cloudTrashStatus}
+        onRestoreCloudDocument={restoreCloudDocument}
+        onPermanentlyDeleteCloudDocument={permanentlyDeleteCloudDocument}
       />
     );
   }
@@ -5339,19 +5988,21 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
                 <button type="button" role="menuitem" onClick={() => {
                   setIsMoreMenuOpen(false);
                   saveDocumentToAccount();
-                }}><LayoutDashboard size={16} /> Save to workspace</button>
+                }}><LayoutDashboard size={16} /> Save private cloud copy</button>
                 <button type="button" role="menuitem" onClick={() => {
                   renameActiveDocument();
                   setIsMoreMenuOpen(false);
                 }}><PenLine size={16} /> Rename document</button>
                 <button type="button" role="menuitem" onClick={() => {
-                  duplicateActiveDocument();
+                  void duplicateActiveDocument();
                   setIsMoreMenuOpen(false);
                 }}><FilePlus2 size={16} /> Duplicate document</button>
                 <button type="button" role="menuitem" onClick={() => {
-                  saveDocumentToAccount();
+                  saveActiveDocument(true).then((persisted) => {
+                    if (persisted) showToast("Saved in this browser.");
+                  });
                   setIsMoreMenuOpen(false);
-                }}><Save size={16} /> Save document</button>
+                }}><Save size={16} /> Save browser copy</button>
                 <span />
                 <button type="button" role="menuitem" onClick={() => {
                   addBlankPage();
@@ -6144,7 +6795,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
             } else {
               const nextSignatures = upsertSavedEditorSignature(savedSignatures, signature, () => makeId("saved-signature"));
               const nextSignature = nextSignatures[0];
-              persistEditorSignatureLibrary(nextSignatures);
+              persistEditorSignatureLibrary(nextSignatures, undefined, storageOwnerId);
               setSavedSignatures(nextSignatures);
               setSignatureText(nextSignature.content || signatureText);
               setActiveSignature(nextSignature);
@@ -6171,6 +6822,25 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
           error={finishExportError}
         />
       )}
+      <PrivateCloudSaveDialog
+        open={cloudSaveDialogOpen}
+        fileName={fileName}
+        stage={cloudSaveStage}
+        progress={cloudSaveProgress}
+        error={cloudSaveError}
+        cloudConfigured={isPrivateCloudConfigured}
+        onConfirm={saveActiveDocumentToPrivateCloud}
+        onClose={() => {
+          if (["preparing", "uploading", "verifying"].includes(cloudSaveStage)) return;
+          setCloudSaveDialogOpen(false);
+          setCloudSaveStage("idle");
+          setCloudSaveProgress(0);
+          setCloudSaveError("");
+          cloudSaveAbortRef.current?.abort();
+          cloudSaveAbortRef.current = null;
+          cloudSaveOperationRef.current = { ownerId: "", documentId: "", checksumSha256: "", key: "" };
+        }}
+      />
       {shareModalOpen && (
         <ShareModal
           fileName={fileName}
@@ -6288,7 +6958,7 @@ function LandingPage({ fileInputRef, onUpload, onSelectFiles, onLogin }) {
   const visibleTools = activeCategory === "All" ? tools : tools.filter((tool) => tool[2] === activeCategory);
   const faq = [
     ["Can I edit text that is already inside a PDF?", "Yes. The editor detects selectable PDF text and lets you edit, remove, restyle, or whiteout existing words before export."],
-    ["Do I need an account before uploading?", "No. The first upload is immediate. Accounts are used for saving documents, syncing work, and returning to recent files."],
+    ["Do I need an account before uploading?", "No. Uploading, editing, and downloading work without an account. Sign in only for an optional private cloud copy or a sharing workflow you choose."],
     ["Does signing work inside the browser?", "Yes. You can type, draw, or place a signature, then download or share the completed PDF."],
     ["What happens after I upload?", "The file opens in the editor with page thumbnails, zoom controls, text tools, drawing, comments, fields, and export actions."],
     ["Can teams use this later?", "Yes. The dashboard, cloud save state, and sharing surfaces are already designed around team document workflows."],
@@ -6517,7 +7187,7 @@ function AuthPage({ mode, setMode, onBack, onComplete, onPasswordReset, authRead
   const authMetadata = isSignup
     ? {
         title: "Create Your PDFEnrich Account",
-        description: "Create a PDFEnrich account to keep optional cloud history and workspace preferences together.",
+        description: "Create a PDFEnrich account when you want to save a specific private cloud copy or use secure sharing.",
         canonicalUrl: ROUTE_PATHS.signup,
       }
     : isPasswordReset
@@ -7187,6 +7857,14 @@ export function UploadLanding({
   onMoveDocument,
   currentUser,
   onLogout,
+  cloudHistoryEnabled = false,
+  cloudCatalogStatus = "local-only",
+  cloudConfigured = false,
+  onCloudHistoryChange,
+  cloudTrashDocuments = [],
+  cloudTrashStatus = "idle",
+  onRestoreCloudDocument,
+  onPermanentlyDeleteCloudDocument,
 }) {
   const activeSection = section || "Home";
   const sectionPaths = {
@@ -7318,6 +7996,7 @@ export function UploadLanding({
       ? a.name.localeCompare(b.name)
       : new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0));
   const storageUsed = userDocuments.reduce((total, documentRecord) => total + (documentRecord.size || 0), 0);
+  const privateCloudDocumentCount = userDocuments.filter((documentRecord) => documentRecord.cloudDocumentId).length;
   const isUploading = uploadStage?.status && !["idle", "complete", "error"].includes(uploadStage.status);
   const quickActionDefinitions = [
     { id: "edit-pdf", label: "Edit PDF", detail: "Edit text, images, and pages", icon: PenLine, tone: "citron", action: onSelectFiles },
@@ -7792,12 +8471,33 @@ export function UploadLanding({
         <section className="document-library enterprise-workspace-panel">
           <div className="library-head">
             <h2>Settings</h2>
-            <span className="settings-status">Local workspace</span>
+            <span className="settings-status">
+              {cloudHistoryEnabled ? "Private cloud history on" : "Browser-local by default"}
+            </span>
           </div>
           <div className="settings-grid">
             <article>
               <strong>Autosave</strong>
-              <span>Enabled for edits, annotations, page organization, and signatures.</span>
+              <span>Browser-only for edits, annotations, page organization, and signatures.</span>
+            </article>
+            <article>
+              <strong>Private cloud history</strong>
+              <span>{cloudHistoryEnabled
+                ? `${privateCloudDocumentCount} private cloud document${privateCloudDocumentCount === 1 ? "" : "s"} visible. New local files upload only when you choose Save private cloud copy.`
+                : "Off. Signing in and local autosave never upload your PDFs."}</span>
+              <button
+                type="button"
+                disabled={!cloudConfigured || cloudCatalogStatus === "updating"}
+                onClick={() => onCloudHistoryChange?.(!cloudHistoryEnabled)}
+              >
+                {!cloudConfigured
+                  ? "Not connected"
+                  : cloudCatalogStatus === "updating"
+                    ? "Updating…"
+                    : cloudHistoryEnabled
+                      ? "Hide cloud history"
+                      : "Enable cloud history"}
+              </button>
             </article>
             <article>
               <strong>Favorites</strong>
@@ -7809,7 +8509,7 @@ export function UploadLanding({
             </article>
             <article>
               <strong>Storage</strong>
-              <span>{userDocuments.length} document{userDocuments.length === 1 ? "" : "s"} saved for this account, {formatBytes(storageUsed)} used.</span>
+              <span>{userDocuments.length} visible document{userDocuments.length === 1 ? "" : "s"}, {formatBytes(storageUsed)} represented. Cloud quota is confirmed by the server when saving.</span>
             </article>
             <article>
               <strong>Export policy</strong>
@@ -7825,9 +8525,63 @@ export function UploadLanding({
       return <OwnerAnalyticsPanel searchQuery={searchQuery} />;
     }
 
-    if (["Trash", "Billing", "Team", "Integrations"].includes(activeSection)) {
+    if (activeSection === "Trash") {
+      return (
+        <section className="dashboard-editorial-documents dashboard-cloud-trash" aria-labelledby="cloud-trash-title">
+          <header className="dashboard-documents-toolbar">
+            <div>
+              <strong id="cloud-trash-title">Private cloud Trash</strong>
+              <small>Restore a document during its recovery window, or permanently delete every saved version.</small>
+            </div>
+          </header>
+          {!cloudConfigured ? (
+            <div className="dashboard-premium-empty">
+              <span><Trash2 size={25} /></span>
+              <div><strong>Private cloud storage is not connected</strong><small>Browser-only documents are deleted locally and do not enter cloud Trash.</small></div>
+            </div>
+          ) : !cloudHistoryEnabled ? (
+            <div className="dashboard-premium-empty">
+              <span><Trash2 size={25} /></span>
+              <div><strong>Cloud history is hidden</strong><small>Enable private cloud history in Settings to review recoverable documents.</small></div>
+            </div>
+          ) : cloudTrashStatus === "loading" ? (
+            <div className="dashboard-premium-empty">
+              <span><LoaderCircle className="is-spinning" size={25} /></span>
+              <div><strong>Loading recoverable documents</strong><small>No document contents are sent to analytics.</small></div>
+            </div>
+          ) : cloudTrashStatus === "error" ? (
+            <div className="dashboard-premium-empty">
+              <span><AlertTriangle size={25} /></span>
+              <div><strong>Trash is temporarily unavailable</strong><small>No deletion or restore was attempted.</small></div>
+            </div>
+          ) : cloudTrashDocuments.length ? (
+            <div className="dashboard-library-table">
+              <div className="dashboard-library-row dashboard-library-head"><span>Name</span><span>Deleted</span><span>Status</span><span>Size</span><span>Actions</span></div>
+              {cloudTrashDocuments.map((documentRecord) => (
+                <article key={documentRecord.cloudDocumentId} className="dashboard-library-row">
+                  <div className="dashboard-library-name"><span>{renderDocumentPreview(documentRecord, true)}</span><strong>{documentRecord.name}</strong></div>
+                  <span>{formatDashboardRelativeDate(documentRecord.updatedAt)}</span>
+                  <span><em>Recoverable</em></span>
+                  <span>{documentRecord.size ? formatBytes(documentRecord.size) : "Private PDF"}</span>
+                  <div className="dashboard-library-actions">
+                    <button type="button" onClick={() => onRestoreCloudDocument?.(documentRecord)}>Restore</button>
+                    <button type="button" className="is-danger" onClick={() => onPermanentlyDeleteCloudDocument?.(documentRecord)}>Delete forever</button>
+                  </div>
+                </article>
+              ))}
+            </div>
+          ) : (
+            <div className="dashboard-premium-empty">
+              <span><Trash2 size={25} /></span>
+              <div><strong>Trash is empty</strong><small>Deleted private cloud copies appear here during the configured recovery window.</small></div>
+            </div>
+          )}
+        </section>
+      );
+    }
+
+    if (["Billing", "Team", "Integrations"].includes(activeSection)) {
       const sectionDetails = {
-        Trash: [Trash2, "Deleted documents", "Files moved to trash will be available here before permanent removal."],
         Billing: [CreditCard, "Plans and billing", "Manage your PDFEnrich plan, invoices, and payment details."],
         Team: [Users, "Workspace members", "Invite teammates and manage document collaboration access."],
         Integrations: [Plug, "Connected apps", "Connect cloud storage and workflow tools to your PDF workspace."],
@@ -8305,7 +9059,7 @@ function Inspector({
             <input value={signatureText} onChange={(event) => setSignatureText(event.target.value)} />
           </label>
           <button type="button" className="panel-action" onClick={onSignatureModal}><PenLine size={17} /> Create signature</button>
-          <button type="button" className="panel-action" onClick={onSave}><Save size={17} /> Save document</button>
+          <button type="button" className="panel-action" onClick={onSave}><Save size={17} /> Save private cloud copy</button>
           <button type="button" className="panel-action" onClick={onExport}><Download size={17} /> Export PDF</button>
           <button type="button" className="panel-action" onClick={onShare}><Share2 size={17} /> Share</button>
           <button type="button" className="panel-action" onClick={onPrint}><Printer size={17} /> Print</button>
@@ -8537,7 +9291,7 @@ function SignedPdfReviewModal({ review, onClose }) {
         setCurrentPage((page) => clampPdfReviewPage(page, loadedDocument.numPages));
       } catch (error) {
         if (!active) return;
-        console.error("Signed PDF review failed to load", error);
+        logRedactedClientError("Signed PDF review failed to load", error);
         setReviewError("This signed PDF could not be opened for review.");
         setReviewStatus("error");
       }
@@ -8598,7 +9352,7 @@ function SignedPdfReviewModal({ review, onClose }) {
         if (active) setReviewStatus("ready");
       } catch (error) {
         if (!active || error?.name === "RenderingCancelledException") return;
-        console.error("Signed PDF review page failed to render", error);
+        logRedactedClientError("Signed PDF review page failed to render", error);
         setReviewError(`Page ${currentPage} could not be rendered.`);
         setReviewStatus("error");
       }
@@ -9112,7 +9866,7 @@ function UpgradeModal({ onClose, onSelectPlan }) {
       name: "Pro",
       price: "$12",
       detail: "For people editing and signing PDFs every week.",
-      features: ["Cloud document sync", "Reusable signatures", "Share links and invite drafts", "Larger export workflows"],
+      features: ["Explicit private cloud copies", "Reusable signatures", "Share links and invite drafts", "Larger export workflows"],
       action: "Choose Pro",
       featured: true,
     },

@@ -14,6 +14,7 @@
     "lint": "eslint .",
     "typecheck": "tsc --project jsconfig.json --noEmit",
     "test": "vitest run",
+    "test:security": "vitest run tests/security tests/unit/private-cloud-documents.test.js tests/unit/privacy-safe-route.test.js tests/unit/security-headers.test.js",
     "test:e2e": "npm run build && node --test tests/e2e/*.test.mjs",
     "test:browser": "npm run build && playwright test",
     "test:quality": "npm run build && npm run audit:quality && node scripts/run-priority-one-quality.mjs && node scripts/audit-product-quality.mjs --record-passed"

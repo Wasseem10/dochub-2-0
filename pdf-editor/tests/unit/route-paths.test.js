@@ -17,7 +17,9 @@ describe("route path configuration", () => {
       ROUTE_PATHS.signup,
       ROUTE_PATHS.forgotPassword,
       ROUTE_PATHS.editorPattern,
+      ROUTE_PATHS.share,
       ROUTE_PATHS.sharePattern,
+      ROUTE_PATHS.sign,
       ROUTE_PATHS.signPattern,
       ROUTE_PATHS.comparisonPattern,
       ...COMPARISON_PATHS,
@@ -32,8 +34,8 @@ describe("route path configuration", () => {
 
   it("encodes dynamic route identifiers", () => {
     expect(editorPath("doc / 1")).toBe("/app/editor/doc%20%2F%201");
-    expect(sharePath("token / 1")).toBe("/share/token%20%2F%201");
-    expect(signPath("token / 1")).toBe("/sign/token%20%2F%201");
+    expect(sharePath("token / 1")).toBe("/share#token=token+%2F+1");
+    expect(signPath("token / 1")).toBe("/sign#token=token+%2F+1");
   });
 
   it("preserves the uploaded public document query when navigation state is cleared", () => {

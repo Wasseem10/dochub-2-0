@@ -1,0 +1,22 @@
+{
+  "name": "pdfenrich-private-cloud-functions",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@11.9.0",
+  "engines": {
+    "node": "22"
+  },
+  "main": "src/index.js",
+  "scripts": {
+    "test": "vitest run ../tests/security"
+  },
+  "dependencies": {
+    "firebase-admin": "^13.4.0",
+    "firebase-functions": "^6.4.0",
+    "google-auth-library": "^10.2.1",
+    "pdfjs-dist": "^6.1.200"
+  },
+  "devDependencies": {
+    "vitest": "^3.2.4"
+  }
+}

@@ -4,6 +4,7 @@ import {
   deleteUser,
   EmailAuthProvider,
   getAdditionalUserInfo,
+  getIdTokenResult,
   onAuthStateChanged,
   reauthenticateWithCredential,
   reauthenticateWithPopup,
@@ -13,10 +14,17 @@ import {
   signOut,
   updateProfile,
 } from "firebase/auth";
-import { auth, db, googleProvider, isFirebaseConfigured, storage } from "../firebase.js";
+import { auth, googleProvider, isFirebaseConfigured } from "../firebase.js";
 import { trackProductEvent } from "../analytics/productAnalytics.js";
-import { revokeSecurePdfShare } from "../sharing/securePdfSharing.js";
-import { deleteLocalDocuments } from "../tools/localDocumentStore.js";
+import {
+  clearCloudHistoryPreference,
+  deletePrivateCloudAccountData,
+  isPrivateCloudConfigured,
+} from "../cloud/privateCloudDocuments.js";
+import { clearEditorSignatureLibrary } from "../tools/editorSignature.js";
+import { clearEditorSession, clearEditorSessionsForOwner } from "../tools/editorSessionStore.js";
+import { deleteLocalDocuments, loadLocalDocuments } from "../tools/localDocumentStore.js";
+import { logRedactedClientError } from "../monitoring/productionMonitoring.js";
 import { AuthContext } from "./AuthContext.jsx";
 import { syncAuthUserProfile } from "./authUserProfile.js";
 
@@ -50,44 +58,50 @@ export function mapFirebaseUser(user) {
     name: user.displayName || fallbackName,
     photoURL: user.photoURL || "",
     providers: user.providerData?.map((provider) => provider.providerId).filter(Boolean) || [],
+    isAnalyticsOwner: false,
   };
 }
 
-async function purgeUserData(userId) {
-  const [{ collection, deleteDoc, doc, getDocs, query, where }, { deleteObject, ref }] = await Promise.all([
-    import("firebase/firestore"),
-    import("firebase/storage"),
+async function mapFirebaseUserWithClaims(user) {
+  const mapped = mapFirebaseUser(user);
+  if (!mapped) return null;
+  try {
+    const token = await getIdTokenResult(user);
+    return { ...mapped, isAnalyticsOwner: token.claims?.pdfenrichAdmin === true };
+  } catch {
+    return mapped;
+  }
+}
+
+async function clearBrowserAccountData(userId) {
+  const localDocuments = await loadLocalDocuments(userId);
+  const individualSessionResults = await Promise.all([
+    ...localDocuments.map((documentRecord) => clearEditorSession(documentRecord.id, userId)),
+    ...localDocuments.map((documentRecord) => clearEditorSession(documentRecord.id)),
   ]);
-  const documentSnapshot = db ? await getDocs(collection(db, "users", userId, "documents")) : null;
-  for (const documentRecord of documentSnapshot?.docs || []) {
-    const payloadPath = documentRecord.data()?.payloadPath;
-    if (payloadPath && storage) {
-      try {
-        await deleteObject(ref(storage, payloadPath));
-      } catch (error) {
-        if (error?.code !== "storage/object-not-found") throw error;
-      }
-    }
-    await deleteDoc(doc(db, "users", userId, "documents", documentRecord.id));
+  if (individualSessionResults.some((result) => result !== true)) {
+    throw new Error("browser_cleanup_failed");
   }
-  for (const collectionName of ["productAnalyticsEvents", "supportRequests"]) {
-    if (!db) continue;
-    const snapshot = await getDocs(query(collection(db, collectionName), where("actorId", "==", userId)));
-    for (const record of snapshot.docs) await deleteDoc(record.ref);
-  }
-  if (db) {
-    const shareSnapshot = await getDocs(query(collection(db, "shareLinks"), where("ownerId", "==", userId)));
-    for (const shareRecord of shareSnapshot.docs) {
-      await revokeSecurePdfShare({ db, storage, userId, token: shareRecord.id });
-    }
-  }
-  if (db) await deleteDoc(doc(db, "authUserProfiles", userId));
-  await deleteLocalDocuments(userId).catch(() => {});
+  await deleteLocalDocuments(userId);
+  if ((await loadLocalDocuments(userId)).length) throw new Error("browser_cleanup_failed");
+  if (await clearEditorSessionsForOwner(userId) !== true) throw new Error("browser_cleanup_failed");
+  if (!clearEditorSignatureLibrary(undefined, userId)) throw new Error("browser_cleanup_failed");
+  if (!clearCloudHistoryPreference(userId)) throw new Error("browser_cleanup_failed");
   try {
     Object.keys(window.localStorage).filter((key) => key.includes(userId)).forEach((key) => window.localStorage.removeItem(key));
   } catch {
-    // Account data is already removed from Firebase even if browser storage is unavailable.
+    throw new Error("browser_cleanup_failed");
   }
+}
+
+async function purgeUserData(userId) {
+  if (!isPrivateCloudConfigured) {
+    throw new Error(
+      "Account deletion is unavailable until the private deletion service is configured. Your account and cloud data were not partially deleted.",
+    );
+  }
+  await deletePrivateCloudAccountData({ expectedUserId: userId });
+  await clearBrowserAccountData(userId);
 }
 
 export function formatAuthError(error) {
@@ -99,7 +113,13 @@ export function formatAuthError(error) {
   if (code.includes("auth/popup-closed-by-user")) return "Google sign-in was closed before it finished.";
   if (code.includes("auth/unauthorized-domain")) return "This domain is not authorized in Firebase Authentication settings.";
   if (code.includes("auth/requires-recent-login")) return "For security, sign out and sign in again before deleting your account.";
-  return error?.message || "Authentication failed. Try again.";
+  if (error?.message === "browser_cleanup_failed") {
+    return "Cloud data was removed, but this browser could not clear every local copy. Clear PDFEnrich site data, then try account deletion again.";
+  }
+  if (error?.code === "account_purge_unconfirmed") {
+    return "Private cloud deletion was not confirmed, so your sign-in account was kept. Try again later.";
+  }
+  return "Authentication failed. Try again.";
 }
 
 export default function FirebaseAuthProvider({ children }) {
@@ -113,12 +133,13 @@ export default function FirebaseAuthProvider({ children }) {
       return undefined;
     }
 
-    return onAuthStateChanged(auth, (user) => {
-      setCurrentUser(mapFirebaseUser(user));
+    return onAuthStateChanged(auth, async (user) => {
+      const mappedUser = user ? await mapFirebaseUserWithClaims(user) : null;
+      if (auth.currentUser?.uid === user?.uid || !user) setCurrentUser(mappedUser);
       setAuthReady(true);
       if (user) {
         syncAuthUserProfile(user).catch((error) => {
-          if (import.meta.env.DEV) console.warn("[PDFEnrich auth] Could not update the owner sign-in ledger", error?.code || error?.message);
+          logRedactedClientError("Could not update the owner sign-in ledger", error);
         });
       }
     });
@@ -150,7 +171,7 @@ export default function FirebaseAuthProvider({ children }) {
         if (mode === "signup" && provider !== "google" && name?.trim()) {
           await updateProfile(credential.user, { displayName: name.trim() });
         }
-        const user = mapFirebaseUser(auth.currentUser || credential.user);
+        const user = await mapFirebaseUserWithClaims(auth.currentUser || credential.user);
         const additionalUserInfo = getAdditionalUserInfo(credential);
         const isNewAccount = provider === "google" ? Boolean(additionalUserInfo?.isNewUser) : mode === "signup";
         trackProductEvent(isNewAccount ? "account_signed_up" : "account_logged_in", {
@@ -174,12 +195,13 @@ export default function FirebaseAuthProvider({ children }) {
     },
     async deleteAccount({ password = "" } = {}) {
       if (!auth && currentUser?.providers?.includes("local")) {
-        await deleteLocalDocuments(currentUser.uid).catch(() => {});
         try {
+          await clearBrowserAccountData(currentUser.uid);
           window.localStorage.removeItem(LOCAL_AUTH_STORAGE_KEY);
           Object.keys(window.localStorage).filter((key) => key.includes(currentUser.uid)).forEach((key) => window.localStorage.removeItem(key));
-        } catch {
-          // Clearing the in-memory session still signs the local user out.
+          if (window.localStorage.getItem(LOCAL_AUTH_STORAGE_KEY)) throw new Error("browser_cleanup_failed");
+        } catch (error) {
+          return { ok: false, error: formatAuthError(error) };
         }
         setCurrentUser(null);
         return { ok: true };

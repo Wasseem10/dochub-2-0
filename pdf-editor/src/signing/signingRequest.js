@@ -1,5 +1,9 @@
+import { doc, getDoc, serverTimestamp, setDoc, Timestamp, updateDoc } from "firebase/firestore";
+import { hashShareToken, isValidShareToken } from "../sharing/securePdfSharing.js";
+
 const REQUEST_VERSION = 1;
 const FIELD_TYPES = new Set(["text", "signature", "initials", "date", "checkbox"]);
+const COMPLETION_CHECKSUM_PATTERN = /^[a-f0-9]{64}$/;
 
 function base64UrlEncode(bytes) {
   let binary = "";
@@ -77,7 +81,114 @@ export function signingRequestFromLocation(location = globalThis.location) {
   return decodeSigningRequestPayload(hash.get("request"));
 }
 
-export function createSigningRequestUrl({ origin, token, payload }) {
-  const encoded = encodeSigningRequestPayload(payload);
-  return `${String(origin || "").replace(/\/$/, "")}/sign/${encodeURIComponent(token)}#request=${encoded}`;
+export function signingRequestCapabilityFromLocation(location = globalThis.location) {
+  const fragment = new URLSearchParams(String(location?.hash || "").replace(/^#/, ""));
+  const fragmentToken = fragment.get("token") || "";
+  const legacyRequest = decodeSigningRequestPayload(fragment.get("request"));
+  if (isValidShareToken(fragmentToken)) {
+    return { token: fragmentToken, legacyPath: false, legacyRequest };
+  }
+  const match = String(location?.pathname || "").match(/^\/sign\/([^/]+)\/?$/);
+  if (!match) return { token: "", legacyPath: false, legacyRequest };
+  try {
+    const legacyToken = decodeURIComponent(match[1]);
+    return {
+      token: isValidShareToken(legacyToken) ? legacyToken : "",
+      legacyPath: true,
+      legacyRequest,
+    };
+  } catch {
+    return { token: "", legacyPath: true, legacyRequest };
+  }
+}
+
+export function createSigningRequestUrl({ origin, token }) {
+  if (!isValidShareToken(token)) throw new Error("A valid signing token is required.");
+  const fragment = new URLSearchParams({ token });
+  return `${String(origin || "").replace(/\/$/, "")}/sign#${fragment.toString()}`;
+}
+
+function requestIdForHash(tokenHash) {
+  return `request-${tokenHash.slice(0, 16)}`;
+}
+
+function timestampDate(value) {
+  return value?.toDate?.() || new Date(value || 0);
+}
+
+export async function storeSigningRequest({ db, userId, token, payload }) {
+  if (!db || !userId) throw new Error("Secure signing storage is not configured.");
+  const tokenHash = await hashShareToken(token);
+  const normalized = createSigningRequestPayload({
+    ...payload,
+    requestId: requestIdForHash(tokenHash),
+  });
+  const createdAt = new Date(normalized.createdAt);
+  const expiresAt = new Date(normalized.expiresAt);
+  await setDoc(doc(db, "signingRequests", tokenHash), {
+    ownerId: userId,
+    version: REQUEST_VERSION,
+    requestId: normalized.requestId,
+    recipient: normalized.recipient,
+    requester: normalized.requester,
+    message: normalized.message,
+    fields: normalized.fields,
+    status: "active",
+    createdAt: Timestamp.fromDate(createdAt),
+    expiresAt: Timestamp.fromDate(expiresAt),
+  });
+  return { tokenHash, request: normalized, expiresAt };
+}
+
+export async function loadSigningRequest({
+  db,
+  token,
+  legacyRequest = null,
+  now = new Date(),
+}) {
+  if (!db || !isValidShareToken(token)) return { status: "invalid" };
+  const tokenHash = await hashShareToken(token);
+  try {
+    const snapshot = await getDoc(doc(db, "signingRequests", tokenHash));
+    if (!snapshot.exists()) {
+      if (!legacyRequest) return { status: "invalid" };
+      const legacyExpiration = new Date(legacyRequest.expiresAt);
+      return legacyExpiration.getTime() > now.getTime()
+        ? { status: "ready", request: legacyRequest, legacy: true }
+        : { status: "expired" };
+    }
+    const record = snapshot.data();
+    const expiresAt = timestampDate(record.expiresAt);
+    if (!Number.isFinite(expiresAt.getTime()) || expiresAt.getTime() <= now.getTime()) {
+      return { status: "expired" };
+    }
+    if (record.status !== "active") {
+      return { status: record.status === "completed" ? "completed" : "invalid" };
+    }
+    const request = createSigningRequestPayload({
+      requestId: record.requestId || requestIdForHash(tokenHash),
+      recipient: record.recipient,
+      requester: record.requester,
+      message: record.message,
+      fields: record.fields,
+      createdAt: timestampDate(record.createdAt),
+      expiresAt,
+    });
+    return { status: "ready", request, tokenHash, legacy: false };
+  } catch (error) {
+    if (error?.code === "permission-denied") return { status: "invalid" };
+    throw error;
+  }
+}
+
+export async function markSigningRequestCompleted({ db, token, checksum }) {
+  if (!db || !isValidShareToken(token) || !COMPLETION_CHECKSUM_PATTERN.test(String(checksum || ""))) {
+    throw new Error("The signing completion record is invalid.");
+  }
+  const tokenHash = await hashShareToken(token);
+  await updateDoc(doc(db, "signingRequests", tokenHash), {
+    status: "completed",
+    completedAt: serverTimestamp(),
+    completionChecksum: checksum,
+  });
 }

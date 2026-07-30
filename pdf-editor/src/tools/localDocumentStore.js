@@ -1,6 +1,7 @@
 const DATABASE_NAME = "realpdf-local-workspace";
 const DATABASE_VERSION = 1;
 const STORE_NAME = "documents";
+const ownerWriteQueues = new Map();
 
 function openDatabase() {
   return new Promise((resolve, reject) => {
@@ -51,7 +52,7 @@ export async function loadLocalDocuments(ownerId) {
   }
 }
 
-export async function saveLocalDocuments(ownerId, documents) {
+async function commitLocalDocuments(ownerId, documents) {
   if (!ownerId) throw new Error("A local owner ID is required.");
   const database = await openDatabase();
   try {
@@ -83,5 +84,19 @@ export async function deleteLocalDocuments(ownerId) {
     await transactionDone(deleteTransaction);
   } finally {
     database.close();
+  }
+}
+
+export async function saveLocalDocuments(ownerId, documents) {
+  if (!ownerId) throw new Error("A local owner ID is required.");
+  const previous = ownerWriteQueues.get(ownerId) || Promise.resolve();
+  const operation = previous
+    .catch(() => {})
+    .then(() => commitLocalDocuments(ownerId, documents));
+  ownerWriteQueues.set(ownerId, operation);
+  try {
+    return await operation;
+  } finally {
+    if (ownerWriteQueues.get(ownerId) === operation) ownerWriteQueues.delete(ownerId);
   }
 }

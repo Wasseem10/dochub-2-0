@@ -38,4 +38,3 @@ if (auth) {
 export const googleProvider = firebaseApp ? new GoogleAuthProvider() : null;
 export const db = firebaseApp ? getFirestore(firebaseApp) : null;
 export const storage = firebaseApp ? getStorage(firebaseApp) : null;
-export const isCloudPersistenceConfigured = Boolean(isFirebaseConfigured && db && storage);

@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import {
+  clearAllEditorSessions,
+  clearEditorSessionsForOwner,
   clearEditorSession,
   clearEditorSessionMemory,
   loadEditorSession,
@@ -39,5 +41,35 @@ describe("temporary editor session storage", () => {
     await saveEditorSession("guest-document", { zoom: 100 });
     await clearEditorSession("guest-document");
     await expect(loadEditorSession("guest-document")).resolves.toBeNull();
+  });
+
+  it("clears all sensitive editor sessions during account deletion", async () => {
+    await saveEditorSession("doc-a", { sourceFile: { name: "a.pdf" } });
+    await saveEditorSession("doc-b", { sourceFile: { name: "b.pdf" } });
+    await clearAllEditorSessions();
+    await expect(loadEditorSession("doc-a")).resolves.toBeNull();
+    await expect(loadEditorSession("doc-b")).resolves.toBeNull();
+  });
+
+  it("clears only sessions belonging to the deleted account", async () => {
+    await saveEditorSession("account-a-document", { ownerId: "account-a", zoom: 90 });
+    await saveEditorSession("account-b-document", { ownerId: "account-b", zoom: 110 });
+
+    await clearEditorSessionsForOwner("account-a");
+
+    await expect(loadEditorSession("account-a-document", "account-a")).resolves.toBeNull();
+    await expect(loadEditorSession("account-b-document", "account-b")).resolves.toMatchObject({
+      ownerId: "account-b",
+      zoom: 110,
+    });
+  });
+
+  it("does not return another owner's colliding document session", async () => {
+    await saveEditorSession("same-document-id", { ownerId: "account-a", zoom: 90 });
+    await saveEditorSession("same-document-id", { ownerId: "account-b", zoom: 110 });
+
+    await expect(loadEditorSession("same-document-id", "account-a")).resolves.toMatchObject({ zoom: 90 });
+    await expect(loadEditorSession("same-document-id", "account-b")).resolves.toMatchObject({ zoom: 110 });
+    await expect(loadEditorSession("same-document-id", "account-c")).resolves.toBeNull();
   });
 });

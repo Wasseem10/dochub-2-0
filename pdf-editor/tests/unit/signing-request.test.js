@@ -4,7 +4,9 @@ import {
   createSigningRequestUrl,
   decodeSigningRequestPayload,
   encodeSigningRequestPayload,
+  signingRequestCapabilityFromLocation,
 } from "../../src/signing/signingRequest.js";
+import { createShareToken } from "../../src/sharing/securePdfSharing.js";
 
 const request = {
   requestId: "request-123",
@@ -28,10 +30,25 @@ describe("secure signing request payloads", () => {
     expect(encoded).not.toContain("Please sign");
   });
 
-  it("creates a signer route with metadata in the URL fragment", () => {
-    const url = createSigningRequestUrl({ origin: "https://pdfenrich.example/", token: "abc_123", payload: request });
-    expect(url).toMatch(/^https:\/\/pdfenrich\.example\/sign\/abc_123#request=/);
-    expect(url).not.toContain("Jordan@example.com");
+  it("creates a fragment-only signer route without recipient metadata", () => {
+    const token = createShareToken();
+    const url = createSigningRequestUrl({ origin: "https://pdfenrich.example/", token, payload: request });
+    expect(url).toBe(`https://pdfenrich.example/sign#token=${token}`);
+    expect(url).not.toContain("request=");
+    expect(url).not.toContain(request.recipient.email);
+    expect(url).not.toContain(request.message);
+  });
+
+  it("captures legacy request data in memory while identifying the route for normalization", () => {
+    const token = createShareToken();
+    const encoded = encodeSigningRequestPayload(request);
+    const capability = signingRequestCapabilityFromLocation({
+      pathname: `/sign/${token}`,
+      hash: `#request=${encoded}`,
+    });
+    expect(capability.token).toBe(token);
+    expect(capability.legacyPath).toBe(true);
+    expect(capability.legacyRequest?.recipient.email).toBe("jordan@example.com");
   });
 
   it("rejects requests without a valid recipient or fields", () => {

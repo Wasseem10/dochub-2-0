@@ -8,12 +8,19 @@ service cloud.firestore {
 
     function isAnalyticsOwner() {
       return isSignedIn()
-        && request.auth.token.email == "wasseem700@gmail.com";
+        && request.auth.token.pdfenrichAdmin == true;
+    }
+
+    function accountAcceptsContentWrites(userId) {
+      return !exists(/databases/$(database)/documents/_privateCloudAccountState/$(userId))
+        || get(/databases/$(database)/documents/_privateCloudAccountState/$(userId)).data.state == "active";
     }
 
     function hasValidAnalyticsActor() {
       return (request.auth == null && request.resource.data.actorId == null)
-        || (isSignedIn() && request.resource.data.actorId == request.auth.uid);
+        || (isSignedIn()
+          && request.resource.data.actorId == request.auth.uid
+          && accountAcceptsContentWrites(request.auth.uid));
     }
 
     function hasValidAnalyticsProperties() {
@@ -53,12 +60,39 @@ service cloud.firestore {
     }
 
     match /users/{userId}/documents/{documentId} {
-      allow read, create, update, delete: if isSignedIn() && request.auth.uid == userId;
+      // Temporary read/delete-only bridge for the prior JSON workspace format.
+      // New records and all v2 private metadata are server-authoritative.
+      allow get, list, delete: if isSignedIn()
+        && request.auth.uid == userId
+        && resource.data.ownerId == request.auth.uid
+        && resource.data.payloadPath == "users/" + userId + "/documents/" + documentId + "/document.json";
+      allow create, update: if false;
+    }
+
+    match /users/{userId}/privateDocuments/{documentId} {
+      allow read, write: if false;
+
+      match /versions/{versionId} {
+        allow read, write: if false;
+      }
+    }
+
+    match /users/{userId}/privateCloudSettings/{settingId} {
+      allow read, write: if false;
+    }
+
+    match /users/{userId}/privateCloudUploads/{uploadId} {
+      allow read, write: if false;
+    }
+
+    match /users/{userId}/privateCloudShares/{shareId} {
+      allow read, write: if false;
     }
 
     match /authUserProfiles/{userId} {
       allow create, update: if isSignedIn()
         && request.auth.uid == userId
+        && accountAcceptsContentWrites(userId)
         && request.resource.data.keys().hasAll([
           "uid",
           "email",
@@ -91,12 +125,32 @@ service cloud.firestore {
         || (isSignedIn() && request.auth.uid == userId);
     }
 
-    match /shareLinks/{token} {
-      allow get: if (resource.data.status == "active" && resource.data.expiresAt > request.time)
-        || (isSignedIn() && resource.data.ownerId == request.auth.uid);
+    match /shareLinks/{shareId} {
+      function isCurrentShareId() {
+        return shareId.matches("^[a-f0-9]{64}$");
+      }
+
+      function isLegacyShareId() {
+        return shareId.matches("^[A-Za-z0-9_-]{32}$");
+      }
+
+      function sourceDocumentIsActive() {
+        return !("sourceDocumentId" in resource.data)
+          || (exists(/databases/$(database)/documents/users/$(resource.data.ownerId)/privateDocuments/$(resource.data.sourceDocumentId))
+            && get(/databases/$(database)/documents/users/$(resource.data.ownerId)/privateDocuments/$(resource.data.sourceDocumentId)).data.ownerId == resource.data.ownerId
+            && get(/databases/$(database)/documents/users/$(resource.data.ownerId)/privateDocuments/$(resource.data.sourceDocumentId)).data.state == "active");
+      }
+
+      allow get: if (isCurrentShareId() || isLegacyShareId())
+        && ((resource.data.status == "active"
+            && resource.data.expiresAt > request.time
+            && accountAcceptsContentWrites(resource.data.ownerId)
+            && sourceDocumentIsActive())
+          || (isSignedIn() && resource.data.ownerId == request.auth.uid));
       allow list: if false;
       allow create: if isSignedIn()
-        && token.size() == 32
+        && isCurrentShareId()
+        && accountAcceptsContentWrites(request.auth.uid)
         && request.resource.data.keys().hasAll([
           "ownerId",
           "fileName",
@@ -109,6 +163,7 @@ service cloud.firestore {
         ])
         && request.resource.data.keys().hasOnly([
           "ownerId",
+          "sourceDocumentId",
           "fileName",
           "size",
           "contentType",
@@ -120,6 +175,12 @@ service cloud.firestore {
           "expiresAt"
         ])
         && request.resource.data.ownerId == request.auth.uid
+        && (!("sourceDocumentId" in request.resource.data)
+          || (request.resource.data.sourceDocumentId is string
+            && request.resource.data.sourceDocumentId.matches("^doc_[A-Za-z0-9_-]{24}$")
+            && exists(/databases/$(database)/documents/users/$(request.auth.uid)/privateDocuments/$(request.resource.data.sourceDocumentId))
+            && get(/databases/$(database)/documents/users/$(request.auth.uid)/privateDocuments/$(request.resource.data.sourceDocumentId)).data.ownerId == request.auth.uid
+            && get(/databases/$(database)/documents/users/$(request.auth.uid)/privateDocuments/$(request.resource.data.sourceDocumentId)).data.state == "active"))
         && request.resource.data.fileName is string
         && request.resource.data.fileName.size() > 0
         && request.resource.data.fileName.size() <= 124
@@ -127,14 +188,9 @@ service cloud.firestore {
         && request.resource.data.size > 0
         && request.resource.data.size <= 26214400
         && request.resource.data.contentType == "application/pdf"
-        && ((("storagePath" in request.resource.data)
-            && request.resource.data.storagePath == "shares/" + token + "/document.pdf"
-            && !("chunkCount" in request.resource.data))
-          || (("chunkCount" in request.resource.data)
-            && request.resource.data.chunkCount is int
-            && request.resource.data.chunkCount > 0
-            && request.resource.data.chunkCount <= 52
-            && !("storagePath" in request.resource.data)))
+        && "storagePath" in request.resource.data
+        && request.resource.data.storagePath == "shares/" + shareId + "/document.pdf"
+        && !("chunkCount" in request.resource.data)
         && request.resource.data.status == "uploading"
         && request.resource.data.allowDownload is bool
         && request.resource.data.createdAt is timestamp
@@ -143,35 +199,165 @@ service cloud.firestore {
         && request.resource.data.expiresAt <= request.time + duration.value(30, "d");
       allow update: if isSignedIn()
         && resource.data.ownerId == request.auth.uid
-        && resource.data.status == "uploading"
-        && request.resource.data.status == "active"
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["status"]);
-      allow delete: if isSignedIn() && resource.data.ownerId == request.auth.uid;
+        && (
+          (isCurrentShareId()
+            && accountAcceptsContentWrites(request.auth.uid)
+            && resource.data.status == "uploading"
+            && sourceDocumentIsActive()
+            && request.resource.data.status == "active"
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["status"]))
+          || ((isCurrentShareId() || isLegacyShareId())
+            && resource.data.status in ["uploading", "active", "revoked"]
+            && request.resource.data.status == "revoked"
+            && request.resource.data.revokedAt == request.time
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+              "status",
+              "revokedAt"
+            ]))
+        );
+      // Keep the owner/object association until trusted backend cleanup.
+      // Direct deletion can orphan shares/{shareId}/document.pdf.
+      allow delete: if false;
 
       match /chunks/{chunkId} {
         function shareRecord() {
-          return get(/databases/$(database)/documents/shareLinks/$(token));
+          return get(/databases/$(database)/documents/shareLinks/$(shareId));
         }
 
         function isShareOwner() {
           return isSignedIn() && shareRecord().data.ownerId == request.auth.uid;
         }
 
-        allow get, list: if (shareRecord().data.status == "active" && shareRecord().data.expiresAt > request.time)
-          || isShareOwner();
-        allow create: if isShareOwner()
-          && shareRecord().data.status == "uploading"
-          && "chunkCount" in shareRecord().data
-          && request.resource.data.keys().hasOnly(["index", "data"])
-          && request.resource.data.index is int
-          && request.resource.data.index >= 0
-          && request.resource.data.index < shareRecord().data.chunkCount
-          && request.resource.data.data is bytes
-          && request.resource.data.data.size() > 0
-          && request.resource.data.data.size() <= 512000;
+        function linkedSourceDocumentIsActive() {
+          let share = shareRecord();
+          return !("sourceDocumentId" in share.data)
+            || (share.data.sourceDocumentId is string
+              && share.data.sourceDocumentId.matches("^doc_[A-Za-z0-9_-]{24}$")
+              && exists(/databases/$(database)/documents/users/$(share.data.ownerId)/privateDocuments/$(share.data.sourceDocumentId))
+              && get(/databases/$(database)/documents/users/$(share.data.ownerId)/privateDocuments/$(share.data.sourceDocumentId)).data.ownerId == share.data.ownerId
+              && get(/databases/$(database)/documents/users/$(share.data.ownerId)/privateDocuments/$(share.data.sourceDocumentId)).data.state == "active");
+        }
+
+        allow get, list: if isLegacyShareId()
+          && ((shareRecord().data.status == "active"
+              && shareRecord().data.expiresAt > request.time
+              && accountAcceptsContentWrites(shareRecord().data.ownerId)
+              && linkedSourceDocumentIsActive())
+            || isShareOwner());
+        // Existing legacy chunks remain readable/revocable during migration,
+        // but new PDF bytes may never be stored as Firestore blobs.
+        allow create: if false;
         allow update: if false;
         allow delete: if isShareOwner();
       }
+    }
+
+    match /signingRequests/{tokenHash} {
+      function validTokenHash() {
+        return tokenHash.matches("^[a-f0-9]{64}$");
+      }
+
+      function linkedShare() {
+        return get(/databases/$(database)/documents/shareLinks/$(tokenHash));
+      }
+
+      function validParty(party) {
+        return party is map
+          && party.keys().hasOnly(["name", "email"])
+          && party.name is string
+          && party.name.size() <= 100
+          && party.email is string
+          && party.email.size() > 3
+          && party.email.size() <= 160;
+      }
+
+      function linkedSourceDocumentIsActive() {
+        let share = linkedShare();
+        return !("sourceDocumentId" in share.data)
+          || (exists(/databases/$(database)/documents/users/$(share.data.ownerId)/privateDocuments/$(share.data.sourceDocumentId))
+            && get(/databases/$(database)/documents/users/$(share.data.ownerId)/privateDocuments/$(share.data.sourceDocumentId)).data.ownerId == share.data.ownerId
+            && get(/databases/$(database)/documents/users/$(share.data.ownerId)/privateDocuments/$(share.data.sourceDocumentId)).data.state == "active");
+      }
+
+      allow get: if validTokenHash()
+        && ((resource.data.status == "active"
+            && resource.data.expiresAt > request.time
+            && linkedShare().data.status == "active"
+            && linkedShare().data.expiresAt > request.time
+            && accountAcceptsContentWrites(resource.data.ownerId)
+            && linkedSourceDocumentIsActive()
+            && resource.data.expiresAt == linkedShare().data.expiresAt)
+          || (isSignedIn() && resource.data.ownerId == request.auth.uid));
+      allow list: if false;
+      allow create: if validTokenHash()
+        && isSignedIn()
+        && accountAcceptsContentWrites(request.auth.uid)
+        && linkedShare().data.ownerId == request.auth.uid
+        && linkedShare().data.status == "active"
+        && linkedShare().data.expiresAt > request.time
+        && linkedSourceDocumentIsActive()
+        && request.resource.data.keys().hasAll([
+          "ownerId",
+          "version",
+          "requestId",
+          "recipient",
+          "requester",
+          "message",
+          "fields",
+          "status",
+          "createdAt",
+          "expiresAt"
+        ])
+        && request.resource.data.keys().hasOnly([
+          "ownerId",
+          "version",
+          "requestId",
+          "recipient",
+          "requester",
+          "message",
+          "fields",
+          "status",
+          "createdAt",
+          "expiresAt"
+        ])
+        && request.resource.data.ownerId == request.auth.uid
+        && request.resource.data.version == 1
+        && request.resource.data.requestId is string
+        && request.resource.data.requestId.size() >= 16
+        && request.resource.data.requestId.size() <= 80
+        && validParty(request.resource.data.recipient)
+        && validParty(request.resource.data.requester)
+        && request.resource.data.message is string
+        && request.resource.data.message.size() <= 500
+        && request.resource.data.fields is list
+        && request.resource.data.fields.size() > 0
+        && request.resource.data.fields.size() <= 100
+        && request.resource.data.status == "active"
+        && request.resource.data.createdAt is timestamp
+        && request.resource.data.createdAt <= request.time + duration.value(5, "m")
+        && request.resource.data.expiresAt == linkedShare().data.expiresAt;
+      allow update: if validTokenHash()
+        && accountAcceptsContentWrites(resource.data.ownerId)
+        && resource.data.status == "active"
+        && resource.data.expiresAt > request.time
+        && linkedShare().data.status == "active"
+        && linkedShare().data.expiresAt > request.time
+        && linkedSourceDocumentIsActive()
+        && resource.data.expiresAt == linkedShare().data.expiresAt
+        && request.resource.data.status == "completed"
+        && request.resource.data.completedAt == request.time
+        && request.resource.data.completionChecksum is string
+        && request.resource.data.completionChecksum.matches("^[a-f0-9]{64}$")
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          "status",
+          "completedAt",
+          "completionChecksum"
+        ]);
+      allow delete: if isSignedIn() && resource.data.ownerId == request.auth.uid;
+    }
+
+    match /_privateCloudAccountState/{userId} {
+      allow read, write: if false;
     }
 
     match /productAnalyticsEvents/{eventId} {
@@ -268,7 +454,9 @@ service cloud.firestore {
         && request.resource.data.clientCreatedAt is string
         && request.resource.data.clientCreatedAt.size() <= 40
         && ((request.auth == null && request.resource.data.actorId == null)
-          || (isSignedIn() && request.resource.data.actorId == request.auth.uid))
+          || (isSignedIn()
+            && request.resource.data.actorId == request.auth.uid
+            && accountAcceptsContentWrites(request.auth.uid)))
         && (!("expiresAt" in request.resource.data)
           || (request.resource.data.expiresAt is timestamp
             && request.resource.data.expiresAt > request.time
