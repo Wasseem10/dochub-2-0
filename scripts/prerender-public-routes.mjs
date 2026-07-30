@@ -34,7 +34,7 @@ const legalDescriptions = {
 };
 /** @type {RouteRecord[]} */
 const routeRecords = [
-  { path: "/", title: "Every PDF Task in One Place | PDFEnrich", description: "Edit, sign, fill, merge, split, organize, and convert PDFs without subscriptions, watermarks, or forced signup.", noIndex: false, kind: "home" },
+  { path: "/", title: "Free PDF Tools, No Subscription or Watermark | PDFEnrich", description: "Edit, sign, fill, merge, split, organize, and convert PDFs completely free - with no subscription, payment, or watermark.", noIndex: false, kind: "home" },
   { path: ROUTE_PATHS.about, title: "About PDFEnrich | A simpler browser-first PDF workspace", description: "Meet PDFEnrich, a browser-first PDF workspace built to make editing, organizing, converting, signing, scanning, and reviewing documents feel straightforward.", noIndex: false, kind: "about" },
   { path: ROUTE_PATHS.tools, title: directoryMetadata.title, description: directoryMetadata.description, noIndex: false, kind: "directory" },
   { path: ROUTE_PATHS.features, title: "All PDF Features | PDFEnrich", description: "Explore every released PDFEnrich feature for editing, organizing, converting, signing, scanning, protecting, and reviewing PDFs.", noIndex: false, kind: "directory" },

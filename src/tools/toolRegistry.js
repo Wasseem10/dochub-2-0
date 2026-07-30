@@ -64,6 +64,21 @@ const DEDICATED_CONVERTER_IDS = new Set(["pdf-to-word", "pdf-to-excel", "pdf-to-
 const DEDICATED_PAGE_TOOL_IDS = new Set(["merge-pdf", "split-pdf", "rotate-pdf", "delete-pdf-pages", "extract-pdf-pages", "reorder-pdf-pages", "organize-pdf", "add-page-numbers", "watermark-pdf", "crop-pdf", "compress-pdf", "redact-pdf", "unlock-pdf", "flatten-pdf", "remove-pdf-password"]);
 const DEFAULT_RELATED_TOOL_IDS = ["edit-pdf", "merge-pdf", "organize-pdf"];
 
+/** Keep the no-cost promise visible in the search result for every released tool. */
+function freeSearchTitle(title) {
+  return /\bfree\b/i.test(title) ? title : title.replace(/\s*\|\s*PDFEnrich$/, " Free | PDFEnrich");
+}
+
+function freeSearchDescription(description) {
+  if (/\bfree\b/i.test(description)) return description;
+  const suffix = " Free online tool.";
+  const availableLength = 160 - suffix.length;
+  const summary = description.length <= availableLength
+    ? description.replace(/\.$/, "")
+    : description.slice(0, availableLength).replace(/[\s,;:.]+$/, "");
+  return `${summary}${suffix}`;
+}
+
 /** @type {ToolDefinition[]} */
 const definitions = [
   ["edit-pdf", "Edit PDF", "Change selected text overlays, add text, images, shapes, and other content to a PDF.", "edit-view", "edit", "available", ["application/pdf"], ["application/pdf"], "Works with valid, unencrypted PDFs up to 50 MB and 500 pages. Large documents render progressively, and unchanged native page content is preserved during export. Scanned-image text requires the separate OCR workflow."],
@@ -321,6 +336,10 @@ function buildRelatedToolIds(tool, tools) {
 
 export const TOOL_REGISTRY = Object.freeze(builtTools.map((tool) => ({
   ...tool,
+  ...(tool.status !== "coming-soon" ? {
+    seoTitle: freeSearchTitle(tool.seoTitle),
+    metaDescription: freeSearchDescription(tool.metaDescription),
+  } : {}),
   relatedTools: buildRelatedToolIds(tool, builtTools),
 })));
 
