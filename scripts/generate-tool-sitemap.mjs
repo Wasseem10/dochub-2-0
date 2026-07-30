@@ -39,5 +39,5 @@ const sitemap = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://w
 
 await mkdir("runtime-public", { recursive: true });
 await writeFile("runtime-public/sitemap.xml", sitemap, "utf8");
-await writeFile("runtime-public/robots.txt", `User-agent: *\nAllow: /\nDisallow: /app/\nDisallow: /login\nDisallow: /signup\nDisallow: /forgot-password\nDisallow: /share/\nDisallow: /sign/\n\nSitemap: ${siteUrl}/sitemap.xml\n`, "utf8");
+await writeFile("runtime-public/robots.txt", `# PDFEnrich public guides and tools are available for search and answer engines.\n# Private workspaces, account routes, and capability links stay out of search.\nUser-agent: OAI-SearchBot\nAllow: /\n\nUser-agent: Bingbot\nAllow: /\n\nUser-agent: Googlebot\nAllow: /\n\nUser-agent: PerplexityBot\nAllow: /\n\nUser-agent: *\nAllow: /\nDisallow: /app/\nDisallow: /login\nDisallow: /signup\nDisallow: /forgot-password\nDisallow: /share/\nDisallow: /sign/\n\nSitemap: ${siteUrl}/sitemap.xml\n`, "utf8");
 console.log(`Generated sitemap.xml with ${uniquePaths.length} public routes.`);

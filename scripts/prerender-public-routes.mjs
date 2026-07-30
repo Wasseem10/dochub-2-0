@@ -163,6 +163,20 @@ function structuredDataFor(record) {
       url: `${siteUrl}/`,
       logo: `${siteUrl}/icon.svg`,
     },
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      name: "PDFEnrich",
+      url: `${siteUrl}/`,
+      description: "Free browser PDF tools for editing, signing, organizing, and converting PDFs without subscriptions, payment, or watermarks.",
+      applicationCategory: "UtilitiesApplication",
+      applicationSubCategory: "PDF editor",
+      operatingSystem: "Any",
+      browserRequirements: "Requires a modern JavaScript-enabled browser",
+      isAccessibleForFree: true,
+      offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+      featureList: ["Edit PDF", "Sign PDF", "Merge PDF", "Split PDF", "Compress PDF", "Convert PDF"],
+    },
   );
   if (record.kind === "about") schemas.push({
     "@context": "https://schema.org",

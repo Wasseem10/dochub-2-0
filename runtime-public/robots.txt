@@ -1,3 +1,17 @@
+# PDFEnrich public guides and tools are available for search and answer engines.
+# Private workspaces, account routes, and capability links stay out of search.
+User-agent: OAI-SearchBot
+Allow: /
+
+User-agent: Bingbot
+Allow: /
+
+User-agent: Googlebot
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
 User-agent: *
 Allow: /
 Disallow: /app/

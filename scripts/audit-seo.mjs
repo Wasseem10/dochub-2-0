@@ -118,6 +118,7 @@ requireMatch((home.match(/<a [^>]*href="\//g) || []).length >= 60, "Homepage pre
 requireMatch(!/modulepreload[^>]+(?:pdfjs|firebase)/i.test(home), "Homepage preloads editor-only PDF.js or Firebase code.");
 requireMatch(/noindex/i.test(notFound), "404 page is missing noindex.");
 requireMatch(robots.includes("Disallow: /app/") && robots.includes("Sitemap:"), "robots.txt is missing private-route controls or sitemap discovery.");
+requireMatch(robots.includes("User-agent: OAI-SearchBot") && robots.includes("User-agent: Bingbot") && robots.includes("User-agent: Googlebot"), "robots.txt is missing an explicit major answer-engine crawler policy.");
 
 if (failures.length) {
   console.error(`SEO audit failed with ${failures.length} issue${failures.length === 1 ? "" : "s"}:\n- ${failures.join("\n- ")}`);
