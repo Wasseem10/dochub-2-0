@@ -7,6 +7,7 @@ import {
   detectedTextSourceFrame,
   layoutDetectedText,
   resolveDetectedTextStyle,
+  splitDetectedTextRun,
   standardPdfFontVariant,
 } from "../../src/tools/editorDetectedText.js";
 
@@ -70,10 +71,32 @@ describe("editor detected text fidelity", () => {
       bold: false,
       italic: false,
       rotation: 0,
+      originalText: "quarterly",
     };
-    expect(canMergeDetectedTextRuns(baseRun, { ...baseRun }, { gap: 3, averageHeight: 12 })).toBe(true);
+    expect(canMergeDetectedTextRuns(baseRun, { ...baseRun, originalText: "total" }, { gap: 3, averageHeight: 12 })).toBe(false);
     expect(canMergeDetectedTextRuns(baseRun, { ...baseRun }, { gap: 8, averageHeight: 12 })).toBe(false);
     expect(canMergeDetectedTextRuns(baseRun, { ...baseRun, bold: true }, { gap: 0, averageHeight: 12 })).toBe(false);
+    expect(canMergeDetectedTextRuns(
+      { ...baseRun, originalText: "quar" },
+      { ...baseRun, originalText: "terly" },
+      { gap: 0.15, averageHeight: 12 },
+    )).toBe(true);
+    expect(canMergeDetectedTextRuns(
+      { ...baseRun, originalText: "quarterly " },
+      { ...baseRun, originalText: "total" },
+      { gap: 0, averageHeight: 12 },
+    )).toBe(false);
+  });
+
+  it("splits a combined PDF.js text run into precise word-level edit targets", () => {
+    expect(splitDetectedTextRun("Edit only this text", {
+      measure: (value) => value.length,
+    })).toEqual([
+      { text: "Edit", startRatio: 0, widthRatio: 4 / 19 },
+      { text: "only", startRatio: 5 / 19, widthRatio: 4 / 19 },
+      { text: "this", startRatio: 10 / 19, widthRatio: 4 / 19 },
+      { text: "text", startRatio: 15 / 19, widthRatio: 4 / 19 },
+    ]);
   });
 
   it("wraps and shrinks replacement text to the detected box", () => {

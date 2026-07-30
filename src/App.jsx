@@ -116,7 +116,7 @@ import { annotationPatchFromFrame, framesEqual, getAnnotationFrame, moveFrame, n
 import { circleFrameFromDrag, directedLineFrameFromPoints, directedLineSvgGeometry, ensureDirectedLineLength, getDirectedLineEndpoints, normalizeCircleFrame, resizeCircleFrame } from "./tools/editorShapeGeometry.js";
 import { normalizedPointerInRect } from "./tools/editorPointerCoordinates.js";
 import { createTextAnnotation, estimateTextAnnotationSize, normalizeEditorText, shouldDiscardTextAnnotation } from "./tools/editorTextObjects.js";
-import { canMergeDetectedTextRuns, detectedTextBaseline, detectedTextRotation, detectedTextSourceFrame, layoutDetectedText, resolveDetectedTextStyle, sampleDetectedTextBackground, standardPdfFontVariant } from "./tools/editorDetectedText.js";
+import { canMergeDetectedTextRuns, detectedTextBaseline, detectedTextRotation, detectedTextSourceFrame, layoutDetectedText, resolveDetectedTextStyle, sampleDetectedTextBackground, splitDetectedTextRun, standardPdfFontVariant } from "./tools/editorDetectedText.js";
 import { recoverPdfPageRender, withPdfPageDeadline } from "./tools/editorPageRecovery.js";
 import {
   canSaveEditorSignature,
@@ -682,55 +682,69 @@ function DirectedLineSvg({ annotation, frame, pageWidth = BASE_PAGE_WIDTH, pageH
 }
 
 function extractDetectedTextItems(textContent, viewport, pageRecord, pageIndex) {
+  const measurementContext = document.createElement("canvas").getContext("2d");
   const rawItems = textContent.items
     .filter((item) => item.str?.trim())
-    .map((item, index) => {
+    .flatMap((item) => {
       const transform = pdfjsLib.Util.transform(viewport.transform, item.transform);
       const rawHeight = Math.hypot(transform[2], transform[3]) || Math.abs(item.height || 10);
-      const rawWidth = Math.max(item.width || 0, item.str.length * rawHeight * 0.42);
-      const left = transform[4];
+      const rawWidth = Number(item.width) > 0
+        ? Number(item.width)
+        : item.str.length * rawHeight * 0.42;
+      const itemLeft = transform[4];
       const top = transform[5] - rawHeight;
-      const right = left + rawWidth;
       const bottom = top + rawHeight;
       const baseline = transform[5];
-      const x = clamp(left / viewport.width, 0, 0.98);
-      const y = clamp(top / viewport.height, 0, 0.98);
-      const w = clamp(rawWidth / viewport.width, 0.012, 0.86);
-      const h = clamp((rawHeight * 1.22) / viewport.height, 0.012, 0.16);
-      const fontSize = clamp((rawHeight / viewport.height) * pageRecord.height, 6, 42);
       const textStyle = resolveDetectedTextStyle(textContent.styles, item.fontName);
+      if (measurementContext) {
+        measurementContext.font = `${textStyle.italic ? "italic " : ""}${textStyle.bold ? "700 " : ""}${rawHeight}px "${textStyle.fontFamily}"`;
+      }
+      const pieces = splitDetectedTextRun(item.str, {
+        measure: (value) => measurementContext?.measureText(value).width || String(value).length,
+      });
 
-      return {
-        id: makeId("detected-text"),
-        pageNumber: pageIndex,
-        originalText: item.str,
-        currentText: item.str,
-        x,
-        y,
-        w: Math.min(w, 0.98 - x),
-        h: Math.min(h, 0.98 - y),
-        left,
-        right,
-        top,
-        bottom,
-        rawHeight,
-        rawWidth,
-        centerY: top + rawHeight / 2,
-        baseline,
-        fontSize,
-        fontFamily: textStyle.fontFamily,
-        bold: textStyle.bold,
-        italic: textStyle.italic,
-        color: colors.black,
-        rotation: detectedTextRotation(item.transform),
-        hasEOL: Boolean(item.hasEOL),
-        source: "pdf-text-layer",
-        confidence: 1,
-        isEdited: false,
-        isDeleted: false,
-        createdAt: nowIso(),
-        updatedAt: nowIso(),
-      };
+      return pieces.map((piece, pieceIndex) => {
+        const pieceWidth = Math.max(0.5, rawWidth * piece.widthRatio);
+        const left = itemLeft + rawWidth * piece.startRatio;
+        const right = left + pieceWidth;
+        const x = clamp(left / viewport.width, 0, 0.98);
+        const y = clamp(top / viewport.height, 0, 0.98);
+        const w = clamp(pieceWidth / viewport.width, 0.004, 0.86);
+        const h = clamp((rawHeight * 1.22) / viewport.height, 0.012, 0.16);
+        const fontSize = clamp((rawHeight / viewport.height) * pageRecord.height, 6, 42);
+
+        return {
+          id: makeId("detected-text"),
+          pageNumber: pageIndex,
+          originalText: piece.text,
+          currentText: piece.text,
+          x,
+          y,
+          w: Math.min(w, 0.98 - x),
+          h: Math.min(h, 0.98 - y),
+          left,
+          right,
+          top,
+          bottom,
+          rawHeight,
+          rawWidth: pieceWidth,
+          centerY: top + rawHeight / 2,
+          baseline,
+          fontSize,
+          fontFamily: textStyle.fontFamily,
+          bold: textStyle.bold,
+          italic: textStyle.italic,
+          color: colors.black,
+          rotation: detectedTextRotation(item.transform),
+          hasEOL: Boolean(item.hasEOL && pieceIndex === pieces.length - 1),
+          source: "pdf-text-layer",
+          confidence: 1,
+          isEdited: false,
+          isDeleted: false,
+          createdAt: nowIso(),
+          updatedAt: nowIso(),
+        };
+      });
     });
 
   const lines = [];
