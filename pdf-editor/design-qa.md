@@ -1,43 +1,39 @@
-# Paper Trail Homepage Sections — Design QA
+# Guided Questions Homepage FAQ — Design QA
 
 ## Evidence
 
-- Selected source: `work/design-references/homepage-paper-trail-selected-2026-07-30.png`
-- Desktop workflow: `work/design-qa/homepage-paper-trail/implementation-desktop-final.png`
-- Desktop privacy band: `work/design-qa/homepage-paper-trail/implementation-desktop-privacy.png`
-- Mobile workflow: `work/design-qa/homepage-paper-trail/implementation-mobile-final.png`
-- Mobile privacy band: `work/design-qa/homepage-paper-trail/implementation-mobile-privacy.png`
-- Side-by-side comparison: `work/design-qa/homepage-paper-trail/source-implementation-comparison-final.png`
+- Selected source: `work/design-references/homepage-faq-guided-selected-2026-07-30.png`
+- Desktop implementation: `work/design-qa/homepage-faq-guided/desktop-first.png`
+- Desktop alternate state: `work/design-qa/homepage-faq-guided/desktop-faq-03-open.png`
+- Mobile introduction: `work/design-qa/homepage-faq-guided/mobile-final.png`
+- Mobile question path: `work/design-qa/homepage-faq-guided/mobile-faq-list.png`
+- Side-by-side comparison: `work/design-qa/homepage-faq-guided/source-vs-implementation.png`
 - Source image: 1536 × 1024.
-- Desktop viewport: 1280 × 720 at 1.25 device pixel ratio.
-- Mobile viewport: 390 × 844 at 1 device pixel ratio.
-- State: homepage workflow and privacy sections, optional analytics rejected.
+- Desktop viewport: 1536 × 1024.
+- Mobile viewport: 390 × 844.
+- State: homepage FAQ, optional analytics rejected, first question open by default.
 
-## Comparison history
-
-### Pass 1 — blocked
-
-- P2: The mobile headline wrapped after “Change,” leaving “it.” stranded on a separate line.
-- Fix: split the phrase into three deliberate mobile lines while retaining the selected two-line desktop lockup.
+## Visual comparison
 
 ### Final pass — passed
 
-- The generic numbered-card row is replaced by one connected upload, edit, and download paper journey.
-- Real PDFEnrich document illustrations preserve consistent shape, depth, scale, and uncropped proportions.
-- The coral path, pastel stage numbers, and restrained action controls match the selected bright tactile direction.
-- The large lavender privacy card is replaced by an open warm-white trust band with a document-shield illustration and three divided proof statements.
-- Desktop spacing, typography, color, hierarchy, and visible content track the selected Paper Trail source while using original PDFEnrich assets.
-- Mobile recomposes into a vertical connected path with readable copy and professional uncropped art rather than shrinking the desktop layout.
+- Replaced the generic rounded accordion stack with the selected two-column editorial answer desk.
+- Preserved the selected hierarchy: oversized navy headline and original document-question art on the left, numbered coral question path on the right, and the reassurance rail integrated below.
+- Kept one pale-lilac answer panel open at a time while using restrained coral, yellow, lilac, and powder-blue number markers.
+- Matched the selected warm-white canvas, fine dividers, compact FAQ typography, open spacing, and professional document-tool character.
+- Reused the selected composition without copying its draft copy; the released PDFEnrich FAQ answers remain accurate and product-specific.
+- Mobile recomposes the design into a readable vertical path with uncropped art, full-width questions, and stacked reassurance rows.
+- No P0, P1, or P2 visual issues remain.
 
 ## Functional and accessibility verification
 
-- All workflow illustrations have useful alternative text.
-- The connected journey has an explicit accessible label.
-- The privacy illustration is decorative and excluded from the accessibility tree.
-- The privacy details link remains keyboard accessible and routes to `/privacy`.
+- All six questions are real buttons with unique accessible names.
+- `aria-expanded` updates on selection and each open answer is linked through `aria-controls`.
+- Clicking question 03 closed question 01 and opened the correct answer.
+- The illustration has useful alternative text and explicit intrinsic dimensions.
 - Desktop and mobile layouts have no horizontal overflow.
-- Reduced-motion users do not receive hover movement.
 - Browser console errors: none.
+- ESLint completed with zero errors.
 - Production Vite build: passed.
 
 final result: passed

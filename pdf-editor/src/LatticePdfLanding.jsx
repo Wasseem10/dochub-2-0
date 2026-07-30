@@ -8,7 +8,9 @@ import Download from "lucide-react/dist/esm/icons/download.mjs";
 import Globe2 from "lucide-react/dist/esm/icons/globe-2.mjs";
 import Grid3X3 from "lucide-react/dist/esm/icons/grid-3x3.mjs";
 import Menu from "lucide-react/dist/esm/icons/menu.mjs";
+import Minus from "lucide-react/dist/esm/icons/minus.mjs";
 import PencilLine from "lucide-react/dist/esm/icons/pencil-line.mjs";
+import Plus from "lucide-react/dist/esm/icons/plus.mjs";
 import RefreshCw from "lucide-react/dist/esm/icons/refresh-cw.mjs";
 import Rocket from "lucide-react/dist/esm/icons/rocket.mjs";
 import Scale from "lucide-react/dist/esm/icons/scale.mjs";
@@ -367,6 +369,7 @@ export function LatticePdfLanding({ fileInputRef, onUpload, onSelectFiles, onDro
   const fallbackInputRef = useRef(null);
   const inputRef = fileInputRef || fallbackInputRef;
   const [dragging, setDragging] = useState(false);
+  const [openFaqIndex, setOpenFaqIndex] = useState(0);
   const isUploading = Boolean(uploadStage?.status && !["idle", "complete", "error"].includes(uploadStage.status));
   const choose = () => onSelectFiles ? onSelectFiles() : inputRef.current?.click();
 
@@ -465,9 +468,46 @@ export function LatticePdfLanding({ fileInputRef, onUpload, onSelectFiles, onDro
       </section>
     </div>
 
-    <section className="freepdf-section freepdf-faq" aria-labelledby="faq-title"><div className="freepdf-section-heading"><span>Good to know</span><h2 id="faq-title">Clear answers before you upload.</h2></div><div>{faqs.map(([question, answer]) => <details key={question}><summary>{question}</summary><p>{answer}</p></details>)}</div></section>
-
-    <ClosingAssurances />
+    <section className="freepdf-section freepdf-faq freepdf-faq-guided" aria-labelledby="faq-title">
+      <div className="freepdf-faq-guided-grid">
+        <div className="freepdf-faq-intro">
+          <span className="freepdf-section-kicker">Good to know</span>
+          <h2 id="faq-title">Clear answers<br />before you upload.</h2>
+          <p>Everything important about privacy, access, editing limits, and exports—before you choose a file.</p>
+          <img
+            src={asset("faq-guided-document.png")}
+            alt="PDF document with a question bubble and paperclip"
+            width="640"
+            height="640"
+            loading="lazy"
+            decoding="async"
+          />
+        </div>
+        <div className="freepdf-faq-list" aria-label="Frequently asked questions">
+          {faqs.map(([question, answer], index) => {
+            const isOpen = openFaqIndex === index;
+            const number = String(index + 1).padStart(2, "0");
+            return <article className={`freepdf-faq-item is-tone-${index + 1} ${isOpen ? "is-open" : ""}`} key={question}>
+              <button
+                type="button"
+                aria-expanded={isOpen}
+                aria-controls={`homepage-faq-answer-${index}`}
+                onClick={() => setOpenFaqIndex(index)}
+              >
+                <span className="freepdf-faq-number" aria-hidden="true">{number}</span>
+                <span>{question}</span>
+                <span className="freepdf-faq-toggle" aria-hidden="true">{isOpen ? <Minus size={21} /> : <Plus size={21} />}</span>
+              </button>
+              {isOpen ? <div className="freepdf-faq-answer" id={`homepage-faq-answer-${index}`} role="region" aria-label={`${question} answer`}>
+                <span>{number} of {String(faqs.length).padStart(2, "0")}</span>
+                <p>{answer}</p>
+              </div> : null}
+            </article>;
+          })}
+        </div>
+      </div>
+      <ClosingAssurances />
+    </section>
 
     <SiteFooter />
   </main>;

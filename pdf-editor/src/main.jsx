@@ -24,6 +24,7 @@ import "./tool-landing-editorial.css";
 import "./homepage-reference.css";
 import "./popular-tools-professional.css";
 import "./homepage-paper-trail.css";
+import "./homepage-faq-guided.css";
 import "./comparison-pages.css";
 import "./components/editor/finish-export-modal.css";
 import { migratePdfEnrichStorage } from "./brand/storageMigration.js";
