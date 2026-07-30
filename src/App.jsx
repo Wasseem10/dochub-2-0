@@ -1193,6 +1193,8 @@ const EditableTextContent = forwardRef(function EditableTextContent({
   value,
 }, forwardedRef) {
   const elementRef = useRef(null);
+  const pendingFrameRef = useRef(null);
+  const composingRef = useRef(false);
 
   const setElementRef = useCallback((element) => {
     elementRef.current = element;
@@ -1214,8 +1216,29 @@ const EditableTextContent = forwardRef(function EditableTextContent({
     }
   }, [value]);
 
-  const emitChange = (event) => {
-    onChange?.(event.currentTarget);
+  useEffect(() => () => {
+    if (pendingFrameRef.current) cancelAnimationFrame(pendingFrameRef.current);
+  }, []);
+
+  const emitChange = (event, { flush = false } = {}) => {
+    if (!editable || (composingRef.current && !flush)) return;
+    const element = event?.currentTarget || elementRef.current;
+    if (!element || !onChange) return;
+    if (pendingFrameRef.current) {
+      cancelAnimationFrame(pendingFrameRef.current);
+      pendingFrameRef.current = null;
+    }
+    if (flush) {
+      onChange(element);
+      return;
+    }
+    // Keep native editing responsive while coalescing parent updates. The
+    // editor owns a large canvas, so rerendering it for every keypress makes
+    // longer replacements feel visibly choppy.
+    pendingFrameRef.current = requestAnimationFrame(() => {
+      pendingFrameRef.current = null;
+      if (elementRef.current) onChange(elementRef.current);
+    });
   };
 
   return (
@@ -1231,6 +1254,11 @@ const EditableTextContent = forwardRef(function EditableTextContent({
       spellCheck={spellCheck}
       onPointerDown={onPointerDown}
       onInput={emitChange}
+      onCompositionStart={() => { composingRef.current = true; }}
+      onCompositionEnd={(event) => {
+        composingRef.current = false;
+        emitChange(event, { flush: true });
+      }}
       onFocus={onFocus}
       onPaste={(event) => {
         if (!editable) return;
@@ -1245,7 +1273,7 @@ const EditableTextContent = forwardRef(function EditableTextContent({
         }
       }}
       onBlur={(event) => {
-        emitChange(event);
+        emitChange(event, { flush: true });
         onBlur?.(event);
       }}
     />
@@ -2053,6 +2081,8 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   const [pageIndex, setPageIndex] = useState(0);
   const [annotations, setAnnotations] = useState([]);
   const [detectedTextItems, setDetectedTextItems] = useState([]);
+  const detectedTextItemsRef = useRef([]);
+  detectedTextItemsRef.current = detectedTextItems;
   const [selectedId, setSelectedId] = useState(null);
   const [selectedDetectedTextId, setSelectedDetectedTextId] = useState(null);
   const [zoom, setZoom] = useState(100);
@@ -2911,6 +2941,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   const commitDetectedTextItems = (next) => {
     pushHistorySnapshot();
     setRedoStack([]);
+    detectedTextItemsRef.current = next;
     setDetectedTextItems(next);
     markUnsaved();
   };
@@ -2925,7 +2956,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     if (!snapshot) return;
     detectedTextEditHistoryRef.current.delete(id);
     const before = snapshot.detectedTextItems?.find((item) => item.id === id);
-    const after = detectedTextItems.find((item) => item.id === id);
+    const after = detectedTextItemsRef.current.find((item) => item.id === id);
     const changed = before && after && ["currentText", "x", "y", "w", "h", "fontSize", "color"]
       .some((key) => before[key] !== after[key]);
     if (!changed) return;
@@ -2964,6 +2995,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     if (pendingSnapshot) {
       setUndoStack((stack) => [...stack.slice(-24), pendingSnapshot]);
       setRedoStack([]);
+      detectedTextItemsRef.current = next;
       setDetectedTextItems(next);
       markUnsaved();
     } else {
@@ -4781,15 +4813,17 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   };
 
   const updateDetectedTextContent = (id, element) => {
-    const current = detectedTextItems.find((item) => item.id === id);
+    const current = detectedTextItemsRef.current.find((item) => item.id === id);
     const text = element.innerText.replace(/\r\n?/g, "\n");
     if (!current || current.currentText === text) return;
     beginDetectedTextEdit(id);
-    setDetectedTextItems((items) => items.map((item) => (
+    const next = detectedTextItemsRef.current.map((item) => (
       item.id === id
         ? { ...item, currentText: text, isEdited: true, updatedAt: nowIso() }
         : item
-    )));
+    ));
+    detectedTextItemsRef.current = next;
+    setDetectedTextItems(next);
     markUnsaved();
   };
 
