@@ -98,7 +98,7 @@ const footerNavigationGroups = [
 
 const toolsMenuColumns = [
   ["compress", "ai"],
-  ["organize", "templates"],
+  ["organize"],
   ["edit-view", "compare-review"],
   ["from-pdf"],
   ["to-pdf"],

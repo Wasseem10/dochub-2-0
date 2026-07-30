@@ -42,7 +42,6 @@ const LazySecureSharePage = lazyNamed(() => import("../pages/public/SecureShareP
 const LazySigningRequestPage = lazyNamed(() => import("../pages/public/SigningRequestPage.jsx"), "SigningRequestPage");
 const LazySupportPage = lazyNamed(() => import("../pages/public/SupportPage.jsx"), "SupportPage");
 const LazyStructuredPdfConversionPage = lazyNamed(PUBLIC_TOOL_MODULE_LOADERS.structuredPdfConversion, "StructuredPdfConversionPage");
-const LazyTemplateBuilderPage = lazyNamed(PUBLIC_TOOL_MODULE_LOADERS.templateBuilder, "TemplateBuilderPage");
 const LazyTextConversionPage = lazyNamed(PUBLIC_TOOL_MODULE_LOADERS.textConversion, "TextConversionPage");
 const LazyToPdfConversionPage = lazyNamed(PUBLIC_TOOL_MODULE_LOADERS.toPdfConversion, "ToPdfConversionPage");
 const LazyEditorialResourceRoute = lazyNamed(() => import("../pages/public/EditorialResourceRoute.jsx"), "EditorialResourceRoute");
@@ -97,10 +96,8 @@ const toolRouteObjects = TOOL_REGISTRY
         ? <LazyScanPdfPage tool={tool} />
       : ["rtf-to-pdf", "odt-to-pdf", "odp-to-pdf", "ods-to-pdf", "epub-to-pdf", "zip-to-pdf"].includes(tool.id)
         ? <LazyOpenDocumentConversionPage tool={tool} />
-      : ["ai-pdf", "chat-with-pdf", "summarize-pdf", "translate-pdf", "extract-data-from-pdf", "ask-pdf", "ai-question-generator", "contract-analyzer", "resume-analyzer"].includes(tool.id)
+      : ["ai-pdf", "chat-with-pdf", "summarize-pdf", "translate-pdf", "extract-data-from-pdf", "ask-pdf", "ai-question-generator"].includes(tool.id)
         ? <LazyDocumentAnalysisPage tool={tool} />
-      : ["resume-templates", "contract-templates", "nda-templates", "invoice-templates", "offer-letter-templates"].includes(tool.id)
-        ? <LazyTemplateBuilderPage tool={tool} />
       : ["compare-pdf", "document-version-comparison"].includes(tool.id)
         ? <LazyComparePdfPage tool={tool} />
       : tool.id === "ocr-pdf"

@@ -7892,7 +7892,6 @@ export function UploadLanding({
   const sectionPaths = {
     Home: ROUTE_PATHS.dashboard,
     Documents: ROUTE_PATHS.documents,
-    Templates: ROUTE_PATHS.appTemplates,
     Agreements: ROUTE_PATHS.signatures,
     Signatures: ROUTE_PATHS.signatures,
     "AI Tools": ROUTE_PATHS.tools,
@@ -7941,7 +7940,6 @@ export function UploadLanding({
     { label: "Documents", icon: FileText },
     { label: "Recent", section: "Home", icon: Clock3, anchor: "dashboard-recent" },
     { label: "Signatures", icon: PenLine },
-    { label: "Templates", icon: Grid2X2 },
     { label: "All tools", section: "Features", icon: AllToolsNavIcon },
   ];
 
@@ -7951,13 +7949,6 @@ export function UploadLanding({
 
   const utilityNav = [
     { label: "Trash", icon: Trash2 },
-  ];
-
-  const templateCards = [
-    { title: "NDA agreement", detail: "Confidentiality, non-compete, and signature fields", icon: Box },
-    { title: "Contract review", detail: "Comment-ready workspace for legal review", icon: MessageSquare },
-    { title: "Offer letter", detail: "Reusable hiring packet with date and checkbox fields", icon: FilePlus2 },
-    { title: "Invoice approval", detail: "Simple payable form with approval routing", icon: CheckCircle2 },
   ];
 
   const agreementFlows = [
@@ -8000,7 +7991,6 @@ export function UploadLanding({
   const filteredDocuments = userDocuments.filter((documentRecord) => (
     matchesSearch(documentRecord.name)
   ));
-  const filteredTemplateCards = templateCards.filter(({ title, detail }) => matchesSearch(`${title} ${detail}`));
   const filteredAgreementFlows = agreementFlows.filter(({ title, detail }) => matchesSearch(`${title} ${detail}`));
 
   const dashboardDocumentPool = suggestionView === "starred"
@@ -8263,27 +8253,6 @@ export function UploadLanding({
     </div>
   ) : renderDashboardLibraryList();
 
-  const renderTemplateGrid = () => (
-    filteredTemplateCards.length ? (
-      <div className="enterprise-card-grid">
-        {filteredTemplateCards.map(({ title, detail, icon: Icon }) => (
-          <article key={title} className="enterprise-card">
-            <Icon size={23} />
-            <h3>{title}</h3>
-            <p>{detail}</p>
-            <button type="button" onClick={onBlankPage}>Use template</button>
-          </article>
-        ))}
-      </div>
-    ) : (
-      <div className="empty-library">
-        <Grid2X2 size={34} />
-        <h3>No matching templates</h3>
-        <p>Try another search term or start from a blank PDF.</p>
-      </div>
-    )
-  );
-
   const renderWorkspaceSection = () => {
     if (activeSection === "Documents") {
       return (
@@ -8316,18 +8285,6 @@ export function UploadLanding({
           <div className="dashboard-documents-table">
             {renderDashboardLibraryList(false)}
           </div>
-        </section>
-      );
-    }
-
-    if (activeSection === "Templates") {
-      return (
-        <section className="document-library enterprise-workspace-panel">
-          <div className="library-head">
-            <h2>Templates</h2>
-            <button type="button" className="library-action" onClick={onBlankPage}><FilePlus2 size={17} /> Blank PDF</button>
-          </div>
-          {renderTemplateGrid()}
         </section>
       );
     }
@@ -8720,7 +8677,7 @@ export function UploadLanding({
           {["Documents", "Features", "Analytics"].includes(activeSection) && <h1 className="dashboard-editorial-title">{{ Documents: "Documents", Features: "All tools", Analytics: "Analytics" }[activeSection]}</h1>}
           <label className="lumin-search">
             <Search size={18} />
-            <input type="search" placeholder={activeSection === "Features" ? `Search ${releasedDashboardTools.length} tools` : activeSection === "Analytics" ? "Search sign-ins" : "Search files, tools or templates…"} value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} />
+            <input type="search" placeholder={activeSection === "Features" ? `Search ${releasedDashboardTools.length} tools` : activeSection === "Analytics" ? "Search sign-ins" : "Search files and tools…"} value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} />
             <kbd>⌘ K</kbd>
           </label>
           <div className="upload-top-actions">
@@ -8771,7 +8728,7 @@ export function UploadLanding({
                   <>
                     <h3>Help</h3>
                     <p>Use Upload to import a PDF, then annotate, organize pages, add signatures, print, or export from the editor.</p>
-                    <button type="button" className="popover-primary" onClick={() => setActiveSection("Templates")}>Browse templates</button>
+                    <button type="button" className="popover-primary" onClick={() => setActiveSection("Features")}>Browse tools</button>
                   </>
                 )}
                 {openPanel === "account" && (

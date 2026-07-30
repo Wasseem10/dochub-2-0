@@ -3,7 +3,6 @@ import Bot from "lucide-react/dist/esm/icons/bot.mjs";
 import Check from "lucide-react/dist/esm/icons/check.mjs";
 import Database from "lucide-react/dist/esm/icons/database.mjs";
 import Download from "lucide-react/dist/esm/icons/download.mjs";
-import FileCheck2 from "lucide-react/dist/esm/icons/file-check-2.mjs";
 import FileText from "lucide-react/dist/esm/icons/file-text.mjs";
 import Languages from "lucide-react/dist/esm/icons/languages.mjs";
 import LoaderCircle from "lucide-react/dist/esm/icons/loader-circle.mjs";
@@ -20,8 +19,6 @@ import { ROUTE_PATHS } from "../../router/routePaths.js";
 import { toolSeoSchemas } from "../../tools/toolSeoSchemas.js";
 import {
   analysisReportText,
-  analyzeContract,
-  analyzeResume,
   documentDataCsv,
   extractDocumentData,
   findRelevantPassages,
@@ -40,8 +37,6 @@ const MODES = Object.freeze({
   "extract-data-from-pdf": { icon: Database, heading: "Extract structured fields with page references", detail: "Detect email addresses, phone numbers, dates, money, percentages, and label-value lines, then download JSON or CSV for review.", action: "Extract document data" },
   "ask-pdf": { icon: MessageSquareText, heading: "Find where the PDF answers your question", detail: "Question terms are matched against document sentences and numbers. The result shows exact passages with page citations instead of a generated answer.", action: "Find answer sources" },
   "ai-question-generator": { icon: Sparkles, heading: "Generate review questions from real sentences", detail: "Important document terms and figures become questions with exact source-sentence answer keys and page citations.", action: "Generate questions" },
-  "contract-analyzer": { icon: FileCheck2, heading: "Surface clauses that deserve human review", detail: "Detect obligation, termination, confidentiality, liability, date, and money language with source pages. This is document organization, not legal advice.", action: "Analyze contract" },
-  "resume-analyzer": { icon: FileText, heading: "Check resume structure and evidence", detail: "Review sections, contact details, skills, action verbs, bullets, and quantified results. PDFEnrich does not rank candidates or infer protected traits.", action: "Analyze resume" },
 });
 
 const LANGUAGES = [
@@ -75,9 +70,7 @@ function AnalysisResult({ toolId, result, conversation }) {
   if (toolId === "summarize-pdf") return <CitedList items={result} />;
   if (toolId === "ai-question-generator") return <ol className="analysis-question-list">{result.map((item, index) => <li key={index}><strong>{item.question}</strong><p>{item.answer}</p><span>Answer source · Page {item.pageNumber}</span></li>)}</ol>;
   if (toolId === "translate-pdf") return <div className="analysis-translation"><h3>Translated text preview</h3><pre>{result}</pre></div>;
-  if (toolId === "resume-analyzer") return <div className="analysis-metric-grid">{Object.entries(result).map(([key, value]) => <article key={key}><span>{key.replace(/([A-Z])/g, " $1")}</span><strong>{Array.isArray(value) ? value.join(", ") || "None detected" : value || "Not detected"}</strong></article>)}</div>;
   if (toolId === "extract-data-from-pdf") return <div className="analysis-grouped-results">{Object.entries(result).map(([key, items]) => <section key={key}><h3>{key.replace(/([A-Z])/g, " $1")}</h3>{items.length ? <ul>{items.map((item, index) => <li key={index}><strong>{item.key ? `${item.key}: ` : ""}{item.value}</strong><span>Page {item.pageNumber}</span></li>)}</ul> : <p>None detected</p>}</section>)}</div>;
-  if (toolId === "contract-analyzer") return <div className="analysis-grouped-results">{Object.entries(result).map(([key, items]) => <section key={key}><h3>{key}</h3>{items.length ? <ul>{items.map((item, index) => <li key={index}><strong>{item.sentence || item.value}</strong><span>Page {item.pageNumber}</span></li>)}</ul> : <p>None detected</p>}</section>)}</div>;
   return null;
 }
 
@@ -142,8 +135,6 @@ export function DocumentAnalysisPage({ tool }) {
       } else if (tool.id === "summarize-pdf") nextResult = summarizePages(pages, 7);
       else if (tool.id === "extract-data-from-pdf") nextResult = extractDocumentData(pages);
       else if (tool.id === "ai-question-generator") nextResult = generateDocumentQuestions(pages, 10);
-      else if (tool.id === "contract-analyzer") nextResult = analyzeContract(pages);
-      else if (tool.id === "resume-analyzer") nextResult = analyzeResume(pages);
       else if (tool.id === "translate-pdf") nextResult = await translateDocumentText(fullText, { sourceLanguage, targetLanguage, onProgress: ({ completed, total }) => setProgress(Math.round(completed / total * 96)) });
       setResult(nextResult || null); setProgress(100); setStatus("complete");
       trackProductEvent("export_succeeded", { toolId: tool.id });
