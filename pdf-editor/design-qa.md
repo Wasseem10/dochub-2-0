@@ -1,48 +1,43 @@
-# Quiet Editorial Recovery — Design QA
+# Paper Trail Homepage Sections — Design QA
 
 ## Evidence
 
-- Selected source: `work/design-references/route-error-quiet-editorial-selected-2026-07-29.png`
-- Desktop implementation: `work/design-qa/route-error-desktop-final.png`
-- Mobile implementation: `work/design-qa/route-error-mobile-final.png`
-- Side-by-side comparison: `work/design-qa/route-error-comparison-final.png`
-- Desktop viewport: 1503 × 796.
-- Mobile viewport: 390 × 844.
-- State: connection-interrupted route error.
+- Selected source: `work/design-references/homepage-paper-trail-selected-2026-07-30.png`
+- Desktop workflow: `work/design-qa/homepage-paper-trail/implementation-desktop-final.png`
+- Desktop privacy band: `work/design-qa/homepage-paper-trail/implementation-desktop-privacy.png`
+- Mobile workflow: `work/design-qa/homepage-paper-trail/implementation-mobile-final.png`
+- Mobile privacy band: `work/design-qa/homepage-paper-trail/implementation-mobile-privacy.png`
+- Side-by-side comparison: `work/design-qa/homepage-paper-trail/source-implementation-comparison-final.png`
+- Source image: 1536 × 1024.
+- Desktop viewport: 1280 × 720 at 1.25 device pixel ratio.
+- Mobile viewport: 390 × 844 at 1 device pixel ratio.
+- State: homepage workflow and privacy sections, optional analytics rejected.
 
 ## Comparison history
 
 ### Pass 1 — blocked
 
-- P1: The source illustration was too small and low on the page.
-- P2: The headline wrapped to three lines instead of the selected two-line editorial lockup.
-- P2: The copy column began too far left relative to the source.
-- Fix: widened the copy area, matched its measured inset, and replaced the first illustration treatment with a dedicated source-faithful document asset.
-
-### Pass 2 — blocked
-
-- P2: The document stack, saved label, and powder-blue field were still smaller than the source.
-- P2: The recovery copy sat approximately 38px below the selected composition.
-- Fix: used the selected mock’s exact document illustration crop, matched its desktop scale and edge position, and moved the copy to the source baseline.
+- P2: The mobile headline wrapped after “Change,” leaving “it.” stranded on a separate line.
+- Fix: split the phrase into three deliberate mobile lines while retaining the selected two-line desktop lockup.
 
 ### Final pass — passed
 
-- The generic centered error card is removed.
-- The final desktop composition matches the selected white editorial canvas, hairline header, two-line headline, compact safety copy, single blue action, quiet text links, and saved-document visual.
-- The official cropped PDFEnrich wordmark replaces the mock’s text-only placeholder, as required by the product brand system.
-- Mobile recomposes into one readable column with a full-width retry action, two supporting links, and an enlarged document visual without horizontal overflow.
+- The generic numbered-card row is replaced by one connected upload, edit, and download paper journey.
+- Real PDFEnrich document illustrations preserve consistent shape, depth, scale, and uncropped proportions.
+- The coral path, pastel stage numbers, and restrained action controls match the selected bright tactile direction.
+- The large lavender privacy card is replaced by an open warm-white trust band with a document-shield illustration and three divided proof statements.
+- Desktop spacing, typography, color, hierarchy, and visible content track the selected Paper Trail source while using original PDFEnrich assets.
+- Mobile recomposes into a vertical connected path with readable copy and professional uncropped art rather than shrinking the desktop layout.
 
 ## Functional and accessibility verification
 
-- `Reload page` performs a real browser reload and retains the requested route.
-- `PDF tools` navigates to `/tools`.
-- `Home` navigates to `/`.
-- The recovery section uses `role="alert"` and an explicit description association.
-- Keyboard focus treatments remain visible on the logo, button, and links.
-- The illustration is decorative and excluded from the accessibility tree.
-- Desktop and mobile browser console errors: none.
-- Mobile document width equals the viewport width: 390px.
-- Focused route-error tests: passed.
-- TypeScript and production build: passed.
+- All workflow illustrations have useful alternative text.
+- The connected journey has an explicit accessible label.
+- The privacy illustration is decorative and excluded from the accessibility tree.
+- The privacy details link remains keyboard accessible and routes to `/privacy`.
+- Desktop and mobile layouts have no horizontal overflow.
+- Reduced-motion users do not receive hover movement.
+- Browser console errors: none.
+- Production Vite build: passed.
 
 final result: passed

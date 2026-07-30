@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import ArrowRight from "lucide-react/dist/esm/icons/arrow-right.mjs";
+import Cloud from "lucide-react/dist/esm/icons/cloud.mjs";
 import Check from "lucide-react/dist/esm/icons/check.mjs";
 import ChevronDown from "lucide-react/dist/esm/icons/chevron-down.mjs";
+import Download from "lucide-react/dist/esm/icons/download.mjs";
 import Globe2 from "lucide-react/dist/esm/icons/globe-2.mjs";
 import Grid3X3 from "lucide-react/dist/esm/icons/grid-3x3.mjs";
 import Menu from "lucide-react/dist/esm/icons/menu.mjs";
@@ -12,6 +14,7 @@ import Rocket from "lucide-react/dist/esm/icons/rocket.mjs";
 import Scale from "lucide-react/dist/esm/icons/scale.mjs";
 import ShieldCheck from "lucide-react/dist/esm/icons/shield-check.mjs";
 import Signature from "lucide-react/dist/esm/icons/signature.mjs";
+import UserRound from "lucide-react/dist/esm/icons/user-round.mjs";
 import Upload from "lucide-react/dist/esm/icons/upload.mjs";
 import X from "lucide-react/dist/esm/icons/x.mjs";
 import Zap from "lucide-react/dist/esm/icons/zap.mjs";
@@ -25,6 +28,7 @@ import { ToolIcon } from "./tools/ToolIcon.jsx";
 import { TOOL_CATEGORIES, TOOL_REGISTRY } from "./tools/toolRegistry.js";
 
 const asset = (fileName) => `${import.meta.env.BASE_URL}homepage/${fileName}`;
+const toolIllustration = (fileName) => `${import.meta.env.BASE_URL}tool-illustrations/${fileName}`;
 
 const faqs = [
   ["Is PDFEnrich really free?", "Yes. Supported core tools are free to use with no subscription, checkout, email requirement, or PDFEnrich watermark."],
@@ -70,6 +74,57 @@ const heroTasks = [
   { label: "Sign", route: ROUTE_PATHS.signPdf, icon: Signature, tone: "lilac" },
   { label: "Organize", route: "/organize-pdf", icon: Grid3X3, tone: "yellow" },
   { label: "Convert", route: "/pdf-to-jpg", icon: RefreshCw, tone: "blue" },
+];
+
+const workflowSteps = [
+  {
+    number: "1",
+    title: "Choose your file",
+    copy: "Upload a supported PDF or drag it into the workspace.",
+    image: "fill-pdf.png",
+    imageAlt: "PDF document ready to upload and complete",
+    tone: "coral",
+    icon: Upload,
+  },
+  {
+    number: "2",
+    title: "Make the change",
+    copy: "Use focused editing, signing, page, or conversion controls.",
+    image: "edit-pdf.png",
+    imageAlt: "PDF document with editable text selected",
+    tone: "yellow",
+    icon: PencilLine,
+  },
+  {
+    number: "3",
+    title: "Download the result",
+    copy: "Review your output and download without a watermark.",
+    image: "sign-pdf.png",
+    imageAlt: "Completed signed PDF document ready to download",
+    tone: "blue",
+    icon: Download,
+  },
+];
+
+const privacyProofs = [
+  {
+    title: "Processed in your browser",
+    copy: "No document text, signatures, or form values are sent to analytics.",
+    tone: "coral",
+    icon: Globe2,
+  },
+  {
+    title: "No account required",
+    copy: "Start working right away with supported tools—no signup needed.",
+    tone: "yellow",
+    icon: UserRound,
+  },
+  {
+    title: "Optional cloud history",
+    copy: "Cloud document history is clearly identified and used only when you choose it.",
+    tone: "lilac",
+    icon: Cloud,
+  },
 ];
 
 const homepageFeatureTools = [
@@ -359,9 +414,56 @@ export function LatticePdfLanding({ fileInputRef, onUpload, onSelectFiles, onDro
 
     <ComparisonTeaser />
 
-    <section className="freepdf-section freepdf-how" aria-labelledby="how-title"><div className="freepdf-section-heading"><span>How it works</span><h2 id="how-title">Choose it. Change it. Download it.</h2></div><div>{[["1", "Choose your file", "Upload a supported PDF or drag it into the workspace."], ["2", "Make the change", "Use focused editing, signing, page, or conversion controls."], ["3", "Download the result", "Review your output and download without a watermark."]].map(([number, title, copy]) => <article key={number}><span>{number}</span><h3>{title}</h3><p>{copy}</p></article>)}</div></section>
+    <section className="freepdf-section freepdf-how freepdf-paper-trail" aria-labelledby="how-title">
+      <div className="freepdf-section-heading">
+        <span>How it works</span>
+        <h2 id="how-title">
+          <span>Choose it.</span>{" "}
+          <span>Change it.</span>
+          <br />
+          <span>Download it.</span>
+        </h2>
+      </div>
+      <div className="freepdf-paper-path" aria-label="Three steps from upload to download">
+        {workflowSteps.map(({ number, title, copy, image, imageAlt, tone, icon: Icon }) => (
+          <article className={`freepdf-paper-step is-${tone}`} key={number}>
+            <div className="freepdf-paper-step-copy">
+              <span className="freepdf-paper-number">{number}</span>
+              <div>
+                <h3>{title}</h3>
+                <p>{copy}</p>
+              </div>
+            </div>
+            <div className="freepdf-paper-step-art">
+              <span className="freepdf-paper-action" aria-hidden="true"><Icon size={22} /></span>
+              <img src={toolIllustration(image)} alt={imageAlt} width="512" height="512" loading="lazy" decoding="async" />
+            </div>
+          </article>
+        ))}
+      </div>
+    </section>
 
-    <section className="freepdf-section freepdf-privacy" aria-labelledby="privacy-title"><div><span className="freepdf-section-kicker">Privacy, without the fine print</span><h2 id="privacy-title">Your file stays close to you.</h2><p>Supported editor, page, and image tools process files in your browser. Firebase is used only for optional account authentication and cloud document history.</p><Link to={ROUTE_PATHS.privacy}>Read the privacy details <ArrowRight size={16} /></Link></div><ul><li><Check size={17} /> No document text, signatures, or form values in analytics</li><li><Check size={17} /> No account required for supported processing or download</li><li><Check size={17} /> Optional cloud history is always clearly identified</li></ul></section>
+    <div className="freepdf-privacy-band">
+      <section className="freepdf-section freepdf-privacy freepdf-privacy-proof" aria-labelledby="privacy-title">
+        <div className="freepdf-privacy-art" aria-hidden="true">
+          <img src={toolIllustration("protect-pdf.png")} alt="" width="512" height="512" loading="lazy" decoding="async" />
+        </div>
+        <div className="freepdf-privacy-copy">
+          <span className="freepdf-section-kicker">Privacy, without the fine print</span>
+          <h2 id="privacy-title">Your file stays close to you.</h2>
+          <p>Supported editor, page, and image tools process files in your browser. Firebase is used only for optional account authentication and cloud document history.</p>
+          <Link to={ROUTE_PATHS.privacy}>Read the privacy details <ArrowRight size={16} /></Link>
+        </div>
+        <ul>
+          {privacyProofs.map(({ title, copy, tone, icon: Icon }) => (
+            <li key={title}>
+              <span className={`freepdf-privacy-proof-icon is-${tone}`} aria-hidden="true"><Icon size={22} /></span>
+              <span><strong>{title}</strong><small>{copy}</small></span>
+            </li>
+          ))}
+        </ul>
+      </section>
+    </div>
 
     <section className="freepdf-section freepdf-faq" aria-labelledby="faq-title"><div className="freepdf-section-heading"><span>Good to know</span><h2 id="faq-title">Clear answers before you upload.</h2></div><div>{faqs.map(([question, answer]) => <details key={question}><summary>{question}</summary><p>{answer}</p></details>)}</div></section>
 
