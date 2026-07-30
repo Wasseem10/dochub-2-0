@@ -177,10 +177,10 @@ function SiteHeader({ onChoose }) {
       </nav>
       <div className="freepdf-header-actions">
         <Link to={ROUTE_PATHS.login}>Log in</Link>
-        <button type="button" className="freepdf-header-cta" onClick={onChoose}>Choose a PDF</button>
+        <button type="button" className="freepdf-header-cta" onClick={onChoose}>Use for free</button>
         <button className="freepdf-menu-button" type="button" aria-label={open ? "Close navigation" : "Open navigation"} aria-expanded={open} onClick={() => { setOpen((value) => !value); setToolsOpen(false); }}>{open ? <X size={21} /> : <Menu size={21} />}</button>
       </div>
-      {open && <nav className="freepdf-mobile-nav" aria-label="Mobile navigation">{links.map(([label, href], index) => <Link ref={index === 0 ? firstLinkRef : undefined} key={label} to={href} onClick={() => setOpen(false)}>{label}</Link>)}<Link to={ROUTE_PATHS.login} onClick={() => setOpen(false)}>Log in</Link><button type="button" onClick={() => { setOpen(false); onChoose(); }}>Choose a PDF</button></nav>}
+      {open && <nav className="freepdf-mobile-nav" aria-label="Mobile navigation">{links.map(([label, href], index) => <Link ref={index === 0 ? firstLinkRef : undefined} key={label} to={href} onClick={() => setOpen(false)}>{label}</Link>)}<Link to={ROUTE_PATHS.login} onClick={() => setOpen(false)}>Log in</Link><button type="button" onClick={() => { setOpen(false); onChoose(); }}>Use for free</button></nav>}
     </div>
     {toolsOpen && <div ref={toolsMenuRef} className="freepdf-tools-mega" id="freepdf-tools-menu" role="region" aria-label="PDFEnrich tools">
       <div className="freepdf-tools-mega-grid">
@@ -231,6 +231,7 @@ function Dropzone({ choose, dragging, setDragging, isUploading, uploadError, upl
     <span className="freepdf-upload-icon"><Upload size={26} /></span>
     <span className="freepdf-dropzone-title">{dragging ? "Drop your PDF here" : isUploading ? "Opening your PDF…" : "Drop your PDF here"}</span>
     <span className="freepdf-dropzone-copy">or <strong>choose a file</strong> from your device</span>
+    <span className="freepdf-dropzone-free"><Check size={15} aria-hidden="true" /> Free to use. No account or payment needed.</span>
     <span className="freepdf-upload-status" aria-live="polite">{uploadError ? <span role="alert">{uploadError}</span> : isUploading ? <><span className="freepdf-upload-status-copy">{uploadStage.status}{uploadStage.fileName ? ` · ${uploadStage.fileName}` : ""}</span><span className="freepdf-upload-progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow={uploadStage.percent || 0}><span style={{ width: `${uploadStage.percent || 0}%` }} /></span></> : null}</span>
   </button>;
 }
@@ -320,16 +321,16 @@ export function LatticePdfLanding({ fileInputRef, onUpload, onSelectFiles, onDro
   }, []);
 
   return <main className="freepdf-page">
-    <PageMetadata title="Every PDF Task in One Place | PDFEnrich" description="Edit, sign, fill, merge, split, organize, and convert PDFs without subscriptions, watermarks, or forced signup." canonicalUrl="/" schemas={[{ "@context": "https://schema.org", "@type": "WebSite", "@id": `${absoluteSiteUrl("/")}#website`, name: "PDFEnrich", alternateName: "PDFEnrich", url: absoluteSiteUrl("/"), inLanguage: "en-US" }, { "@context": "https://schema.org", "@type": "Organization", "@id": `${absoluteSiteUrl("/")}#organization`, name: "PDFEnrich", url: absoluteSiteUrl("/"), logo: absoluteSiteUrl("/icon.svg") }]} />
+    <PageMetadata title="Free PDF Tools, No Subscription or Watermark | PDFEnrich" description="Edit, sign, fill, merge, split, organize, and convert PDFs completely free - with no subscription, payment, or watermark." canonicalUrl="/" schemas={[{ "@context": "https://schema.org", "@type": "WebSite", "@id": `${absoluteSiteUrl("/")}#website`, name: "PDFEnrich", alternateName: "PDFEnrich", url: absoluteSiteUrl("/"), inLanguage: "en-US" }, { "@context": "https://schema.org", "@type": "Organization", "@id": `${absoluteSiteUrl("/")}#organization`, name: "PDFEnrich", url: absoluteSiteUrl("/"), logo: absoluteSiteUrl("/icon.svg") }]} />
     <input ref={inputRef} className="hidden-input" type="file" accept="application/pdf,.pdf" onChange={onUpload} />
     <SiteHeader onChoose={choose} />
 
     <section className="freepdf-hero">
       <div className="freepdf-hero-layout">
         <div className="freepdf-hero-copy">
-          <Link className="freepdf-free-promise" to={ROUTE_PATHS.pricing}><Check size={15} aria-hidden="true" /> Completely free. No subscriptions or paid plans.</Link>
-          <h1>Every PDF task,<br /><span>beautifully</span> in one place.</h1>
-          <p>Edit, sign, organize, and convert your PDFs in seconds.<br />Powerful tools. No clutter. No payment. Just results.</p>
+          <Link className="freepdf-free-promise" to={ROUTE_PATHS.pricing}><Check size={15} aria-hidden="true" /> 100% free. No subscription, payment, or watermark.</Link>
+          <h1>Every PDF task,<br /><span>beautifully free.</span></h1>
+          <p>Edit, sign, organize, and convert your PDFs in seconds.<br />No subscriptions. No paid plans. Just the tools you need.</p>
         </div>
 
         <div className="freepdf-product-stage">

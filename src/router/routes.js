@@ -2,7 +2,7 @@ import { ROUTE_PATHS } from "./routePaths.js";
 
 export const PUBLIC_PLACEHOLDER_ROUTES = [
   [ROUTE_PATHS.features, "Features", "Explore the PDFEnrich workspace and the tools that are currently available."],
-  [ROUTE_PATHS.pricing, "Free PDF tools", "PDFEnrich is completely free, with no subscriptions, checkout, or paid plans planned."],
+  [ROUTE_PATHS.pricing, "Why PDFEnrich is free", "PDFEnrich is completely free, with no subscriptions, checkout, or paid plans planned."],
   [ROUTE_PATHS.business, "PDFEnrich for business", "A focused document workspace for teams that edit and review PDFs."],
   [ROUTE_PATHS.enterprise, "Enterprise", "Enterprise administration and access controls are currently in development."],
   [ROUTE_PATHS.security, "Security", "Learn what the current browser workspace supports and where additional safeguards are planned."],

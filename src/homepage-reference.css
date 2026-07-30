@@ -246,6 +246,16 @@
   text-decoration: none;
 }
 
+.freepdf-dropzone-free {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 14px;
+  color: #2851eb;
+  font-size: 13px;
+  font-weight: 750;
+}
+
 .freepdf-trust-strip {
   position: relative;
   right: auto;
@@ -560,6 +570,7 @@
   .freepdf-upload-icon svg { width: 25px; height: 25px; }
   .freepdf-dropzone-title { font-size: 23px; }
   .freepdf-dropzone-copy { max-width: 260px; font-size: 14px; line-height: 1.45; }
+  .freepdf-dropzone-free { margin-top: 10px; font-size: 11px; }
 
   .freepdf-trust-strip {
     width: min(100%, 390px);

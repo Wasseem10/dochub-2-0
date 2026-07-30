@@ -41,8 +41,8 @@ export function AboutPage() {
   return (
     <main className="about-page">
       <PageMetadata
-        title="About PDFEnrich | A simpler browser-first PDF workspace"
-        description="Meet PDFEnrich, a browser-first PDF workspace built to make editing, organizing, converting, signing, scanning, and reviewing documents feel straightforward."
+        title="About PDFEnrich | Completely free PDF tools"
+        description="Meet PDFEnrich, a completely free browser-first PDF workspace with no subscription, payment, or watermark."
         canonicalUrl={ROUTE_PATHS.about}
         schemas={[{
           "@context": "https://schema.org",
@@ -64,7 +64,7 @@ export function AboutPage() {
           <h1>PDF work should feel <em>clear, fast, and human.</em></h1>
           <p>PDFEnrich is a browser-first document workspace for the everyday jobs that make PDFs useful: editing, organizing, converting, signing, scanning, protecting, and reviewing.</p>
           <div>
-            <Link className="about-primary" to={ROUTE_PATHS.editPdf}>Choose a PDF <ArrowRight size={17} /></Link>
+            <Link className="about-primary" to={ROUTE_PATHS.editPdf}>Use PDFEnrich for free <ArrowRight size={17} /></Link>
             <Link className="about-secondary" to={ROUTE_PATHS.tools}>Explore all tools</Link>
           </div>
         </div>
