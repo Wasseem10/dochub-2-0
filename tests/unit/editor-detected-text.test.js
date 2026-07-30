@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
   backgroundColorFromSamples,
+  canMergeDetectedTextRuns,
   detectedTextBaseline,
   detectedTextRotation,
+  detectedTextSourceFrame,
   layoutDetectedText,
   resolveDetectedTextStyle,
   standardPdfFontVariant,
@@ -39,6 +41,39 @@ describe("editor detected text fidelity", () => {
   it("preserves the source text rotation", () => {
     expect(detectedTextRotation([0, 12, -12, 0, 20, 30])).toBe(90);
     expect(detectedTextRotation([10, 0, 0, 10, 20, 30])).toBe(0);
+  });
+
+  it("keeps an immutable source frame separate from the editable destination frame", () => {
+    expect(detectedTextSourceFrame({
+      x: 0.4,
+      y: 0.5,
+      w: 0.3,
+      h: 0.1,
+      sourceX: 0.1,
+      sourceY: 0.2,
+      sourceW: 0.18,
+      sourceH: 0.04,
+    })).toEqual({ x: 0.1, y: 0.2, w: 0.18, h: 0.04 });
+    expect(detectedTextSourceFrame({
+      x: 0.4,
+      y: 0.5,
+      w: 0.3,
+      h: 0.1,
+      hasSourceText: false,
+    })).toBeNull();
+  });
+
+  it("does not merge separate nearby text runs or mixed styles into one edit target", () => {
+    const baseRun = {
+      fontFamily: "Times New Roman",
+      fontSize: 12,
+      bold: false,
+      italic: false,
+      rotation: 0,
+    };
+    expect(canMergeDetectedTextRuns(baseRun, { ...baseRun }, { gap: 3, averageHeight: 12 })).toBe(true);
+    expect(canMergeDetectedTextRuns(baseRun, { ...baseRun }, { gap: 8, averageHeight: 12 })).toBe(false);
+    expect(canMergeDetectedTextRuns(baseRun, { ...baseRun, bold: true }, { gap: 0, averageHeight: 12 })).toBe(false);
   });
 
   it("wraps and shrinks replacement text to the detected box", () => {

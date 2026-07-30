@@ -116,7 +116,7 @@ import { annotationPatchFromFrame, framesEqual, getAnnotationFrame, moveFrame, n
 import { circleFrameFromDrag, directedLineFrameFromPoints, directedLineSvgGeometry, ensureDirectedLineLength, getDirectedLineEndpoints, normalizeCircleFrame, resizeCircleFrame } from "./tools/editorShapeGeometry.js";
 import { normalizedPointerInRect } from "./tools/editorPointerCoordinates.js";
 import { createTextAnnotation, estimateTextAnnotationSize, normalizeEditorText, shouldDiscardTextAnnotation } from "./tools/editorTextObjects.js";
-import { detectedTextBaseline, detectedTextRotation, layoutDetectedText, resolveDetectedTextStyle, sampleDetectedTextBackground, standardPdfFontVariant } from "./tools/editorDetectedText.js";
+import { canMergeDetectedTextRuns, detectedTextBaseline, detectedTextRotation, detectedTextSourceFrame, layoutDetectedText, resolveDetectedTextStyle, sampleDetectedTextBackground, standardPdfFontVariant } from "./tools/editorDetectedText.js";
 import { recoverPdfPageRender, withPdfPageDeadline } from "./tools/editorPageRecovery.js";
 import {
   canSaveEditorSignature,
@@ -723,6 +723,7 @@ function extractDetectedTextItems(textContent, viewport, pageRecord, pageIndex) 
         italic: textStyle.italic,
         color: colors.black,
         rotation: detectedTextRotation(item.transform),
+        hasEOL: Boolean(item.hasEOL),
         source: "pdf-text-layer",
         confidence: 1,
         isEdited: false,
@@ -775,6 +776,8 @@ function extractDetectedTextItems(textContent, viewport, pageRecord, pageIndex) 
       const h = clamp(boxHeight / viewport.height, 0.014, 0.22);
 
       if (originalText && w > 0.006 && h > 0.006) {
+        const normalizedWidth = Math.min(w, 0.98 - x);
+        const normalizedHeight = Math.min(h, 0.98 - y);
         mergedItems.push({
           ...segment[0],
           id: makeId("detected-text"),
@@ -782,8 +785,13 @@ function extractDetectedTextItems(textContent, viewport, pageRecord, pageIndex) 
           currentText: originalText,
           x,
           y,
-          w: Math.min(w, 0.98 - x),
-          h: Math.min(h, 0.98 - y),
+          w: normalizedWidth,
+          h: normalizedHeight,
+          sourceX: x,
+          sourceY: y,
+          sourceW: normalizedWidth,
+          sourceH: normalizedHeight,
+          hasSourceText: true,
           baselineOffset: clamp((baseline - boxTop) / viewport.height, 0, h),
           fontSize,
           fontFamily: segment[0].fontFamily,
@@ -796,8 +804,10 @@ function extractDetectedTextItems(textContent, viewport, pageRecord, pageIndex) 
     sorted.forEach((item) => {
       const previous = segment[segment.length - 1];
       const gap = previous ? item.left - previous.right : 0;
-      const maxInlineGap = Math.max(line.avgHeight * 3.2, viewport.width * 0.045);
-      if (previous && gap > maxInlineGap) {
+      if (previous && !canMergeDetectedTextRuns(previous, item, {
+        gap,
+        averageHeight: line.avgHeight,
+      })) {
         flushSegment();
       }
       segment.push(item);
@@ -883,11 +893,13 @@ async function renderPdfEditorPage(documentProxy, sourcePageIndex, outputPageInd
 
 function createDetectedTextBackgroundPatch(context, canvasWidth, canvasHeight, item) {
   if (!context || !canvasWidth || !canvasHeight || !item) return null;
+  const sourceFrame = detectedTextSourceFrame(item);
+  if (!sourceFrame) return null;
   const padding = Math.max(3, Math.round(Math.min(canvasWidth, canvasHeight) * 0.004));
-  const left = Math.max(0, Math.floor(item.x * canvasWidth) - padding);
-  const top = Math.max(0, Math.floor(item.y * canvasHeight) - padding);
-  const right = Math.min(canvasWidth, Math.ceil((item.x + item.w) * canvasWidth) + padding);
-  const bottom = Math.min(canvasHeight, Math.ceil((item.y + item.h) * canvasHeight) + padding);
+  const left = Math.max(0, Math.floor(sourceFrame.x * canvasWidth) - padding);
+  const top = Math.max(0, Math.floor(sourceFrame.y * canvasHeight) - padding);
+  const right = Math.min(canvasWidth, Math.ceil((sourceFrame.x + sourceFrame.w) * canvasWidth) + padding);
+  const bottom = Math.min(canvasHeight, Math.ceil((sourceFrame.y + sourceFrame.h) * canvasHeight) + padding);
   const width = right - left;
   const height = bottom - top;
   if (width < 2 || height < 2 || width * height > 1_800_000) return null;
@@ -2157,7 +2169,11 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       || Object.hasOwn(TOOL_PERSISTENT_INSTRUCTIONS, tool));
   const pageAnnotations = annotations.filter((annotation) => annotation.page === pageIndex);
   const pageDetectedTextItems = detectedTextItems.filter((item) => item.pageNumber === pageIndex && !item.isDeleted);
-  const pageDeletedTextItems = detectedTextItems.filter((item) => item.pageNumber === pageIndex && item.isDeleted);
+  const pageSourceReplacementItems = detectedTextItems.filter((item) => (
+    item.pageNumber === pageIndex
+    && (item.isEdited || item.isDeleted)
+    && detectedTextSourceFrame(item)
+  ));
   const detectedTextCount = useMemo(() => detectedTextItems.filter((item) => !item.isDeleted).length, [detectedTextItems]);
   const contextualToolConfig = useMemo(() => {
     const tools = new Set(getToolsForMode(activeToolMode));
@@ -2788,6 +2804,11 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       x: clamp(item.x + 0.02, 0, 0.92),
       y: clamp(item.y + 0.02, 0, 0.94),
       originalText: item.currentText,
+      sourceX: undefined,
+      sourceY: undefined,
+      sourceW: undefined,
+      sourceH: undefined,
+      hasSourceText: false,
       isEdited: true,
       source: item.source,
       createdAt: nowIso(),
@@ -4153,17 +4174,13 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   };
 
   const updateDetectedTextContent = (id, element) => {
+    const current = detectedTextItems.find((item) => item.id === id);
+    const text = element.innerText.replace(/\r\n?/g, "\n");
+    if (!current || current.currentText === text) return;
     beginDetectedTextEdit(id);
-    const pageRect = element.closest(".page-surface")?.getBoundingClientRect();
-    const text = element.innerText;
-    const patch = { currentText: text || " ", isEdited: true };
-    if (pageRect?.width && pageRect?.height) {
-      patch.w = clamp((element.scrollWidth + 18) / pageRect.width, 0.02, 0.92);
-      patch.h = clamp((element.scrollHeight + 10) / pageRect.height, 0.018, 0.32);
-    }
     setDetectedTextItems((items) => items.map((item) => (
       item.id === id
-        ? { ...item, ...patch, isEdited: true, updatedAt: nowIso() }
+        ? { ...item, currentText: text, isEdited: true, updatedAt: nowIso() }
         : item
     )));
     markUnsaved();
@@ -4479,12 +4496,12 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       const pdfScale = width / (pageRecord.width || BASE_PAGE_WIDTH);
       const x = item.x * width;
       const boxHeight = item.h * height;
-      const y = height - item.y * height - boxHeight;
       const boxWidth = item.w * width;
       const fontSize = clamp((item.fontSize || 11) * pdfScale, 4, 54);
       const font = pickPdfFont(item.fontFamily, item.bold, item.italic);
       const color = hexToRgb(item.color || colors.black);
       const backgroundColor = hexToRgb(normalizeHexColor(item.backgroundColor) || "#ffffff");
+      const sourceFrame = detectedTextSourceFrame(item);
       const backgroundPatch = rebuiltPages.get(item.pageNumber)?.textPatches?.get(item.id);
       const backgroundImage = backgroundPatch?.image
         ? await embedDataUrlImage(pdfDoc, backgroundPatch.image)
@@ -4498,12 +4515,16 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
           width: backgroundPatch.w * width,
           height: backgroundPatch.h * height,
         });
-      } else {
+      } else if (sourceFrame) {
+        const sourceX = sourceFrame.x * width;
+        const sourceHeight = sourceFrame.h * height;
+        const sourceY = height - sourceFrame.y * height - sourceHeight;
+        const sourceWidth = sourceFrame.w * width;
         page.drawRectangle({
-          x: Math.max(0, x - 1.5),
-          y: Math.max(0, y - 1.5),
-          width: Math.min(width - x + 1.5, boxWidth + 3),
-          height: Math.min(height - y + 1.5, boxHeight + 3),
+          x: Math.max(0, sourceX - 1.5),
+          y: Math.max(0, sourceY - 1.5),
+          width: Math.min(width - sourceX + 1.5, sourceWidth + 3),
+          height: Math.min(height - sourceY + 1.5, sourceHeight + 3),
           color: backgroundColor,
           opacity: 1,
           borderOpacity: 0,
@@ -5852,20 +5873,23 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
                     <small>Click to place</small>
                   </div>
                 )}
-                {pageDeletedTextItems.map((item) => (
-                  <div
-                    key={`deleted-${item.id}`}
-                    className="detected-text-whiteout"
-                    style={{
-                      left: `${Math.max(0, item.x * 100 - 0.25)}%`,
-                      top: `${Math.max(0, item.y * 100 - 0.18)}%`,
-                      width: `${Math.min(100, item.w * 100 + 0.5)}%`,
-                      height: `${Math.min(100, item.h * 100 + 0.36)}%`,
-                      backgroundColor: item.backgroundColor || "#ffffff",
-                    }}
-                    aria-hidden="true"
-                  />
-                ))}
+                {pageSourceReplacementItems.map((item) => {
+                  const sourceFrame = detectedTextSourceFrame(item);
+                  return (
+                    <div
+                      key={`source-replacement-${item.id}`}
+                      className="detected-text-whiteout"
+                      style={{
+                        left: `${Math.max(0, sourceFrame.x * 100 - 0.25)}%`,
+                        top: `${Math.max(0, sourceFrame.y * 100 - 0.18)}%`,
+                        width: `${Math.min(100, sourceFrame.w * 100 + 0.5)}%`,
+                        height: `${Math.min(100, sourceFrame.h * 100 + 0.36)}%`,
+                        backgroundColor: item.backgroundColor || "#ffffff",
+                      }}
+                      aria-hidden="true"
+                    />
+                  );
+                })}
                 {pageDetectedTextItems.map((item) => {
                   const isActive = item.id === selectedDetectedTextId;
                   const displayScale = (zoom / 100) * EDITOR_PAGE_SCALE;

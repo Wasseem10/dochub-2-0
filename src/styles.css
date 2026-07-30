@@ -6222,6 +6222,7 @@ button {
   width: 100%;
   height: 100%;
   outline: none;
+  overflow: hidden;
   direction: ltr;
   white-space: pre-wrap;
   overflow-wrap: normal;
@@ -6233,7 +6234,13 @@ button {
 }
 
 .detected-text-item.is-selected .detected-text-content {
+  overflow: auto;
+  scrollbar-width: none;
   user-select: text;
+}
+
+.detected-text-item.is-selected .detected-text-content::-webkit-scrollbar {
+  display: none;
 }
 
 .detected-text-toolbar {

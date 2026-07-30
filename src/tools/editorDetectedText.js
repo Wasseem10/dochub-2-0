@@ -97,6 +97,33 @@ export function detectedTextRotation(transform = []) {
   return Math.abs(normalized) < 0.05 ? 0 : normalized;
 }
 
+export function detectedTextSourceFrame(item) {
+  if (!item || item.hasSourceText === false) return null;
+  const x = Number.isFinite(item.sourceX) ? item.sourceX : item.x;
+  const y = Number.isFinite(item.sourceY) ? item.sourceY : item.y;
+  const w = Number.isFinite(item.sourceW) ? item.sourceW : item.w;
+  const h = Number.isFinite(item.sourceH) ? item.sourceH : item.h;
+  if (![x, y, w, h].every(Number.isFinite) || w <= 0 || h <= 0) return null;
+  return { x, y, w, h };
+}
+
+export function canMergeDetectedTextRuns(previous, next, {
+  gap = Infinity,
+  averageHeight = 0,
+} = {}) {
+  if (!previous || !next || previous.hasEOL) return false;
+  const previousSize = Number(previous.fontSize || 0);
+  const nextSize = Number(next.fontSize || 0);
+  const fontTolerance = Math.max(0.5, Math.min(previousSize || nextSize, nextSize || previousSize) * 0.08);
+  const sameStyle = previous.fontFamily === next.fontFamily
+    && previous.bold === next.bold
+    && previous.italic === next.italic
+    && Math.abs(previousSize - nextSize) <= fontTolerance
+    && Math.abs(Number(previous.rotation || 0) - Number(next.rotation || 0)) <= 0.25;
+  const maximumInlineGap = Math.max(1.5, Number(averageHeight || 0) * 0.45);
+  return sameStyle && Number(gap) <= maximumInlineGap;
+}
+
 function splitLongToken(token, size, maxWidth, measure) {
   if (!token || measure(token, size) <= maxWidth) return [token];
   const pieces = [];

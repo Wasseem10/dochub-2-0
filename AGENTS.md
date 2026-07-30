@@ -42,6 +42,8 @@ The mobile More sheet uses grouped Edit & mark up, Insert, Shapes, and Document 
 
 New text boxes must open at a readable minimum size, auto-grow while typing, use Arial as the dependable default PDF font, save on blur, and keep one shared blue selection model with eight resize handles, rotation, keyboard nudging, deletion, and history. The contextual text bar must use clear labels and only operational font/style controls.
 
+Editing detected text from an existing PDF must preserve that item’s box while typing and must never cover, reflow, or erase neighboring page content. Keep immutable source bounds for removing the original glyphs during preview and export; moving or resizing the replacement must not move or enlarge the source cleanup area. Clicking and leaving an unchanged detected text item must not mark it edited.
+
 While a text box has keyboard focus, hide its transform controls so the writing area stays unobstructed; restore them only after focus leaves the text.
 
 Manage Pages expands the persistent thumbnail rail into a labeled organizer with insert, duplicate, rotate, delete, drag reorder, keyboard reorder, and per-page quick actions. Signature and initials dialogs must disable empty saves and expose labeled controls and a typed keyboard-accessible alternative to drawing.
