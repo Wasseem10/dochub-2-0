@@ -15,6 +15,19 @@ describe("privacy-safe product analytics", () => {
     expect(sanitizeAnalyticsProperties({ route: `/${"a".repeat(300)}` }).route).toHaveLength(160);
   });
 
+  it("never persists sharing tokens or editor document IDs as route properties", () => {
+    expect(sanitizeAnalyticsProperties({
+      route: "/share/private-share-token",
+      landingPath: "https://pdfenrich.com/sign/private-signing-token?source=email",
+    })).toEqual({
+      route: "/share/:token",
+      landingPath: "/sign/:token",
+    });
+    expect(sanitizeAnalyticsProperties({ route: "/app/editor/private-document-id" })).toEqual({
+      route: "/app/editor/:documentId",
+    });
+  });
+
   it("uses broad size and page buckets", () => {
     expect(fileSizeBucket(2 * 1024 * 1024)).toBe("1_5mb");
     expect(pageCountBucket(72)).toBe("51_100");

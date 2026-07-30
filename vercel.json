@@ -6,18 +6,43 @@
   "cleanUrls": true,
   "headers": [
     {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "Content-Security-Policy",
+          "value": "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self' 'wasm-unsafe-eval' https://www.google.com https://www.gstatic.com https://www.googletagmanager.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://www.gstatic.com https://*.googleusercontent.com; font-src 'self' data:; connect-src 'self' blob: https://*.firebaseapp.com https://*.firebaseio.com wss://*.firebaseio.com https://*.googleapis.com wss://*.googleapis.com https://www.google.com https://www.google-analytics.com https://region1.google-analytics.com https://analytics.google.com; frame-src 'self' blob: https://*.firebaseapp.com https://accounts.google.com https://www.google.com; worker-src 'self' blob:; child-src 'self' blob:; media-src 'self' data: blob:; manifest-src 'self'; upgrade-insecure-requests"
+        },
+        { "key": "Cross-Origin-Opener-Policy", "value": "same-origin-allow-popups" },
+        { "key": "Cross-Origin-Resource-Policy", "value": "same-origin" },
+        { "key": "Origin-Agent-Cluster", "value": "?1" },
+        { "key": "Permissions-Policy", "value": "accelerometer=(), browsing-topics=(), camera=(self), clipboard-read=(), clipboard-write=(self), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), serial=(), usb=()" },
+        { "key": "Referrer-Policy", "value": "no-referrer" },
+        { "key": "Strict-Transport-Security", "value": "max-age=63072000; includeSubDomains" },
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "X-DNS-Prefetch-Control", "value": "off" },
+        { "key": "X-Frame-Options", "value": "DENY" },
+        { "key": "X-Permitted-Cross-Domain-Policies", "value": "none" },
+        { "key": "X-XSS-Protection", "value": "0" }
+      ]
+    },
+    {
       "source": "/assets/(.*)",
       "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }]
     },
     {
       "source": "/app/(.*)",
-      "headers": [{ "key": "X-Robots-Tag", "value": "noindex, nofollow" }]
+      "headers": [
+        { "key": "Cache-Control", "value": "private, no-store, max-age=0" },
+        { "key": "X-Robots-Tag", "value": "noindex, nofollow" }
+      ]
     },
-    { "source": "/login", "headers": [{ "key": "X-Robots-Tag", "value": "noindex, nofollow" }] },
-    { "source": "/signup", "headers": [{ "key": "X-Robots-Tag", "value": "noindex, nofollow" }] },
-    { "source": "/forgot-password", "headers": [{ "key": "X-Robots-Tag", "value": "noindex, nofollow" }] },
-    { "source": "/share/(.*)", "headers": [{ "key": "X-Robots-Tag", "value": "noindex, nofollow" }] },
-    { "source": "/sign/(.*)", "headers": [{ "key": "X-Robots-Tag", "value": "noindex, nofollow" }] }
+    { "source": "/login", "headers": [{ "key": "Cache-Control", "value": "private, no-store, max-age=0" }, { "key": "X-Robots-Tag", "value": "noindex, nofollow" }] },
+    { "source": "/signup", "headers": [{ "key": "Cache-Control", "value": "private, no-store, max-age=0" }, { "key": "X-Robots-Tag", "value": "noindex, nofollow" }] },
+    { "source": "/forgot-password", "headers": [{ "key": "Cache-Control", "value": "private, no-store, max-age=0" }, { "key": "X-Robots-Tag", "value": "noindex, nofollow" }] },
+    { "source": "/share", "headers": [{ "key": "Cache-Control", "value": "private, no-store, max-age=0" }, { "key": "X-Robots-Tag", "value": "noindex, nofollow" }] },
+    { "source": "/share/(.*)", "headers": [{ "key": "Cache-Control", "value": "private, no-store, max-age=0" }, { "key": "X-Robots-Tag", "value": "noindex, nofollow" }] },
+    { "source": "/sign", "headers": [{ "key": "Cache-Control", "value": "private, no-store, max-age=0" }, { "key": "X-Robots-Tag", "value": "noindex, nofollow" }] },
+    { "source": "/sign/(.*)", "headers": [{ "key": "Cache-Control", "value": "private, no-store, max-age=0" }, { "key": "X-Robots-Tag", "value": "noindex, nofollow" }] }
   ],
   "rewrites": [
     {
@@ -27,7 +52,9 @@
     { "source": "/login", "destination": "/" },
     { "source": "/signup", "destination": "/" },
     { "source": "/forgot-password", "destination": "/" },
+    { "source": "/share", "destination": "/" },
     { "source": "/share/(.*)", "destination": "/" },
+    { "source": "/sign", "destination": "/" },
     { "source": "/sign/(.*)", "destination": "/" }
   ]
 }

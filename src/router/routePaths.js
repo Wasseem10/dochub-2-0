@@ -68,7 +68,9 @@ export const ROUTE_PATHS = Object.freeze({
   analytics: "/app/analytics",
   trash: "/app/trash",
   editorPattern: "/app/editor/:documentId",
+  share: "/share",
   sharePattern: "/share/:token",
+  sign: "/sign",
   signPattern: "/sign/:token",
 });
 
@@ -102,10 +104,12 @@ export function currentLocationPath(location) {
 
 /** @param {string} token */
 export function sharePath(token) {
-  return `/share/${encodeURIComponent(token)}`;
+  const search = new URLSearchParams({ token: String(token || "") });
+  return `${ROUTE_PATHS.share}#${search.toString()}`;
 }
 
 /** @param {string} token */
 export function signPath(token) {
-  return `/sign/${encodeURIComponent(token)}`;
+  const search = new URLSearchParams({ token: String(token || "") });
+  return `${ROUTE_PATHS.sign}#${search.toString()}`;
 }

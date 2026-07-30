@@ -89,7 +89,7 @@ describe("route guards", () => {
       { element: <OwnerRoute />, children: [{ path: "/app/analytics", element: <div>Private analytics</div> }] },
       { path: "/app/dashboard", element: <div>Private dashboard</div> },
     ];
-    const owner = await renderRoutes(routes, ["/app/analytics"], authValue({ currentUser: { uid: "owner", email: "wasseem700@gmail.com" } }));
+    const owner = await renderRoutes(routes, ["/app/analytics"], authValue({ currentUser: { uid: "owner", isAnalyticsOwner: true } }));
     expect(renderedText(owner.renderer)).toContain("Private analytics");
 
     const otherUser = await renderRoutes(routes, ["/app/analytics"], authValue({ currentUser: { uid: "other", email: "other@example.com" } }));

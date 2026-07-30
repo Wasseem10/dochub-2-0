@@ -48,20 +48,20 @@ const dataRows = [
     retention: "In memory until the tab closes; local saved work remains until you delete it or clear site data.",
   },
   {
-    category: "Optional cloud documents",
-    examples: "Document name, size, page count, source bytes, edits, thumbnails, and workspace state.",
-    source: "You when signed in and using cloud history.",
-    purpose: "Save document history and restore work across sessions or devices.",
-    disclosed: "Google Cloud Firestore and Cloud Storage for Firebase.",
-    retention: "Until you delete the document or account, plus limited provider backup periods.",
+    category: "Optional private cloud PDFs",
+    examples: "The finished edited PDF, sanitized display name, size, MIME type, checksum, internal IDs, timestamps, version, and deletion status. Visible signatures or form answers already placed in the finished PDF are part of those PDF bytes.",
+    source: "You only when signed in and choosing “Save private cloud copy” for that document.",
+    purpose: "Keep a durable private PDF copy and version history across sessions or devices.",
+    disclosed: "Google Cloud Firestore and Cloud Storage for Firebase; when configured, the private malware-scanning service used to verify that cloud copy.",
+    retention: "Until permanent document or account deletion, subject to the configured trash-recovery window and provider backup or soft-delete periods.",
   },
   {
     category: "Shared PDFs and signing links",
-    examples: "Exported PDF, file name, size, owner ID, random link token, expiration, and recipient/requester details included in the signing-link fragment.",
+    examples: "Exported PDF, sanitized file name, size, owner ID, a hash of the high-entropy capability, expiration, and—for signing requests—recipient/requester details, message, and required fields in a Firebase record.",
     source: "You when creating a share or signing request.",
-    purpose: "Create a revocable link that a recipient can open until it expires.",
+    purpose: "Create a revocable bearer link that a recipient can open until it expires.",
     disclosed: "Firebase; recipients and email providers you choose to use.",
-    retention: "Links expire after 1, 7, or 30 days. Revocation or account deletion removes the active cloud copy; backups may take longer.",
+    retention: "Links expire after 1, 7, or 30 days. Revocation or account deletion removes active records and objects; provider backups or soft-deleted generations may take longer to expire.",
   },
   {
     category: "Support information",
@@ -118,7 +118,7 @@ export function PrivacyPolicyPage() {
 
       <section className="privacy-quick-facts" aria-label="Privacy overview">
         <article><FileLock2 size={22} /><div><strong>Local by default</strong><p>Supported PDF work runs in your browser unless you deliberately use a cloud feature.</p></div></article>
-        <article><Database size={22} /><div><strong>Cloud is optional</strong><p>Accounts, cloud history, support, and sharing use Firebase and are clearly identified.</p></div></article>
+        <article><Database size={22} /><div><strong>Cloud is optional</strong><p>Accounts, explicit private saves, support, and sharing use Firebase and are clearly identified.</p></div></article>
         <article><SlidersHorizontal size={22} /><div><strong>Analytics require a choice</strong><p>Optional analytics stay off until you allow them, and Global Privacy Control is honored.</p></div></article>
       </section>
 
@@ -135,7 +135,7 @@ export function PrivacyPolicyPage() {
           <section id="summary">
             <span className="privacy-section-number">01</span>
             <h2>Plain-language summary</h2>
-            <p>PDFEnrich is designed so supported editing and conversion can happen on your device. Choosing a file does not, by itself, upload that file to PDFEnrich. Data leaves your browser only when needed to deliver a feature you choose, such as signing in, saving to cloud history, submitting support, allowing optional analytics, or creating a share link.</p>
+            <p>PDFEnrich is designed so supported editing and conversion can happen on your device. Choosing a file or signing in does not, by itself, upload that file to PDFEnrich. Data leaves your browser only when needed to deliver a feature you choose, such as saving a specific private cloud copy, submitting support, allowing optional analytics, or creating a share link.</p>
             <div className="privacy-promise-list">
               <p><CheckCircle2 size={17} /> PDFEnrich does not sell personal information or share it for cross-context behavioral advertising.</p>
               <p><CheckCircle2 size={17} /> PDFEnrich does not put file names, PDF contents, extracted text, signatures, form answers, or document URLs into product analytics.</p>
@@ -174,9 +174,9 @@ export function PrivacyPolicyPage() {
             <h3>Browser-only workflows</h3>
             <p>The editor and supported page, image, protection, OCR, and conversion tools process files in browser memory. Saved guest work may use IndexedDB or local storage on your device. Clearing PDFEnrich site data removes those browser copies, but PDFEnrich cannot delete downloads, browser backups, or copies you saved elsewhere.</p>
             <h3>Optional cloud history</h3>
-            <p>When cloud history is enabled for a signed-in account, document records and workspace payloads can be stored in Firebase. Delete individual documents in PDFEnrich or delete the entire account to remove active account-linked cloud records.</p>
+            <p>Private cloud saving is available only when the deployment has its authenticated cloud API configured. A signed-in user must choose “Save private cloud copy” for each document. PDFEnrich then uploads the rebuilt finished PDF and minimal metadata; it does not upload the editable workspace, OCR text, thumbnails, undo history, or signature library. Before PDFEnrich marks the copy saved, the configured private malware-scanning service may read that exact cloud object to return a clean or rejected result. The finished PDF itself can contain any visible signatures and form answers the user placed on it. Delete individual cloud copies in PDFEnrich or delete the entire account to remove active account-linked cloud data.</p>
             <h3>Sharing and signing requests</h3>
-            <p>Creating a sharing or signing link uploads the exported PDF to Firebase. Anyone with the random link can open or download it until expiration or revocation. Recipient name, recipient email, requester details, and the optional message are encoded in the signing link fragment and may also pass through the email provider you use to send the link. Do not create a link unless you are authorized to disclose the document and recipient information.</p>
+            <p>Creating a sharing or signing link uploads the exported PDF to Firebase. Anyone who has the high-entropy bearer link can open or download it until expiration or revocation. The raw capability is kept in the URL fragment so it is not sent in ordinary page requests; Firebase records and object identifiers use its SHA-256 hash. Recipient name, recipient email, requester details, the optional message, and required fields are stored in the expiring signing-request record rather than encoded into the link. Those details and the link may also pass through the email provider you choose to send them. Do not create a link unless you are authorized to disclose the document and recipient information.</p>
           </section>
 
           <section id="purposes">
@@ -197,7 +197,7 @@ export function PrivacyPolicyPage() {
             <h2>When information is disclosed</h2>
             <p>PDFEnrich limits disclosure to the following situations:</p>
             <ul>
-              <li><strong>Service providers:</strong> website hosting and content delivery providers; Google Firebase Authentication, Firestore, Storage, App Check, reCAPTCHA Enterprise, and Google Sign-In.</li>
+              <li><strong>Service providers:</strong> website hosting and content delivery providers; Google Firebase Authentication, Firestore, Storage, App Check, reCAPTCHA Enterprise, and Google Sign-In; and, only when private cloud saving is configured, the private malware-scanning service identified by the operator for that deployment.</li>
               <li><strong>People you direct:</strong> recipients of sharing or signing links and email providers you use to send them.</li>
               <li><strong>Legal and safety:</strong> authorities or other parties when reasonably necessary to comply with law, protect users, investigate abuse, or defend legal rights.</li>
               <li><strong>Business transition:</strong> a buyer, successor, or adviser in a merger, financing, reorganization, or sale, subject to appropriate confidentiality and notice where required.</li>
@@ -212,7 +212,7 @@ export function PrivacyPolicyPage() {
             <p>PDFEnrich uses category-specific limits rather than keeping every record indefinitely. The intended periods are listed in the information table above.</p>
             <ul>
               <li>Browser memory is released when the page closes. Browser-local saved work remains until you delete it or clear site data.</li>
-              <li>Cloud documents and account profiles remain until the document or account is deleted.</li>
+              <li>Private cloud documents remain active until moved to trash or permanently deleted. The trash recovery period and provider lifecycle must be verified in the deployed environment.</li>
               <li>Optional analytics receive a deletion date of {OPTIONAL_ANALYTICS_RETENTION_DAYS} days.</li>
               <li>Support requests receive a deletion date of {SUPPORT_REQUEST_RETENTION_DAYS} days unless a longer period is reasonably necessary for security, legal, or dispute handling.</li>
               <li>Share links stop working after 1, 7, or 30 days. Expiration prevents access; physical deletion may follow through revocation, account deletion, or provider retention cleanup.</li>
@@ -225,7 +225,7 @@ export function PrivacyPolicyPage() {
             <h2>Your privacy rights</h2>
             <p>Depending on where you live, you may have rights to access, know, correct, delete, restrict, object, withdraw consent, obtain a portable copy, or appeal a decision about your personal information.</p>
             <ol>
-              <li>Use Settings to delete a signed-in account and its active account-linked cloud documents, shares, analytics, profile, and support records.</li>
+              <li>Use Settings to delete a signed-in account and its active account-linked private documents, legacy cloud records, shares, analytics, profile, and support records. PDFEnrich stops before deleting the sign-in identity if the cloud-data purge cannot be confirmed.</li>
               <li>Delete browser-local work or clear PDFEnrich site data in your browser.</li>
               <li>Use the controls above to allow or reject optional analytics.</li>
               <li>For anything not covered by self-service tools, submit a request through <Link to={ROUTE_PATHS.support}>Support</Link>.</li>

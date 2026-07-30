@@ -5,6 +5,11 @@ const STORE_NAME = "sessions";
 
 const memorySessions = new Map();
 
+function sessionStorageKey(documentId, ownerId = "") {
+  if (!ownerId) return documentId;
+  return `${encodeURIComponent(ownerId)}:${documentId}`;
+}
+
 function openDatabase() {
   return new Promise((resolve, reject) => {
     if (!globalThis.indexedDB) {
@@ -40,9 +45,17 @@ function transactionDone(transaction) {
 
 export async function saveEditorSession(documentId, snapshot) {
   if (!documentId) return false;
-  const session = { ...snapshot, documentId, updatedAt: snapshot?.updatedAt || new Date().toISOString() };
-  memorySessions.set(documentId, session);
-  if (!globalThis.indexedDB) return true;
+  const ownerId = String(snapshot?.ownerId || "");
+  const storageKey = sessionStorageKey(documentId, ownerId);
+  const session = {
+    ...snapshot,
+    documentId: storageKey,
+    sourceDocumentId: documentId,
+    ownerId,
+    updatedAt: snapshot?.updatedAt || new Date().toISOString(),
+  };
+  memorySessions.set(storageKey, session);
+  if (!globalThis.indexedDB) return false;
 
   try {
     const database = await openDatabase();
@@ -55,22 +68,27 @@ export async function saveEditorSession(documentId, snapshot) {
     }
     return true;
   } catch {
-    return true;
+    return false;
   }
 }
 
-export async function loadEditorSession(documentId) {
+export async function loadEditorSession(documentId, ownerId = "") {
   if (!documentId) return null;
-  if (memorySessions.has(documentId)) return memorySessions.get(documentId);
+  const storageKey = sessionStorageKey(documentId, ownerId);
+  if (memorySessions.has(storageKey)) {
+    const session = memorySessions.get(storageKey);
+    return { ...session, documentId: session.sourceDocumentId || documentId };
+  }
   if (!globalThis.indexedDB) return null;
 
   try {
     const database = await openDatabase();
     try {
       const transaction = database.transaction(STORE_NAME, "readonly");
-      const session = await requestResult(transaction.objectStore(STORE_NAME).get(documentId));
-      if (session) memorySessions.set(documentId, session);
-      return session;
+      const session = await requestResult(transaction.objectStore(STORE_NAME).get(storageKey));
+      if (!session || String(session.ownerId || "") !== String(ownerId || "")) return null;
+      memorySessions.set(storageKey, session);
+      return { ...session, documentId: session.sourceDocumentId || documentId };
     } finally {
       database.close();
     }
@@ -79,25 +97,82 @@ export async function loadEditorSession(documentId) {
   }
 }
 
-export async function clearEditorSession(documentId) {
-  if (!documentId) return;
-  memorySessions.delete(documentId);
-  if (!globalThis.indexedDB) return;
+export async function clearEditorSession(documentId, ownerId = "") {
+  if (!documentId) return true;
+  const storageKey = sessionStorageKey(documentId, ownerId);
+  memorySessions.delete(storageKey);
+  if (!globalThis.indexedDB) return true;
 
   try {
     const database = await openDatabase();
     try {
       const transaction = database.transaction(STORE_NAME, "readwrite");
-      transaction.objectStore(STORE_NAME).delete(documentId);
+      transaction.objectStore(STORE_NAME).delete(storageKey);
       await transactionDone(transaction);
     } finally {
       database.close();
     }
+    return true;
   } catch {
     // The in-memory session is already cleared; IndexedDB cleanup can retry later.
+    return false;
   }
 }
 
 export function clearEditorSessionMemory() {
   memorySessions.clear();
+}
+
+export async function clearAllEditorSessions() {
+  memorySessions.clear();
+  if (!globalThis.indexedDB) return true;
+  try {
+    const database = await openDatabase();
+    try {
+      const transaction = database.transaction(STORE_NAME, "readwrite");
+      transaction.objectStore(STORE_NAME).clear();
+      await transactionDone(transaction);
+    } finally {
+      database.close();
+    }
+    return true;
+  } catch {
+    // Browser cleanup can be retried; this does not imply cloud deletion.
+    return false;
+  }
+}
+
+export async function clearEditorSessionsForOwner(ownerId) {
+  if (!ownerId) return true;
+  for (const [documentId, session] of memorySessions.entries()) {
+    if (session?.ownerId === ownerId) memorySessions.delete(documentId);
+  }
+  if (!globalThis.indexedDB) return true;
+  try {
+    const database = await openDatabase();
+    try {
+      const transaction = database.transaction(STORE_NAME, "readwrite");
+      const store = transaction.objectStore(STORE_NAME);
+      const cursorRequest = store.openCursor();
+      await new Promise((resolve, reject) => {
+        cursorRequest.onerror = () => reject(cursorRequest.error || new Error("Editor session cleanup failed."));
+        cursorRequest.onsuccess = () => {
+          const cursor = cursorRequest.result;
+          if (!cursor) {
+            resolve();
+            return;
+          }
+          if (cursor.value?.ownerId === ownerId) cursor.delete();
+          cursor.continue();
+        };
+      });
+      await transactionDone(transaction);
+    } finally {
+      database.close();
+    }
+    return true;
+  } catch {
+    // Browser cleanup can be retried; this does not imply cloud deletion.
+    return false;
+  }
 }

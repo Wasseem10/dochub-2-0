@@ -8,6 +8,9 @@ tmp/
 .env
 .env.local
 .env.*.local
+functions/.env*
+!functions/.env.example
+functions/.secret.local
 qa-implementation.png
 qa-comparison.png
 qa-upload-empty.png

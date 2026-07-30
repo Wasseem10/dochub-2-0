@@ -4,10 +4,10 @@ import ExternalLink from "lucide-react/dist/esm/icons/external-link.mjs";
 import FileText from "lucide-react/dist/esm/icons/file-text.mjs";
 import LoaderCircle from "lucide-react/dist/esm/icons/loader-circle.mjs";
 import Lock from "lucide-react/dist/esm/icons/lock.mjs";
-import { Link, useParams } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { db, storage } from "../../firebase.js";
-import { ROUTE_PATHS } from "../../router/routePaths.js";
-import { loadSecurePdfShare } from "../../sharing/securePdfSharing.js";
+import { ROUTE_PATHS, sharePath } from "../../router/routePaths.js";
+import { loadSecurePdfShare, shareTokenFromLocation } from "../../sharing/securePdfSharing.js";
 
 function formatBytes(bytes) {
   if (!Number.isFinite(bytes) || bytes <= 0) return "PDF document";
@@ -16,12 +16,21 @@ function formatBytes(bytes) {
 }
 
 export function SecureSharePage() {
-  const { token = "" } = useParams();
+  const location = useLocation();
+  const capability = shareTokenFromLocation(location);
+  const token = capability.token;
   const [state, setState] = useState({ status: "loading" });
 
   useEffect(() => {
+    if (capability.legacyPath && token && typeof window !== "undefined") {
+      window.history.replaceState(window.history.state, "", sharePath(token));
+    }
     let cancelled = false;
     let objectUrl = "";
+    if (!token) {
+      setState({ status: "invalid" });
+      return () => {};
+    }
     loadSecurePdfShare({ db, storage, token })
       .then((result) => {
         if (cancelled) return;
@@ -39,7 +48,7 @@ export function SecureSharePage() {
       cancelled = true;
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
-  }, [token]);
+  }, [capability.legacyPath, token]);
 
   if (state.status === "loading") {
     return <main className="secure-share-page"><section className="secure-share-state"><LoaderCircle className="is-spinning" size={28} /><h1>Opening shared PDF</h1><p>Checking the link and loading the protected document.</p></section></main>;

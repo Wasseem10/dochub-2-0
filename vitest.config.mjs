@@ -8,6 +8,6 @@ export default defineConfig({
     environment: "node",
     fileParallelism: false,
     maxWorkers: 1,
-    include: ["tests/{unit,integration}/**/*.test.{js,jsx,mjs}"],
+    include: ["tests/{unit,integration,security}/**/*.test.{js,jsx,mjs}"],
   },
 });

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Check from "lucide-react/dist/esm/icons/check.mjs";
 import CheckCircle2 from "lucide-react/dist/esm/icons/check-circle-2.mjs";
 import Download from "lucide-react/dist/esm/icons/download.mjs";
@@ -9,11 +9,15 @@ import PenLine from "lucide-react/dist/esm/icons/pen-line.mjs";
 import ShieldCheck from "lucide-react/dist/esm/icons/shield-check.mjs";
 import X from "lucide-react/dist/esm/icons/x.mjs";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
-import { Link, useParams } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { db, storage } from "../../firebase.js";
-import { ROUTE_PATHS } from "../../router/routePaths.js";
+import { ROUTE_PATHS, signPath } from "../../router/routePaths.js";
 import { loadSecurePdfShare } from "../../sharing/securePdfSharing.js";
-import { signingRequestFromLocation } from "../../signing/signingRequest.js";
+import {
+  loadSigningRequest,
+  markSigningRequestCompleted,
+  signingRequestCapabilityFromLocation,
+} from "../../signing/signingRequest.js";
 
 async function renderPdfPages(bytes) {
   const pdfjs = await import("pdfjs-dist");
@@ -163,7 +167,12 @@ async function createCompletionFiles(sourceBytes, request, values, sourceName) {
 }
 
 export function SigningRequestPage() {
-  const { token = "" } = useParams();
+  const location = useLocation();
+  const capability = useMemo(
+    () => signingRequestCapabilityFromLocation(location),
+    [location.hash, location.pathname],
+  );
+  const token = capability.token;
   const [state, setState] = useState({ status: "loading" });
   const [values, setValues] = useState({});
   const [activeCapture, setActiveCapture] = useState(null);
@@ -173,20 +182,37 @@ export function SigningRequestPage() {
 
   useEffect(() => {
     let cancelled = false;
-    const request = signingRequestFromLocation(window.location);
-    if (!request || new Date(request.expiresAt).getTime() <= Date.now()) {
-      setState({ status: request ? "expired" : "invalid" });
+    if ((capability.legacyPath || capability.legacyRequest) && token && typeof window !== "undefined") {
+      // Remove legacy path tokens and the former PII-bearing request payload
+      // from the visible URL as soon as they have been captured in memory.
+      window.history.replaceState(window.history.state, "", signPath(token));
+    }
+    if (!token) {
+      setState({ status: "invalid" });
       return undefined;
     }
-    loadSecurePdfShare({ db, storage, token }).then(async (share) => {
+    Promise.all([
+      loadSecurePdfShare({ db, storage, token }),
+      loadSigningRequest({ db, token, legacyRequest: capability.legacyRequest }),
+    ]).then(async ([share, requestResult]) => {
       if (cancelled) return;
       if (share.status !== "ready") return setState(share);
+      if (requestResult.status !== "ready") return setState(requestResult);
       const bytes = new Uint8Array(await share.blob.arrayBuffer());
       const pages = await renderPdfPages(bytes);
-      if (!cancelled) setState({ ...share, status: "ready", bytes, pages, request });
+      if (!cancelled) {
+        setState({
+          ...share,
+          status: "ready",
+          bytes,
+          pages,
+          request: requestResult.request,
+          legacyRequest: requestResult.legacy === true,
+        });
+      }
     }).catch(() => { if (!cancelled) setState({ status: "error" }); });
     return () => { cancelled = true; };
-  }, [token]);
+  }, [capability.legacyPath, capability.legacyRequest, token]);
 
   useEffect(() => () => {
     if (result?.signedUrl) URL.revokeObjectURL(result.signedUrl);
@@ -215,13 +241,20 @@ export function SigningRequestPage() {
         signedUrl: URL.createObjectURL(new Blob([files.signedBytes], { type: "application/pdf" })),
         receiptUrl: URL.createObjectURL(new Blob([files.receiptBytes], { type: "application/pdf" })),
       });
+      if (!state.legacyRequest) {
+        try {
+          await markSigningRequestCompleted({ db, token, checksum: files.fingerprint });
+        } catch {
+          setError("Your signed files are ready, but the completion status could not be recorded. Download both files now.");
+        }
+      }
     } catch (completionError) {
       setError(completionError.message || "The signed PDF could not be created.");
     } finally { setBusy(false); }
   };
 
   if (state.status === "loading") return <main className="sign-request-page"><section className="secure-share-state"><LoaderCircle className="is-spinning" size={28} /><h1>Opening secure signing request</h1><p>Loading the document and its required fields.</p></section></main>;
-  if (state.status !== "ready") return <main className="sign-request-page"><section className="secure-share-state"><Lock size={28} /><h1>{state.status === "expired" ? "This signing request has expired" : "This signing request cannot be opened"}</h1><p>Ask the sender to create a new secure request.</p><Link to={ROUTE_PATHS.home}>Go to PDFEnrich</Link></section></main>;
+  if (state.status !== "ready") return <main className="sign-request-page"><section className="secure-share-state"><Lock size={28} /><h1>{state.status === "expired" ? "This signing request has expired" : state.status === "completed" ? "This signing request is complete" : "This signing request cannot be opened"}</h1><p>{state.status === "completed" ? "Ask the sender if you need another signing link." : "Ask the sender to create a new secure request."}</p><Link to={ROUTE_PATHS.home}>Go to PDFEnrich</Link></section></main>;
 
   return <main className="sign-request-page">
     <header className="sign-request-header"><div><span><FileText size={21} /></span><div><small>Secure signing request</small><h1>{state.fileName}</h1><p>From {state.request.requester.name || state.request.requester.email || "the document owner"} · expires {new Date(state.request.expiresAt).toLocaleDateString()}</p></div></div><div><ShieldCheck size={18} /> PDF processing stays in this browser</div></header>

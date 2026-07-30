@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
   canSaveEditorSignature,
+  clearEditorSignatureLibrary,
+  editorSignatureLibraryKey,
+  EDITOR_SIGNATURE_LIBRARY_KEY,
   loadEditorSignatureLibrary,
   persistEditorSignatureLibrary,
   removeSavedEditorSignature,
@@ -43,6 +46,7 @@ describe("editor signature validation", () => {
     const storage = {
       getItem: (key) => values.get(key) || null,
       setItem: (key, value) => values.set(key, value),
+      removeItem: (key) => values.delete(key),
     };
     const signatures = upsertSavedEditorSignature([], { content: "Ada" }, () => "sig-1");
     persistEditorSignatureLibrary(signatures, storage);
@@ -50,5 +54,25 @@ describe("editor signature validation", () => {
     expect(loadEditorSignatureLibrary(storage)).toEqual(signatures);
     values.set("pdfenrich.signature-library.v1", "{broken");
     expect(loadEditorSignatureLibrary(storage)).toEqual([]);
+    clearEditorSignatureLibrary(storage);
+    expect(values.has("pdfenrich.signature-library.v1")).toBe(false);
+  });
+
+  it("isolates signatures between accounts and migrates the legacy guest library", () => {
+    const values = new Map();
+    const storage = {
+      getItem: (key) => values.get(key) || null,
+      setItem: (key, value) => values.set(key, value),
+      removeItem: (key) => values.delete(key),
+    };
+    const signatures = upsertSavedEditorSignature([], { content: "Owner A" }, () => "owner-a");
+    persistEditorSignatureLibrary(signatures, storage, "user-a");
+
+    expect(loadEditorSignatureLibrary(storage, "user-a")).toEqual(signatures);
+    expect(loadEditorSignatureLibrary(storage, "user-b")).toEqual([]);
+    expect(editorSignatureLibraryKey("user-a")).not.toBe(editorSignatureLibraryKey("user-b"));
+
+    storage.setItem(EDITOR_SIGNATURE_LIBRARY_KEY, JSON.stringify(signatures));
+    expect(loadEditorSignatureLibrary(storage, "realpdf-local-guest")).toEqual(signatures);
   });
 });

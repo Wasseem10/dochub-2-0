@@ -3791,6 +3791,26 @@ main.editor-shell .sign-secure-button,
   line-height: 1.45;
 }
 
+.settings-grid article > button {
+  justify-self: start;
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1px solid #30343a;
+  border-radius: 7px;
+  background: #fff;
+  color: #24282e;
+  font: 800 12px/1 "DM Sans", sans-serif;
+}
+
+.settings-grid article > button:hover:not(:disabled) {
+  background: #f0f1f2;
+}
+
+.settings-grid article > button:disabled {
+  cursor: not-allowed;
+  opacity: .5;
+}
+
 .workspace-popover {
   position: absolute;
   top: calc(100% + 10px);

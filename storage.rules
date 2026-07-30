@@ -6,43 +6,73 @@ service firebase.storage {
       return request.auth != null && request.auth.uid == userId;
     }
 
-    function shareRecord(token) {
-      return firestore.get(/databases/(default)/documents/shareLinks/$(token));
+    function isCurrentShareId(shareId) {
+      return shareId.matches("^[a-f0-9]{64}$");
     }
 
-    function ownsShare(token) {
-      let share = shareRecord(token);
+    function isLegacyShareId(shareId) {
+      return shareId.matches("^[A-Za-z0-9_-]{32}$");
+    }
+
+    function accountAcceptsContentWrites(userId) {
+      return !firestore.exists(/databases/(default)/documents/_privateCloudAccountState/$(userId))
+        || firestore.get(/databases/(default)/documents/_privateCloudAccountState/$(userId)).data.state == "active";
+    }
+
+    function shareRecord(shareId) {
+      return firestore.get(/databases/(default)/documents/shareLinks/$(shareId));
+    }
+
+    function ownsShare(shareId) {
+      let share = shareRecord(shareId);
       return request.auth != null && share.data.ownerId == request.auth.uid;
     }
 
-    function isActiveShare(token) {
-      let share = shareRecord(token);
+    function shareSourceIsActive(shareId) {
+      let share = shareRecord(shareId);
+      return !("sourceDocumentId" in share.data)
+        || (firestore.get(/databases/(default)/documents/users/$(share.data.ownerId)/privateDocuments/$(share.data.sourceDocumentId)).data.ownerId == share.data.ownerId
+          && firestore.get(/databases/(default)/documents/users/$(share.data.ownerId)/privateDocuments/$(share.data.sourceDocumentId)).data.state == "active");
+    }
+
+    function isActiveShare(shareId) {
+      let share = shareRecord(shareId);
       return share.data.status == "active"
-        && share.data.storagePath == "shares/" + token + "/document.pdf"
-        && share.data.expiresAt > request.time;
+        && share.data.storagePath == "shares/" + shareId + "/document.pdf"
+        && share.data.expiresAt > request.time
+        && accountAcceptsContentWrites(share.data.ownerId)
+        && shareSourceIsActive(shareId);
     }
 
     match /users/{userId}/documents/{documentId}/document.json {
+      // Read/delete-only migration bridge for already-existing workspace JSON.
       allow read, delete: if ownsPath(userId);
-      allow create, update: if ownsPath(userId)
-        && request.resource.size > 0
-        && request.resource.size < 80 * 1024 * 1024
-        && request.resource.contentType == "application/json";
+      allow create, update: if false;
     }
 
-    match /shares/{token}/document.pdf {
-      allow read: if token.matches("^[A-Za-z0-9_-]{32}$")
-        && (isActiveShare(token) || ownsShare(token));
-      allow create: if token.matches("^[A-Za-z0-9_-]{32}$")
-        && ownsShare(token)
-        && shareRecord(token).data.status == "uploading"
+    match /users/{userId}/documents/{documentId}/{allDocumentObjects=**} {
+      // Private document objects are accessed only through the authenticated
+      // backend. Resumable upload session URIs are created by that backend;
+      // final reads, deletes, restores, and version changes use Admin IAM.
+      allow read, write: if false;
+    }
+
+    match /shares/{shareId}/document.pdf {
+      allow read: if (isCurrentShareId(shareId) || isLegacyShareId(shareId))
+        && (isActiveShare(shareId) || ownsShare(shareId));
+      allow create: if isCurrentShareId(shareId)
+        && ownsShare(shareId)
+        && accountAcceptsContentWrites(request.auth.uid)
+        && shareRecord(shareId).data.status == "uploading"
+        && shareRecord(shareId).data.expiresAt > request.time
         && request.resource.size > 0
         && request.resource.size <= 25 * 1024 * 1024
         && request.resource.contentType == "application/pdf"
         && request.resource.metadata.ownerId == request.auth.uid
-        && request.resource.metadata.shareToken == token;
+        && request.resource.metadata.tokenHash == shareId;
       allow update: if false;
-      allow delete: if ownsShare(token);
+      allow delete: if (isCurrentShareId(shareId) || isLegacyShareId(shareId))
+        && ownsShare(shareId);
     }
 
     match /{allPaths=**} {

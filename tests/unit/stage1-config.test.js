@@ -52,6 +52,30 @@ describe("Stage 1 production configuration", () => {
     }), env);
 
     expect(response.status).toBe(200);
+    expect(response.headers.get("content-security-policy")).toContain("frame-ancestors 'none'");
+    expect(response.headers.get("x-content-type-options")).toBe("nosniff");
+    expect(response.headers.get("referrer-policy")).toBe("no-referrer");
     expect(requestedPaths).toEqual(["/edit-pdf", "/index.html"]);
   });
+
+  it.each(["/share", "/share/opaque-token", "/sign", "/sign/opaque-token"])(
+    "marks %s private and non-indexable",
+    async (path) => {
+      const env = {
+        ASSETS: {
+          async fetch(request) {
+            if (new URL(request.url).pathname === "/index.html") {
+              return new Response("app", { headers: { "content-type": "text/html" } });
+            }
+            return new Response("missing", { status: 404 });
+          }
+        },
+      };
+      const response = await worker.fetch(new Request(`https://pdfenrich.com${path}`, {
+        headers: { accept: "text/html" },
+      }), env);
+      expect(response.headers.get("cache-control")).toBe("private, no-store, max-age=0");
+      expect(response.headers.get("x-robots-tag")).toBe("noindex, nofollow");
+    },
+  );
 });

@@ -1,5 +1,5 @@
-export const ANALYTICS_OWNER_EMAIL = "wasseem700@gmail.com";
+export const ANALYTICS_OWNER_CLAIM = "pdfenrichAdmin";
 
 export function isAnalyticsOwner(user) {
-  return String(user?.email || "").trim().toLowerCase() === ANALYTICS_OWNER_EMAIL;
+  return user?.isAnalyticsOwner === true;
 }

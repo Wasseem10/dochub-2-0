@@ -1,4 +1,5 @@
 import { trackProductEvent } from "../analytics/productAnalytics.js";
+import { privacySafeRoute } from "../privacy/privacySafeRoute.js";
 
 const REPORTED_KEY = "pdfenrich_reported_diagnostics";
 
@@ -20,8 +21,27 @@ export function durationBucket(duration = 0) {
 }
 
 function safeRoute() {
-  const route = window.location.pathname || "/";
-  return route.length <= 100 ? route : route.slice(0, 100);
+  return privacySafeRoute(window.location.pathname, 100);
+}
+
+function safeDiagnosticIdentifier(value) {
+  return String(value || "")
+    .replace(/[^A-Za-z0-9_.:/-]/g, "")
+    .slice(0, 64);
+}
+
+export function redactedErrorDetails(error) {
+  const diagnosticValue = error?.code || error?.name || error;
+  return {
+    category: diagnosticCategory(diagnosticValue),
+    ...(safeDiagnosticIdentifier(error?.name) ? { name: safeDiagnosticIdentifier(error.name) } : {}),
+    ...(safeDiagnosticIdentifier(error?.code) ? { code: safeDiagnosticIdentifier(error.code) } : {}),
+  };
+}
+
+export function logRedactedClientError(context, error) {
+  if (!import.meta.env.DEV) return;
+  console.error(`[PDFEnrich] ${context}`, redactedErrorDetails(error));
 }
 
 function reportOnce(name, properties) {

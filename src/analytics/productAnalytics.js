@@ -1,5 +1,6 @@
 import { OPTIONAL_ANALYTICS_RETENTION_DAYS } from "../privacy/privacyConfig.js";
 import { optionalAnalyticsAllowed } from "../privacy/privacyChoices.js";
+import { privacySafeRoute } from "../privacy/privacySafeRoute.js";
 import { queueGoogleAnalyticsEvent } from "./googleAnalytics.js";
 
 const ALLOWED_EVENTS = new Set([
@@ -95,7 +96,7 @@ export function currentTrafficAttribution() {
   const attribution = {
     trafficSource: classifyTrafficSource(externalReferrer, new URLSearchParams(window.location.search)),
     referrerDomain: externalReferrer,
-    landingPath: (window.location.pathname || "/").slice(0, 160),
+    landingPath: privacySafeRoute(window.location.pathname),
   };
   if (analyticsAllowed) {
     try { window.sessionStorage.setItem(ATTRIBUTION_KEY, JSON.stringify(attribution)); } catch { /* Keep attribution in this event only. */ }
@@ -133,7 +134,12 @@ async function persistProductEvent(event) {
       expiresAt: Timestamp.fromDate(new Date(Date.now() + OPTIONAL_ANALYTICS_RETENTION_DAYS * 24 * 60 * 60 * 1000)),
     });
   } catch (error) {
-    if (import.meta.env.DEV) console.warn("[PDFEnrich analytics] Event storage failed", error?.code || error?.message);
+    if (import.meta.env.DEV) {
+      const diagnosticCode = String(error?.code || error?.name || "analytics_error")
+        .replace(/[^A-Za-z0-9_.:/-]/g, "")
+        .slice(0, 64);
+      console.warn("[PDFEnrich analytics] Event storage failed", { code: diagnosticCode });
+    }
   }
 }
 
@@ -197,7 +203,12 @@ export function clientEnvironment() {
 export function sanitizeAnalyticsProperties(properties = {}) {
   return Object.fromEntries(Object.entries(properties).flatMap(([key, value]) => {
     if (!ALLOWED_PROPERTIES.has(key) || !["string", "number", "boolean"].includes(typeof value)) return [];
-    if (typeof value === "string") return [[key, value.slice(0, 160)]];
+    if (typeof value === "string") {
+      const sanitizedValue = key === "route" || key === "landingPath"
+        ? privacySafeRoute(value)
+        : value.slice(0, 160);
+      return [[key, sanitizedValue]];
+    }
     if (typeof value === "number" && !Number.isFinite(value)) return [];
     if (key === "durationMs") return [[key, Math.max(0, Math.min(Math.round(value), 30 * 60 * 1000))]];
     return [[key, value]];
@@ -267,7 +278,7 @@ export function beginToolOperation(toolId, { operation = "export", slowAfterMs =
 
 export function trackPageView(route = "/") {
   if (typeof window === "undefined") return false;
-  const normalizedRoute = String(route || "/").split("?")[0].slice(0, 160);
+  const normalizedRoute = privacySafeRoute(route);
   if (!optionalAnalyticsAllowed()) {
     if (memoryPageViews.has(normalizedRoute)) return false;
     memoryPageViews.add(normalizedRoute);
