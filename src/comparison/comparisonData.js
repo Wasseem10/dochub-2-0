@@ -7,7 +7,7 @@ const sharedPdfEnrich = {
   editing: "Browser editor with text, signatures, drawing, highlights, images, links, notes, forms, and page tools.",
   signing: "Add your own visual signature in the editor. PDFEnrich is not yet a replacement for a mature enterprise signature-request platform.",
   platforms: "Responsive web app. No native desktop or mobile app is currently offered.",
-  price: "Supported tools are currently free; paid team plans are not active.",
+  price: "PDFEnrich is completely free; no paid plans are offered or planned.",
 };
 
 export const COMPARISONS = [
@@ -262,9 +262,9 @@ export function comparisonAdvantageCards(comparison) {
 /** @param {(typeof COMPARISONS)[number]} comparison */
 export function comparisonPlanRows(comparison) {
   return [
-    ["Free access", "Supported tools are currently free, with no watermark or forced signup.", comparison.competitorFacts.price],
+    ["Free access", "PDFEnrich is completely free, with no watermark, subscription, or forced signup.", comparison.competitorFacts.price],
     ["Account requirement", sharedPdfEnrich.account, comparison.competitorFacts.account],
-    ["Paid and team options", "Paid team and enterprise plans are not currently active.", `${comparison.company} offers established paid options. Check its official pricing page for current regional prices and billing terms.`],
+    ["Paid and team options", "PDFEnrich has no paid plans, and none are planned.", `${comparison.company} offers established paid options. Check its official pricing page for current regional prices and billing terms.`],
   ];
 }
 
@@ -281,7 +281,7 @@ export function comparisonFaqEntries(comparison) {
     },
     {
       question: `How does PDFEnrich pricing compare with ${comparison.company}?`,
-      answer: `PDFEnrich's supported tools are currently free and its paid team plans are not active. ${comparison.competitorFacts.price} Verify the vendor's official pricing page for current prices, taxes, limits, and regional differences.`,
+      answer: `PDFEnrich is completely free, with no subscriptions or paid plans planned. ${comparison.competitorFacts.price} Verify the vendor's official pricing page for current prices, taxes, limits, and regional differences.`,
     },
     {
       question: `Can I switch from ${comparison.company} to PDFEnrich?`,

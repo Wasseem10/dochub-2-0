@@ -37,7 +37,7 @@ const pageContent = {
     intro: "Effective July 20, 2026. Basic terms for the current free PDFEnrich public-beta service.",
     sections: [
       ["Permitted use", "Use PDFEnrich only with files you are authorized to view and modify, and do not use the service for unlawful activity."],
-      ["Free service", "Supported PDFEnrich tools are currently free. There is no paid plan, checkout, watermark, or promised service level in this version."],
+      ["Free service", "PDFEnrich is completely free. There is no subscription, paid tier, checkout, watermark, or paid plan planned."],
       ["Your responsibility", "You are responsible for reviewing exports, maintaining your own backups, and deciding whether the result is suitable for legal, financial, medical, filing, or other high-stakes use."],
       ["Availability", "Browser and optional cloud features may change or be unavailable. Planned tools do not accept or process files until they are implemented and tested."],
       ["Ownership", "You keep ownership of your files and edits. You give PDFEnrich only the limited permission needed to operate features you deliberately use, such as account authentication, cloud document history, analytics, or support."],
@@ -59,14 +59,18 @@ const pageContent = {
     ],
   },
   [ROUTE_PATHS.pricing]: {
-    intro: "PDFEnrich is currently completely free.",
-    sections: [["No plans or checkout", "Supported tools do not require a subscription, payment, email address, or account. Create an account only when you want cloud document history."]],
+    intro: "PDFEnrich is completely free, with no subscriptions, paid tiers, checkout, or paid plans planned.",
+    sections: [
+      ["No plans or checkout", "Supported tools do not require a subscription, payment, email address, or account. Create an account only when you choose an account feature."],
+      ["No watermark", "PDFEnrich does not add a product watermark to supported exports."],
+      ["Our direction", "We do not plan to charge for PDFEnrich tools. If the product changes materially, this page and the applicable terms will be updated before that change."],
+    ],
   },
 };
 
 export function PublicPlaceholderPage({ path, title, description, status }) {
   const content = pageContent[path];
-  const noIndex = ![ROUTE_PATHS.privacy, ROUTE_PATHS.security, ROUTE_PATHS.help, ROUTE_PATHS.terms, ROUTE_PATHS.dataRetention].includes(path);
+  const noIndex = ![ROUTE_PATHS.pricing, ROUTE_PATHS.privacy, ROUTE_PATHS.security, ROUTE_PATHS.help, ROUTE_PATHS.terms, ROUTE_PATHS.dataRetention].includes(path);
   return <main className="public-info-page">
     <PageMetadata title={`${title} | PDFEnrich`} description={content?.intro || description} canonicalUrl={path} noIndex={noIndex} />
     <section className="public-info-hero"><span className="route-status-pill">{content ? "PDFEnrich information" : status}</span><h1>{title}</h1><p>{content?.intro || description}</p><div><Link to={ROUTE_PATHS.tools}>Browse working tools</Link><Link to={ROUTE_PATHS.editPdf}>Choose a PDF</Link>{content && <Link to={ROUTE_PATHS.support}>Contact support</Link>}</div></section>

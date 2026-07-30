@@ -1,5 +1,6 @@
 import ArrowRight from "lucide-react/dist/esm/icons/arrow-right.mjs";
 import FileCheck2 from "lucide-react/dist/esm/icons/file-check-2.mjs";
+import Gift from "lucide-react/dist/esm/icons/gift.mjs";
 import Layers3 from "lucide-react/dist/esm/icons/layers-3.mjs";
 import LockKeyhole from "lucide-react/dist/esm/icons/lock-keyhole.mjs";
 import MousePointer2 from "lucide-react/dist/esm/icons/mouse-pointer-2.mjs";
@@ -80,6 +81,16 @@ export function AboutPage() {
           <p>Every PDFEnrich workflow is designed around three practical promises.</p>
         </header>
         <div>{principles.map(({ icon: Icon, title, copy }) => <article key={title}><span><Icon size={22} /></span><h3>{title}</h3><p>{copy}</p></article>)}</div>
+      </section>
+
+      <section className="about-free-commitment" aria-labelledby="about-free-title">
+        <span><Gift size={22} aria-hidden="true" /></span>
+        <div>
+          <small>OUR FREE COMMITMENT</small>
+          <h2 id="about-free-title">PDFEnrich is completely free.</h2>
+          <p>There are no subscriptions, paid tiers, checkout flows, or PDFEnrich watermarks. We do not plan to charge for PDFEnrich tools.</p>
+        </div>
+        <Link to={ROUTE_PATHS.tools}>Explore every free tool <ArrowRight size={17} /></Link>
       </section>
 
       <section className="about-browser-first">

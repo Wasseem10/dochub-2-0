@@ -18,6 +18,7 @@
 
 .about-hero,
 .about-principles,
+.about-free-commitment,
 .about-browser-first,
 .about-capabilities,
 .about-closing {
@@ -237,6 +238,65 @@
   line-height: 1.65;
 }
 
+.about-free-commitment {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 22px;
+  margin-bottom: 34px;
+  padding: 32px 36px;
+  border: 1px solid #d9e1fa;
+  border-radius: 20px;
+  background: linear-gradient(100deg, #f2f6ff 0%, #fff 58%, #fff3f6 100%);
+}
+
+.about-free-commitment > span {
+  display: grid;
+  width: 50px;
+  height: 50px;
+  place-items: center;
+  border-radius: 15px;
+  background: #fff;
+  color: var(--about-blue);
+  box-shadow: 0 9px 24px rgba(40, 81, 235, .12);
+}
+
+.about-free-commitment small {
+  color: var(--about-blue);
+  font-size: 10px;
+  font-weight: 850;
+  letter-spacing: .12em;
+}
+
+.about-free-commitment h2 {
+  margin-top: 4px;
+  font-size: clamp(25px, 3vw, 38px);
+  letter-spacing: -.04em;
+}
+
+.about-free-commitment p {
+  max-width: 690px;
+  margin-top: 8px;
+  color: var(--about-body);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.about-free-commitment > a {
+  display: inline-flex;
+  min-height: 46px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 18px;
+  border-radius: 11px;
+  background: var(--about-blue);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 760;
+  text-decoration: none;
+}
+
 .about-browser-first {
   display: grid;
   grid-template-columns: minmax(0, .9fr) minmax(420px, 1.1fr);
@@ -422,11 +482,20 @@
     gap: 40px;
     padding: 54px;
   }
+
+  .about-free-commitment {
+    grid-template-columns: auto 1fr;
+  }
+
+  .about-free-commitment > a {
+    grid-column: 1 / -1;
+  }
 }
 
 @media (max-width: 640px) {
   .about-hero,
   .about-principles,
+  .about-free-commitment,
   .about-browser-first,
   .about-capabilities,
   .about-closing {
@@ -449,6 +518,7 @@
   .about-principles article + article { border-top: 1px solid var(--about-line); border-left: 0; }
 
   .about-browser-first { gap: 30px; padding: 34px 24px; border-radius: 18px; }
+  .about-free-commitment { padding: 25px 22px; }
   .about-principles h2,
   .about-browser-first h2,
   .about-capabilities h2 { font-size: 37px; }

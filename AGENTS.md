@@ -2,6 +2,8 @@
 
 The product name is PDFEnrich and its canonical production domain is `https://pdfenrich.com`. Never reintroduce the prior brand in visible copy, metadata, routes, exports, downloads, generated assets, or user-facing product identifiers. Preserve existing browser-local account, privacy, and signature data when migrating branded storage keys.
 
+PDFEnrich is completely free. There are no subscriptions, paid tiers, checkout flows, or paid plans planned. Public copy should make this clear without using unsupported security, privacy, compliance, certification, or availability claims.
+
 Use `runtime-public/pdfenrich-logo.png` as the primary logo on the landing page. It has intentional white margins, so display it through the `.brand-wordmark--logo` crop container rather than as an uncropped square image. All visible product naming, page metadata, exports, and user-facing copy must use PDFEnrich rather than any prior brand.
 
 Run the local server yourself and open the preview in the in-app browser. Do not give the user server-start instructions when you can run it.

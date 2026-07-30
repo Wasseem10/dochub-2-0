@@ -2134,7 +2134,6 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   const [shareModalOpen, setShareModalOpen] = useState(false);
   const [signatureRequestModalOpen, setSignatureRequestModalOpen] = useState(false);
   const [protectModalOpen, setProtectModalOpen] = useState(false);
-  const [upgradeModalOpen, setUpgradeModalOpen] = useState(false);
   const [linkEditor, setLinkEditor] = useState(null);
   const [authRequiredAction, setAuthRequiredAction] = useState("");
   const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
@@ -5879,7 +5878,6 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
         onMoveDocument={moveDocument}
         currentUser={currentUser}
         onLogout={logout}
-        onUpgrade={() => setUpgradeModalOpen(true)}
         cloudHistoryEnabled={cloudHistoryEnabled}
         cloudCatalogStatus={cloudCatalogStatus}
         cloudConfigured={isPrivateCloudConfigured}
@@ -6059,7 +6057,6 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
           </div>
           <button type="button" className="language-button" onClick={() => showToast("Language set to English.")}>◎ EN</button>
           <button type="button" className="share-button" onClick={openShareSettings} title="Share"><Share2 size={18} /> Share</button>
-          <button type="button" className="upgrade-button editor-upgrade-button" onClick={() => setUpgradeModalOpen(true)}>Upgrade</button>
           <button type="button" className="sign-secure-button" onClick={() => { setSignatureModalMode("signature"); setSignatureModalOpen(true); }}><PenLine size={18} /> Sign securely <ChevronDown size={15} /></button>
         </div>
       </header>
@@ -6941,15 +6938,6 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
           }}
         />
       )}
-      {upgradeModalOpen && (
-        <UpgradeModal
-          onClose={() => setUpgradeModalOpen(false)}
-          onSelectPlan={(plan) => {
-            setUpgradeModalOpen(false);
-            showToast(`${plan} workspace selected. Billing checkout can be connected next.`);
-          }}
-        />
-      )}
       {authRequiredAction && (
         <AuthRequiredModal
           action={authRequiredAction}
@@ -7079,13 +7067,13 @@ function LandingPage({ fileInputRef, onUpload, onSelectFiles, onLogin }) {
           </div>
           <div className="cosmic-hand-note">No install. No clutter. Just the tools to finish.</div>
           <div className="cosmic-trustpilot" id="security">
-            <strong><CheckCircle2 size={15} /> Secure upload</strong>
+            <strong><CheckCircle2 size={15} /> Browser-first processing</strong>
             <b>Browser-first editor</b>
             <span>No install required</span>
           </div>
           <div className="cosmic-security">
-            <span><CheckCircle2 size={14} /> 256-bit SSL</span>
-            <span><CheckCircle2 size={14} /> Cloud save ready</span>
+            <span><CheckCircle2 size={14} /> Local tools stay on your device</span>
+            <span><CheckCircle2 size={14} /> Completely free</span>
             <span><CheckCircle2 size={14} /> Export-ready PDFs</span>
           </div>
         </div>
@@ -7189,9 +7177,9 @@ function LandingPage({ fileInputRef, onUpload, onSelectFiles, onLogin }) {
         </div>
       </section>
 
-      <section className="cosmic-compliance" aria-label="Certifications">
-        <strong>Workspace standards</strong>
-        {["Secure upload", "Cloud save ready", "Export controls", "PDF text editing", "eSignature tools", "Page organization"].map((item) => (
+      <section className="cosmic-compliance" aria-label="Workspace capabilities">
+        <strong>Workspace capabilities</strong>
+        {["Browser-first tools", "Completely free", "Export controls", "PDF text editing", "eSignature tools", "Page organization"].map((item) => (
           <span key={item}><CheckCircle2 size={14} /> {item}</span>
         ))}
       </section>
@@ -7209,7 +7197,7 @@ function LandingPage({ fileInputRef, onUpload, onSelectFiles, onLogin }) {
         <div><strong>Signing</strong><a href="#tools">Type signature</a><a href="#tools">Draw signature</a><a href="#tools">Comments</a><a href="#tools">Share</a></div>
         <div><strong>Pages</strong><a href="#tools">Merge</a><a href="#tools">Reorder</a><a href="#tools">Delete</a><a href="#tools">Print</a></div>
         <div><strong>Product</strong><a href="#workflow">Workflow</a><a href="#insights">Insights</a><a href="#security">Security</a><a href="#hero">Support</a></div>
-        <div className="cosmic-footer-bottom"><span>Browser workspace</span><span>PDF editor</span><span>eSign tools</span><em>SSL 256</em><em>Cloud ready</em></div>
+        <div className="cosmic-footer-bottom"><span>Browser workspace</span><span>PDF editor</span><span>eSign tools</span><em>Completely free</em><em>No paid plans</em></div>
       </footer>
     </main>
   );
@@ -7912,7 +7900,6 @@ export function UploadLanding({
     Settings: ROUTE_PATHS.settings,
     Analytics: ROUTE_PATHS.analytics,
     Trash: ROUTE_PATHS.trash,
-    Billing: ROUTE_PATHS.settings,
     Team: ROUTE_PATHS.settings,
     Integrations: ROUTE_PATHS.settings,
     Features: ROUTE_PATHS.appTools,
@@ -8614,9 +8601,8 @@ export function UploadLanding({
       );
     }
 
-    if (["Billing", "Team", "Integrations"].includes(activeSection)) {
+    if (["Team", "Integrations"].includes(activeSection)) {
       const sectionDetails = {
-        Billing: [CreditCard, "Plans and billing", "Manage your PDFEnrich plan, invoices, and payment details."],
         Team: [Users, "Workspace members", "Invite teammates and manage document collaboration access."],
         Integrations: [Plug, "Connected apps", "Connect cloud storage and workflow tools to your PDF workspace."],
       };
@@ -9881,66 +9867,6 @@ function ProtectPdfModal({ fileName, onClose, onProtect }) {
         <footer>
           <button type="button" className="modal-secondary" onClick={onClose}>Cancel</button>
           <button type="button" className="modal-primary" disabled={busy} onClick={protect}><Lock size={16} /> {busy ? "Encrypting locally…" : "Protect and download"}</button>
-        </footer>
-      </section>
-    </div>
-  );
-}
-
-function UpgradeModal({ onClose, onSelectPlan }) {
-  const plans = [
-    {
-      name: "Free",
-      price: "$0",
-      detail: "For quick edits and one-off forms.",
-      features: ["Edit and annotate PDFs", "Draw, sign, and export", "Local browser saves"],
-      action: "Stay on Free",
-    },
-    {
-      name: "Pro",
-      price: "$12",
-      detail: "For people editing and signing PDFs every week.",
-      features: ["Explicit private cloud copies", "Reusable signatures", "Share links and invite drafts", "Larger export workflows"],
-      action: "Choose Pro",
-      featured: true,
-    },
-    {
-      name: "Business",
-      price: "$29",
-      detail: "For teams that need review, signing, and organization.",
-      features: ["Workspace members", "Team templates", "Advanced signing flows", "Admin-ready storage"],
-      action: "Choose Business",
-    },
-  ];
-
-  return (
-    <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="Upgrade workspace">
-      <section className="upgrade-modal">
-        <header>
-          <div>
-            <h2>Upgrade workspace</h2>
-            <p>Choose the workflow level that matches how often you edit, sign, share, and store PDFs.</p>
-          </div>
-          <button type="button" className="modal-close" onClick={onClose}><X size={18} /></button>
-        </header>
-
-        <div className="upgrade-plan-grid">
-          {plans.map((plan) => (
-            <article key={plan.name} className={plan.featured ? "is-featured" : ""}>
-              <span>{plan.name}</span>
-              <strong>{plan.price}<small>{plan.name === "Free" ? "" : "/mo"}</small></strong>
-              <p>{plan.detail}</p>
-              <ul>
-                {plan.features.map((feature) => <li key={feature}><CheckCircle2 size={15} /> {feature}</li>)}
-              </ul>
-              <button type="button" onClick={() => onSelectPlan(plan.name)}>{plan.action}</button>
-            </article>
-          ))}
-        </div>
-
-        <footer>
-          <button type="button" className="modal-secondary" onClick={onClose}>Not now</button>
-          <button type="button" className="modal-primary" onClick={() => onSelectPlan("Pro")}>Continue with Pro</button>
         </footer>
       </section>
     </div>

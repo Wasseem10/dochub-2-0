@@ -2,14 +2,14 @@ import { ROUTE_PATHS } from "./routePaths.js";
 
 export const PUBLIC_PLACEHOLDER_ROUTES = [
   [ROUTE_PATHS.features, "Features", "Explore the PDFEnrich workspace and the tools that are currently available."],
-  [ROUTE_PATHS.pricing, "Pricing", "PDFEnrich plans are still being prepared. No checkout or paid plan is active yet."],
+  [ROUTE_PATHS.pricing, "Free PDF tools", "PDFEnrich is completely free, with no subscriptions, checkout, or paid plans planned."],
   [ROUTE_PATHS.business, "PDFEnrich for business", "A focused document workspace for teams that edit and review PDFs."],
   [ROUTE_PATHS.enterprise, "Enterprise", "Enterprise administration and access controls are currently in development."],
   [ROUTE_PATHS.security, "Security", "Learn what the current browser workspace supports and where additional safeguards are planned."],
   [ROUTE_PATHS.templates, "Templates", "Reusable production templates are currently in development."],
   [ROUTE_PATHS.developers, "Developers", "The PDFEnrich developer platform and API are currently in development."],
   [ROUTE_PATHS.integrations, "Integrations", "External storage and workflow integrations are currently in development."],
-  [ROUTE_PATHS.contactSales, "Contact sales", "Sales-assisted plans are not available yet. Product updates will appear here."],
+  [ROUTE_PATHS.contactSales, "Contact PDFEnrich", "PDFEnrich does not offer paid or sales-assisted plans. Use support for product questions."],
   [ROUTE_PATHS.help, "Help center", "Upload, edit, organize, sign locally, and export PDFs using the existing workspace."],
   [ROUTE_PATHS.dataRetention, "Data retention", "See exactly what PDFEnrich stores, where it is stored, and how to remove it."],
   [ROUTE_PATHS.privacy, "Privacy", "PDFEnrich privacy documentation is being prepared for the production service."],

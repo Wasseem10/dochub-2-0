@@ -27,9 +27,9 @@ import { TOOL_CATEGORIES, TOOL_REGISTRY } from "./tools/toolRegistry.js";
 const asset = (fileName) => `${import.meta.env.BASE_URL}homepage/${fileName}`;
 
 const faqs = [
-  ["Is PDFEnrich really free?", "Yes. Supported core tools are free to use with no subscription, checkout, email requirement, or PDFEnrich watermark."],
-  ["Do I need an account?", "No. Open, edit, and download supported files as a guest. Create an account only when you want cloud document history."],
-  ["Are files processed in my browser?", "Supported editor, page, and image tools process files in your browser. Account-based cloud history uses Firebase and is clearly separate."],
+  ["Is PDFEnrich really free?", "Yes. PDFEnrich is completely free. There are no subscriptions, paid tiers, checkout, email requirement, or PDFEnrich watermark—and no paid plans are planned."],
+  ["Do I need an account?", "No. Open, edit, and download supported files as a guest. Sign in only for an optional private cloud copy or sharing workflow you choose."],
+  ["Are files processed in my browser?", "Supported editor, page, and image tools process files in your browser. Signing in does not upload them; private cloud saving is an explicit per-document action."],
   ["What is the editor file limit?", "The editor accepts valid, unencrypted PDFs up to 50 MB and 500 pages. Large documents open progressively, so later pages render as you visit them."],
   ["Can PDFEnrich perfectly rewrite original PDF text?", "Not always. The editor can change detected text overlays and add new content, but original fonts, spacing, and layout may vary. Always review the export."],
   ["Does PDFEnrich add a watermark?", "No. PDFEnrich does not add a watermark to supported exports."],
@@ -92,7 +92,7 @@ const footerNavigationGroups = [
   { title: "Tools", links: [["Edit PDF", "/edit-pdf"], ["Merge PDF", "/merge-pdf"], ["Split PDF", "/split-pdf"], ["Compress PDF", "/compress-pdf"], ["All tools", ROUTE_PATHS.tools]] },
   { title: "Edit & sign", links: [["Edit PDF", "/edit-pdf"], ["Annotate PDF", "/annotate-pdf"], ["Fill PDF", "/fill-pdf"], ["Sign PDF", "/sign-pdf"], ["PDF Form Filler", "/pdf-form-filler"]] },
   { title: "Convert", links: [["PDF to Word", "/pdf-to-word"], ["PDF to JPG", "/pdf-to-jpg"], ["PDF to PNG", "/pdf-to-png"], ["Word to PDF", "/word-to-pdf"], ["JPG to PDF", "/jpg-to-pdf"]] },
-  { title: "Company", links: [["About PDFEnrich", ROUTE_PATHS.business], ["Pricing", ROUTE_PATHS.pricing], ["Comparisons", ROUTE_PATHS.compare], ["Resources", ROUTE_PATHS.resources], ["Security", ROUTE_PATHS.security]] },
+  { title: "Company", links: [["About PDFEnrich", ROUTE_PATHS.about], ["Free—no paid plans", ROUTE_PATHS.pricing], ["Comparisons", ROUTE_PATHS.compare], ["Resources", ROUTE_PATHS.resources], ["Security", ROUTE_PATHS.security]] },
   { title: "Support", links: [["Help Center", ROUTE_PATHS.support], ["Contact us", ROUTE_PATHS.contactSales], ["FAQs", "/#faq-title"], ["Privacy", ROUTE_PATHS.privacy]] },
 ];
 
@@ -165,7 +165,7 @@ function SiteHeader({ onChoose }) {
     ["Sign", ROUTE_PATHS.signPdf],
     ["Convert", "/pdf-to-jpg"],
     ["Compare", ROUTE_PATHS.compare],
-    ["Pricing", ROUTE_PATHS.pricing],
+    ["About", ROUTE_PATHS.about],
   ];
 
   return <header className="freepdf-header-shell">
@@ -277,7 +277,7 @@ function ComparisonTeaser() {
 
 function ClosingAssurances() {
   const assurances = [
-    { icon: ShieldCheck, title: "Private by design", copy: "Your files stay private and secure." },
+    { icon: ShieldCheck, title: "Private by design", copy: "Supported tools process files in your browser." },
     { icon: Check, title: "No account needed", copy: "Edit, convert, and sign right away." },
     { icon: Globe2, title: "Works in your browser", copy: "No downloads or installations." },
   ];
@@ -327,8 +327,9 @@ export function LatticePdfLanding({ fileInputRef, onUpload, onSelectFiles, onDro
     <section className="freepdf-hero">
       <div className="freepdf-hero-layout">
         <div className="freepdf-hero-copy">
+          <Link className="freepdf-free-promise" to={ROUTE_PATHS.pricing}><Check size={15} aria-hidden="true" /> Completely free. No subscriptions or paid plans.</Link>
           <h1>Every PDF task,<br /><span>beautifully</span> in one place.</h1>
-          <p>Edit, sign, organize, and convert your PDFs in seconds.<br />Powerful tools. No clutter. Just results.</p>
+          <p>Edit, sign, organize, and convert your PDFs in seconds.<br />Powerful tools. No clutter. No payment. Just results.</p>
         </div>
 
         <div className="freepdf-product-stage">
@@ -342,7 +343,7 @@ export function LatticePdfLanding({ fileInputRef, onUpload, onSelectFiles, onDro
           <div><span className="freepdf-trust-icon is-lilac"><ShieldCheck size={23} /></span><span><strong>Secure by design</strong><small>Your file stays in this browser</small></span></div>
           <div><span className="freepdf-trust-icon is-yellow"><Zap size={23} /></span><span><strong>No signup needed</strong><small>Start working right away</small></span></div>
           <div><span className="freepdf-trust-icon is-blue"><Globe2 size={23} /></span><span><strong>Works anywhere</strong><small>On any modern browser</small></span></div>
-          <div><span className="freepdf-trust-icon is-pink"><Rocket size={23} /></span><span><strong>Blazing fast</strong><small>Local tools save you time</small></span></div>
+          <div><span className="freepdf-trust-icon is-pink"><Rocket size={23} /></span><span><strong>Completely free</strong><small>No subscriptions or paid plans</small></span></div>
         </section>
       </div>
     </section>
@@ -361,7 +362,7 @@ export function LatticePdfLanding({ fileInputRef, onUpload, onSelectFiles, onDro
 
     <section className="freepdf-section freepdf-how" aria-labelledby="how-title"><div className="freepdf-section-heading"><span>How it works</span><h2 id="how-title">Choose it. Change it. Download it.</h2></div><div>{[["1", "Choose your file", "Upload a supported PDF or drag it into the workspace."], ["2", "Make the change", "Use focused editing, signing, page, or conversion controls."], ["3", "Download the result", "Review your output and download without a watermark."]].map(([number, title, copy]) => <article key={number}><span>{number}</span><h3>{title}</h3><p>{copy}</p></article>)}</div></section>
 
-    <section className="freepdf-section freepdf-privacy" aria-labelledby="privacy-title"><div><span className="freepdf-section-kicker">Privacy, without the fine print</span><h2 id="privacy-title">Your file stays close to you.</h2><p>Supported editor, page, and image tools process files in your browser. Firebase is used only for optional account authentication and cloud document history.</p><Link to={ROUTE_PATHS.privacy}>Read the privacy details <ArrowRight size={16} /></Link></div><ul><li><Check size={17} /> No document text, signatures, or form values in analytics</li><li><Check size={17} /> No account required for supported processing or download</li><li><Check size={17} /> Optional cloud history is always clearly identified</li></ul></section>
+    <section className="freepdf-section freepdf-privacy" aria-labelledby="privacy-title"><div><span className="freepdf-section-kicker">Privacy, without the fine print</span><h2 id="privacy-title">Your file stays close to you.</h2><p>Supported editor, page, and image tools process files in your browser. Firebase is used only for features you deliberately choose, such as sign-in, a private cloud copy, support, or secure sharing.</p><Link to={ROUTE_PATHS.privacy}>Read the privacy details <ArrowRight size={16} /></Link></div><ul><li><Check size={17} /> No document text, signatures, or form values in analytics</li><li><Check size={17} /> No account required for supported processing or download</li><li><Check size={17} /> Private cloud saving is explicit for each document</li></ul></section>
 
     <section className="freepdf-section freepdf-faq" aria-labelledby="faq-title"><div className="freepdf-section-heading"><span>Good to know</span><h2 id="faq-title">Clear answers before you upload.</h2></div><div>{faqs.map(([question, answer]) => <details key={question}><summary>{question}</summary><p>{answer}</p></details>)}</div></section>
 
