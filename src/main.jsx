@@ -27,6 +27,7 @@ import "./homepage-paper-trail.css";
 import "./homepage-faq-guided.css";
 import "./comparison-pages.css";
 import "./components/editor/finish-export-modal.css";
+import "./editor-premium-color.css";
 import { migratePdfEnrichStorage } from "./brand/storageMigration.js";
 import { installProductionMonitoring } from "./monitoring/productionMonitoring.js";
 

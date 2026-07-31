@@ -73,6 +73,31 @@ import Upload from "lucide-react/dist/esm/icons/upload.mjs";
 import Users from "lucide-react/dist/esm/icons/users.mjs";
 import X from "lucide-react/dist/esm/icons/x.mjs";
 import Zap from "lucide-react/dist/esm/icons/zap.mjs";
+import {
+  ArrowCounterClockwise as PhUndo,
+  ArrowClockwise as PhRedo,
+  ArrowUpRight as PhArrow,
+  ArrowsClockwise as PhRotate,
+  Cursor as PhCursor,
+  DownloadSimple as PhDownload,
+  Eraser as PhEraser,
+  Files as PhFiles,
+  Highlighter as PhHighlighter,
+  ImageSquare as PhImage,
+  LinkSimple as PhLink,
+  MagnifyingGlass as PhSearch,
+  NotePencil as PhNote,
+  PaintBrush as PhDraw,
+  PenNib as PhSign,
+  PlusSquare as PhAddPage,
+  Printer as PhPrinter,
+  SidebarSimple as PhThumbnails,
+  Stamp as PhStamp,
+  TextAa as PhTextHighlight,
+  Textbox as PhEditText,
+  TextT as PhAddText,
+  Trash as PhTrash,
+} from "@phosphor-icons/react";
 import { degrees, PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import * as pdfjsLib from "pdfjs-dist";
 import "pdfjs-dist/build/pdf.worker.mjs";
@@ -259,17 +284,17 @@ const toolConfig = [
 ];
 
 const referencePrimaryTools = [
-  { id: "text", label: "Add Text", icon: Type },
-  { id: "editText", label: "Edit Text", icon: ScanText },
-  { id: "signature", label: "Sign", icon: PenLine },
-  { id: "draw", label: "Draw", icon: Paintbrush },
-  { id: "erase", label: "Erase", icon: Eraser },
-  { id: "highlight", label: "Highlight", icon: Highlighter },
-  { id: "textHighlight", label: "Text Highlight", icon: Type },
-  { id: "image", label: "Image", icon: ImageIcon },
-  { id: "stamp", label: "Stamp", icon: Stamp },
-  { id: "link", label: "Link", icon: Link },
-  { id: "note", label: "Note", icon: StickyNote },
+  { id: "text", label: "Add Text", icon: PhAddText },
+  { id: "editText", label: "Edit Text", icon: PhEditText },
+  { id: "signature", label: "Sign", icon: PhSign },
+  { id: "draw", label: "Draw", icon: PhDraw },
+  { id: "erase", label: "Erase", icon: PhEraser },
+  { id: "highlight", label: "Highlight", icon: PhHighlighter },
+  { id: "textHighlight", label: "Text Highlight", icon: PhTextHighlight },
+  { id: "image", label: "Image", icon: PhImage },
+  { id: "stamp", label: "Stamp", icon: PhStamp },
+  { id: "link", label: "Link", icon: PhLink },
+  { id: "note", label: "Note", icon: PhNote },
 ];
 
 const TOOL_PERSISTENT_INSTRUCTIONS = Object.freeze({
@@ -5913,8 +5938,8 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
           </span>
         </div>
         <div className="reference-header-actions" aria-label="Document actions">
-          <button type="button" onClick={printPdf} disabled={isExporting}><Printer size={23} /><span>{isExporting ? "Preparing…" : "Print"}</span></button>
-          <button type="button" aria-label={isExporting ? "Preparing PDF" : "Download"} onClick={exportPdf} disabled={isExporting}><Download size={23} /><span>{isExporting ? "Preparing…" : "Download"}</span></button>
+          <button type="button" onClick={printPdf} disabled={isExporting}><PhPrinter size={22} /><span>{isExporting ? "Preparing…" : "Print"}</span></button>
+          <button type="button" aria-label={isExporting ? "Preparing PDF" : "Download"} onClick={exportPdf} disabled={isExporting}><PhDownload size={22} /><span>{isExporting ? "Preparing…" : "Download"}</span></button>
           {publicTool === "share-pdf" && (
             <button type="button" aria-label="Share PDF" onClick={openShareSettings}><Share2 size={23} /><span>Share</span></button>
           )}
@@ -6071,17 +6096,17 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
             aria-expanded={!isPagesCollapsed}
             onClick={() => setIsPagesCollapsed((value) => !value)}
           >
-            <PanelsTopLeft size={23} /><span>Thumbnails</span>
+            <PhThumbnails size={23} /><span>Thumbnails</span>
           </button>
-          <button type="button" className="reference-toolbar-button mobile-undo-tool" aria-label="Undo" onClick={undo} disabled={!undoStack.length}><Undo2 size={23} /><span>Undo</span></button>
-          <button type="button" className="reference-toolbar-button mobile-redo-tool" aria-label="Redo" onClick={redo} disabled={!redoStack.length}><Redo2 size={23} /><span>Redo</span></button>
+          <button type="button" className="reference-toolbar-button mobile-undo-tool" aria-label="Undo" onClick={undo} disabled={!undoStack.length}><PhUndo size={23} /><span>Undo</span></button>
+          <button type="button" className="reference-toolbar-button mobile-redo-tool" aria-label="Redo" onClick={redo} disabled={!redoStack.length}><PhRedo size={23} /><span>Redo</span></button>
         </div>
 
         <div className="reference-primary-tools" role="toolbar" aria-label="Editing tools">
           {publicTool === "request-signatures" ? (
             <div className="request-field-tools" aria-label="Required signing fields">
               <button type="button" className={`reference-toolbar-button ${tool === "select" ? "is-active" : ""}`} aria-pressed={tool === "select"} onClick={() => activateReferenceTool("select")}>
-                <MousePointer2 size={23} /><span>Select</span>
+                <PhCursor size={23} /><span>Select</span>
               </button>
               {requestFieldTools.map(({ id, label, icon: Icon }) => {
                 const active = id === "checkbox"
@@ -6103,7 +6128,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
               </button>
             ))}
             <button type="button" aria-label="Select" className={`reference-toolbar-button reference-select-tool mobile-direct-select ${tool === "select" ? "is-active" : ""}`} aria-pressed={tool === "select"} onClick={() => activateReferenceTool("select")}>
-              <MousePointer2 size={23} /><span>Select</span>
+              <PhCursor size={23} /><span>Select</span>
             </button>
             {referencePrimaryTools.slice(2, 3).map(({ id, label, icon: Icon }) => (
               <button key={id} type="button" aria-label={label} className={`reference-toolbar-button mobile-direct-${id.toLowerCase()} ${tool === id ? "is-active" : ""}`} aria-pressed={tool === id} onClick={() => activateReferenceTool(id)}>
@@ -6135,12 +6160,12 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
                   setIsShapeMenuOpen(true);
                 }}
               >
-                <Send size={23} /><span className="reference-shape-label">Arrow <ChevronDown size={11} /></span>
+                <PhArrow size={23} /><span className="reference-shape-label">Arrow <ChevronDown size={11} /></span>
               </button>
               {isShapeMenuOpen && createPortal(
                 <div className="reference-shape-menu" role="menu" aria-label="Shape tools" style={{ top: shapeMenuPosition.top, left: shapeMenuPosition.left }}>
                   {[
-                    { id: "arrow", label: "Arrow", icon: Send },
+                    { id: "arrow", label: "Arrow", icon: PhArrow },
                     { id: "line", label: "Line", icon: Minus },
                     { id: "circle", label: "Circle", icon: Circle },
                     { id: "rectangle", label: "Rectangle", icon: RectangleHorizontal },
@@ -6173,11 +6198,11 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
           <button type="button" className={`reference-toolbar-button ${isSearchOpen ? "is-active" : ""}`} onClick={() => {
             setIsSearchOpen((value) => !value);
             setIsCommentsOpen(false);
-          }}><Search size={23} /><span>Search</span></button>
+          }}><PhSearch size={23} /><span>Search</span></button>
           <button type="button" className={`reference-toolbar-button ${isManagePagesOpen ? "is-active" : ""}`} onClick={() => {
             setIsManagePagesOpen((value) => !value);
             setIsPagesCollapsed(false);
-          }}><PanelsTopLeft size={23} /><span>Manage pages</span></button>
+          }}><PhFiles size={23} /><span>Manage pages</span></button>
         </div>
 
         <div className="reference-compact-tools" ref={compactToolsMenuRef}>
@@ -6510,16 +6535,16 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
           </div>
           <div className="thumbnail-footer" aria-label="Page actions">
             <button type="button" title="Delete page" aria-label="Delete page" onClick={deleteCurrentPage} disabled={pages.length <= 1}>
-              <Trash2 size={18} strokeWidth={2.6} />
+              <PhTrash size={19} />
             </button>
             <button type="button" title="Rotate page clockwise" aria-label="Rotate page clockwise" onClick={rotateCurrentPage}>
-              <RotateCw size={20} strokeWidth={2.6} />
+              <PhRotate size={20} />
             </button>
             <button type="button" title="Add page" aria-label="Add page" onClick={addBlankPage}>
-              <FilePlus2 size={20} strokeWidth={2.4} />
+              <PhAddPage size={20} />
             </button>
             <button type="button" title="Export PDF from page rail" aria-label="Export PDF from page rail" onClick={exportPdf} disabled={isExporting}>
-              <Download size={19} strokeWidth={2.5} />
+              <PhDownload size={20} />
             </button>
           </div>
           <div className="saved-foot"><CheckCircle2 size={22} /> {saveStatusLabel}</div>
