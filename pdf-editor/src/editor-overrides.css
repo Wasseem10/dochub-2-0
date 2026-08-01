@@ -10535,3 +10535,69 @@ main.editor-shell .signature-placement-delete {
     font-size: 12px !important;
   }
 }
+
+/* Minimal centered authentication transition. */
+.auth-loading-shell {
+  display: grid;
+  min-height: 100vh;
+  min-height: 100dvh;
+  place-items: center;
+  background: #fff;
+}
+
+.auth-loading-indicator {
+  display: grid;
+  width: 84px;
+  place-items: center;
+  gap: 14px;
+}
+
+.auth-loading-mark {
+  position: relative;
+  display: block;
+  width: 42px;
+  height: 42px;
+  overflow: hidden;
+}
+
+.auth-loading-mark img {
+  position: absolute;
+  top: -48px;
+  left: -5px;
+  display: block;
+  width: 140px;
+  height: 140px;
+  max-width: none;
+}
+
+.auth-loading-indicator .auth-loading-progress {
+  width: 72px;
+  height: 2px;
+  margin: 0;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #e5e7eb;
+}
+
+.auth-loading-indicator .auth-loading-progress span {
+  display: block;
+  width: 50%;
+  height: 100%;
+  border-radius: inherit;
+  background: #2851eb;
+  animation: auth-loading-mini-progress 1.25s ease-in-out infinite;
+}
+
+@keyframes auth-loading-mini-progress {
+  0% { transform: translateX(-100%); }
+  50% { transform: translateX(100%); }
+  100% { transform: translateX(200%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-loading-indicator .auth-loading-progress span {
+    width: 50%;
+    animation: none;
+    transform: none;
+  }
+}
