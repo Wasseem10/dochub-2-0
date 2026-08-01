@@ -133,12 +133,15 @@
 
 @media (min-width: 761px) and (max-height: 900px) {
   .freepdf-tool-grid {
+    max-width: 1266px;
+    margin-right: auto;
+    margin-left: auto;
     gap: 14px;
   }
 
   .freepdf-tool-card {
-    min-height: 260px;
-    padding: 14px 18px 18px;
+    min-height: 242px;
+    padding: 12px 16px 16px;
   }
 
   .freepdf-tool-icon,
@@ -146,24 +149,24 @@
   .freepdf-tool-card.is-lilac .freepdf-tool-icon,
   .freepdf-tool-card.is-yellow .freepdf-tool-icon,
   .freepdf-tool-card.is-blue .freepdf-tool-icon {
-    height: 126px;
-    margin-bottom: 12px;
+    height: 114px;
+    margin-bottom: 10px;
   }
 
   .professional-tool-glyph {
-    width: 124px;
-    height: 124px;
+    width: 112px;
+    height: 112px;
   }
 
   .professional-tool-glyph[data-tool-icon="merge-pdf"],
   .professional-tool-glyph[data-tool-icon="organize-pdf"] {
-    width: 142px;
-    height: 142px;
+    width: 128px;
+    height: 128px;
   }
 
   .professional-tool-glyph[data-tool-icon="pdf-to-word"] {
-    width: 150px;
-    height: 150px;
+    width: 136px;
+    height: 136px;
   }
 
   .freepdf-tool-card h3 {

@@ -26,7 +26,7 @@ The selected July 30, 2026 homepage FAQ redesign is Guided Questions (refined id
 
 The selected July 29, 2026 Popular Tools refinement uses large, original object-based document illustrations rather than small generic line glyphs. Keep the white card grid and short descriptions, give each illustration a consistent soft editorial depth and generous uncropped stage, and use distinct tool-specific scenes inspired by real PDF actions without copying competitor artwork, stretching assets, or warping document shapes.
 
-On laptop-height desktop viewports, compact the homepage Popular Tools cards, illustration stages, and grid gaps so the two-row grid does not consume the whole screen. Preserve the roomier large-desktop treatment and the existing mobile composition; do not crop or distort the object illustrations while tightening the laptop layout.
+On laptop-height desktop viewports, use a narrower centered homepage Popular Tools grid with compact 242px cards, reduced illustration stages, and tight gaps so the two-row grid does not consume the whole screen. Preserve the roomier large-desktop treatment and the existing mobile composition; do not crop or distort the object illustrations while tightening the laptop layout.
 
 The earlier July 29, 2026 Professional Document Commands glyph set is superseded by the object-based illustration refinement above. Keep `work/design-references/popular-tools-icons-exact-2026-07-29.png` and `runtime-public/tool-icons/` only as archival references; do not restore those small navy line glyphs to the homepage cards.
 
