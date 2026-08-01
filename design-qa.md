@@ -1,53 +1,48 @@
-# Precision Color Studio Editor — Design QA
+# PDFEnrich minimal authentication loading screen QA
 
 ## Evidence
 
-- Source visual truth: `work/design-references/editor-precision-color-studio-selected-2026-07-30.png`
-- Desktop implementation, selected-text state: `work/design-qa/editor-precision-color-2026-07-30/implementation-desktop-selected.png`
-- Desktop implementation, clean command deck: `work/design-qa/editor-precision-color-2026-07-30/implementation-desktop-toolbar.png`
-- Mobile implementation: `work/design-qa/editor-precision-color-2026-07-30/implementation-mobile.png`
-- Full-view comparison: `work/design-qa/editor-precision-color-2026-07-30/comparison-desktop.png`
-- Focused toolbar comparison: `work/design-qa/editor-precision-color-2026-07-30/comparison-toolbar.png`
-- Source pixels: 1536 × 1024.
-- Implementation pixels: 1536 × 1024.
-- CSS viewport: 1536 × 1024 at 1× density. Mobile viewport: 390 × 844 at 1× density.
-- State: desktop editor with thumbnails open, Select active, a text object selected, contextual text settings visible, and 100% zoom.
+- Source visual truth: `C:\Users\wasse\OneDrive\Desktop\pdf-editor\work\design-references\auth-loading-minimal-selected-2026-08-01.png`
+- Desktop implementation: `C:\Users\wasse\OneDrive\Desktop\pdf-editor\work\design-qa\auth-loading-minimal-2026-08-01\implementation-desktop.png`
+- Mobile implementation: `C:\Users\wasse\OneDrive\Desktop\pdf-editor\work\design-qa\auth-loading-minimal-2026-08-01\implementation-mobile.png`
+- Desktop viewport and pixels: 1440 x 1024 CSS px, device scale factor 1, 1440 x 1024 source and implementation pixels; no density normalization required.
+- Mobile viewport and pixels: 390 x 844 CSS px, device scale factor 1, 390 x 844 implementation pixels.
+- State: protected dashboard route during authentication/lazy-loading, before the dashboard becomes interactive.
+
+## Full-view comparison
+
+The source and implementation were opened together at the same 1440 x 1024 frame. Both use a pure-white full viewport, the isolated official blue PDFEnrich document mark, and a single neutral hairline track with blue progress. The implementation intentionally makes the mark and track slightly smaller than the generated source to honor the user's final direction: “super small and basic.” No card, dashboard preview, wordmark, heading, label, or other visible text remains.
+
+## Focused-region comparison
+
+A separate crop was not needed because the loader is the only visible region and remains clear in the full-frame comparison. Browser geometry confirms the 84 x 58 indicator group is centered exactly at 720 x 512 on desktop and 195 x 422 on mobile. The mark container is 42 x 42 and the progress track is 72 x 2.
+
+## Required fidelity surfaces
+
+- Fonts and typography: no visible typography by design. The accessible status retains an ARIA label without rendering copy.
+- Spacing and layout rhythm: the indicator group is mathematically centered in both verified viewports with a 14px mark-to-track gap and ample white space.
+- Colors and visual tokens: pure white background, official PDFEnrich blue `#2851eb`, and a light neutral-gray track match the selected direction.
+- Image quality and asset fidelity: the implementation crops the supplied `runtime-public/pdfenrich-logo.png` and does not approximate or redraw the brand mark. The mark is sharp at the implemented size with no stretch, shadow, or halo.
+- Copy and content: no visible words, letters, or numbers appear. The screen-reader-only status label remains “Opening PDFEnrich.”
 
 ## Findings
 
-- No actionable P0, P1, or P2 differences remain.
-- Fonts and typography: the implementation uses the product’s bundled DM Sans family with the same compact hierarchy and optical weight as the selected mock. Dynamic document content differs intentionally.
-- Spacing and layout: the 66px header, centered 1164px floating command deck, compact settings strip, 176px page rail, centered document, and low-profile zoom navigator reproduce the selected hierarchy. Actual PDF proportions remain data-driven rather than forcing the mock’s synthetic invoice size.
-- Colors and tokens: the implementation matches the powder-blue workspace and white command surfaces, uses coral/lilac/yellow/sky accents for tool wayfinding, keeps selected tools neutral gray, and reserves PDFEnrich blue for Finish and document selection.
-- Icons: visible editor actions use one consistent Phosphor rounded-line family. Optical size, weight, and alignment remain consistent across the header, primary toolbar, and page-rail footer.
-- Image quality: the official cropped PDFEnrich logo is preserved. Document pages and thumbnails remain real renderer output; no raster placeholder or CSS illustration substitutes were introduced.
-- Copy and content: all existing editor labels and working actions are preserved. The implementation test uses an intentional local blank document rather than copying the mock invoice.
-- Responsiveness: desktop controls do not clip at 1536px. The existing touch-first 390px editor remains intact with a compact header, six-action dock, contextual bar, and zoom/page capsule.
-- Accessibility: semantic buttons and labels remain unchanged, keyboard focus is visible, selected state uses `aria-pressed`, thumbnails expose expanded state, and reduced-motion behavior is preserved.
+- No actionable P0, P1, or P2 visual differences.
+- No remaining P3 recommendation is necessary for this intentionally minimal state.
 
-## Interaction verification
+## Interaction and runtime checks
 
-- Added and edited a text box, then blurred it to restore the shared eight-handle selection model and rotation control.
-- Opened and closed the thumbnail rail.
-- Opened and closed Manage Pages and confirmed its organizer controls rendered.
-- Selected Draw, changed to the blue pen preset, and confirmed the compact settings bar rendered.
-- Changed zoom to 100%.
-- Verified the mobile editor at 390 × 844.
-- Browser console errors in the clean verification tab: none.
-- Production build and public-performance audit: passed.
-- Focused editor unit tests: 12 passed across contextual layout, tool modes, mobile More coverage, and object transforms.
-- Repository-wide TypeScript check remains blocked by two pre-existing implicit-`any` findings in `src/tools/toolRegistry.js`; neither is part of this editor change.
+- The loading indicator appeared on `/app/dashboard` while authentication initialized, then cleared and revealed the dashboard.
+- Focused route-guard suite passed: 13 tests.
+- Production build passed.
+- Desktop and mobile center alignment passed.
+- Reduced-motion CSS keeps a static half-filled progress state.
+- Browser console contained no errors. Existing PDF.js fake-worker warnings appeared after the dashboard loaded and are unrelated to this loading-screen change.
 
 ## Comparison history
 
-### Final pass — passed
+- Pass 1: no actionable P0/P1/P2 findings; no visual fix loop required.
 
-- The first implementation capture already matched the selected shell closely, so no P0/P1/P2 visual fix loop was required.
-- The live implementation uses functional context-specific text controls instead of the mock’s generic selection controls; this is an intentional product constraint and preserves the selected layout and density.
-- The underlying PDF page remains real, data-driven editor content rather than the generated mock’s invoice illustration.
-
-## Follow-up polish
-
-- P3: A future content-rich regression fixture could make visual demonstrations feel closer to the mock than a blank-page test, without changing the editor chrome.
+## Final result
 
 final result: passed

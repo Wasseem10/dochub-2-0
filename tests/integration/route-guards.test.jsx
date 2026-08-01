@@ -50,9 +50,11 @@ describe("route guards", () => {
 
   it("shows auth loading without redirecting early", async () => {
     const { router, renderer } = await renderRoutes(protectedRoutes, ["/app/dashboard"], authValue({ authReady: false }));
-    expect(renderedText(renderer)).toContain("Opening your workspace");
-    expect(renderedText(renderer)).toContain("Checking your saved sign-in");
-    expect(renderer.root.findByProps({ role: "status" }).props["aria-live"]).toBe("polite");
+    const status = renderer.root.findByProps({ role: "status" });
+    expect(status.props["aria-label"]).toBe("Opening PDFEnrich");
+    expect(status.props["aria-live"]).toBe("polite");
+    expect(renderer.root.findByProps({ className: "auth-loading-mark" })).toBeTruthy();
+    expect(renderer.root.findByProps({ className: "auth-loading-progress" })).toBeTruthy();
     expect(router.state.location.pathname).toBe("/app/dashboard");
   });
 
