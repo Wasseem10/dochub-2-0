@@ -332,65 +332,49 @@
 }
 
 .tool-guide-workflow {
-  padding: 64px 0 72px;
+  padding: 68px 0 76px;
   border-top: 1px solid var(--tool-line);
   border-bottom: 1px solid var(--tool-line);
 }
 
-.tool-guide-workflow > h2 { text-align: center; }
+.tool-guide-workflow > h2 {
+  margin-bottom: 34px;
+  text-align: center;
+}
 
 .tool-guide-workflow-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1.15fr) minmax(340px, .85fr);
-  align-items: center;
-  gap: 64px;
+  width: min(100%, 1040px);
+  margin: 0 auto;
 }
 
-.tool-guide-workflow figure {
-  position: relative;
-  margin: 0;
-  padding: 34px 0 0 34px;
-}
-
-.tool-guide-workflow figure::before {
-  position: absolute;
-  inset: 0 auto auto 0;
-  width: 142px;
-  height: 142px;
-  border: 1.5px dashed #86a2ff;
-  border-radius: 12px;
-  content: "";
-}
-
-.tool-guide-workflow img {
-  position: relative;
-  display: block;
+.tool-guide-workflow-copy {
   width: 100%;
-  border: 1px solid #d5ddec;
-  border-radius: 12px;
-  background: #fff;
-  box-shadow: 0 18px 45px rgba(54, 67, 109, .11);
 }
 
 .tool-guide-workflow-copy ol {
   display: grid;
-  gap: 15px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 46px;
   margin: 0;
   padding: 0;
+  border-top: 1px solid var(--tool-line);
   list-style: none;
 }
 
 .tool-guide-workflow-copy li {
   display: grid;
-  grid-template-columns: 28px 1fr;
+  min-height: 76px;
+  grid-template-columns: 32px minmax(0, 1fr);
   align-items: start;
-  gap: 12px;
+  gap: 14px;
+  padding: 18px 4px;
+  border-bottom: 1px solid var(--tool-line);
 }
 
 .tool-guide-workflow-copy li > span {
   display: grid;
-  width: 28px;
-  height: 28px;
+  width: 32px;
+  height: 32px;
   place-items: center;
   border-radius: 50%;
   background: var(--tool-powder);
@@ -400,18 +384,20 @@
 }
 
 .tool-guide-workflow-copy li p {
-  margin: 4px 0 0;
+  margin: 3px 0 0;
   color: #343b4c;
-  font-size: 14px;
-  line-height: 1.5;
+  font-size: 14.5px;
+  line-height: 1.55;
 }
 
 .tool-guide-workflow-copy aside {
   display: grid;
   grid-template-columns: auto 1fr;
-  gap: 10px;
-  margin-top: 27px;
-  padding: 16px;
+  align-items: start;
+  gap: 12px;
+  margin-top: 28px;
+  padding: 17px 20px;
+  border: 1px solid #d9e2ff;
   border-radius: 12px;
   background: var(--tool-powder);
   color: var(--tool-blue);
@@ -548,7 +534,8 @@
   .editor-tool-breadcrumbs,
   .editor-tool-upload-hero,
   .editor-tool-upload-page .tool-guide-content { width: min(100% - 32px, 740px); }
-  .tool-guide-workflow-grid { grid-template-columns: 1fr; gap: 38px; }
+  .tool-guide-workflow-grid { width: min(100%, 680px); }
+  .tool-guide-workflow-copy ol { grid-template-columns: 1fr; }
   .tool-guide-search-intent { grid-template-columns: 1fr; gap: 34px; }
   .tool-guide-search-intent > header h2 { max-width: 17ch; }
   .editor-tool-upload-page .tool-guide-related > div { grid-template-columns: repeat(3, minmax(0, 1fr)); }
@@ -613,9 +600,7 @@
   .tool-guide-workflow > h2,
   .tool-guide-related > h2,
   .tool-guide-simple-steps > h2 { margin-bottom: 24px; font-size: 27px; }
-  .tool-guide-workflow figure { padding: 22px 0 0 16px; }
-  .tool-guide-workflow figure::before { width: 92px; height: 92px; }
-  .tool-guide-workflow-grid { gap: 30px; }
+  .tool-guide-workflow-grid { width: 100%; }
 
   .editor-tool-upload-page .tool-guide-related { padding: 50px 0 54px; }
   .editor-tool-upload-page .tool-guide-related > div {
