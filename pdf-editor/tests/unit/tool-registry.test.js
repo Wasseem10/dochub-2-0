@@ -22,6 +22,11 @@ describe("PDFEnrich tool registry", () => {
     expect(TOOL_REGISTRY.every((tool) => !tool.heroHeadline.includes("honest limits"))).toBe(true);
   });
 
+  it("keeps retired templates and document analyzers out of the catalog", () => {
+    const retiredIds = new Set(["templates", "invoice-templates", "nda-templates", "contract-analyzer", "resume-analyzer"]);
+    expect(TOOL_REGISTRY.some(({ id, route }) => retiredIds.has(id) || route.includes("template"))).toBe(false);
+  });
+
   it("truthfully exposes released editor and conversion workflows", () => {
     const counts = Object.groupBy(TOOL_REGISTRY, (tool) => tool.status);
     expect(counts.partial || []).toHaveLength(0);

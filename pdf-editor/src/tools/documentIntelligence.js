@@ -151,8 +151,6 @@ export function analysisReportText(toolId, result) {
   if (toolId === "summarize-pdf") return result.map((item) => `${item.sentence} [Page ${item.pageNumber}]`).join("\n\n");
   if (toolId === "ai-question-generator") return result.map((item, index) => `${index + 1}. ${item.question}\nAnswer: ${item.answer} [Page ${item.pageNumber}]`).join("\n\n");
   if (toolId === "extract-data-from-pdf") return JSON.stringify(result, null, 2);
-  if (toolId === "contract-analyzer") return Object.entries(result).map(([key, items]) => `${key.toUpperCase()}\n${(items || []).map((item) => `- ${item.sentence || item.value} [Page ${item.pageNumber}]`).join("\n") || "None detected"}`).join("\n\n");
-  if (toolId === "resume-analyzer") return Object.entries(result).map(([key, value]) => `${key}: ${Array.isArray(value) ? value.join(", ") : value}`).join("\n");
   return String(result);
 }
 

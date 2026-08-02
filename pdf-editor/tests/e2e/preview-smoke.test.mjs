@@ -41,7 +41,6 @@ const directRoutes = [
   "/business",
   "/enterprise",
   "/security",
-  "/templates",
   "/resources",
   "/research/pdf-conversion-benchmark",
   "/guides/redact-pdf-safely",
@@ -110,7 +109,6 @@ const directRoutes = [
   "/forgot-password",
   "/app/dashboard",
   "/app/documents",
-  "/app/templates",
   "/app/signatures",
   "/app/settings",
   "/app/trash",
@@ -164,7 +162,6 @@ for (const [path, expectedHeading, expectedDetail] of [
   ["/guides/remove-pages-from-pdf", "remove pages from a PDF", "page count"],
   ["/guides/rotate-pdf-and-save", "rotate a PDF", "permanent fix"],
   ["/research/pdf-email-attachment-size-study", "email encoding", "RFC 4648"],
-  ["/templates", "templates you can actually edit", "Small-business invoice"],
   ["/architecture", "How PDFEnrich processes documents", "Local document processing"],
 ]) {
   test(`prerendered resource ${path} publishes accountable original content`, async () => {

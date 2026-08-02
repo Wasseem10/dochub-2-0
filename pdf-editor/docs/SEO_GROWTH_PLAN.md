@@ -14,7 +14,7 @@ This plan is designed to maximize qualified unpaid traffic and completed PDF tas
 - A build-blocking SEO audit: `npm run audit:seo`.
 - A Priority 1 product-quality gate covering 21 high-intent tools across simple, complex, scanned, encrypted, malformed, large-document, Android, and iPhone cases: `npm run test:quality`.
 - Owner-only per-tool quality metrics for rejected uploads, attempts, success rate, downloads, median/P95 processing time, and mobile failures.
-- A build-blocking Priority 2 editorial audit covering 21 tool evidence records, 15 original resources, 57 page-specific visual assets, research fixtures, redaction proof, and five downloadable DOCX templates: `npm run audit:editorial`.
+- A build-blocking Priority 2 editorial audit covering tool evidence records, original resources, page-specific visual assets, research fixtures, and redaction proof: `npm run audit:editorial`.
 
 ## Priority 0: complete after the final name and domain are chosen
 
@@ -50,7 +50,7 @@ Do not market a workflow as fully supported until its output passes the test set
 
 ## Priority 2: create pages worth citing, not keyword variants
 
-Implementation status: complete for the current 21-tool and 15-resource scope as of July 21, 2026. Every core tool now publishes a realistic example, an exact regression assertion and method, an original demonstration, a last-tested date, accountable owner identity, and a 1200×630 share image. The Q3 2026 benchmark, redaction proof, OCR matrix, editable templates, five workflow playbooks, and trust-center pages are published as one substantive URL per real intent.
+Implementation status: complete for the current tool and resource scope as of July 21, 2026. Every core tool now publishes a realistic example, an exact regression assertion and method, an original demonstration, a last-tested date, accountable owner identity, and a 1200×630 share image. The Q3 2026 benchmark, redaction proof, OCR matrix, workflow playbooks, and trust-center pages are published as one substantive URL per real intent.
 
 Do not generate hundreds of near-duplicate “best/free/online” pages. Strengthen the existing URL for each search intent.
 
@@ -71,7 +71,6 @@ Build original editorial assets that competitors cannot cheaply copy:
 - a quarterly browser PDF conversion/fidelity benchmark with methodology and downloadable sample files;
 - an illustrated guide to safely redacting PDFs, with proof that hidden text is removed;
 - a scanned-PDF/OCR quality guide by scan quality and document type;
-- free, genuinely editable templates with practical completion guidance;
 - migration and workflow guides for educators, recruiters, legal operations, real estate, and small businesses;
 - transparent privacy, security, architecture, uptime, and incident-history pages.
 
@@ -80,7 +79,7 @@ Build original editorial assets that competitors cannot cheaply copy:
 Links must be earned from usefulness, not bought or exchanged at scale.
 
 1. Launch the finished product and original benchmark where PDF users already gather: relevant Product Hunt, Hacker News, Reddit, educator, small-business, developer, and accessibility communities. Participate honestly and follow each community’s promotion rules.
-2. Offer the benchmark data, redaction research, templates, or browser-processing engineering write-ups to journalists, newsletters, university resources, and industry bloggers.
+2. Offer the benchmark data, redaction research, or browser-processing engineering write-ups to journalists, newsletters, university resources, and industry bloggers.
 3. Create integration/workflow pages only when there is a real integration or demonstrable workflow.
 4. Ask users who already recommend the product to link to the most relevant tool page, not always the homepage.
 5. Publish reusable sample documents, test fixtures, or an open-source utility when it is genuinely useful and can earn developer citations.

@@ -149,17 +149,21 @@ if (proofPath) {
   }
 }
 
-for (const filename of [
-  "small-business-invoice.docx",
-  "candidate-evaluation-scorecard.docx",
-  "property-inspection-checklist.docx",
-  "mutual-nda-starter.docx",
-  "education-support-request.docx",
+for (const forbiddenPath of [
+  "/templates/editable/small-business-invoice.docx",
+  "/templates/editable/property-inspection-checklist.docx",
+  "/templates/editable/mutual-nda-starter.docx",
+  "/templates/editable/education-support-request.docx",
+  "/templates/editable/candidate-evaluation-scorecard.docx",
+  "/share/templates.png",
+  "/dashboard-assets/template-card.png",
 ]) {
-  const templatePath = await requireFile(`/templates/editable/${filename}`);
-  if (!templatePath) continue;
-  const signature = (await readFile(templatePath)).subarray(0, 4).toString("hex");
-  if (!signature.startsWith("504b0304")) fail(`${filename} is not a valid OOXML package`);
+  try {
+    await stat(path.join(publicRoot, forbiddenPath.replace(/^\//, "")));
+    fail(`${forbiddenPath} is an out-of-scope template artifact and must not be published`);
+  } catch {
+    // Expected: template artifacts must stay absent from the public build.
+  }
 }
 
 if (failures.length) {
