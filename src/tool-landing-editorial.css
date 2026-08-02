@@ -648,8 +648,7 @@
 /* Shared public-tool landing system: Edit PDF is the visual source of truth. */
 .image-conversion-page,
 .document-analysis-page,
-.redact-page,
-.template-builder-page {
+.redact-page{
   --tool-blue: #2851eb;
   --tool-ink: #101323;
   --tool-body: #5e6678;
@@ -666,8 +665,7 @@
 
 .image-conversion-page > .tool-breadcrumbs,
 .document-analysis-page > .tool-breadcrumbs,
-.redact-page > .tool-breadcrumbs,
-.template-builder-page > .tool-breadcrumbs {
+.redact-page > .tool-breadcrumbs {
   display: flex;
   box-sizing: border-box;
   width: min(1160px, calc(100% - 48px));
@@ -682,16 +680,14 @@
 
 .image-conversion-page > .tool-breadcrumbs a,
 .document-analysis-page > .tool-breadcrumbs a,
-.redact-page > .tool-breadcrumbs a,
-.template-builder-page > .tool-breadcrumbs a {
+.redact-page > .tool-breadcrumbs a {
   color: inherit;
   text-decoration: none;
 }
 
 .image-conversion-page > .tool-breadcrumbs a:hover,
 .document-analysis-page > .tool-breadcrumbs a:hover,
-.redact-page > .tool-breadcrumbs a:hover,
-.template-builder-page > .tool-breadcrumbs a:hover {
+.redact-page > .tool-breadcrumbs a:hover {
   color: var(--tool-blue);
 }
 
@@ -812,8 +808,7 @@
 .analysis-upload button,
 .redact-upload button,
 .conversion-primary-action,
-.analysis-primary,
-.template-export {
+.analysis-primary{
   display: inline-flex;
   min-width: min(100%, 255px);
   min-height: 52px;
@@ -837,8 +832,7 @@
 .analysis-upload button:hover,
 .redact-upload button:hover,
 .conversion-primary-action:hover:not(:disabled),
-.analysis-primary:hover:not(:disabled),
-.template-export:hover:not(:disabled) {
+.analysis-primary:hover:not(:disabled) {
   background: #1e42d4;
 }
 
@@ -1238,8 +1232,7 @@
 }
 
 .document-analysis-page,
-.redact-page,
-.template-builder-page {
+.redact-page{
   box-sizing: border-box;
   width: 100%;
   max-width: none;
@@ -1248,16 +1241,14 @@
 }
 
 .document-analysis-page > *,
-.redact-page > *,
-.template-builder-page > * {
+.redact-page > * {
   width: min(1160px, calc(100% - 48px));
   margin-right: auto;
   margin-left: auto;
 }
 
 .analysis-hero,
-.redact-hero,
-.template-builder-hero {
+.redact-hero{
   display: block;
   width: min(1050px, calc(100% - 48px));
   padding: 48px 0 34px;
@@ -1268,16 +1259,14 @@
 }
 
 .analysis-hero > div > span,
-.redact-hero > div > span,
-.template-builder-hero > div > span {
+.redact-hero > div > span {
   border-color: #d5defd;
   background: #f5f7ff;
   color: var(--tool-blue);
 }
 
 .analysis-hero h1,
-.redact-hero h1,
-.template-builder-hero h1 {
+.redact-hero h1 {
   max-width: 920px;
   margin: 16px auto 0;
   color: var(--tool-ink);
@@ -1289,8 +1278,7 @@
 }
 
 .analysis-hero p,
-.redact-hero p,
-.template-builder-hero p {
+.redact-hero p {
   max-width: 720px;
   margin: 17px auto 0;
   color: var(--tool-body);
@@ -1299,8 +1287,7 @@
 }
 
 .analysis-hero > aside,
-.redact-hero > aside,
-.template-builder-hero > aside {
+.redact-hero > aside {
   display: inline-grid;
   max-width: 520px;
   grid-template-columns: auto 1fr;
@@ -1315,8 +1302,7 @@
 }
 
 .analysis-hero > aside svg,
-.redact-hero > aside svg,
-.template-builder-hero > aside svg {
+.redact-hero > aside svg {
   grid-row: 1 / 3;
 }
 
@@ -1328,7 +1314,7 @@
   align-content: center;
 }
 
-:is(.editor-tool-upload-page, .image-conversion-page, .document-analysis-page, .redact-page, .template-builder-page) .tool-guide-content {
+:is(.editor-tool-upload-page, .image-conversion-page, .document-analysis-page, .redact-page) .tool-guide-content {
   display: grid;
   box-sizing: border-box;
   width: min(1160px, calc(100% - 48px));
@@ -1338,19 +1324,19 @@
   color: var(--tool-ink);
 }
 
-:is(.editor-tool-upload-page, .image-conversion-page, .document-analysis-page, .redact-page, .template-builder-page) .tool-guide-related {
+:is(.editor-tool-upload-page, .image-conversion-page, .document-analysis-page, .redact-page) .tool-guide-related {
   padding: 64px 0 70px;
   border-bottom: 1px solid var(--tool-line);
   text-align: center;
 }
 
-:is(.editor-tool-upload-page, .image-conversion-page, .document-analysis-page, .redact-page, .template-builder-page) .tool-guide-related > div {
+:is(.editor-tool-upload-page, .image-conversion-page, .document-analysis-page, .redact-page) .tool-guide-related > div {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 10px;
 }
 
-:is(.editor-tool-upload-page, .image-conversion-page, .document-analysis-page, .redact-page, .template-builder-page) .tool-guide-related a {
+:is(.editor-tool-upload-page, .image-conversion-page, .document-analysis-page, .redact-page) .tool-guide-related a {
   position: relative;
   display: grid;
   min-height: 178px;
@@ -1366,7 +1352,7 @@
   text-decoration: none;
 }
 
-:is(.editor-tool-upload-page, .image-conversion-page, .document-analysis-page, .redact-page, .template-builder-page) .tool-guide-related a > span {
+:is(.editor-tool-upload-page, .image-conversion-page, .document-analysis-page, .redact-page) .tool-guide-related a > span {
   display: grid;
   width: 38px;
   height: 38px;
@@ -1375,7 +1361,7 @@
   color: var(--tool-blue);
 }
 
-:is(.editor-tool-upload-page, .image-conversion-page, .document-analysis-page, .redact-page, .template-builder-page) .tool-guide-related a > svg {
+:is(.editor-tool-upload-page, .image-conversion-page, .document-analysis-page, .redact-page) .tool-guide-related a > svg {
   align-self: end;
   color: var(--tool-blue);
 }
@@ -1402,7 +1388,7 @@
 }
 
 /* Keep every working state in the same blue editorial system as Edit PDF. */
-:is(.editor-tool-upload-page, .image-conversion-page, .document-analysis-page, .redact-page, .template-builder-page) :is(
+:is(.editor-tool-upload-page, .image-conversion-page, .document-analysis-page, .redact-page) :is(
   .conversion-success,
   .conversion-page-picker header button,
   .conversion-privacy-note svg,
@@ -1501,15 +1487,7 @@
   color: #31457f;
 }
 
-.template-builder-page .template-preview-card > header > span {
-  background: var(--tool-powder);
-  color: var(--tool-blue);
-}
 
-.template-builder-page .template-legal-note {
-  background: var(--tool-powder);
-  color: #31457f;
-}
 
 .redact-page .redact-complete {
   border-color: #d8e1ff;
@@ -1517,7 +1495,7 @@
   color: #31457f;
 }
 
-:is(.editor-tool-upload-page, .image-conversion-page, .document-analysis-page, .redact-page, .template-builder-page) :is(
+:is(.editor-tool-upload-page, .image-conversion-page, .document-analysis-page, .redact-page) :is(
   .tool-guide-grid li > span:first-child,
   .tool-guide-steps li > span
 ) {
@@ -1525,26 +1503,26 @@
   color: var(--tool-blue);
 }
 
-:is(.editor-tool-upload-page, .image-conversion-page, .document-analysis-page, .redact-page, .template-builder-page) :is(
+:is(.editor-tool-upload-page, .image-conversion-page, .document-analysis-page, .redact-page) :is(
   .tool-guide-grid li > svg,
   .tool-guide-answers header > svg
 ) {
   color: var(--tool-blue);
 }
 
-:is(.editor-tool-upload-page, .image-conversion-page, .document-analysis-page, .redact-page, .template-builder-page) .tool-guide-trust-grid .is-private {
+:is(.editor-tool-upload-page, .image-conversion-page, .document-analysis-page, .redact-page) .tool-guide-trust-grid .is-private {
   border-color: #d8e1ff;
   background: var(--tool-powder);
   color: #31457f;
 }
 
-:is(.editor-tool-upload-page, .image-conversion-page, .document-analysis-page, .redact-page, .template-builder-page) .tool-guide-trust-grid .is-limit {
+:is(.editor-tool-upload-page, .image-conversion-page, .document-analysis-page, .redact-page) .tool-guide-trust-grid .is-limit {
   border-color: #d8e1ff;
   background: #f7f9ff;
   color: #445275;
 }
 
-:is(.editor-tool-upload-page, .image-conversion-page, .document-analysis-page, .redact-page, .template-builder-page) .tool-guide-answers details {
+:is(.editor-tool-upload-page, .image-conversion-page, .document-analysis-page, .redact-page) .tool-guide-answers details {
   background: #f7f9ff;
 }
 
@@ -1554,13 +1532,12 @@
   .image-conversion-page > .conversion-workspace-grid,
   .image-conversion-page > .conversion-privacy-note,
   .document-analysis-page > *,
-  .redact-page > *,
-  .template-builder-page > *,
-  :is(.editor-tool-upload-page, .image-conversion-page, .document-analysis-page, .redact-page, .template-builder-page) .tool-guide-content {
+  .redact-page > *
+  :is(.editor-tool-upload-page, .image-conversion-page, .document-analysis-page, .redact-page) .tool-guide-content {
     width: min(100% - 32px, 740px);
   }
 
-  :is(.editor-tool-upload-page, .image-conversion-page, .document-analysis-page, .redact-page, .template-builder-page) .tool-guide-related > div {
+  :is(.editor-tool-upload-page, .image-conversion-page, .document-analysis-page, .redact-page) .tool-guide-related > div {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
@@ -1588,8 +1565,7 @@
 @media (max-width: 640px) {
   .image-conversion-page > .tool-breadcrumbs,
   .document-analysis-page > .tool-breadcrumbs,
-  .redact-page > .tool-breadcrumbs,
-  .template-builder-page > .tool-breadcrumbs {
+  .redact-page > .tool-breadcrumbs {
     width: calc(100% - 28px);
     min-height: 46px;
     overflow-x: auto;
@@ -1598,16 +1574,14 @@
 
   .image-conversion-page > .conversion-hero,
   .analysis-hero,
-  .redact-hero,
-  .template-builder-hero {
+  .redact-hero{
     width: calc(100% - 28px);
     padding: 36px 0 28px;
   }
 
   .conversion-hero h1,
   .analysis-hero h1,
-  .redact-hero h1,
-  .template-builder-hero h1 {
+  .redact-hero h1 {
     font-size: clamp(38px, 11.5vw, 50px);
   }
 
@@ -1618,7 +1592,7 @@
     width: calc(100% - 28px);
   }
 
-  :is(.editor-tool-upload-page, .image-conversion-page, .document-analysis-page, .redact-page, .template-builder-page) .tool-guide-content {
+  :is(.editor-tool-upload-page, .image-conversion-page, .document-analysis-page, .redact-page) .tool-guide-content {
     width: calc(100% - 30px);
   }
 
@@ -1711,12 +1685,12 @@
     flex: 1 1 150px;
   }
 
-  :is(.editor-tool-upload-page, .image-conversion-page, .document-analysis-page, .redact-page, .template-builder-page) .tool-guide-related > div {
+  :is(.editor-tool-upload-page, .image-conversion-page, .document-analysis-page, .redact-page) .tool-guide-related > div {
     grid-template-columns: 1fr;
     gap: 9px;
   }
 
-  :is(.editor-tool-upload-page, .image-conversion-page, .document-analysis-page, .redact-page, .template-builder-page) .tool-guide-related a {
+  :is(.editor-tool-upload-page, .image-conversion-page, .document-analysis-page, .redact-page) .tool-guide-related a {
     min-height: 0;
     grid-template-columns: 40px minmax(0, 1fr) auto;
     align-items: center;
@@ -1724,7 +1698,7 @@
     padding: 15px;
   }
 
-  :is(.editor-tool-upload-page, .image-conversion-page, .document-analysis-page, .redact-page, .template-builder-page) .tool-guide-related a > span {
+  :is(.editor-tool-upload-page, .image-conversion-page, .document-analysis-page, .redact-page) .tool-guide-related a > span {
     grid-column: auto;
   }
 }

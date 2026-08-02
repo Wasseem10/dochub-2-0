@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate reproducible Priority 2 PDF fixtures, DOCX templates, and raster editorial art."""
+"""Generate reproducible Priority 2 PDF fixtures and raster editorial art."""
 
 from __future__ import annotations
 
@@ -12,13 +12,6 @@ import shutil
 from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFilter, ImageFont
-from docx import Document
-from docx.enum.section import WD_SECTION
-from docx.enum.table import WD_CELL_VERTICAL_ALIGNMENT, WD_TABLE_ALIGNMENT
-from docx.enum.text import WD_ALIGN_PARAGRAPH
-from docx.oxml import OxmlElement
-from docx.oxml.ns import qn
-from docx.shared import Inches, Pt, RGBColor
 from pypdf import PdfReader, PdfWriter
 from reportlab.lib.colors import Color, HexColor, black, white
 from reportlab.lib.pagesizes import letter
@@ -32,11 +25,10 @@ TMP = ROOT / "tmp" / "pdfs"
 FIXTURES = RUNTIME / "research" / "fixtures"
 REDACTION = RUNTIME / "research" / "redaction"
 BENCHMARK = RUNTIME / "research" / "benchmark"
-TEMPLATES = RUNTIME / "templates" / "editable"
 SHARE = RUNTIME / "share"
 DEMOS = RUNTIME / "editorial" / "demos"
 
-for folder in [OUTPUT_PDF, TMP, FIXTURES, REDACTION, BENCHMARK, TEMPLATES, SHARE, DEMOS]:
+for folder in [OUTPUT_PDF, TMP, FIXTURES, REDACTION, BENCHMARK, SHARE, DEMOS]:
     folder.mkdir(parents=True, exist_ok=True)
 
 
@@ -169,7 +161,6 @@ RESOURCE_SHARES = {
     "guides-remove-pages-from-pdf": ("Remove PDF pages without deleting the wrong version", "Page guide", "Reviewed July 29, 2026"),
     "guides-rotate-pdf-and-save": ("Rotate PDF pages and save the orientation permanently", "Page guide", "Reviewed July 29, 2026"),
     "research-pdf-email-attachment-size-study": ("What a PDF attachment weighs after email encoding", "Open data study", "Published July 29, 2026"),
-    "templates": ("Free editable DOCX templates with completion guidance", "Template library"),
     "workflows-education-pdf-workflow": ("A reviewable PDF workflow for educators", "Workflow playbook"),
     "workflows-recruiting-pdf-workflow": ("Private, consistent candidate PDF packets", "Workflow playbook"),
     "workflows-legal-operations-pdf-workflow": ("Version, comparison, and redaction controls for legal operations", "Workflow playbook"),
@@ -389,318 +380,6 @@ def copy_pdf_artifact(source: Path, group: str) -> None:
     shutil.copy2(source, target / source.name)
 
 
-BLUE = RGBColor(0x28, 0x51, 0xEB)
-INK = RGBColor(0x12, 0x21, 0x3A)
-MUTED = RGBColor(0x5D, 0x6C, 0x84)
-LIGHT_FILL = "EEF4FF"
-
-
-def set_repeat_table_header(row) -> None:
-    tr_pr = row._tr.get_or_add_trPr()
-    element = OxmlElement("w:tblHeader")
-    element.set(qn("w:val"), "true")
-    tr_pr.append(element)
-
-
-def set_cell_shading(cell, fill: str) -> None:
-    tc_pr = cell._tc.get_or_add_tcPr()
-    shading = tc_pr.find(qn("w:shd"))
-    if shading is None:
-        shading = OxmlElement("w:shd")
-        tc_pr.append(shading)
-    shading.set(qn("w:fill"), fill)
-
-
-def set_cell_margins(cell, top=80, start=120, bottom=80, end=120) -> None:
-    tc = cell._tc
-    tc_pr = tc.get_or_add_tcPr()
-    tc_mar = tc_pr.first_child_found_in("w:tcMar")
-    if tc_mar is None:
-        tc_mar = OxmlElement("w:tcMar")
-        tc_pr.append(tc_mar)
-    for edge, value in (("top", top), ("start", start), ("bottom", bottom), ("end", end)):
-        node = tc_mar.find(qn(f"w:{edge}"))
-        if node is None:
-            node = OxmlElement(f"w:{edge}")
-            tc_mar.append(node)
-        node.set(qn("w:w"), str(value))
-        node.set(qn("w:type"), "dxa")
-
-
-def set_table_geometry(table, widths: list[int], indent=120) -> None:
-    total = sum(widths)
-    table.alignment = WD_TABLE_ALIGNMENT.LEFT
-    table.autofit = False
-    tbl_pr = table._tbl.tblPr
-    tbl_w = tbl_pr.find(qn("w:tblW"))
-    if tbl_w is None:
-        tbl_w = OxmlElement("w:tblW")
-        tbl_pr.append(tbl_w)
-    tbl_w.set(qn("w:w"), str(total))
-    tbl_w.set(qn("w:type"), "dxa")
-    tbl_ind = tbl_pr.find(qn("w:tblInd"))
-    if tbl_ind is None:
-        tbl_ind = OxmlElement("w:tblInd")
-        tbl_pr.append(tbl_ind)
-    tbl_ind.set(qn("w:w"), str(indent))
-    tbl_ind.set(qn("w:type"), "dxa")
-    grid = table._tbl.tblGrid
-    for child in list(grid):
-        grid.remove(child)
-    for width in widths:
-        col = OxmlElement("w:gridCol")
-        col.set(qn("w:w"), str(width))
-        grid.append(col)
-    for row in table.rows:
-        for index, cell in enumerate(row.cells):
-            width = widths[min(index, len(widths) - 1)]
-            cell.width = Inches(width / 1440)
-            tc_pr = cell._tc.get_or_add_tcPr()
-            tc_w = tc_pr.find(qn("w:tcW"))
-            if tc_w is None:
-                tc_w = OxmlElement("w:tcW")
-                tc_pr.append(tc_w)
-            tc_w.set(qn("w:w"), str(width))
-            tc_w.set(qn("w:type"), "dxa")
-            cell.vertical_alignment = WD_CELL_VERTICAL_ALIGNMENT.CENTER
-            set_cell_margins(cell)
-
-
-def apply_doc_styles(doc: Document, title: str, subtitle: str) -> None:
-    section = doc.sections[0]
-    section.page_width = Inches(8.5)
-    section.page_height = Inches(11)
-    section.top_margin = Inches(0.8)
-    section.right_margin = Inches(1)
-    section.bottom_margin = Inches(0.8)
-    section.left_margin = Inches(1)
-    section.header_distance = Inches(0.492)
-    section.footer_distance = Inches(0.492)
-    normal = doc.styles["Normal"]
-    normal.font.name = "Calibri"
-    normal.font.size = Pt(11)
-    normal.font.color.rgb = INK
-    normal.paragraph_format.space_after = Pt(6)
-    normal.paragraph_format.line_spacing = 1.25
-    normal.paragraph_format.left_indent = Inches(0)
-    normal.paragraph_format.right_indent = Inches(0)
-    normal.paragraph_format.first_line_indent = Inches(0)
-    for style_name, size, color, before, after in [
-        ("Heading 1", 16, BLUE, 18, 10),
-        ("Heading 2", 13, BLUE, 14, 7),
-        ("Heading 3", 12, INK, 10, 5),
-    ]:
-        style = doc.styles[style_name]
-        style.font.name = "Calibri"
-        style.font.size = Pt(size)
-        style.font.color.rgb = color
-        style.font.bold = style_name != "Title"
-        style.paragraph_format.space_before = Pt(before)
-        style.paragraph_format.space_after = Pt(after)
-        style.paragraph_format.keep_with_next = True
-        style.paragraph_format.left_indent = Inches(0)
-        style.paragraph_format.right_indent = Inches(0)
-        style.paragraph_format.first_line_indent = Inches(0)
-    header = section.header
-    hp = header.paragraphs[0]
-    hp.alignment = WD_ALIGN_PARAGRAPH.RIGHT
-    run = hp.add_run("PDFENRICH  |  EDITABLE TEMPLATE")
-    run.font.name = "Calibri"
-    run.font.size = Pt(8)
-    run.font.bold = True
-    run.font.color.rgb = MUTED
-    footer = section.footer
-    fp = footer.paragraphs[0]
-    fp.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    run = fp.add_run("Edit every bracketed prompt before use. Verify the final PDF after export.")
-    run.font.name = "Calibri"
-    run.font.size = Pt(8)
-    run.font.color.rgb = MUTED
-    p = doc.add_paragraph()
-    p.paragraph_format.space_before = Pt(0)
-    p.paragraph_format.space_after = Pt(6)
-    p.paragraph_format.keep_with_next = True
-    title_run = p.add_run(title)
-    title_run.font.name = "Calibri"
-    title_run.font.size = Pt(26)
-    title_run.font.color.rgb = INK
-    sub = doc.add_paragraph()
-    sub.paragraph_format.space_after = Pt(16)
-    r = sub.add_run(subtitle)
-    r.font.name = "Calibri"
-    r.font.size = Pt(11)
-    r.font.color.rgb = MUTED
-    r.font.italic = True
-
-
-def add_note(doc: Document, label: str, text: str) -> None:
-    p = doc.add_paragraph()
-    p.paragraph_format.space_after = Pt(0)
-    properties = p._p.get_or_add_pPr()
-    shading = OxmlElement("w:shd")
-    shading.set(qn("w:fill"), LIGHT_FILL)
-    properties.append(shading)
-    r = p.add_run(f"{label}: ")
-    r.bold = True
-    r.font.color.rgb = BLUE
-    p.add_run(text)
-
-
-def add_field_table(doc: Document, rows: list[tuple[str, str]], widths=(2600, 6760)) -> None:
-    table = doc.add_table(rows=1, cols=2)
-    header_cells = table.rows[0].cells
-    for index, header in enumerate(("Field", "Details")):
-        header_cells[index].text = header
-        set_cell_shading(header_cells[index], "DDE7FB")
-        header_paragraph = header_cells[index].paragraphs[0]
-        header_paragraph.paragraph_format.space_after = Pt(0)
-        for run in header_paragraph.runs:
-            run.bold = True
-            run.font.color.rgb = BLUE
-            run.font.size = Pt(8)
-    set_repeat_table_header(table.rows[0])
-    for label, value in rows:
-        cells = table.add_row().cells
-        cells[0].text = label
-        cells[1].text = value
-        set_cell_shading(cells[0], "F2F5FA")
-        for run in cells[0].paragraphs[0].runs:
-            run.bold = True
-            run.font.color.rgb = INK
-        for paragraph in cells[0].paragraphs + cells[1].paragraphs:
-            paragraph.paragraph_format.space_after = Pt(0)
-    set_table_geometry(table, list(widths))
-
-
-def add_section_heading(doc: Document, title: str, *, page_break_before: bool = False) -> None:
-    paragraph = doc.add_paragraph(title, style="Heading 1")
-    paragraph.paragraph_format.page_break_before = page_break_before
-
-
-def add_checklist_table(doc: Document, headers: list[str], rows: list[list[str]], widths: list[int]) -> None:
-    table = doc.add_table(rows=1, cols=len(headers))
-    for index, header in enumerate(headers):
-        cell = table.rows[0].cells[index]
-        cell.text = header
-        set_cell_shading(cell, "2851EB")
-        for run in cell.paragraphs[0].runs:
-            run.bold = True
-            run.font.color.rgb = RGBColor(0xFF, 0xFF, 0xFF)
-        cell.paragraphs[0].paragraph_format.space_after = Pt(0)
-    set_repeat_table_header(table.rows[0])
-    for row_index, values in enumerate(rows):
-        cells = table.add_row().cells
-        for index, value in enumerate(values):
-            cells[index].text = value
-            if row_index % 2 == 0:
-                set_cell_shading(cells[index], "F7F9FC")
-            cells[index].paragraphs[0].paragraph_format.space_after = Pt(0)
-    set_table_geometry(table, widths)
-
-
-def save_doc(doc: Document, filename: str) -> None:
-    props = doc.core_properties
-    props.title = filename.replace("-", " ").replace(".docx", "").title()
-    props.author = "PDFEnrich Product Engineering"
-    props.subject = "Free editable document template"
-    props.keywords = "PDFEnrich, editable template"
-    props.comments = "Created July 21, 2026"
-    path = TEMPLATES / filename
-    doc.save(path)
-
-
-def build_invoice() -> None:
-    doc = Document()
-    apply_doc_styles(doc, "Small-business invoice", "Editable master for services or products. Replace every bracketed prompt.")
-    add_note(doc, "Before sending", "Confirm the customer, invoice number, dates, tax treatment, totals, payment method, and legal business details.")
-    add_section_heading(doc, "Business and customer")
-    add_field_table(doc, [("From", "[Legal business name]\n[Address]\n[Email and phone]"), ("Bill to", "[Customer name]\n[Customer address]\n[Customer email]"), ("Invoice", "Number: [INV-0001]\nIssue date: [Month DD, YYYY]\nDue date: [Month DD, YYYY]")])
-    add_section_heading(doc, "Line items")
-    add_checklist_table(doc, ["Description", "Qty", "Rate", "Amount"], [["[Service or item 1]", "[1]", "[$0.00]", "[$0.00]"], ["[Service or item 2]", "[1]", "[$0.00]", "[$0.00]"], ["[Additional item]", "[ ]", "[ ]", "[ ]"]], [4920, 900, 1500, 2040])
-    add_field_table(doc, [("Subtotal", "[$0.00]"), ("Tax or adjustment", "[$0.00 or N/A]"), ("Total due", "[$0.00]")], widths=(6760, 2600))
-    add_section_heading(doc, "Payment and notes", page_break_before=True)
-    add_field_table(doc, [("Payment method", "[Instructions that do not expose sensitive credentials]"), ("Terms", "[Late fee, deposit, refund, or purchase-order terms if applicable]"), ("Notes", "[Thank-you note, project reference, or delivery details]")])
-    add_section_heading(doc, "Release checklist")
-    add_checklist_table(doc, ["Done", "Check before sending"], [["[ ]", "Customer legal name and delivery address are correct"], ["[ ]", "Line-item math, subtotal, tax, credits, and total were recalculated"], ["[ ]", "Invoice number, issue date, due date, and purchase-order reference match"], ["[ ]", "Payment instructions use an approved method and expose no credentials"], ["[ ]", "The exported PDF was reopened and all pages are readable"], ["[ ]", "The filename identifies the customer, invoice, and date without sensitive data"]], [1200, 8160])
-    save_doc(doc, "small-business-invoice.docx")
-
-
-def build_candidate_scorecard() -> None:
-    doc = Document()
-    apply_doc_styles(doc, "Candidate evaluation scorecard", "Evidence-based interview notes with consistent criteria and a documented recommendation.")
-    add_note(doc, "Use responsibly", "Record job-related evidence only. Follow applicable hiring policy and law; do not record protected characteristics or assumptions.")
-    add_section_heading(doc, "Interview record")
-    add_field_table(doc, [("Role", "[Role title and requisition ID]"), ("Candidate ID", "[Internal candidate ID - avoid unnecessary personal data]"), ("Interview", "[Stage, date, interviewer]"), ("Decision owner", "[Name or role]")])
-    add_section_heading(doc, "Consistent criteria")
-    add_checklist_table(doc, ["Criterion", "Evidence observed", "Score 1-5"], [["Relevant problem solving", "[Specific example and outcome]", "[ ]"], ["Role-specific knowledge", "[Specific answer or work sample]", "[ ]"], ["Communication", "[Clarity, listening, and audience adaptation]", "[ ]"], ["Execution and ownership", "[Planning, follow-through, and learning]", "[ ]"], ["Team contribution", "[Job-related collaboration evidence]", "[ ]"]], [2300, 5360, 1700])
-    add_section_heading(doc, "Recommendation", page_break_before=True)
-    add_field_table(doc, [("Recommendation", "[Strong yes / Yes / Mixed / No]"), ("Key evidence", "[Two or three job-related facts that support the recommendation]"), ("Risks or follow-up", "[Questions requiring another structured check]"), ("Calibration note", "[How this evidence compares with the written rubric]")])
-    add_section_heading(doc, "Decision-quality check")
-    add_checklist_table(doc, ["Done", "Review question"], [["[ ]", "Did every score cite job-related evidence?"], ["[ ]", "Were all candidates evaluated against the same written criteria?"], ["[ ]", "Were protected characteristics and unsupported assumptions excluded?"], ["[ ]", "Does the recommendation follow the evidence rather than first impression?"], ["[ ]", "Is another structured check needed before a final decision?"]], [1200, 8160])
-    save_doc(doc, "candidate-evaluation-scorecard.docx")
-
-
-def build_property_inspection() -> None:
-    doc = Document()
-    apply_doc_styles(doc, "Property inspection checklist", "Room-by-room findings, photo references, priorities, and sign-off.")
-    add_note(doc, "Scope", "This operational checklist is not an engineering, environmental, code, appraisal, or licensed professional inspection.")
-    add_section_heading(doc, "Property record")
-    add_field_table(doc, [("Property", "[Address or internal property ID]"), ("Inspection", "[Date, time, weather, inspector]"), ("Participants", "[Names or roles]"), ("Photo folder", "[Controlled folder or case reference]")])
-    for heading, items in [("Exterior and access", ["Roofline and drainage", "Walls, windows, and doors", "Walkways, rails, and access", "Utilities visible from exterior"]), ("Interior rooms", ["Walls, ceiling, and floor", "Doors and windows", "Lighting and outlets", "Fixtures and visible leaks"]), ("Safety and closeout", ["Smoke and CO alarms", "Trip or fall hazards", "Keys and access devices", "Final meter or condition photos"])]:
-        if heading == "Interior rooms":
-            add_section_heading(doc, heading, page_break_before=True)
-        else:
-            add_section_heading(doc, heading)
-        add_checklist_table(doc, ["Item", "Condition / finding", "Priority", "Photo"], [[item, "[Finding or OK]", "[Now / Soon / Monitor]", "[#]"] for item in items], [2600, 4100, 1660, 1000])
-    add_section_heading(doc, "Sign-off")
-    add_field_table(doc, [("Immediate actions", "[Owner, action, due date]"), ("Follow-up review", "[Date and responsible person]"), ("Prepared by", "[Name, role, signature/date if required]"), ("Acknowledged by", "[Name, role, signature/date if required]")])
-    save_doc(doc, "property-inspection-checklist.docx")
-
-
-def build_nda() -> None:
-    doc = Document()
-    apply_doc_styles(doc, "Mutual NDA starter", "Editable discussion draft. Obtain qualified legal review before relying on it.")
-    add_note(doc, "Not legal advice", "This template is a starting point only. Governing law, exclusions, compelled disclosure, duration, remedies, and industry obligations require qualified review.")
-    add_section_heading(doc, "Parties and purpose")
-    add_field_table(doc, [("Effective date", "[Month DD, YYYY]"), ("Party A", "[Full legal name, entity type, address]"), ("Party B", "[Full legal name, entity type, address]"), ("Purpose", "[Specific business discussion or evaluation]")])
-    clauses = [
-        ("1. Confidential information", "Confidential Information means non-public information disclosed for the Purpose that is marked confidential or should reasonably be understood as confidential given its nature and the circumstances of disclosure."),
-        ("2. Exclusions", "Confidential Information does not include information the receiving party can document was lawfully known without restriction, independently developed without use of the disclosure, lawfully received from a third party, or made public without breach."),
-        ("3. Use and protection", "Each party will use Confidential Information only for the Purpose, limit access to people who need it and are bound by appropriate duties, and use reasonable care to protect it."),
-        ("4. Required disclosure", "A receiving party may disclose information when legally required after giving prompt notice when lawful and reasonably cooperating with protective efforts."),
-        ("5. Return or destruction", "Upon written request, the receiving party will return or destroy Confidential Information, subject to lawful backup, legal, and record-retention exceptions reviewed by counsel."),
-        ("6. Term", "This agreement begins on the Effective Date. Disclosure period: [period]. Confidentiality obligations: [period or treatment of trade secrets]."),
-        ("7. No license or warranty", "No intellectual-property license is granted except the limited right to evaluate information for the Purpose. Information is provided [as reviewed by counsel]."),
-        ("8. General", "Governing law and venue: [jurisdiction]. Entire agreement, amendment, assignment, notices, severability, waiver, and counterparts: [review and complete]."),
-    ]
-    for heading, body in clauses:
-        heading_paragraph = doc.add_paragraph(heading, style="Heading 2")
-        heading_paragraph.paragraph_format.page_break_before = heading.startswith("5.")
-        doc.add_paragraph(body)
-    add_section_heading(doc, "Signatures")
-    add_checklist_table(doc, ["Party A", "Party B"], [["By: [Name]\nTitle: [Title]\nSignature: ____________________\nDate: [Date]", "By: [Name]\nTitle: [Title]\nSignature: ____________________\nDate: [Date]"]], [4680, 4680])
-    save_doc(doc, "mutual-nda-starter.docx")
-
-
-def build_education_request() -> None:
-    doc = Document()
-    apply_doc_styles(doc, "Education support request", "A clear written request with facts, requested action, supporting material, and follow-up.")
-    add_note(doc, "Privacy", "Include only information necessary for the request. Follow school policy for sensitive student, disability, or health information and use an approved delivery channel.")
-    add_section_heading(doc, "Request details")
-    add_field_table(doc, [("Date", "[Month DD, YYYY]"), ("To", "[School, department, or responsible person]"), ("From", "[Requester name and authorized relationship]"), ("Student or case ID", "[Use the minimum identifier required]"), ("Subject", "[Short description of the requested support]")])
-    add_section_heading(doc, "Request")
-    doc.add_paragraph("I am requesting [specific action, meeting, review, record, support, or accommodation] by [reasonable date or timeframe].")
-    doc.add_paragraph("Relevant facts: [Brief, objective chronology. Include dates and prior steps without unnecessary personal details.]")
-    doc.add_paragraph("Requested outcome: [State what response or next action would resolve the request.]")
-    add_section_heading(doc, "Supporting material")
-    add_checklist_table(doc, ["Attached", "Document", "Why it is relevant"], [["[ ]", "[Record, form, evaluation, or prior correspondence]", "[One sentence]"], ["[ ]", "[Additional item]", "[One sentence]"]], [1200, 3860, 4300])
-    add_section_heading(doc, "Communication and follow-up", page_break_before=True)
-    add_field_table(doc, [("Preferred reply", "[Approved email, phone, portal, or meeting]"), ("Availability", "[Dates and times]"), ("Follow-up date", "[Date to check status if no response]"), ("Signature", "[Name, authorized role, date]")])
-    add_section_heading(doc, "Before delivery")
-    add_checklist_table(doc, ["Done", "Verification"], [["[ ]", "Every bracketed prompt was replaced or removed"], ["[ ]", "Only necessary sensitive information is included"], ["[ ]", "Attachments are named and referenced in the request"], ["[ ]", "The recipient and approved delivery channel were confirmed"], ["[ ]", "A follow-up date and copy of the final request are recorded"]], [1200, 8160])
-    save_doc(doc, "education-support-request.docx")
-
-
 def main() -> None:
     for record in EVIDENCE:
         make_share_card(record["toolId"], title_from_slug(record["toolId"]), "Working PDF tool")
@@ -763,12 +442,7 @@ def main() -> None:
     for artifact in [redaction_before, redaction_after]:
         copy_pdf_artifact(artifact, "redaction-guide")
 
-    build_invoice()
-    build_candidate_scorecard()
-    build_property_inspection()
-    build_nda()
-    build_education_request()
-    print(f"Generated {len(EVIDENCE)} tool demonstrations, {len(EVIDENCE) + len(RESOURCE_SHARES)} share cards, 9 PDF artifacts, and 5 DOCX templates.")
+    print(f"Generated {len(EVIDENCE)} tool demonstrations, {len(EVIDENCE) + len(RESOURCE_SHARES)} share cards, and 9 PDF artifacts.")
 
 
 if __name__ == "__main__":
