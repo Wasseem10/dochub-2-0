@@ -1,5 +1,6 @@
 import { strFromU8, unzipSync } from "fflate";
-import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
+import { PDFDocument, rgb } from "pdf-lib";
+import { embedPdfTextFonts, normalizeWinAnsiPdfText, textForPdfFont } from "./pdfTextFonts.js";
 
 export const TO_PDF_LIMITS = Object.freeze({
   maxInputBytes: 20 * 1024 * 1024,
@@ -139,19 +140,12 @@ export function parseXlsxWorkbook(input) {
   return { sheets, truncated: allSheetMatches.length > TO_PDF_LIMITS.maxSheets };
 }
 
-function pdfText(value) {
-  return String(value ?? "")
-    .replace(/[‘’]/g, "'")
-    .replace(/[“”]/g, '"')
-    .replace(/[–—]/g, "-")
-    .replace(/…/g, "...")
-    .normalize("NFKD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^\x20-\x7E\n]/g, "?");
+function pdfText(value, normalizeText = normalizeWinAnsiPdfText) {
+  return normalizeText(value);
 }
 
-function fitText(value, width, font, size) {
-  const text = pdfText(value).replace(/\s+/g, " ").trim();
+function fitText(value, width, font, size, normalizeText = normalizeWinAnsiPdfText) {
+  const text = pdfText(value, normalizeText).replace(/\s+/g, " ").trim();
   if (!text || font.widthOfTextAtSize(text, size) <= width) return text;
   let low = 0;
   let high = text.length;
@@ -163,11 +157,11 @@ function fitText(value, width, font, size) {
   return `${text.slice(0, Math.max(0, low))}...`;
 }
 
-export async function createPdfFromWorkbook(workbook, { title = "Spreadsheet" } = {}) {
+export async function createPdfFromWorkbook(workbook, { title = "Spreadsheet", regularFontBytes, boldFontBytes } = {}) {
   if (!workbook?.sheets?.length) throw new Error("No spreadsheet sheets were available for conversion.");
   const pdf = await PDFDocument.create();
-  const regular = await pdf.embedFont(StandardFonts.Helvetica);
-  const bold = await pdf.embedFont(StandardFonts.HelveticaBold);
+  const { regular, bold, unicode } = await embedPdfTextFonts(pdf, { regularFontBytes, boldFontBytes });
+  const normalizeText = (value) => textForPdfFont(regular, value, unicode);
   const pageWidth = 842;
   const pageHeight = 595;
   const margin = 36;
@@ -192,8 +186,8 @@ export async function createPdfFromWorkbook(workbook, { title = "Spreadsheet" } 
     groups.forEach((group, groupIndex) => {
       for (let rowStart = 0; rowStart < sourceRows.length; rowStart += rowsPerPage) {
         const page = pdf.addPage([pageWidth, pageHeight]);
-        page.drawText(pdfText(sheet.name), { x: margin, y: pageHeight - 34, size: 17, font: bold, color: rgb(0.08, 0.13, 0.25) });
-        page.drawText(`Columns ${group.start + 1}-${group.end}${groups.length > 1 ? ` · section ${groupIndex + 1} of ${groups.length}` : ""}`, { x: margin, y: pageHeight - 51, size: 8, font: regular, color: rgb(0.38, 0.44, 0.55) });
+        page.drawText(textForPdfFont(bold, sheet.name, unicode), { x: margin, y: pageHeight - 34, size: 17, font: bold, color: rgb(0.08, 0.13, 0.25) });
+        page.drawText(normalizeText(`Columns ${group.start + 1}-${group.end}${groups.length > 1 ? ` · section ${groupIndex + 1} of ${groups.length}` : ""}`), { x: margin, y: pageHeight - 51, size: 8, font: regular, color: rgb(0.38, 0.44, 0.55) });
         let y = pageHeight - 76;
         const scale = Math.min(1, tableWidth / Math.max(1, group.total));
         const visibleWidths = widths.slice(group.start, group.end).map((width) => width * scale);
@@ -205,16 +199,16 @@ export async function createPdfFromWorkbook(workbook, { title = "Spreadsheet" } 
           visibleWidths.forEach((width, visibleColumn) => {
             page.drawRectangle({ x, y: y - 4, width, height: rowHeight, borderWidth: 0.5, borderColor: rgb(0.75, 0.79, 0.86) });
             const font = rowStart === 0 && rowOffset === 0 ? bold : regular;
-            page.drawText(fitText(row[group.start + visibleColumn] ?? "", width - 8, font, 8.5), { x: x + 4, y: y + 3, size: 8.5, font, color: rgb(0.08, 0.12, 0.2) });
+            page.drawText(fitText(row[group.start + visibleColumn] ?? "", width - 8, font, 8.5, normalizeText), { x: x + 4, y: y + 3, size: 8.5, font, color: rgb(0.08, 0.12, 0.2) });
             x += width;
           });
           y -= rowHeight;
         });
-        page.drawText(`PDFEnrich · ${title}`, { x: margin, y: 18, size: 7.5, font: regular, color: rgb(0.48, 0.53, 0.62) });
+        page.drawText(normalizeText(`PDFEnrich · ${title}`), { x: margin, y: 18, size: 7.5, font: regular, color: rgb(0.48, 0.53, 0.62) });
       }
     });
   });
-  pdf.setTitle(pdfText(title));
+  pdf.setTitle(String(title || "Spreadsheet"));
   pdf.setCreator("PDFEnrich");
   pdf.setProducer("PDFEnrich browser spreadsheet conversion");
   return pdf.save();
@@ -280,11 +274,10 @@ export function parsePptxPresentation(input) {
   return { width, height, slides };
 }
 
-export async function createPdfFromPresentation(presentation, { title = "Presentation" } = {}) {
+export async function createPdfFromPresentation(presentation, { title = "Presentation", regularFontBytes, boldFontBytes } = {}) {
   if (!presentation?.slides?.length) throw new Error("No presentation slides were available for conversion.");
   const pdf = await PDFDocument.create();
-  const regular = await pdf.embedFont(StandardFonts.Helvetica);
-  const bold = await pdf.embedFont(StandardFonts.HelveticaBold);
+  const { regular, bold, unicode } = await embedPdfTextFonts(pdf, { regularFontBytes, boldFontBytes });
   const ratio = presentation.width / Math.max(1, presentation.height);
   const pageWidth = ratio >= 1 ? 720 : Math.max(420, 720 * ratio);
   const pageHeight = pageWidth / ratio;
@@ -320,12 +313,12 @@ export async function createPdfFromPresentation(presentation, { title = "Present
       let textY = y + height - size - 4;
       for (const line of lines) {
         if (textY < y + 2) break;
-        page.drawText(fitText(line, Math.max(1, width - 8), font, size), { x: x + 4, y: textY, size, font, color: rgbFromHex(element.color, rgb(0.09, 0.13, 0.2)) });
+        page.drawText(fitText(line, Math.max(1, width - 8), font, size, (value) => textForPdfFont(font, value, unicode)), { x: x + 4, y: textY, size, font, color: rgbFromHex(element.color, rgb(0.09, 0.13, 0.2)) });
         textY -= size * 1.22;
       }
     }
   }
-  pdf.setTitle(pdfText(title));
+  pdf.setTitle(String(title || "Presentation"));
   pdf.setCreator("PDFEnrich");
   pdf.setProducer("PDFEnrich browser presentation conversion");
   return pdf.save();

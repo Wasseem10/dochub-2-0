@@ -1,4 +1,5 @@
-import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
+import { PDFDocument, rgb } from "pdf-lib";
+import { embedPdfTextFonts, normalizeWinAnsiPdfText, textForPdfFont } from "./pdfTextFonts.js";
 
 export const TEXT_CONVERSION_LIMITS = Object.freeze({
   maxBytes: 10 * 1024 * 1024,
@@ -45,20 +46,8 @@ export async function extractPlainTextFromPdf(pdfDocument) {
   return text;
 }
 
-function toPdfSafeText(text) {
-  const normalized = String(text || "")
-    .replace(/[\u2018\u2019]/g, "'")
-    .replace(/[\u201C\u201D]/g, '"')
-    .replace(/[\u2013\u2014]/g, "-")
-    .replace(/\u2026/g, "...");
-  return Array.from(normalized, (character) => {
-    const code = character.charCodeAt(0);
-    return code === 9 || code === 10 || code === 13 || (code >= 32 && code <= 126) || (code >= 160 && code <= 255) ? character : "?";
-  }).join("");
-}
-
-export function wrapPlainText(text, font, fontSize, maxWidth) {
-  const paragraphs = toPdfSafeText(text).replace(/\r\n?/g, "\n").split("\n");
+export function wrapPlainText(text, font, fontSize, maxWidth, normalizeText = normalizeWinAnsiPdfText) {
+  const paragraphs = normalizeText(text).replace(/\r\n?/g, "\n").split("\n");
   const lines = [];
   for (const paragraph of paragraphs) {
     if (!paragraph) {
@@ -95,18 +84,18 @@ export function wrapPlainText(text, font, fontSize, maxWidth) {
   return lines;
 }
 
-export async function createPdfFromPlainText(text, { title = "Text document", fontSize = 11, pageSize = "letter" } = {}) {
+export async function createPdfFromPlainText(text, { title = "Text document", fontSize = 11, pageSize = "letter", regularFontBytes, boldFontBytes } = {}) {
   const cleanText = String(text || "");
   if (!cleanText.trim()) throw new Error("This text file is empty.");
   if (cleanText.length > TEXT_CONVERSION_LIMITS.maxTextCharacters) throw new Error("This TXT file contains too much text for safe browser conversion.");
   const pdf = await PDFDocument.create();
   pdf.setTitle(String(title || "Text document").slice(0, 120));
   pdf.setCreator("PDFEnrich");
-  const font = await pdf.embedFont(StandardFonts.Helvetica);
+  const { regular: font, unicode } = await embedPdfTextFonts(pdf, { regularFontBytes, boldFontBytes });
   const dimensions = pageSize === "a4" ? [595.28, 841.89] : [612, 792];
   const margin = 54;
   const lineHeight = fontSize * 1.45;
-  const lines = wrapPlainText(cleanText, font, fontSize, dimensions[0] - margin * 2);
+  const lines = wrapPlainText(cleanText, font, fontSize, dimensions[0] - margin * 2, (value) => textForPdfFont(font, value, unicode));
   const linesPerPage = Math.max(1, Math.floor((dimensions[1] - margin * 2) / lineHeight));
   for (let offset = 0; offset < lines.length; offset += linesPerPage) {
     const page = pdf.addPage(dimensions);

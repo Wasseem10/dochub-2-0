@@ -19,8 +19,8 @@ import { WorkflowErrorState } from "../../components/public/WorkflowErrorState.j
 import { ROUTE_PATHS } from "../../router/routePaths.js";
 import { toolSeoSchemas } from "../../tools/toolSeoSchemas.js";
 import { createPdfFromImages } from "../../tools/imageConversion.js";
-import { createSearchablePdfFromOcrPages, flattenOcrWords } from "../../tools/ocrPdf.js";
-import { moveScanPage, nextScanRotation, SCAN_PDF_LIMITS, validateScanFiles } from "../../tools/scanPdf.js";
+import { createSearchablePdfFromOcrPages, enhanceOcrImageData, flattenOcrWords } from "../../tools/ocrPdf.js";
+import { detectDocumentBounds, moveScanPage, nextScanRotation, SCAN_PDF_LIMITS, validateScanFiles } from "../../tools/scanPdf.js";
 
 function canvasToBytes(canvas, mimeType = "image/jpeg", quality = 0.92) {
   return new Promise((resolve, reject) => canvas.toBlob(async (blob) => {
@@ -42,21 +42,35 @@ async function loadImage(source) {
   }
 }
 
-async function renderPage(record, cleanup) {
+async function renderPage(record, { cleanupMode = "auto", autoCrop = true } = {}) {
   const { image, width, height } = await loadImage(record.file);
   const swaps = record.rotation % 180 !== 0;
+  const sourceCanvas = document.createElement("canvas");
+  sourceCanvas.width = swaps ? height : width;
+  sourceCanvas.height = swaps ? width : height;
+  const sourceContext = sourceCanvas.getContext("2d", { alpha: false });
+  sourceContext.fillStyle = "#fff";
+  sourceContext.fillRect(0, 0, sourceCanvas.width, sourceCanvas.height);
+  sourceContext.save();
+  sourceContext.translate(sourceCanvas.width / 2, sourceCanvas.height / 2);
+  sourceContext.rotate(record.rotation * Math.PI / 180);
+  sourceContext.drawImage(image, -width / 2, -height / 2, width, height);
+  sourceContext.restore();
+
+  const bounds = autoCrop ? detectDocumentBounds(sourceContext.getImageData(0, 0, sourceCanvas.width, sourceCanvas.height)) : null;
   const canvas = document.createElement("canvas");
-  canvas.width = swaps ? height : width;
-  canvas.height = swaps ? width : height;
+  canvas.width = bounds?.width || sourceCanvas.width;
+  canvas.height = bounds?.height || sourceCanvas.height;
   const context = canvas.getContext("2d", { alpha: false });
   context.fillStyle = "#fff";
   context.fillRect(0, 0, canvas.width, canvas.height);
-  context.save();
-  context.translate(canvas.width / 2, canvas.height / 2);
-  context.rotate(record.rotation * Math.PI / 180);
-  if (cleanup) context.filter = "grayscale(1) contrast(1.14)";
-  context.drawImage(image, -width / 2, -height / 2, width, height);
-  context.restore();
+  context.drawImage(sourceCanvas, bounds?.x || 0, bounds?.y || 0, bounds?.width || sourceCanvas.width, bounds?.height || sourceCanvas.height, 0, 0, canvas.width, canvas.height);
+  if (cleanupMode !== "original") {
+    const enhanced = enhanceOcrImageData(context.getImageData(0, 0, canvas.width, canvas.height), cleanupMode);
+    const cleaned = context.createImageData(enhanced.width, enhanced.height);
+    cleaned.data.set(enhanced.data);
+    context.putImageData(cleaned, 0, 0);
+  }
   return canvas;
 }
 
@@ -77,7 +91,8 @@ export function ScanPdfPage({ tool }) {
   const isCamera = tool.id === "pdf-scanner";
   const isSearchable = tool.id === "image-to-searchable-pdf";
   const [pages, setPages] = useState([]);
-  const [cleanup, setCleanup] = useState(true);
+  const [cleanupMode, setCleanupMode] = useState("auto");
+  const [autoCrop, setAutoCrop] = useState(true);
   const [cameraOn, setCameraOn] = useState(false);
   const [status, setStatus] = useState("idle");
   const [progress, setProgress] = useState(0);
@@ -168,7 +183,7 @@ export function ScanPdfPage({ tool }) {
         } });
         for (let index = 0; index < pages.length; index += 1) {
           activePage = index;
-          const canvas = await renderPage(pages[index], cleanup);
+          const canvas = await renderPage(pages[index], { cleanupMode, autoCrop });
           const recognition = await worker.recognize(canvas, { rotateAuto: false }, { text: true, blocks: true });
           rendered.push({ imageBytes: await canvasToBytes(canvas, "image/png"), imageWidth: canvas.width, imageHeight: canvas.height, words: flattenOcrWords(recognition.data), text: recognition.data.text || "" });
         }
@@ -177,7 +192,7 @@ export function ScanPdfPage({ tool }) {
         downloadPdf(output, "searchable-scan.pdf", tool.id);
       } else {
         for (let index = 0; index < pages.length; index += 1) {
-          const canvas = await renderPage(pages[index], cleanup);
+          const canvas = await renderPage(pages[index], { cleanupMode, autoCrop });
           rendered.push({ bytes: await canvasToBytes(canvas), mimeType: "image/jpeg", width: canvas.width, height: canvas.height });
           setProgress(Math.round((index + 1) / pages.length * 85));
         }
@@ -205,7 +220,7 @@ export function ScanPdfPage({ tool }) {
       <div className="conversion-dropzone" onDragOver={(event) => event.preventDefault()} onDrop={(event) => { event.preventDefault(); addFiles(event.dataTransfer.files); }}><input ref={inputRef} type="file" multiple accept="image/jpeg,image/png,.jpg,.jpeg,.png" onChange={(event) => { addFiles(event.target.files); event.target.value = ""; }} /><span><Upload size={27} /></span><h2>Add scanned page images</h2><p>Up to {SCAN_PDF_LIMITS.maxImages} JPG or PNG pages, 20 MB each.</p><button type="button" onClick={() => inputRef.current?.click()}>Choose page images</button></div>
       <WorkflowErrorState message={error} onDismiss={() => setError("")} onRetry={pages.length && status === "idle" ? createPdf : undefined} />
       {pages.length > 0 && <ol className="scan-page-list">{pages.map((pageRecord, index) => <li key={pageRecord.id}><img src={pageRecord.preview} alt={`Scan page ${index + 1}`} style={{ transform: `rotate(${pageRecord.rotation}deg)` }} /><div><strong>Page {index + 1}</strong><small>{pageRecord.file.name}</small></div><span><button type="button" aria-label={`Move page ${index + 1} up`} disabled={index === 0} onClick={() => setPages((items) => moveScanPage(items, index, index - 1))}><ArrowUp size={15} /></button><button type="button" aria-label={`Move page ${index + 1} down`} disabled={index === pages.length - 1} onClick={() => setPages((items) => moveScanPage(items, index, index + 1))}><ArrowDown size={15} /></button><button type="button" aria-label={`Rotate page ${index + 1}`} onClick={() => setPages((items) => items.map((item, itemIndex) => itemIndex === index ? { ...item, rotation: nextScanRotation(item.rotation) } : item))}><RotateCw size={15} /></button><button type="button" aria-label={`Remove page ${index + 1}`} onClick={() => removePage(index)}><Trash2 size={15} /></button></span></li>)}</ol>}
-    </section><aside className="conversion-settings-card"><span>{isSearchable ? "OCR output" : "Scan settings"}</span>{isSearchable ? <FileSearch size={25} /> : <Images size={25} />}<h2>{isSearchable ? "Searchable English text" : "Ordered PDF pages"}</h2><label className="protection-authorization"><input type="checkbox" checked={cleanup} onChange={(event) => setCleanup(event.target.checked)} /><span>Apply grayscale and contrast cleanup to every page.</span></label><div className="conversion-summary"><Check size={18} /><span>{pages.length ? `${pages.length} page${pages.length === 1 ? "" : "s"} ready` : "Add page images to continue"}</span></div>
+    </section><aside className="conversion-settings-card"><span>{isSearchable ? "OCR output" : "Scan settings"}</span>{isSearchable ? <FileSearch size={25} /> : <Images size={25} />}<h2>{isSearchable ? "Searchable English text" : "Ordered PDF pages"}</h2><label><span>Scan cleanup</span><select value={cleanupMode} disabled={status === "working"} onChange={(event) => setCleanupMode(event.target.value)}><option value="auto">Auto levels and sharpen</option><option value="document">High-contrast document</option><option value="original">Keep original color</option></select></label><label className="protection-authorization"><input type="checkbox" checked={autoCrop} disabled={status === "working"} onChange={(event) => setAutoCrop(event.target.checked)} /><span>Automatically trim page edges when the paper contrasts with the background.</span></label><div className="conversion-summary"><Check size={18} /><span>{pages.length ? `${pages.length} page${pages.length === 1 ? "" : "s"} ready` : "Add page images to continue"}</span></div>
       {status === "working" && <><div className="conversion-progress-bar"><i style={{ width: `${progress}%` }} /></div><p className="ocr-status">{isSearchable ? "Recognizing and building…" : "Building your PDF…"} {progress}%</p></>}
       <button className="conversion-primary-action" type="button" disabled={!pages.length || status === "working"} onClick={createPdf}>{status === "working" ? <><LoaderCircle className="is-spinning" size={18} /> Processing…</> : <><Download size={18} /> {isSearchable ? "Run OCR and download PDF" : "Create and download PDF"}</>}</button>{status === "complete" && <p className="conversion-success">Your scanned PDF was downloaded.</p>}
     </aside></div>

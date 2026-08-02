@@ -1,4 +1,6 @@
+import { readFile } from "node:fs/promises";
 import { PDFDocument } from "pdf-lib";
+import * as pdfjsLib from "pdfjs-dist/legacy/build/pdf.mjs";
 import { describe, expect, it } from "vitest";
 import { createPdfFromPlainText, textContentToPlainText, validateTextConversionFile } from "../../src/tools/textConversion.js";
 
@@ -22,5 +24,22 @@ describe("text conversion", () => {
     const pdf = await PDFDocument.load(bytes);
     expect(pdf.getTitle()).toBe("Notes");
     expect(pdf.getPageCount()).toBeGreaterThan(1);
+  });
+
+  it("embeds Unicode text without replacing common non-Latin characters", async () => {
+    const [regularFontBytes, boldFontBytes] = await Promise.all([
+      readFile(new URL("../../runtime-public/fonts/LiberationSans-Regular.ttf", import.meta.url)),
+      readFile(new URL("../../runtime-public/fonts/LiberationSans-Bold.ttf", import.meta.url)),
+    ]);
+    const bytes = await createPdfFromPlainText("Résumé · Ελληνικά · Кириллица", {
+      title: "Unicode notes",
+      regularFontBytes,
+      boldFontBytes,
+    });
+    const pdf = await PDFDocument.load(bytes);
+    expect(pdf.getPageCount()).toBe(1);
+    const rendered = await pdfjsLib.getDocument({ data: bytes.slice(0), disableWorker: true, verbosity: 0 }).promise;
+    const content = await (await rendered.getPage(1)).getTextContent();
+    expect(content.items.map((item) => item.str).join(" ")).toContain("Résumé · Ελληνικά · Кириллица");
   });
 });

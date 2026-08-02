@@ -14,6 +14,8 @@ async function samplePdf() {
 
 test("scan images become an ordered PDF download", async ({ page }) => {
   await page.goto(appPath("/scan-to-pdf"));
+  await expect(page.getByLabel("Scan cleanup")).toHaveValue("auto");
+  await expect(page.getByText(/Automatically trim page edges/)).toBeVisible();
   await page.locator('input[type="file"]').setInputFiles([
     { name: "page-1.png", mimeType: "image/png", buffer: tinyPng },
     { name: "page-2.png", mimeType: "image/png", buffer: tinyPng },

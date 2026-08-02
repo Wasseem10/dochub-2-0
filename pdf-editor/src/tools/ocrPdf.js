@@ -1,4 +1,5 @@
-import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
+import { PDFDocument, rgb } from "pdf-lib";
+import { embedPdfTextFonts, textForPdfFont } from "./pdfTextFonts.js";
 
 export const OCR_PDF_LIMITS = Object.freeze({
   maxInputBytes: 20 * 1024 * 1024,
@@ -177,33 +178,10 @@ export function ocrTextFromPages(pages) {
   return pages.map((page, index) => `Page ${index + 1}\n${normalizedText(page.text) || page.words.map((word) => word.text).join(" ")}`).join("\n\n");
 }
 
-function pdfEncodableText(font, value) {
-  const text = normalizedText(value);
-  if (!text) return "";
-  try {
-    font.encodeText(text);
-    return text;
-  } catch {
-    const fallback = text
-      .replace(/[‘’]/g, "'")
-      .replace(/[“”]/g, '"')
-      .replace(/[–—]/g, "-")
-      .normalize("NFKD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .replace(/[^\x20-\x7E]/g, "?");
-    try {
-      font.encodeText(fallback);
-      return fallback;
-    } catch {
-      return "";
-    }
-  }
-}
-
-export async function createSearchablePdfFromOcrPages(pages, { title = "Searchable document" } = {}) {
+export async function createSearchablePdfFromOcrPages(pages, { title = "Searchable document", regularFontBytes, boldFontBytes } = {}) {
   if (!pages?.length) throw new Error("No OCR pages were available for export.");
   const pdf = await PDFDocument.create();
-  const font = await pdf.embedFont(StandardFonts.Helvetica);
+  const { regular: font, unicode } = await embedPdfTextFonts(pdf, { regularFontBytes, boldFontBytes });
   for (const source of pages) {
     const pageWidth = Number(source.pageWidth) || 612;
     const pageHeight = Number(source.pageHeight) || pageWidth * source.imageHeight / Math.max(1, source.imageWidth);
@@ -211,7 +189,7 @@ export async function createSearchablePdfFromOcrPages(pages, { title = "Searchab
     const image = await pdf.embedPng(source.imageBytes);
     page.drawImage(image, { x: 0, y: 0, width: pageWidth, height: pageHeight });
     for (const word of source.words || []) {
-      const text = pdfEncodableText(font, word.text);
+      const text = textForPdfFont(font, normalizedText(word.text), unicode);
       if (!text) continue;
       const x = word.bbox.x0 / source.imageWidth * pageWidth;
       const y = pageHeight - word.bbox.y1 / source.imageHeight * pageHeight;
@@ -220,7 +198,7 @@ export async function createSearchablePdfFromOcrPages(pages, { title = "Searchab
       page.drawText(text, { x, y, size, font, color: rgb(0, 0, 0), opacity: 0 });
     }
   }
-  pdf.setTitle(pdfEncodableText(font, title));
+  pdf.setTitle(normalizedText(title));
   pdf.setCreator("PDFEnrich");
   pdf.setProducer("PDFEnrich browser OCR");
   return pdf.save();
