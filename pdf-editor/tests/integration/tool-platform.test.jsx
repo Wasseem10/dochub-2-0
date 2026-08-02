@@ -4,6 +4,7 @@ import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it } from "vitest";
 import { MarketingFooter } from "../../src/components/public/MarketingFooter.jsx";
 import { MarketingHeader } from "../../src/components/public/MarketingHeader.jsx";
+import { ToolGuideContent } from "../../src/components/public/ToolGuideContent.jsx";
 import { ComparePdfPage } from "../../src/pages/public/ComparePdfPage.jsx";
 import { DocumentAnalysisPage } from "../../src/pages/public/DocumentAnalysisPage.jsx";
 import { FeaturesPage } from "../../src/pages/public/FeaturesPage.jsx";
@@ -41,6 +42,16 @@ async function unmount(renderer) {
 }
 
 describe("public PDF tool platform", () => {
+  it("renders every tool guide without the shared editor screenshot", async () => {
+    const renderer = await render(<ToolGuideContent tool={TOOL_BY_ID.get("pdf-to-jpg")} />);
+    const workflow = renderer.root.findByProps({ className: "tool-guide-workflow" });
+    expect(workflow.findAllByType("figure")).toHaveLength(0);
+    expect(workflow.findAllByType("img")).toHaveLength(0);
+    expect(workflow.findByType("ol").findAllByType("li")).toHaveLength(6);
+    expect(textOf(workflow)).toContain("How to use PDF to JPG");
+    await unmount(renderer);
+  });
+
   it("shows every released feature on the public features page", async () => {
     const renderer = await render(<FeaturesPage />);
     const text = textOf(renderer.root);
