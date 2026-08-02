@@ -1,39 +1,42 @@
-# Guided Questions Homepage FAQ — Design QA
+# Document Opening — Editor Reveal Design QA
 
 ## Evidence
 
-- Selected source: `work/design-references/homepage-faq-guided-selected-2026-07-30.png`
-- Desktop implementation: `work/design-qa/homepage-faq-guided/desktop-first.png`
-- Desktop alternate state: `work/design-qa/homepage-faq-guided/desktop-faq-03-open.png`
-- Mobile introduction: `work/design-qa/homepage-faq-guided/mobile-final.png`
-- Mobile question path: `work/design-qa/homepage-faq-guided/mobile-faq-list.png`
-- Side-by-side comparison: `work/design-qa/homepage-faq-guided/source-vs-implementation.png`
-- Source image: 1536 × 1024.
-- Desktop viewport: 1536 × 1024.
-- Mobile viewport: 390 × 844.
-- State: homepage FAQ, optional analytics rejected, first question open by default.
+- Selected source visual: `C:\Users\wasse\.codex\generated_images\019fbf34-33c0-7882-b971-5644609da529\exec-f0ad9edb-e978-4023-8a24-884f4df80c10.png`
+- Desktop implementation: `C:\Users\wasse\OneDrive\Desktop\pdf-editor\work\design-qa\document-opening-editor-reveal-desktop.png`
+- Mobile implementation: `C:\Users\wasse\OneDrive\Desktop\pdf-editor\work\design-qa\document-opening-editor-reveal-mobile.png`
+- Full side-by-side comparison: `C:\Users\wasse\OneDrive\Desktop\pdf-editor\work\design-qa\document-opening-editor-reveal-comparison.png`
+- Focused indicator comparison: `C:\Users\wasse\OneDrive\Desktop\pdf-editor\work\design-qa\document-opening-editor-reveal-focused.png`
+- Source image: 1487 × 1058 pixels.
+- Desktop implementation capture: 1138 × 712 CSS pixels at device density 1. The in-app browser constrained the available desktop output despite a 1440 × 1024 requested viewport.
+- The source was normalized to the implementation capture with a centered crop and no stretching for the full comparison.
+- Mobile implementation capture: 390 × 844 CSS pixels at device density 1.
+- State: document-opening transition, reached through the development-only `preview=document-opening` visual QA hook.
 
-## Visual comparison
+## Full-view comparison
 
-### Final pass — passed
+- The implementation matches the selected hierarchy: faint white editor header, slim floating toolbar, powder-blue workspace, white thumbnail rail, centered blank PDF page, and one active indicator at the page center.
+- The restrained neutral skeleton contrast keeps the page and indicator dominant without visible status copy or a loading card.
+- The document page proportions, quiet shadow, blue official mark, and segmented progress treatment match the visual source.
+- The implementation is intentionally denser at the captured laptop-height viewport while preserving the source composition and whitespace relationships.
 
-- Replaced the generic rounded accordion stack with the selected two-column editorial answer desk.
-- Preserved the selected hierarchy: oversized navy headline and original document-question art on the left, numbered coral question path on the right, and the reassurance rail integrated below.
-- Kept one pale-lilac answer panel open at a time while using restrained coral, yellow, lilac, and powder-blue number markers.
-- Matched the selected warm-white canvas, fine dividers, compact FAQ typography, open spacing, and professional document-tool character.
-- Reused the selected composition without copying its draft copy; the released PDFEnrich FAQ answers remain accurate and product-specific.
-- Mobile recomposes the design into a readable vertical path with uncropped art, full-width questions, and stacked reassurance rows.
-- No P0, P1, or P2 visual issues remain.
+## Focused comparison
 
-## Functional and accessibility verification
+- The official PDFEnrich document mark is cropped from the approved product logo asset rather than recreated.
+- The three short progress segments match the source structure, scale, spacing, neutral inactive color, and blue active state.
+- No P0, P1, or P2 differences remain.
+- P3 follow-up only: the implementation includes a faint centered filename skeleton in the header so the transition aligns with the real editor shell; the generated reference header is nearly blank.
 
-- All six questions are real buttons with unique accessible names.
-- `aria-expanded` updates on selection and each open answer is linked through `aria-controls`.
-- Clicking question 03 closed question 01 and opened the correct answer.
-- The illustration has useful alternative text and explicit intrinsic dimensions.
-- Desktop and mobile layouts have no horizontal overflow.
-- Browser console errors: none.
-- ESLint completed with zero errors.
-- Production Vite build: passed.
+## Responsive, accessibility, and runtime verification
+
+- Mobile intentionally removes the thumbnail rail and secondary settings strip, keeps the page centered, and has no horizontal overflow (`clientWidth` and `scrollWidth` both 390px).
+- A nonvisual live status announces “Opening your document” while the visible screen remains wordless.
+- Reduced-motion mode disables the animation and leaves the first progress segment blue as a static state.
+- Desktop and mobile browser captures rendered the intended transition with no console errors.
+- Focused route test, typecheck, editorial audit, production build, sitemap generation, prerendering, and the public mobile loading budget passed.
+
+## Comparison history
+
+- Pass 1: no blocking fidelity issues were found; no P0/P1/P2 visual fixes were required.
 
 final result: passed

@@ -86,6 +86,8 @@ The selected July 29, 2026 route-error redesign is Quiet Editorial Recovery (ide
 
 The selected August 1, 2026 Login-to-Dashboard loading refinement supersedes Seamless Desk Reveal: use a tiny centered blue PDFEnrich document mark with one short animated progress line on a plain white page. Show no words, card shell, dashboard preview, or surrounding decoration, and keep the indicator centered at every viewport size with a static reduced-motion fallback.
 
+The selected August 2, 2026 document-opening transition is Editor Reveal (ideation option 2): immediately show a very faint version of the real editor shell with its white header, floating toolbar, powder-blue workspace, thumbnail rail, and centered blank PDF page. Keep only a tiny official blue document mark and a three-segment progress line active at the page center, show no visible loading copy or card, provide a nonvisual status label, simplify the shell deliberately on mobile, and use a static first-segment fallback for reduced motion.
+
 The login screen should feel professional and document-first: use a restrained workspace preview, calm navy/blue surfaces, clear sign-in hierarchy, and explicit browser-processing reassurance. Avoid playful handwritten type, cloud imagery, or oversized promotional visuals in authentication.
 
 Keep the authentication layout inspired by a classic centered sign-in card: obvious email/password hierarchy, one restrained social sign-in option, generous breathing room, and an original PDFEnrich document-workspace panel rather than copying another PDF product's branding or decoration.

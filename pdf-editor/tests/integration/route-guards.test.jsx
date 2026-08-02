@@ -195,6 +195,17 @@ describe("document navigation contract", () => {
 });
 
 describe("safe error routes", () => {
+  it("renders the wordless editor reveal while a document opens", async () => {
+    const { renderer } = await renderRoutes([{
+      path: "/app/editor/:documentId",
+      element: <EditorRouteStatePage state="loading" onBack={() => {}} />,
+    }], ["/app/editor/loading-document"], authValue({ currentUser: { uid: "user-1" } }));
+    expect(renderer.root.findByProps({ "data-testid": "editor-route-loading" }).props.className).toBe("document-opening-shell");
+    expect(renderer.root.findAllByType("h1")).toHaveLength(0);
+    expect(renderer.root.findByProps({ role: "status" }).children.join("")).toContain("Opening your document");
+    expect(renderer.root.findByProps({ className: "document-opening-progress" }).findAllByType("i")).toHaveLength(3);
+  });
+
   it("renders a public route page", async () => {
     const { renderer } = await renderRoutes([{
       path: "/features",
