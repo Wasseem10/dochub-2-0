@@ -10601,3 +10601,335 @@ main.editor-shell .signature-placement-delete {
     transform: none;
   }
 }
+
+/* Document opening transition — Editor Reveal. */
+.document-opening-shell {
+  position: relative;
+  min-height: 100vh;
+  min-height: 100dvh;
+  overflow: hidden;
+  background: #f3f7fd;
+  color: #101a30;
+  font-family: "DM Sans", Arial, sans-serif;
+}
+
+body:has(.document-opening-shell) .privacy-consent {
+  display: none;
+}
+
+.document-opening-editor {
+  display: grid;
+  min-height: 100vh;
+  min-height: 100dvh;
+  grid-template-columns: 160px minmax(0, 1fr);
+  grid-template-rows: 66px minmax(0, 1fr);
+  opacity: .82;
+}
+
+.document-opening-header {
+  position: relative;
+  z-index: 3;
+  display: flex;
+  grid-column: 1 / -1;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  border-bottom: 1px solid #e8edf5;
+  background: rgba(255, 255, 255, .96);
+}
+
+.document-opening-brand-mark,
+.document-opening-mark {
+  position: relative;
+  display: block;
+  overflow: hidden;
+}
+
+.document-opening-brand-mark {
+  width: 34px;
+  height: 34px;
+  opacity: .26;
+}
+
+.document-opening-brand-mark img {
+  position: absolute;
+  top: -39px;
+  left: -4px;
+  width: 114px;
+  height: 114px;
+  max-width: none;
+}
+
+.document-opening-file-line {
+  position: absolute;
+  left: 50%;
+  width: 168px;
+  height: 8px;
+  border-radius: 999px;
+  background: #edf1f7;
+  transform: translateX(-50%);
+}
+
+.document-opening-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.document-opening-header-actions i {
+  display: block;
+  width: 20px;
+  height: 8px;
+  border-radius: 999px;
+  background: #edf1f7;
+}
+
+.document-opening-header-actions b {
+  display: block;
+  width: 82px;
+  height: 38px;
+  border-radius: 7px;
+  background: #edf1f7;
+}
+
+.document-opening-sidebar {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  grid-column: 1;
+  grid-row: 2;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding-top: 118px;
+  border-right: 1px solid #e4eaf3;
+  background: rgba(255, 255, 255, .9);
+}
+
+.document-opening-thumbnail {
+  display: block;
+  width: 106px;
+  aspect-ratio: 612 / 792;
+  border: 1px solid #dde4ed;
+  border-radius: 4px;
+  background: #fff;
+}
+
+.document-opening-page-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #e9edf3;
+}
+
+.document-opening-workspace {
+  position: relative;
+  display: grid;
+  min-width: 0;
+  grid-column: 2;
+  grid-row: 2;
+  place-items: center;
+  padding: 168px 24px 44px;
+  background: #f2f7fe;
+}
+
+.document-opening-toolbar,
+.document-opening-settings {
+  position: absolute;
+  z-index: 2;
+  display: flex;
+  left: 50%;
+  align-items: center;
+  transform: translateX(-50%);
+  border: 1px solid #e7ecf3;
+  background: rgba(255, 255, 255, .94);
+  box-shadow: 0 8px 24px rgba(36, 57, 88, .035);
+}
+
+.document-opening-toolbar {
+  top: 20px;
+  width: min(1120px, calc(100% - 112px));
+  height: 78px;
+  justify-content: center;
+  gap: 0;
+  padding: 8px 18px;
+  border-radius: 10px;
+}
+
+.document-opening-toolbar span {
+  display: grid;
+  min-width: 58px;
+  height: 54px;
+  place-items: center;
+  align-content: center;
+  gap: 8px;
+  border-right: 1px solid #f1f3f7;
+}
+
+.document-opening-toolbar span:last-child {
+  border-right: 0;
+}
+
+.document-opening-toolbar i {
+  width: 17px;
+  height: 17px;
+  border-radius: 5px;
+  background: #e7ecf3;
+}
+
+.document-opening-toolbar b {
+  width: 28px;
+  height: 5px;
+  border-radius: 999px;
+  background: #e7ecf3;
+}
+
+.document-opening-settings {
+  top: 112px;
+  width: min(700px, calc(100% - 224px));
+  height: 48px;
+  justify-content: space-evenly;
+  gap: 16px;
+  padding: 0 24px;
+  border-radius: 8px;
+}
+
+.document-opening-settings i {
+  display: block;
+  width: 34px;
+  height: 7px;
+  border-radius: 999px;
+  background: #e7ecf3;
+}
+
+.document-opening-settings i:nth-child(2n) {
+  width: 18px;
+}
+
+.document-opening-page {
+  position: relative;
+  width: min(520px, calc((100dvh - 236px) * .773));
+  max-width: calc(100% - 48px);
+  aspect-ratio: 612 / 792;
+  border: 1px solid #e1e6ee;
+  background: #fff;
+  box-shadow: 0 10px 30px rgba(37, 63, 99, .07);
+}
+
+.document-opening-indicator {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  display: grid;
+  width: 140px;
+  place-items: center;
+  gap: 24px;
+  transform: translate(-50%, -50%);
+}
+
+.document-opening-mark {
+  width: 38px;
+  height: 38px;
+}
+
+.document-opening-mark img {
+  position: absolute;
+  top: -44px;
+  left: -5px;
+  width: 127px;
+  height: 127px;
+  max-width: none;
+}
+
+.document-opening-progress {
+  display: flex;
+  width: 136px;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+}
+
+.document-opening-progress i {
+  display: block;
+  width: 38px;
+  height: 3px;
+  border-radius: 999px;
+  background: #dfe6ef;
+  animation: document-opening-step 1.2s ease-in-out infinite;
+}
+
+.document-opening-progress i:nth-child(2) { animation-delay: .4s; }
+.document-opening-progress i:nth-child(3) { animation-delay: .8s; }
+
+@keyframes document-opening-step {
+  0%, 28% { background: #2851eb; }
+  38%, 100% { background: #dfe6ef; }
+}
+
+@media (max-width: 900px) {
+  .document-opening-editor {
+    grid-template-columns: 1fr;
+    grid-template-rows: 56px minmax(0, 1fr);
+  }
+
+  .document-opening-header {
+    padding: 0 14px;
+  }
+
+  .document-opening-file-line {
+    width: 112px;
+  }
+
+  .document-opening-header-actions i:nth-child(n + 2),
+  .document-opening-sidebar,
+  .document-opening-settings {
+    display: none;
+  }
+
+  .document-opening-header-actions b {
+    width: 54px;
+    height: 32px;
+  }
+
+  .document-opening-workspace {
+    grid-column: 1;
+    padding: 90px 12px 24px;
+  }
+
+  .document-opening-toolbar {
+    top: 14px;
+    width: calc(100% - 20px);
+    height: 58px;
+    justify-content: space-evenly;
+    padding: 6px;
+  }
+
+  .document-opening-toolbar span {
+    min-width: 0;
+    width: 9%;
+    height: 42px;
+  }
+
+  .document-opening-toolbar span:nth-child(n + 11) {
+    display: none;
+  }
+
+  .document-opening-toolbar b {
+    width: 18px;
+  }
+
+  .document-opening-page {
+    width: min(460px, calc(100% - 24px));
+    max-height: calc(100dvh - 178px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .document-opening-progress i {
+    animation: none;
+  }
+
+  .document-opening-progress i:first-child {
+    background: #2851eb;
+  }
+}

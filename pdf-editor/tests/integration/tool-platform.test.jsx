@@ -19,7 +19,6 @@ import { ScanPdfPage } from "../../src/pages/public/ScanPdfPage.jsx";
 import { StructuredPdfConversionPage } from "../../src/pages/public/StructuredPdfConversionPage.jsx";
 import { ToPdfConversionPage } from "../../src/pages/public/ToPdfConversionPage.jsx";
 import { EditorToolUploadPage } from "../../src/pages/public/EditorToolUploadPage.jsx";
-import { TemplateBuilderPage } from "../../src/pages/public/TemplateBuilderPage.jsx";
 import { TOOL_CATEGORY_PAGE_BY_ID } from "../../src/tools/toolCategoryPages.js";
 import { TOOL_BY_ID } from "../../src/tools/toolRegistry.js";
 
@@ -57,7 +56,7 @@ describe("public PDF tool platform", () => {
   it("searches, filters, and clears the complete tool directory", async () => {
     const renderer = await render(<ToolDirectoryPage />);
     const root = renderer.root;
-    expect(textOf(root.findByProps({ "aria-live": "polite" }))).toBe("68 tools");
+    expect(textOf(root.findByProps({ "aria-live": "polite" }))).toBe(`${TOOL_BY_ID.size} tools`);
 
     await act(async () => root.findByType("input").props.onChange({ target: { value: "PowerPoint" } }));
     expect(textOf(root.findByProps({ "aria-live": "polite" }))).toBe("2 tools");
@@ -67,7 +66,7 @@ describe("public PDF tool platform", () => {
     expect(root.findAllByType("h2").some((heading) => textOf(heading) === "No tools match “PowerPoint”")).toBe(true);
 
     await act(async () => root.findAllByType("button").find((button) => textOf(button) === "Clear filters").props.onClick());
-    expect(textOf(root.findByProps({ "aria-live": "polite" }))).toBe("68 tools");
+    expect(textOf(root.findByProps({ "aria-live": "polite" }))).toBe(`${TOOL_BY_ID.size} tools`);
     await unmount(renderer);
   });
 
@@ -254,7 +253,7 @@ describe("public PDF tool platform", () => {
   });
 
   it("renders private source-grounded document analysis workspaces", async () => {
-    for (const toolId of ["ai-pdf", "chat-with-pdf", "summarize-pdf", "translate-pdf", "extract-data-from-pdf", "ask-pdf", "ai-question-generator", "contract-analyzer", "resume-analyzer"]) {
+    for (const toolId of ["ai-pdf", "chat-with-pdf", "summarize-pdf", "translate-pdf", "extract-data-from-pdf", "ask-pdf", "ai-question-generator"]) {
       const renderer = await render(<DocumentAnalysisPage tool={TOOL_BY_ID.get(toolId)} />);
       expect(renderer.root.findAllByType("input").some((input) => input.props.type === "file" && input.props.accept.includes("application/pdf"))).toBe(true);
       expect(textOf(renderer.root).includes("No document text enters analytics")).toBe(true);
@@ -263,17 +262,6 @@ describe("public PDF tool platform", () => {
         expect(textOf(renderer.root).includes("not the source PDF's images, tables, fonts, or page positioning")).toBe(true);
         expect(textOf(renderer.root).includes("confirm the result is positioned correctly")).toBe(false);
       }
-      await unmount(renderer);
-    }
-  });
-
-  it("renders editable, downloadable template builders for every template route", async () => {
-    for (const toolId of ["resume-templates", "contract-templates", "nda-templates", "invoice-templates", "offer-letter-templates"]) {
-      const renderer = await render(<TemplateBuilderPage tool={TOOL_BY_ID.get(toolId)} />);
-      expect(renderer.root.findAllByType("input").length).toBeGreaterThan(2);
-      expect(textOf(renderer.root).includes("Live PDF preview")).toBe(true);
-      expect(renderer.root.findAllByType("button").some((button) => textOf(button).includes("Download PDF"))).toBe(true);
-      expect(textOf(renderer.root).includes("Fields stay on this device")).toBe(true);
       await unmount(renderer);
     }
   });
@@ -337,22 +325,24 @@ describe("public PDF tool platform", () => {
     const renderer = await render(<MarketingHeader />);
     const root = renderer.root;
 
-    expect(textOf(root).includes("All tools")).toBe(true);
-    expect(textOf(root).includes("Choose a PDF")).toBe(true);
-    expect(textOf(root).includes("Comparisons")).toBe(true);
+    expect(textOf(root).includes("Tools")).toBe(true);
+    expect(textOf(root).includes("Use for free")).toBe(true);
+    expect(textOf(root).includes("Compare")).toBe(true);
+    expect(textOf(root).includes("Templates")).toBe(false);
     expect(root.findAllByProps({ src: "/pdfenrich-logo.png" })).toHaveLength(1);
 
     await act(async () => root.findByProps({ "aria-label": "Open navigation" }).props.onClick());
     expect(root.findAllByProps({ className: "marketing-mobile-nav" })).toHaveLength(1);
-    expect(textOf(root.findByProps({ className: "marketing-mobile-nav" })).includes("Privacy")).toBe(true);
-    expect(textOf(root.findByProps({ className: "marketing-mobile-nav" })).includes("Comparisons")).toBe(true);
+    expect(textOf(root.findByProps({ className: "marketing-mobile-nav" })).includes("Use for free")).toBe(true);
+    expect(textOf(root.findByProps({ className: "marketing-mobile-nav" })).includes("Compare")).toBe(true);
     await unmount(renderer);
     globalThis.window = previousWindow;
 
     const footer = await render(<MarketingFooter />);
-    expect(footer.root.findAllByType("section").length).toBeGreaterThan(0);
-    expect(textOf(footer.root).includes("Completely free")).toBe(true);
+    expect(footer.root.findAllByType("section")).toHaveLength(5);
+    expect(textOf(footer.root).includes("Free and simple PDF tools")).toBe(true);
     expect(textOf(footer.root).includes("Comparisons")).toBe(true);
+    expect(textOf(footer.root).includes("Templates")).toBe(false);
     expect(footer.root.findAllByProps({ src: "/pdfenrich-logo.png" })).toHaveLength(1);
     await unmount(footer);
   });

@@ -23,6 +23,7 @@ import Zap from "lucide-react/dist/esm/icons/zap.mjs";
 import { BrandWordmark } from "./components/public/BrandWordmark.jsx";
 import { PageMetadata } from "./components/public/PageMetadata.jsx";
 import { ProfessionalToolIcon } from "./components/public/ProfessionalToolIcon.jsx";
+import { PUBLIC_FOOTER_NAVIGATION_GROUPS, PUBLIC_LEGAL_LINKS, PUBLIC_PRIMARY_NAV_LINKS } from "./components/public/publicNavigation.js";
 import { absoluteSiteUrl } from "./config/site.js";
 import { trackComparisonCta } from "./analytics/productAnalytics.js";
 import { ROUTE_PATHS } from "./router/routePaths.js";
@@ -33,9 +34,9 @@ const asset = (fileName) => `${import.meta.env.BASE_URL}homepage/${fileName}`;
 const toolIllustration = (fileName) => `${import.meta.env.BASE_URL}tool-illustrations/${fileName}`;
 
 const faqs = [
-  ["Is PDFEnrich really free?", "Yes. Supported core tools are free to use with no subscription, checkout, email requirement, or PDFEnrich watermark."],
-  ["Do I need an account?", "No. Open, edit, and download supported files as a guest. Create an account only when you want cloud document history."],
-  ["Are files processed in my browser?", "Supported editor, page, and image tools process files in your browser. Account-based cloud history uses Firebase and is clearly separate."],
+  ["Is PDFEnrich really free?", "Yes. PDFEnrich is completely free. There are no subscriptions, paid tiers, checkout, email requirement, or PDFEnrich watermark—and no paid plans are planned."],
+  ["Do I need an account?", "No. Open, edit, and download supported files as a guest. Sign in only for an optional private cloud copy or sharing workflow you choose."],
+  ["Are files processed in my browser?", "Supported editor, page, and image tools process files in your browser. Signing in does not upload them; private cloud saving is an explicit per-document action."],
   ["What is the editor file limit?", "The editor accepts valid, unencrypted PDFs up to 50 MB and 500 pages. Large documents open progressively, so later pages render as you visit them."],
   ["Can PDFEnrich perfectly rewrite original PDF text?", "Not always. The editor can change detected text overlays and add new content, but original fonts, spacing, and layout may vary. Always review the export."],
   ["Does PDFEnrich add a watermark?", "No. PDFEnrich does not add a watermark to supported exports."],
@@ -122,8 +123,8 @@ const privacyProofs = [
     icon: UserRound,
   },
   {
-    title: "Optional cloud history",
-    copy: "Cloud document history is clearly identified and used only when you choose it.",
+    title: "Private cloud copies are optional",
+    copy: "A cloud copy is created only when you deliberately choose it for a document.",
     tone: "lilac",
     icon: Cloud,
   },
@@ -145,17 +146,9 @@ const homepageFeatureTools = [
   return tool ? { ...tool, ...entry } : null;
 }).filter(Boolean);
 
-const footerNavigationGroups = [
-  { title: "Tools", links: [["Edit PDF", "/edit-pdf"], ["Merge PDF", "/merge-pdf"], ["Split PDF", "/split-pdf"], ["Compress PDF", "/compress-pdf"], ["All tools", ROUTE_PATHS.tools]] },
-  { title: "Edit & sign", links: [["Edit PDF", "/edit-pdf"], ["Annotate PDF", "/annotate-pdf"], ["Fill PDF", "/fill-pdf"], ["Sign PDF", "/sign-pdf"], ["PDF Form Filler", "/pdf-form-filler"]] },
-  { title: "Convert", links: [["PDF to Word", "/pdf-to-word"], ["PDF to JPG", "/pdf-to-jpg"], ["PDF to PNG", "/pdf-to-png"], ["Word to PDF", "/word-to-pdf"], ["JPG to PDF", "/jpg-to-pdf"]] },
-  { title: "Company", links: [["About PDFEnrich", ROUTE_PATHS.business], ["Pricing", ROUTE_PATHS.pricing], ["Comparisons", ROUTE_PATHS.compare], ["Resources", ROUTE_PATHS.resources], ["Security", ROUTE_PATHS.security]] },
-  { title: "Support", links: [["Help Center", ROUTE_PATHS.support], ["Contact us", ROUTE_PATHS.contactSales], ["FAQs", "/#faq-title"], ["Privacy", ROUTE_PATHS.privacy]] },
-];
-
 const toolsMenuColumns = [
   ["compress", "ai"],
-  ["organize", "templates"],
+  ["organize"],
   ["edit-view", "compare-review"],
   ["from-pdf"],
   ["to-pdf"],
@@ -215,29 +208,19 @@ function SiteHeader({ onChoose }) {
     if (open) firstLinkRef.current?.focus();
   }, [open]);
 
-  const links = [
-    ["Tools", ROUTE_PATHS.tools],
-    ["Edit", ROUTE_PATHS.editPdf],
-    ["Organize", "/organize-pdf"],
-    ["Sign", ROUTE_PATHS.signPdf],
-    ["Convert", "/pdf-to-jpg"],
-    ["Compare", ROUTE_PATHS.compare],
-    ["Pricing", ROUTE_PATHS.pricing],
-  ];
-
   return <header className="freepdf-header-shell">
     <div className="freepdf-header">
       <Brand />
       <nav className="freepdf-desktop-nav" aria-label="Primary navigation">
         <button ref={toolsButtonRef} type="button" className={`freepdf-tools-trigger ${toolsOpen ? "is-open" : ""}`} aria-expanded={toolsOpen} aria-haspopup="true" aria-controls="freepdf-tools-menu" onClick={() => { setToolsOpen((value) => !value); setOpen(false); }}><span>Tools</span> <ChevronDown className="freepdf-tools-chevron" size={14} /></button>
-        {links.slice(1).map(([label, href]) => <Link key={label} to={href} onClick={() => setToolsOpen(false)}>{label}</Link>)}
+        {PUBLIC_PRIMARY_NAV_LINKS.slice(1).map(({ label, to }) => <Link key={label} to={to} onClick={() => setToolsOpen(false)}>{label}</Link>)}
       </nav>
       <div className="freepdf-header-actions">
         <Link to={ROUTE_PATHS.login}>Log in</Link>
-        <button type="button" className="freepdf-header-cta" onClick={onChoose}>Choose a PDF</button>
+        <button type="button" className="freepdf-header-cta" onClick={onChoose}>Use for free</button>
         <button className="freepdf-menu-button" type="button" aria-label={open ? "Close navigation" : "Open navigation"} aria-expanded={open} onClick={() => { setOpen((value) => !value); setToolsOpen(false); }}>{open ? <X size={21} /> : <Menu size={21} />}</button>
       </div>
-      {open && <nav className="freepdf-mobile-nav" aria-label="Mobile navigation">{links.map(([label, href], index) => <Link ref={index === 0 ? firstLinkRef : undefined} key={label} to={href} onClick={() => setOpen(false)}>{label}</Link>)}<Link to={ROUTE_PATHS.login} onClick={() => setOpen(false)}>Log in</Link><button type="button" onClick={() => { setOpen(false); onChoose(); }}>Choose a PDF</button></nav>}
+      {open && <nav className="freepdf-mobile-nav" aria-label="Mobile navigation">{PUBLIC_PRIMARY_NAV_LINKS.map(({ label, to }, index) => <Link ref={index === 0 ? firstLinkRef : undefined} key={label} to={to} onClick={() => setOpen(false)}>{label}</Link>)}<Link to={ROUTE_PATHS.login} onClick={() => setOpen(false)}>Log in</Link><button type="button" onClick={() => { setOpen(false); onChoose(); }}>Use for free</button></nav>}
     </div>
     {toolsOpen && <div ref={toolsMenuRef} className="freepdf-tools-mega" id="freepdf-tools-menu" role="region" aria-label="PDFEnrich tools">
       <div className="freepdf-tools-mega-grid">
@@ -288,6 +271,7 @@ function Dropzone({ choose, dragging, setDragging, isUploading, uploadError, upl
     <span className="freepdf-upload-icon"><Upload size={26} /></span>
     <span className="freepdf-dropzone-title">{dragging ? "Drop your PDF here" : isUploading ? "Opening your PDF…" : "Drop your PDF here"}</span>
     <span className="freepdf-dropzone-copy">or <strong>choose a file</strong> from your device</span>
+    <span className="freepdf-dropzone-free"><Check size={15} aria-hidden="true" /> Free to use. No account or payment needed.</span>
     <span className="freepdf-upload-status" aria-live="polite">{uploadError ? <span role="alert">{uploadError}</span> : isUploading ? <><span className="freepdf-upload-status-copy">{uploadStage.status}{uploadStage.fileName ? ` · ${uploadStage.fileName}` : ""}</span><span className="freepdf-upload-progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow={uploadStage.percent || 0}><span style={{ width: `${uploadStage.percent || 0}%` }} /></span></> : null}</span>
   </button>;
 }
@@ -334,7 +318,7 @@ function ComparisonTeaser() {
 
 function ClosingAssurances() {
   const assurances = [
-    { icon: ShieldCheck, title: "Private by design", copy: "Your files stay private and secure." },
+    { icon: ShieldCheck, title: "Private by design", copy: "Supported tools process files in your browser." },
     { icon: Check, title: "No account needed", copy: "Edit, convert, and sign right away." },
     { icon: Globe2, title: "Works in your browser", copy: "No downloads or installations." },
   ];
@@ -350,15 +334,15 @@ function SiteFooter() {
           <p>Every PDF task, finally in one place.</p>
         </div>
         <section className="freepdf-footer-directory" aria-label="PDF tool directory">
-          {footerNavigationGroups.map((group) => <nav key={group.title} aria-label={group.title}>
+          {PUBLIC_FOOTER_NAVIGATION_GROUPS.map((group) => <nav key={group.title} aria-label={group.title}>
             <h2>{group.title}</h2>
-            {group.links.map(([label, route]) => <Link key={label} to={route}>{label}</Link>)}
+            {group.links.map(({ label, to }) => <Link key={label} to={to}>{label}</Link>)}
           </nav>)}
         </section>
       </div>
       <div className="freepdf-footer-meta">
         <span>© 2026 PDFEnrich. All rights reserved.</span>
-        <nav aria-label="Footer legal"><Link to={ROUTE_PATHS.privacy}>Privacy</Link><Link to={ROUTE_PATHS.terms}>Terms</Link><Link to={ROUTE_PATHS.security}>Security</Link><Link to={ROUTE_PATHS.support}>Accessibility</Link></nav>
+        <nav aria-label="Footer legal">{PUBLIC_LEGAL_LINKS.map(({ label, to }) => <Link key={label} to={to}>{label}</Link>)}</nav>
         <button type="button" className="freepdf-footer-language" aria-label="Language: English"><Globe2 size={16} /> English <ChevronDown size={15} /></button>
       </div>
     </div>
@@ -378,15 +362,16 @@ export function LatticePdfLanding({ fileInputRef, onUpload, onSelectFiles, onDro
   }, []);
 
   return <main className="freepdf-page">
-    <PageMetadata title="Every PDF Task in One Place | PDFEnrich" description="Edit, sign, fill, merge, split, organize, and convert PDFs without subscriptions, watermarks, or forced signup." canonicalUrl="/" schemas={[{ "@context": "https://schema.org", "@type": "WebSite", "@id": `${absoluteSiteUrl("/")}#website`, name: "PDFEnrich", alternateName: "PDFEnrich", url: absoluteSiteUrl("/"), inLanguage: "en-US" }, { "@context": "https://schema.org", "@type": "Organization", "@id": `${absoluteSiteUrl("/")}#organization`, name: "PDFEnrich", url: absoluteSiteUrl("/"), logo: absoluteSiteUrl("/icon.svg") }]} />
+    <PageMetadata title="Free PDF Tools, No Subscription or Watermark | PDFEnrich" description="Edit, sign, fill, merge, split, organize, and convert PDFs completely free - with no subscription, payment, or watermark." canonicalUrl="/" schemas={[{ "@context": "https://schema.org", "@type": "WebSite", "@id": `${absoluteSiteUrl("/")}#website`, name: "PDFEnrich", alternateName: "PDFEnrich", url: absoluteSiteUrl("/"), inLanguage: "en-US" }, { "@context": "https://schema.org", "@type": "Organization", "@id": `${absoluteSiteUrl("/")}#organization`, name: "PDFEnrich", url: absoluteSiteUrl("/"), logo: absoluteSiteUrl("/icon.svg") }, { "@context": "https://schema.org", "@type": "WebApplication", name: "PDFEnrich", url: absoluteSiteUrl("/"), description: "Free browser PDF tools for editing, signing, organizing, and converting PDFs without subscriptions, payment, or watermarks.", applicationCategory: "UtilitiesApplication", applicationSubCategory: "PDF editor", operatingSystem: "Any", browserRequirements: "Requires a modern JavaScript-enabled browser", isAccessibleForFree: true, offers: { "@type": "Offer", price: "0", priceCurrency: "USD" }, featureList: ["Edit PDF", "Sign PDF", "Merge PDF", "Split PDF", "Compress PDF", "Convert PDF"] }]} />
     <input ref={inputRef} className="hidden-input" type="file" accept="application/pdf,.pdf" onChange={onUpload} />
     <SiteHeader onChoose={choose} />
 
     <section className="freepdf-hero">
       <div className="freepdf-hero-layout">
         <div className="freepdf-hero-copy">
-          <h1>Every PDF task,<br /><span>beautifully</span> in one place.</h1>
-          <p>Edit, sign, organize, and convert your PDFs in seconds.<br />Powerful tools. No clutter. Just results.</p>
+          <Link className="freepdf-free-promise" to={ROUTE_PATHS.pricing}><Check size={15} aria-hidden="true" /> 100% free. No subscription, payment, or watermark.</Link>
+          <h1>Every PDF task,<br /><span>free and simple.</span></h1>
+          <p>Edit, sign, organize, and convert your PDFs in seconds.<br />No subscriptions. No paid plans. Just the tools you need.</p>
         </div>
 
         <div className="freepdf-product-stage">
@@ -400,7 +385,7 @@ export function LatticePdfLanding({ fileInputRef, onUpload, onSelectFiles, onDro
           <div><span className="freepdf-trust-icon is-lilac"><ShieldCheck size={23} /></span><span><strong>Secure by design</strong><small>Your file stays in this browser</small></span></div>
           <div><span className="freepdf-trust-icon is-yellow"><Zap size={23} /></span><span><strong>No signup needed</strong><small>Start working right away</small></span></div>
           <div><span className="freepdf-trust-icon is-blue"><Globe2 size={23} /></span><span><strong>Works anywhere</strong><small>On any modern browser</small></span></div>
-          <div><span className="freepdf-trust-icon is-pink"><Rocket size={23} /></span><span><strong>Blazing fast</strong><small>Local tools save you time</small></span></div>
+          <div><span className="freepdf-trust-icon is-pink"><Rocket size={23} /></span><span><strong>Completely free</strong><small>No subscriptions or paid plans</small></span></div>
         </section>
       </div>
     </section>
@@ -454,7 +439,7 @@ export function LatticePdfLanding({ fileInputRef, onUpload, onSelectFiles, onDro
         <div className="freepdf-privacy-copy">
           <span className="freepdf-section-kicker">Privacy, without the fine print</span>
           <h2 id="privacy-title">Your file stays close to you.</h2>
-          <p>Supported editor, page, and image tools process files in your browser. Firebase is used only for optional account authentication and cloud document history.</p>
+          <p>Supported editor, page, and image tools process files in your browser. Firebase is used only for features you deliberately choose, such as sign-in, a private cloud copy, support, or secure sharing.</p>
           <Link to={ROUTE_PATHS.privacy}>Read the privacy details <ArrowRight size={16} /></Link>
         </div>
         <ul>

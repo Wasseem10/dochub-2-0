@@ -56,14 +56,29 @@ export const TOOL_CATEGORIES = Object.freeze([
   { id: "ocr-scan", name: "OCR and scan", menuLabel: "OCR and Scan", description: "Create PDFs from scans and make image text searchable.", accentColor: "#ffead9", icon: "scan" },
   { id: "ai", name: "AI PDF", menuLabel: "AI", description: "Private source-grounded document understanding and extraction workflows.", accentColor: "#eee6ff", icon: "sparkles" },
   { id: "compare-review", name: "Compare and review", menuLabel: "Review", description: "Review changes, add comments, and compare document versions.", accentColor: "#e5f2ff", icon: "compare" },
-  { id: "templates", name: "Templates", menuLabel: "Templates", description: "Planned starting points for common business documents.", accentColor: "#fff0d7", icon: "template" },
 ]);
 
 const PARTIAL_EDITOR_LIMIT = "This workflow opens the current browser editor. Supported edits are flattened during export, and source formatting or interactive PDF features may not be preserved.";
 const COMING_SOON_LIMIT = "This tool is not implemented yet. PDFEnrich does not upload or process files for this workflow today.";
-const DEDICATED_CONVERTER_IDS = new Set(["pdf-to-word", "pdf-to-excel", "pdf-to-powerpoint", "pdf-to-jpg", "pdf-to-png", "pdf-to-txt", "pdf-to-html", "word-to-pdf", "excel-to-pdf", "powerpoint-to-pdf", "html-to-pdf", "jpg-to-pdf", "png-to-pdf", "txt-to-pdf", "rtf-to-pdf", "odt-to-pdf", "odp-to-pdf", "ods-to-pdf", "epub-to-pdf", "zip-to-pdf", "ocr-pdf", "pdf-scanner", "scan-to-pdf", "image-to-searchable-pdf", "ai-pdf", "chat-with-pdf", "summarize-pdf", "translate-pdf", "extract-data-from-pdf", "ask-pdf", "ai-question-generator", "contract-analyzer", "resume-analyzer", "compare-pdf", "document-version-comparison"]);
+const DEDICATED_CONVERTER_IDS = new Set(["pdf-to-word", "pdf-to-excel", "pdf-to-powerpoint", "pdf-to-jpg", "pdf-to-png", "pdf-to-txt", "pdf-to-html", "word-to-pdf", "excel-to-pdf", "powerpoint-to-pdf", "html-to-pdf", "jpg-to-pdf", "png-to-pdf", "txt-to-pdf", "rtf-to-pdf", "odt-to-pdf", "odp-to-pdf", "ods-to-pdf", "epub-to-pdf", "zip-to-pdf", "ocr-pdf", "pdf-scanner", "scan-to-pdf", "image-to-searchable-pdf", "ai-pdf", "chat-with-pdf", "summarize-pdf", "translate-pdf", "extract-data-from-pdf", "ask-pdf", "ai-question-generator", "compare-pdf", "document-version-comparison"]);
 const DEDICATED_PAGE_TOOL_IDS = new Set(["merge-pdf", "split-pdf", "rotate-pdf", "delete-pdf-pages", "extract-pdf-pages", "reorder-pdf-pages", "organize-pdf", "add-page-numbers", "watermark-pdf", "crop-pdf", "compress-pdf", "redact-pdf", "unlock-pdf", "flatten-pdf", "remove-pdf-password"]);
 const DEFAULT_RELATED_TOOL_IDS = ["edit-pdf", "merge-pdf", "organize-pdf"];
+
+/** Keep the no-cost promise visible in the search result for every released tool. @param {string} title */
+function freeSearchTitle(title) {
+  return /\bfree\b/i.test(title) ? title : title.replace(/\s*\|\s*PDFEnrich$/, " Free | PDFEnrich");
+}
+
+/** @param {string} description */
+function freeSearchDescription(description) {
+  if (/\bfree\b/i.test(description)) return description;
+  const suffix = " Free online tool.";
+  const availableLength = 160 - suffix.length;
+  const summary = description.length <= availableLength
+    ? description.replace(/\.$/, "")
+    : description.slice(0, availableLength).replace(/[\s,;:.]+$/, "");
+  return `${summary}${suffix}`;
+}
 
 /** @type {ToolDefinition[]} */
 const definitions = [
@@ -132,19 +147,12 @@ const definitions = [
   ["extract-data-from-pdf", "Extract Data from PDF", "Pull selected fields, tables, and structured records from a PDF.", "ai", "database", "available", ["application/pdf"], ["application/json", "text/csv"], "Browser extraction detects email, phone, date, money, percentage, and label-value patterns with source pages. It is not a general table-reconstruction model, so review JSON and CSV output for omissions."],
   ["ask-pdf", "Ask Questions About PDF", "Ask a focused question and receive an answer with source references.", "ai", "question", "available", ["application/pdf"], ["text/plain"], "Private browser retrieval finds exact passages sharing the question's terms and numbers. It does not infer unstated answers; specific wording, names, and dates produce stronger matches."],
   ["ai-question-generator", "AI Question Generator", "Create study or review questions from a document's actual content.", "ai", "question", "available", ["application/pdf"], ["text/plain"], "Browser question generation uses important source terms and figures, with exact sentence answer keys and page citations. Questions are deterministic and should be reviewed before use in assessment."],
-  ["contract-analyzer", "Contract Analyzer", "Identify clauses, obligations, dates, and areas that may need review.", "ai", "contract", "available", ["application/pdf"], ["text/plain"], "Pattern-based browser analysis surfaces obligation, termination, confidentiality, liability, date, and money language with page citations. It can miss clauses and does not provide legal advice."],
-  ["resume-analyzer", "Resume Analyzer", "Review resume structure and surface role-relevant content for a user to assess.", "ai", "resume", "available", ["application/pdf"], ["text/plain"], "Private browser analysis reports document structure, contact fields, known skills, action verbs, bullets, and quantified results. It does not rank candidates, infer protected traits, or make hiring decisions."],
 
   ["compare-pdf", "Compare PDFs", "Compare two PDFs and identify page-level visual and text differences.", "compare-review", "compare", "available", ["application/pdf"], ["application/pdf"], "Browser comparison supports two valid, unencrypted PDFs up to 25 MB and 75 pages each. Searchable PDFs receive word-level additions, deletions, replacements, and moved-text highlights; scanned pages use focused visual regions."],
   ["document-version-comparison", "Document Version Comparison", "Review visual and text changes between two versions of the same document.", "compare-review", "versions", "available", ["application/pdf"], ["application/pdf"], "Browser version comparison supports two valid, unencrypted PDFs up to 25 MB and 75 pages each. It compares page positions rather than reconstructing tracked-edit history or author metadata."],
   ["review-pdf", "Review PDF", "Add highlights, drawings, shapes, threaded comments, assignments, and resolution history while reviewing a PDF.", "compare-review", "review", "available", ["application/pdf"], ["application/pdf"], "The complete review trail is stored with the browser editing session, and exported comments are embedded as standard PDF comment annotations. Real-time multi-user synchronization requires saving and sharing an account document."],
   ["comment-on-pdf", "Comment on PDF", "Place threaded comments on PDF pages, add replies, assign follow-up, and resolve or reopen feedback.", "compare-review", "comment", "available", ["application/pdf"], ["application/pdf"], "Comment threads and their resolution history are stored locally with the document and embedded in the exported PDF. Notifications and simultaneous multi-user editing require a shared account workflow."],
 
-  ["resume-templates", "Resume Templates", "Build an editable resume with live preview and export it as a searchable PDF.", "templates", "resume", "available", [], ["application/pdf"], "The private browser builder includes modern, classic, and green layouts with editable profile, experience, education, and skills sections. It creates a searchable PDF; it does not provide career guarantees or applicant ranking."],
-  ["contract-templates", "Contract Templates", "Draft an editable services agreement and export a review-ready PDF.", "templates", "contract", "available", [], ["application/pdf"], "The browser builder creates an editable services-agreement outline with parties, services, payment, term, termination, confidentiality, governing law, and signature lines. It is a drafting template, not legal advice, and should be reviewed by qualified counsel."],
-  ["nda-templates", "NDA Templates", "Create a mutual or one-way NDA draft with reusable agreement fields.", "templates", "contract", "available", [], ["application/pdf"], "The browser builder creates a mutual or one-way NDA outline with purpose, confidential-information definition, exclusions, term, governing law, and signature lines. It is not legal advice and does not collect digital signatures."],
-  ["invoice-templates", "Invoice Templates", "Create an invoice with editable line items and automatic totals.", "templates", "invoice", "available", [], ["application/pdf"], "The private browser builder calculates subtotal, percentage tax, and total from editable quantities and rates, then exports a searchable PDF. It does not process payments, calculate jurisdiction-specific tax rules, or send invoices."],
-  ["offer-letter-templates", "Offer Letter Templates", "Draft an employment offer with role, compensation, dates, and acceptance fields.", "templates", "letter", "available", [], ["application/pdf"], "The browser builder creates an editable offer-letter draft with role, reporting line, compensation, location, benefits, conditions, expiration, and acceptance lines. It is not legal advice and does not send offers or collect signatures."],
 ];
 
 const CATEGORY_BY_ID = new Map(TOOL_CATEGORIES.map((category) => [category.id, category]));
@@ -200,11 +208,6 @@ const categoryContent = {
     benefit: "A clear review trail helps people understand what changed and what still needs attention.",
     steps: ["Open the document or versions you need to review.", "Inspect differences or add supported annotations.", "Verify the final document and export or share it through an approved workflow."],
     uses: ["Reviewing a contract draft", "Checking a revised policy", "Leaving notes on a PDF"],
-  },
-  templates: {
-    benefit: "A useful template provides a real starting structure, not just an empty document.",
-    steps: ["Choose a template suited to the document type.", "Replace the sample content with reviewed information.", "Check the final document before export or signing."],
-    uses: ["Starting a recurring document", "Keeping formatting consistent", "Reducing repetitive setup work"],
   },
 };
 
@@ -329,6 +332,10 @@ function buildRelatedToolIds(tool, tools) {
 
 export const TOOL_REGISTRY = Object.freeze(builtTools.map((tool) => ({
   ...tool,
+  ...(tool.status !== "coming-soon" ? {
+    seoTitle: freeSearchTitle(tool.seoTitle),
+    metaDescription: freeSearchDescription(tool.metaDescription),
+  } : {}),
   relatedTools: buildRelatedToolIds(tool, builtTools),
 })));
 
