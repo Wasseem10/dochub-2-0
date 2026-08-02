@@ -19,13 +19,13 @@ export const COMPARISONS = [
     title: "PDFEnrich vs DocHub",
     seoTitle: "PDFEnrich vs DocHub: PDF editor comparison (2026)",
     description: "Compare PDFEnrich and DocHub across PDF editing, e-signatures, browser processing, integrations, pricing, and account requirements.",
-    summary: "Choose PDFEnrich for a lightweight, guest-friendly browser editor. Choose DocHub when signature requests, templates, storage, and business integrations are central to the job.",
+    summary: "Choose PDFEnrich for a lightweight, guest-friendly browser editor. Choose DocHub when signature requests, storage, and business integrations are central to the job.",
     bestForPdfEnrich: "Fast individual PDF work without an account wall",
     bestForCompetitor: "Repeat e-signature and document workflow operations",
     competitorFacts: {
       account: "A free plan is available; plan limits and account-based document workflows apply.",
       processing: "DocHub is a cloud document workspace with secure storage and connected-drive integrations.",
-      editing: "PDF editing, annotation, fillable forms, templates, and tracked e-signature workflows.",
+      editing: "PDF editing, annotation, fillable forms, and tracked e-signature workflows.",
       signing: "Signature requests, envelopes, bulk send, reminders, tracking, and team workflows are listed across paid plans.",
       platforms: "Web product with Google Drive, Gmail, Dropbox, OneDrive, and Google Classroom integrations.",
       price: "Free, Basic, Pro, and Site License tiers. DocHub lists a shared limit of three uses per month for core features on Free.",
@@ -33,7 +33,7 @@ export const COMPARISONS = [
     rows: [
       ["Start without an account", sharedPdfEnrich.account, "Free plan available, with the fuller workflow centered on an account."],
       ["Document processing", sharedPdfEnrich.processing, "Cloud workspace with secure storage and connected integrations."],
-      ["PDF editing", sharedPdfEnrich.editing, "Editing, annotations, forms, templates, and collaborative document workflows."],
+      ["PDF editing", sharedPdfEnrich.editing, "Editing, annotations, forms, and collaborative document workflows."],
       ["E-signatures", sharedPdfEnrich.signing, "The stronger choice for tracked requests, envelopes, bulk send, and team signing."],
       ["Apps & integrations", sharedPdfEnrich.platforms, "Strong Google and cloud-storage integrations; no native desktop app is emphasized."],
       ["Current cost model", sharedPdfEnrich.price, "Free, Basic, Pro, and Site License plans with feature and usage differences."],
@@ -45,7 +45,7 @@ export const COMPARISONS = [
     ],
     competitorReasons: [
       "You send documents to other people for tracked signatures.",
-      "Your workflow depends on reusable templates, envelopes, folders, or bulk send.",
+      "Your workflow depends on envelopes, folders, bulk send, or other repeat document operations.",
       "Your team needs integrations or business controls such as SSO and a HIPAA BAA option.",
     ],
     sources: [
@@ -285,7 +285,7 @@ export function comparisonFaqEntries(comparison) {
     },
     {
       question: `Can I switch from ${comparison.company} to PDFEnrich?`,
-      answer: "Yes for ordinary PDF files: download or keep the document, then open it directly in PDFEnrich. Account history, reusable templates, signature-request audit trails, and proprietary cloud-workspace data are not automatically imported.",
+      answer: "Yes for ordinary PDF files: download or keep the document, then open it directly in PDFEnrich. Account history, signature-request audit trails, and proprietary cloud-workspace data are not automatically imported.",
     },
     {
       question: "Can I use PDFEnrich without an account?",

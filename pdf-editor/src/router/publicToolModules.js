@@ -11,7 +11,6 @@ export const PUBLIC_TOOL_MODULE_LOADERS = Object.freeze({
   redactPdf: () => import("../pages/public/RedactPdfPage.jsx"),
   scanPdf: () => import("../pages/public/ScanPdfPage.jsx"),
   structuredPdfConversion: () => import("../pages/public/StructuredPdfConversionPage.jsx"),
-  templateBuilder: () => import("../pages/public/TemplateBuilderPage.jsx"),
   textConversion: () => import("../pages/public/TextConversionPage.jsx"),
   toPdfConversion: () => import("../pages/public/ToPdfConversionPage.jsx"),
 });

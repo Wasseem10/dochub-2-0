@@ -83,7 +83,6 @@ const ICONS = {
   sparkles: Sparkles,
   split: Scissors,
   summary: FileText,
-  template: FileText,
   text: FileText,
   translate: RefreshCw,
   unlock: Unlock,

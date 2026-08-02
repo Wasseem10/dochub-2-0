@@ -82,14 +82,6 @@ const categorySeoContent = Object.freeze({
     intro: "Review word-level additions and deletions in searchable documents, inspect focused visual changes in scans, and leave page-level feedback for follow-up.",
     guidance: ["Compare the same page positions for the clearest result.", "Use OCR first when both versions are scanned images and text detail matters.", "Open each highlighted region before accepting the generated report."],
   },
-  templates: {
-    slug: "pdf-document-templates",
-    seoTitle: "PDF Document Templates Online | PDFEnrich",
-    metaDescription: "Create resumes, contracts, NDAs, invoices, and offer-letter drafts in your browser and export searchable PDFs.",
-    headline: "Start common documents with a structured draft.",
-    intro: "Build a resume, services agreement, NDA, invoice, or offer letter with editable fields and a live PDF-ready preview.",
-    guidance: ["Replace every example field before exporting.", "Review legal and employment documents with qualified counsel when appropriate.", "Keep the editable browser draft until the final PDF has been checked."],
-  },
 });
 
 export const TOOL_CATEGORY_PAGES = Object.freeze(TOOL_CATEGORIES.map((category) => {
