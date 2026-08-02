@@ -64,11 +64,12 @@ const DEDICATED_CONVERTER_IDS = new Set(["pdf-to-word", "pdf-to-excel", "pdf-to-
 const DEDICATED_PAGE_TOOL_IDS = new Set(["merge-pdf", "split-pdf", "rotate-pdf", "delete-pdf-pages", "extract-pdf-pages", "reorder-pdf-pages", "organize-pdf", "add-page-numbers", "watermark-pdf", "crop-pdf", "compress-pdf", "redact-pdf", "unlock-pdf", "flatten-pdf", "remove-pdf-password"]);
 const DEFAULT_RELATED_TOOL_IDS = ["edit-pdf", "merge-pdf", "organize-pdf"];
 
-/** Keep the no-cost promise visible in the search result for every released tool. */
+/** Keep the no-cost promise visible in the search result for every released tool. @param {string} title */
 function freeSearchTitle(title) {
   return /\bfree\b/i.test(title) ? title : title.replace(/\s*\|\s*PDFEnrich$/, " Free | PDFEnrich");
 }
 
+/** @param {string} description */
 function freeSearchDescription(description) {
   if (/\bfree\b/i.test(description)) return description;
   const suffix = " Free online tool.";
@@ -207,11 +208,6 @@ const categoryContent = {
     benefit: "A clear review trail helps people understand what changed and what still needs attention.",
     steps: ["Open the document or versions you need to review.", "Inspect differences or add supported annotations.", "Verify the final document and export or share it through an approved workflow."],
     uses: ["Reviewing a contract draft", "Checking a revised policy", "Leaving notes on a PDF"],
-  },
-  templates: {
-    benefit: "A useful template provides a real starting structure, not just an empty document.",
-    steps: ["Choose a template suited to the document type.", "Replace the sample content with reviewed information.", "Check the final document before export or signing."],
-    uses: ["Starting a recurring document", "Keeping formatting consistent", "Reducing repetitive setup work"],
   },
 };
 

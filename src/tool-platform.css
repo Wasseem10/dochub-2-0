@@ -191,14 +191,14 @@
 
 .marketing-footer-intro {
   display: grid;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: auto 1fr;
   align-items: center;
   gap: 28px;
   padding-bottom: 36px;
   border-bottom: 1px solid var(--public-line);
 }
 .marketing-footer-intro p { max-width: 520px; margin: 0; color: var(--public-body); line-height: 1.5; }
-.marketing-footer-tools { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 24px; padding: 40px 0; }
+.marketing-footer-tools { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 24px; padding: 40px 0; }
 .marketing-footer-tools section { display: grid; align-content: start; gap: 8px; }
 .marketing-footer-tools small { margin-bottom: 6px; color: var(--public-ink); }
 .marketing-footer-tools a { color: var(--public-body); font-size: 13px; line-height: 1.35; text-decoration: none; }

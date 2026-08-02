@@ -23,6 +23,7 @@ import Zap from "lucide-react/dist/esm/icons/zap.mjs";
 import { BrandWordmark } from "./components/public/BrandWordmark.jsx";
 import { PageMetadata } from "./components/public/PageMetadata.jsx";
 import { ProfessionalToolIcon } from "./components/public/ProfessionalToolIcon.jsx";
+import { PUBLIC_FOOTER_NAVIGATION_GROUPS, PUBLIC_LEGAL_LINKS, PUBLIC_PRIMARY_NAV_LINKS } from "./components/public/publicNavigation.js";
 import { absoluteSiteUrl } from "./config/site.js";
 import { trackComparisonCta } from "./analytics/productAnalytics.js";
 import { ROUTE_PATHS } from "./router/routePaths.js";
@@ -145,14 +146,6 @@ const homepageFeatureTools = [
   return tool ? { ...tool, ...entry } : null;
 }).filter(Boolean);
 
-const footerNavigationGroups = [
-  { title: "Tools", links: [["Edit PDF", "/edit-pdf"], ["Merge PDF", "/merge-pdf"], ["Split PDF", "/split-pdf"], ["Compress PDF", "/compress-pdf"], ["All tools", ROUTE_PATHS.tools]] },
-  { title: "Edit & sign", links: [["Edit PDF", "/edit-pdf"], ["Annotate PDF", "/annotate-pdf"], ["Fill PDF", "/fill-pdf"], ["Sign PDF", "/sign-pdf"], ["PDF Form Filler", "/pdf-form-filler"]] },
-  { title: "Convert", links: [["PDF to Word", "/pdf-to-word"], ["PDF to JPG", "/pdf-to-jpg"], ["PDF to PNG", "/pdf-to-png"], ["Word to PDF", "/word-to-pdf"], ["JPG to PDF", "/jpg-to-pdf"]] },
-  { title: "Company", links: [["About PDFEnrich", ROUTE_PATHS.about], ["Free—no paid plans", ROUTE_PATHS.pricing], ["Comparisons", ROUTE_PATHS.compare], ["Resources", ROUTE_PATHS.resources], ["Security", ROUTE_PATHS.security]] },
-  { title: "Support", links: [["Help Center", ROUTE_PATHS.support], ["Contact us", ROUTE_PATHS.contactSales], ["FAQs", "/#faq-title"], ["Privacy", ROUTE_PATHS.privacy]] },
-];
-
 const toolsMenuColumns = [
   ["compress", "ai"],
   ["organize"],
@@ -215,29 +208,19 @@ function SiteHeader({ onChoose }) {
     if (open) firstLinkRef.current?.focus();
   }, [open]);
 
-  const links = [
-    ["Tools", ROUTE_PATHS.tools],
-    ["Edit", ROUTE_PATHS.editPdf],
-    ["Organize", "/organize-pdf"],
-    ["Sign", ROUTE_PATHS.signPdf],
-    ["Convert", "/pdf-to-jpg"],
-    ["Compare", ROUTE_PATHS.compare],
-    ["About", ROUTE_PATHS.about],
-  ];
-
   return <header className="freepdf-header-shell">
     <div className="freepdf-header">
       <Brand />
       <nav className="freepdf-desktop-nav" aria-label="Primary navigation">
         <button ref={toolsButtonRef} type="button" className={`freepdf-tools-trigger ${toolsOpen ? "is-open" : ""}`} aria-expanded={toolsOpen} aria-haspopup="true" aria-controls="freepdf-tools-menu" onClick={() => { setToolsOpen((value) => !value); setOpen(false); }}><span>Tools</span> <ChevronDown className="freepdf-tools-chevron" size={14} /></button>
-        {links.slice(1).map(([label, href]) => <Link key={label} to={href} onClick={() => setToolsOpen(false)}>{label}</Link>)}
+        {PUBLIC_PRIMARY_NAV_LINKS.slice(1).map(({ label, to }) => <Link key={label} to={to} onClick={() => setToolsOpen(false)}>{label}</Link>)}
       </nav>
       <div className="freepdf-header-actions">
         <Link to={ROUTE_PATHS.login}>Log in</Link>
         <button type="button" className="freepdf-header-cta" onClick={onChoose}>Use for free</button>
         <button className="freepdf-menu-button" type="button" aria-label={open ? "Close navigation" : "Open navigation"} aria-expanded={open} onClick={() => { setOpen((value) => !value); setToolsOpen(false); }}>{open ? <X size={21} /> : <Menu size={21} />}</button>
       </div>
-      {open && <nav className="freepdf-mobile-nav" aria-label="Mobile navigation">{links.map(([label, href], index) => <Link ref={index === 0 ? firstLinkRef : undefined} key={label} to={href} onClick={() => setOpen(false)}>{label}</Link>)}<Link to={ROUTE_PATHS.login} onClick={() => setOpen(false)}>Log in</Link><button type="button" onClick={() => { setOpen(false); onChoose(); }}>Use for free</button></nav>}
+      {open && <nav className="freepdf-mobile-nav" aria-label="Mobile navigation">{PUBLIC_PRIMARY_NAV_LINKS.map(({ label, to }, index) => <Link ref={index === 0 ? firstLinkRef : undefined} key={label} to={to} onClick={() => setOpen(false)}>{label}</Link>)}<Link to={ROUTE_PATHS.login} onClick={() => setOpen(false)}>Log in</Link><button type="button" onClick={() => { setOpen(false); onChoose(); }}>Use for free</button></nav>}
     </div>
     {toolsOpen && <div ref={toolsMenuRef} className="freepdf-tools-mega" id="freepdf-tools-menu" role="region" aria-label="PDFEnrich tools">
       <div className="freepdf-tools-mega-grid">
@@ -351,15 +334,15 @@ function SiteFooter() {
           <p>Every PDF task, finally in one place.</p>
         </div>
         <section className="freepdf-footer-directory" aria-label="PDF tool directory">
-          {footerNavigationGroups.map((group) => <nav key={group.title} aria-label={group.title}>
+          {PUBLIC_FOOTER_NAVIGATION_GROUPS.map((group) => <nav key={group.title} aria-label={group.title}>
             <h2>{group.title}</h2>
-            {group.links.map(([label, route]) => <Link key={label} to={route}>{label}</Link>)}
+            {group.links.map(({ label, to }) => <Link key={label} to={to}>{label}</Link>)}
           </nav>)}
         </section>
       </div>
       <div className="freepdf-footer-meta">
         <span>© 2026 PDFEnrich. All rights reserved.</span>
-        <nav aria-label="Footer legal"><Link to={ROUTE_PATHS.privacy}>Privacy</Link><Link to={ROUTE_PATHS.terms}>Terms</Link><Link to={ROUTE_PATHS.security}>Security</Link><Link to={ROUTE_PATHS.support}>Accessibility</Link></nav>
+        <nav aria-label="Footer legal">{PUBLIC_LEGAL_LINKS.map(({ label, to }) => <Link key={label} to={to}>{label}</Link>)}</nav>
         <button type="button" className="freepdf-footer-language" aria-label="Language: English"><Globe2 size={16} /> English <ChevronDown size={15} /></button>
       </div>
     </div>

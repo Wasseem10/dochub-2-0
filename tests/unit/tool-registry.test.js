@@ -14,9 +14,9 @@ const requiredFields = [
 ];
 
 describe("PDFEnrich tool registry", () => {
-  it("contains the complete 68-tool catalog with a valid unique schema", () => {
-    expect(TOOL_REGISTRY).toHaveLength(68);
-    expect(TOOL_CATEGORIES).toHaveLength(11);
+  it("contains the complete in-scope 61-tool catalog with a valid unique schema", () => {
+    expect(TOOL_REGISTRY).toHaveLength(61);
+    expect(TOOL_CATEGORIES).toHaveLength(10);
     expect(validateToolRegistry()).toEqual([]);
     TOOL_REGISTRY.forEach((tool) => requiredFields.forEach((field) => expect(tool, `${tool.id}.${field}`).toHaveProperty(field)));
     expect(TOOL_REGISTRY.every((tool) => !tool.heroHeadline.includes("honest limits"))).toBe(true);
@@ -25,7 +25,7 @@ describe("PDFEnrich tool registry", () => {
   it("truthfully exposes released editor and conversion workflows", () => {
     const counts = Object.groupBy(TOOL_REGISTRY, (tool) => tool.status);
     expect(counts.partial || []).toHaveLength(0);
-    expect(counts.available).toHaveLength(67);
+    expect(counts.available).toHaveLength(60);
     expect(counts.beta || []).toHaveLength(1);
     expect(counts["coming-soon"] || []).toHaveLength(0);
     expect(TOOL_REGISTRY.find((tool) => tool.id === "redact-pdf")).toMatchObject({ status: "available", workflowType: "page-tool", opensEditor: false });

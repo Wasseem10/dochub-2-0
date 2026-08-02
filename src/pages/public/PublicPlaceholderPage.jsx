@@ -74,6 +74,6 @@ export function PublicPlaceholderPage({ path, title, description, status }) {
   return <main className="public-info-page">
     <PageMetadata title={`${title} | PDFEnrich`} description={content?.intro || description} canonicalUrl={path} noIndex={noIndex} />
     <section className="public-info-hero"><span className="route-status-pill">{content ? "PDFEnrich information" : status}</span><h1>{title}</h1><p>{content?.intro || description}</p><div><Link to={ROUTE_PATHS.tools}>Browse working tools</Link><Link to={ROUTE_PATHS.editPdf}>Choose a PDF</Link>{content && <Link to={ROUTE_PATHS.support}>Contact support</Link>}</div></section>
-    {content ? <div className="public-info-sections">{content.sections.map(([heading, copy]) => <section key={heading}><h2>{heading}</h2><p>{copy}</p></section>)}</div> : <section className="route-state-card"><h2>Not part of the core public product today</h2><p>This route remains available for compatibility, but PDFEnrich does not present unfinished sales, enterprise, integration, or template features as working product capabilities.</p></section>}
+    {content ? <div className="public-info-sections">{content.sections.map(([heading, copy]) => <section key={heading}><h2>{heading}</h2><p>{copy}</p></section>)}</div> : <section className="route-state-card"><h2>Not part of the core public product today</h2><p>This route remains available for compatibility, but PDFEnrich does not present unfinished sales, enterprise, or integration features as working product capabilities.</p></section>}
   </main>;
 }
