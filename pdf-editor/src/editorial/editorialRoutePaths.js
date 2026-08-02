@@ -21,7 +21,6 @@ export const EDITORIAL_RESOURCE_PATHS = Object.freeze([
   ROUTE_PATHS.removePagesFromPdfGuide,
   ROUTE_PATHS.rotatePdfAndSaveGuide,
   ROUTE_PATHS.pdfAttachmentSizeStudy,
-  ROUTE_PATHS.templates,
   ROUTE_PATHS.educationWorkflow,
   ROUTE_PATHS.recruitingWorkflow,
   ROUTE_PATHS.legalOperationsWorkflow,
