@@ -31,7 +31,7 @@ function pixelLuminance(data, offset) {
   return data[offset] * 0.2126 + data[offset + 1] * 0.7152 + data[offset + 2] * 0.0722;
 }
 
-export function detectDocumentBounds(imageData, options = {}) {
+function analyzeDocumentMask(imageData, options = {}) {
   const width = Math.trunc(Number(imageData?.width || 0));
   const height = Math.trunc(Number(imageData?.height || 0));
   const data = imageData?.data;
@@ -59,6 +59,10 @@ export function detectDocumentBounds(imageData, options = {}) {
   let maxX = -1;
   let maxY = -1;
   let foregroundSamples = 0;
+  let topLeft = null;
+  let topRight = null;
+  let bottomRight = null;
+  let bottomLeft = null;
   for (let y = 0; y < height; y += step) {
     for (let x = 0; x < width; x += step) {
       const luminance = pixelLuminance(data, (y * width + x) * 4);
@@ -68,6 +72,10 @@ export function detectDocumentBounds(imageData, options = {}) {
       minY = Math.min(minY, y);
       maxX = Math.max(maxX, x);
       maxY = Math.max(maxY, y);
+      if (!topLeft || x + y < topLeft.score) topLeft = { x, y, score: x + y };
+      if (!topRight || x - y > topRight.score) topRight = { x, y, score: x - y };
+      if (!bottomRight || x + y > bottomRight.score) bottomRight = { x, y, score: x + y };
+      if (!bottomLeft || x - y < bottomLeft.score) bottomLeft = { x, y, score: x - y };
     }
   }
   if (!foregroundSamples || maxX <= minX || maxY <= minY) return null;
@@ -78,15 +86,60 @@ export function detectDocumentBounds(imageData, options = {}) {
   const rawWidth = maxX - minX + step;
   const rawHeight = maxY - minY + step;
   if (coverage < Number(options.minCoverage || 0.42) || rawWidth / width < 0.55 || rawHeight / height < 0.55) return null;
+  return { width, height, step, minX, minY, maxX, maxY, rawWidth, rawHeight, coverage, topLeft, topRight, bottomRight, bottomLeft };
+}
 
-  const paddingX = Math.max(2, Math.round(rawWidth * 0.025));
-  const paddingY = Math.max(2, Math.round(rawHeight * 0.025));
-  const x = Math.max(0, minX - paddingX);
-  const y = Math.max(0, minY - paddingY);
-  const right = Math.min(width, maxX + step + paddingX);
-  const bottom = Math.min(height, maxY + step + paddingY);
+function pointDistance(first, second) {
+  return Math.hypot(second.x - first.x, second.y - first.y);
+}
+
+function quadrilateralArea(points) {
+  return Math.abs(points.reduce((total, point, index) => {
+    const next = points[(index + 1) % points.length];
+    return total + point.x * next.y - next.x * point.y;
+  }, 0)) / 2;
+}
+
+function expandCorner(point, center, factor, width, height) {
+  return {
+    x: Math.max(0, Math.min(width - 1, Math.round(center.x + (point.x - center.x) * factor))),
+    y: Math.max(0, Math.min(height - 1, Math.round(center.y + (point.y - center.y) * factor))),
+  };
+}
+
+export function detectDocumentCorners(imageData, options = {}) {
+  const analysis = analyzeDocumentMask(imageData, options);
+  if (!analysis) return null;
+  const points = [analysis.topLeft, analysis.topRight, analysis.bottomRight, analysis.bottomLeft].map(({ x, y }) => ({ x, y }));
+  const areaRatio = quadrilateralArea(points) / (analysis.width * analysis.height);
+  const topWidth = pointDistance(points[0], points[1]);
+  const bottomWidth = pointDistance(points[3], points[2]);
+  const leftHeight = pointDistance(points[0], points[3]);
+  const rightHeight = pointDistance(points[1], points[2]);
+  if (areaRatio < 0.28 || Math.min(topWidth, bottomWidth) < analysis.width * 0.42 || Math.min(leftHeight, rightHeight) < analysis.height * 0.42) return null;
+  const center = points.reduce((result, point) => ({ x: result.x + point.x / 4, y: result.y + point.y / 4 }), { x: 0, y: 0 });
+  const [topLeft, topRight, bottomRight, bottomLeft] = points.map((point) => expandCorner(point, center, 1.018, analysis.width, analysis.height));
+  return {
+    topLeft,
+    topRight,
+    bottomRight,
+    bottomLeft,
+    confidence: Math.round(Math.min(1, analysis.coverage * Math.min(1, areaRatio / 0.55)) * 100),
+  };
+}
+
+export function detectDocumentBounds(imageData, options = {}) {
+  const analysis = analyzeDocumentMask(imageData, options);
+  if (!analysis) return null;
+
+  const paddingX = Math.max(2, Math.round(analysis.rawWidth * 0.025));
+  const paddingY = Math.max(2, Math.round(analysis.rawHeight * 0.025));
+  const x = Math.max(0, analysis.minX - paddingX);
+  const y = Math.max(0, analysis.minY - paddingY);
+  const right = Math.min(analysis.width, analysis.maxX + analysis.step + paddingX);
+  const bottom = Math.min(analysis.height, analysis.maxY + analysis.step + paddingY);
   const cropWidth = right - x;
   const cropHeight = bottom - y;
-  if (cropWidth * cropHeight > width * height * 0.96) return null;
-  return { x, y, width: cropWidth, height: cropHeight, confidence: Math.round(coverage * 100) };
+  if (cropWidth * cropHeight > analysis.width * analysis.height * 0.96) return null;
+  return { x, y, width: cropWidth, height: cropHeight, confidence: Math.round(analysis.coverage * 100) };
 }
