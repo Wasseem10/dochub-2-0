@@ -3,13 +3,22 @@ import * as pdfjsLib from "pdfjs-dist";
 
 const MAX_RENDERED_PIXELS = 18_000_000;
 
-function safeBaseName(value) {
-  return String(value || "pdfenrich-document")
+export function editorExportBaseName(value) {
+  let name = Array.from(String(value || "pdfenrich-document"), (character) => (
+    character.codePointAt(0) <= 31 ? "-" : character
+  )).join("")
     .replace(/\.[^.]+$/i, "")
-    .replace(/[<>:"/\\|?*\u0000-\u001f]/g, "-")
+    .replace(/[<>:"/\\|?*]/g, "-")
     .replace(/\s+/g, " ")
-    .trim()
-    || "pdfenrich-document";
+    .trim();
+  let previousName = "";
+  while (name && name !== previousName) {
+    previousName = name;
+    name = name
+      .replace(/-edited$/i, "")
+      .replace(/\.(?:pdf|png|jpe?g|zip|docx|xlsx|pptx)$/i, "");
+  }
+  return name.trim() || "pdfenrich-document";
 }
 
 function renderScaleForPage(width, height, preferredScale) {
@@ -59,7 +68,7 @@ export async function createEditorFormatDownload({
   if (!(pdfBytes instanceof Uint8Array) || !pdfBytes.length) {
     throw new Error("The edited PDF could not be prepared for conversion.");
   }
-  const baseName = safeBaseName(fileName).replace(/-edited$/i, "");
+  const baseName = editorExportBaseName(fileName);
   const loadingTask = pdfjsLib.getDocument({ data: pdfBytes.slice(0) });
   const pdfDocument = await loadingTask.promise;
   const progressForPage = (pageNumber, maximum = 88) => {

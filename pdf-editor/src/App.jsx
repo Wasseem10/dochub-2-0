@@ -103,7 +103,7 @@ import { calculateEditorFitZoom, EDITOR_ZOOM_MODE, editorZoomLabel } from "./too
 import { claimGuestDocument, editorActionNeedsAccount, resolveEditorStorageOwnerId } from "./tools/guestDocumentSession.js";
 import { clearEditorSession, loadEditorSession, saveEditorSession } from "./tools/editorSessionStore.js";
 import { loadLocalDocuments, saveLocalDocuments } from "./tools/localDocumentStore.js";
-import { sanitizePdfDisplayName } from "./tools/safeFileName.js";
+import { downloadFileNameForMime, sanitizePdfDisplayName } from "./tools/safeFileName.js";
 import {
   createCloudIdempotencyKey,
   downloadPrivateCloudPdf,
@@ -619,7 +619,7 @@ function downloadBlob(blob, name, toolId = "edit-pdf") {
   const url = URL.createObjectURL(blob);
   const anchor = window.document.createElement("a");
   anchor.href = url;
-  anchor.download = sanitizePdfDisplayName(name);
+  anchor.download = downloadFileNameForMime(name, blob.type);
   anchor.style.display = "none";
   window.document.body.appendChild(anchor);
   anchor.click();
