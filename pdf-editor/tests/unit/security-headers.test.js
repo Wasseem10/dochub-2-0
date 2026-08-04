@@ -8,7 +8,8 @@ async function vercelConfiguration() {
 describe("production response headers", () => {
   it("enforces a restrictive CSP and browser security boundaries", async () => {
     const configuration = await vercelConfiguration();
-    const globalHeaders = configuration.headers.find(({ source }) => source === "/(.*)")?.headers || [];
+    const globalHeaderRule = configuration.headers.find(({ source }) => source.includes("(?!__/auth/)"));
+    const globalHeaders = globalHeaderRule?.headers || [];
     const values = Object.fromEntries(globalHeaders.map(({ key, value }) => [key.toLowerCase(), value]));
     const scriptDirective = values["content-security-policy"]
       .split(";")
@@ -26,6 +27,19 @@ describe("production response headers", () => {
     expect(values["referrer-policy"]).toBe("no-referrer");
     expect(values["x-content-type-options"]).toBe("nosniff");
     expect(values["x-frame-options"]).toBe("DENY");
+    expect(globalHeaderRule?.source).toContain("(?!__/auth/)");
+  });
+
+  it("proxies the Firebase auth helper through the production origin", async () => {
+    const configuration = await vercelConfiguration();
+    const authRewrite = configuration.rewrites.find(({ source }) => source === "/__/auth/:path*");
+    const authHeaders = configuration.headers.find(({ source }) => source === "/__/auth/(.*)")?.headers || [];
+    const values = Object.fromEntries(authHeaders.map(({ key, value }) => [key.toLowerCase(), value]));
+
+    expect(authRewrite?.destination).toBe("https://pdf-editor-1137a.firebaseapp.com/__/auth/:path*");
+    expect(values["content-security-policy"]).toContain("frame-ancestors 'self' https://pdfenrich.com");
+    expect(values["content-security-policy"]).toContain("https://www.pdfenrich.com");
+    expect(values["x-frame-options"]).toBe("SAMEORIGIN");
   });
 
   it("prevents private application and bearer-link shells from being cached", async () => {

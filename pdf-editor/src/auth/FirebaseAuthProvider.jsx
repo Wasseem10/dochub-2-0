@@ -5,12 +5,14 @@ import {
   EmailAuthProvider,
   getAdditionalUserInfo,
   getIdTokenResult,
+  getRedirectResult,
   onAuthStateChanged,
   reauthenticateWithCredential,
   reauthenticateWithPopup,
   sendPasswordResetEmail,
   signInWithEmailAndPassword,
   signInWithPopup,
+  signInWithRedirect,
   signOut,
   updateProfile,
 } from "firebase/auth";
@@ -26,6 +28,7 @@ import { clearEditorSession, clearEditorSessionsForOwner } from "../tools/editor
 import { deleteLocalDocuments, loadLocalDocuments } from "../tools/localDocumentStore.js";
 import { logRedactedClientError } from "../monitoring/productionMonitoring.js";
 import { AuthContext } from "./AuthContext.jsx";
+import { authenticateWithGoogleProvider } from "./googleAuthFlow.js";
 import { syncAuthUserProfile } from "./authUserProfile.js";
 
 const LOCAL_AUTH_STORAGE_KEY = "pdfenrich.local-auth-user.v1";
@@ -111,6 +114,10 @@ export function formatAuthError(error) {
   if (code.includes("auth/user-not-found")) return "No account exists for that email.";
   if (code.includes("auth/weak-password")) return "Use a password with at least 6 characters.";
   if (code.includes("auth/popup-closed-by-user")) return "Google sign-in was closed before it finished.";
+  if (code.includes("auth/popup-blocked")) return "Your browser blocked Google sign-in. Open PDFEnrich in Safari or Chrome and try again.";
+  if (code.includes("auth/cancelled-popup-request")) return "Another Google sign-in window is already open.";
+  if (code.includes("auth/operation-not-supported-in-this-environment") || code.includes("auth/web-storage-unsupported")) return "Google sign-in is blocked in this in-app browser. Open PDFEnrich in Safari or Chrome and try again.";
+  if (code.includes("auth/network-request-failed")) return "Google sign-in could not reach Firebase. Check your connection and try again.";
   if (code.includes("auth/unauthorized-domain")) return "This domain is not authorized in Firebase Authentication settings.";
   if (code.includes("auth/requires-recent-login")) return "For security, sign out and sign in again before deleting your account.";
   if (error?.message === "browser_cleanup_failed") {
@@ -124,6 +131,7 @@ export function formatAuthError(error) {
 
 export default function FirebaseAuthProvider({ children }) {
   const [currentUser, setCurrentUser] = useState(null);
+  const [authError, setAuthError] = useState("");
   const [authReady, setAuthReady] = useState(!isFirebaseConfigured);
 
   useEffect(() => {
@@ -133,23 +141,53 @@ export default function FirebaseAuthProvider({ children }) {
       return undefined;
     }
 
-    return onAuthStateChanged(auth, async (user) => {
+    let active = true;
+    let authStateResolved = false;
+    let redirectResolved = false;
+    const markReady = () => {
+      if (active && authStateResolved && redirectResolved) setAuthReady(true);
+    };
+
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
       const mappedUser = user ? await mapFirebaseUserWithClaims(user) : null;
-      if (auth.currentUser?.uid === user?.uid || !user) setCurrentUser(mappedUser);
-      setAuthReady(true);
+      if (active && (auth.currentUser?.uid === user?.uid || !user)) setCurrentUser(mappedUser);
+      authStateResolved = true;
+      markReady();
       if (user) {
         syncAuthUserProfile(user).catch((error) => {
           logRedactedClientError("Could not update the owner sign-in ledger", error);
         });
       }
     });
+
+    getRedirectResult(auth).then(async (credential) => {
+      if (!active || !credential?.user) return;
+      const user = await mapFirebaseUserWithClaims(credential.user);
+      if (!active) return;
+      const additionalUserInfo = getAdditionalUserInfo(credential);
+      trackProductEvent(additionalUserInfo?.isNewUser ? "account_signed_up" : "account_logged_in", { authMethod: "google" });
+      setAuthError("");
+      setCurrentUser(user);
+    }).catch((error) => {
+      if (active) setAuthError(formatAuthError(error));
+    }).finally(() => {
+      redirectResolved = true;
+      markReady();
+    });
+
+    return () => {
+      active = false;
+      unsubscribe();
+    };
   }, []);
 
   const value = useMemo(() => ({
     authReady,
+    authError,
     currentUser,
     isFirebaseConfigured,
     async authenticate({ mode, email, password, name, provider }) {
+      setAuthError("");
       if (!auth) {
         if (provider === "google") return { ok: false, error: "Google sign-in requires cloud authentication. Use email sign-in for this local workspace." };
         const user = createLocalAuthUser({ email, name });
@@ -163,11 +201,22 @@ export default function FirebaseAuthProvider({ children }) {
         return { ok: true, user };
       }
       try {
-        const credential = provider === "google"
-          ? await signInWithPopup(auth, googleProvider)
-          : mode === "signup"
+        let credential;
+        if (provider === "google") {
+          const googleResult = await authenticateWithGoogleProvider({
+            auth,
+            provider: googleProvider,
+            popup: signInWithPopup,
+            redirect: signInWithRedirect,
+            environment: window,
+          });
+          if (googleResult.redirecting) return { ok: false, redirecting: true };
+          credential = googleResult.credential;
+        } else {
+          credential = mode === "signup"
             ? await createUserWithEmailAndPassword(auth, email, password)
             : await signInWithEmailAndPassword(auth, email, password);
+        }
         if (mode === "signup" && provider !== "google" && name?.trim()) {
           await updateProfile(credential.user, { displayName: name.trim() });
         }
@@ -237,7 +286,7 @@ export default function FirebaseAuthProvider({ children }) {
       }
       setCurrentUser(null);
     },
-  }), [authReady, currentUser]);
+  }), [authError, authReady, currentUser]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
