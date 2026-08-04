@@ -10,6 +10,15 @@ const SAFE_DOWNLOAD_EXTENSIONS = new Set([
   "xlsx",
   "pptx",
 ]);
+const DOWNLOAD_EXTENSION_BY_MIME = new Map([
+  ["application/pdf", "pdf"],
+  ["image/png", "png"],
+  ["image/jpeg", "jpg"],
+  ["application/zip", "zip"],
+  ["application/vnd.openxmlformats-officedocument.wordprocessingml.document", "docx"],
+  ["application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "xlsx"],
+  ["application/vnd.openxmlformats-officedocument.presentationml.presentation", "pptx"],
+]);
 
 function stripControlAndBidiCharacters(value) {
   return Array.from(value, (character) => {
@@ -58,6 +67,29 @@ export function sanitizeDownloadFileName(value, fallback = "PDFEnrich document.p
   if (!SAFE_DOWNLOAD_EXTENSIONS.has(extension)) {
     const base = extensionMatch ? name.slice(0, -extensionMatch[0].length) : name;
     name = `${base.replace(/\.+$/g, "") || "PDFEnrich document"}.pdf`;
+  }
+
+  return truncateFileName(name);
+}
+
+export function downloadFileNameForMime(value, mimeType, fallback = "PDFEnrich document.pdf") {
+  const expectedExtension = DOWNLOAD_EXTENSION_BY_MIME.get(String(mimeType || "").toLowerCase());
+  if (!expectedExtension) return sanitizeDownloadFileName(value, fallback);
+
+  let name = cleanFileName(value);
+  if (!name) name = cleanFileName(fallback) || `PDFEnrich document.${expectedExtension}`;
+  const extensionMatch = name.match(/\.([a-z0-9]{1,10})$/i);
+  const currentExtension = extensionMatch?.[1]?.toLowerCase() || "";
+  const extensionMatches = currentExtension === expectedExtension
+    || (expectedExtension === "jpg" && currentExtension === "jpeg");
+  if (!extensionMatches) {
+    const base = extensionMatch ? name.slice(0, -extensionMatch[0].length) : name;
+    const baseExtension = base.match(/\.([a-z0-9]{1,10})$/i)?.[1]?.toLowerCase() || "";
+    const baseAlreadyMatches = baseExtension === expectedExtension
+      || (expectedExtension === "jpg" && baseExtension === "jpeg");
+    name = baseAlreadyMatches
+      ? base
+      : `${base.replace(/\.+$/g, "") || "PDFEnrich document"}.${expectedExtension}`;
   }
 
   return truncateFileName(name);

@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { sanitizeDownloadFileName, sanitizePdfDisplayName } from "../../src/tools/safeFileName.js";
+import {
+  downloadFileNameForMime,
+  sanitizeDownloadFileName,
+  sanitizePdfDisplayName,
+} from "../../src/tools/safeFileName.js";
 
 describe("PDF filename sanitization", () => {
   it("removes control characters, paths, bidi overrides, and header punctuation", () => {
@@ -39,5 +43,16 @@ describe("download filename sanitization", () => {
     const name = sanitizeDownloadFileName(`${"a".repeat(300)}.pptx`);
     expect(name.length).toBeLessThanOrEqual(124);
     expect(name.endsWith(".pptx")).toBe(true);
+  });
+
+  it.each([
+    ["Resume_Wasseem.png.pdf", "image/png", "Resume_Wasseem.png"],
+    ["Resume_Wasseem.jpg.pdf", "image/jpeg", "Resume_Wasseem.jpg"],
+    ["Resume_Wasseem.png", "application/pdf", "Resume_Wasseem.pdf"],
+    ["Resume_Wasseem.pdf", "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "Resume_Wasseem.docx"],
+    ["Resume_Wasseem.pdf", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "Resume_Wasseem.xlsx"],
+    ["Resume_Wasseem.pdf", "application/vnd.openxmlformats-officedocument.presentationml.presentation", "Resume_Wasseem.pptx"],
+  ])("matches %s to its real %s file type", (value, mimeType, expected) => {
+    expect(downloadFileNameForMime(value, mimeType)).toBe(expected);
   });
 });

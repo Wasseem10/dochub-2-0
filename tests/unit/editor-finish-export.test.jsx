@@ -2,7 +2,7 @@ import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import { FINISH_EXPORT_FORMATS, FinishExportModal } from "../../src/components/editor/FinishExportModal.jsx";
-import { createEditorFormatDownload } from "../../src/tools/editorFinishExport.js";
+import { createEditorFormatDownload, editorExportBaseName } from "../../src/tools/editorFinishExport.js";
 
 vi.mock("pdfjs-dist", () => ({ getDocument: vi.fn() }));
 
@@ -45,5 +45,14 @@ describe("editor finish export chooser", () => {
       pdfBytes: new Uint8Array(),
       fileName: "Contract.pdf",
     })).rejects.toThrow("could not be prepared");
+  });
+
+  it.each([
+    ["Resume_Wasseem-edited.pdf", "Resume_Wasseem"],
+    ["Resume_Wasseem.png-edited.pdf", "Resume_Wasseem"],
+    ["Resume_Wasseem.jpg.pdf", "Resume_Wasseem"],
+    ["quarterly.report.v2.pdf", "quarterly.report.v2"],
+  ])("creates one clean base name from %s", (value, expected) => {
+    expect(editorExportBaseName(value)).toBe(expected);
   });
 });
