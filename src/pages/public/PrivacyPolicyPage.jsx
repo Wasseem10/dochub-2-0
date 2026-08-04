@@ -51,7 +51,7 @@ const dataRows = [
     category: "Optional private cloud PDFs",
     examples: "The finished edited PDF, sanitized display name, size, MIME type, checksum, internal IDs, timestamps, version, and deletion status. Visible signatures or form answers already placed in the finished PDF are part of those PDF bytes.",
     source: "You only when signed in and choosing “Save private cloud copy” for that document.",
-    purpose: "Keep a durable private PDF copy and version history across sessions or devices.",
+    purpose: "Keep an account-restricted PDF copy and version history that you can open after signing in on another supported device.",
     disclosed: "Google Cloud Firestore and Cloud Storage for Firebase; when configured, the private malware-scanning service used to verify that cloud copy.",
     retention: "Until permanent document or account deletion, subject to the configured trash-recovery window and provider backup or soft-delete periods.",
   },
@@ -76,7 +76,7 @@ const dataRows = [
     examples: "Random browser ID, account ID if signed in, route, referring hostname, traffic category, device/browser family, tool used, broad file-size/page-count buckets, outcome, and performance/error category.",
     source: "Your browser after you allow optional analytics.",
     purpose: "Measure reliability and understand which workflows need improvement.",
-    disclosed: "Firebase.",
+    disclosed: "Google Firebase and Google Analytics.",
     retention: `Assigned a deletion date ${OPTIONAL_ANALYTICS_RETENTION_DAYS} days after collection.`,
   },
   {
@@ -141,6 +141,23 @@ export function PrivacyPolicyPage() {
               <p><CheckCircle2 size={17} /> PDFEnrich does not put file names, PDF contents, extracted text, signatures, form answers, or document URLs into product analytics.</p>
               <p><CheckCircle2 size={17} /> PDFEnrich does not use your documents to train PDFEnrich or third-party AI models.</p>
             </div>
+            <div className="privacy-storage-paths" aria-label="Document storage choices">
+              <article>
+                <span>Local editing</span>
+                <h3>Only on this device</h3>
+                <p>Choosing a file, editing it, or signing in does not upload its PDF bytes. Browser-local work is available only in that browser and can be removed by deleting the document or clearing site data.</p>
+              </article>
+              <article>
+                <span>Private cloud copy</span>
+                <h3>Available across your devices</h3>
+                <p>After signing in, you may deliberately save one document to your account. That action uploads the current finished PDF and minimal metadata so you can open it after signing in on another supported device.</p>
+              </article>
+              <article>
+                <span>Share or signing link</span>
+                <h3>Available to link holders</h3>
+                <p>This is separate from private account storage. Creating a link uploads the exported PDF and lets anyone with that unrevoked bearer link open or download it until it expires.</p>
+              </article>
+            </div>
           </section>
 
           <section id="scope">
@@ -174,7 +191,9 @@ export function PrivacyPolicyPage() {
             <h3>Browser-only workflows</h3>
             <p>The editor and supported page, image, protection, OCR, and conversion tools process files in browser memory. Saved guest work may use IndexedDB or local storage on your device. Clearing PDFEnrich site data removes those browser copies, but PDFEnrich cannot delete downloads, browser backups, or copies you saved elsewhere.</p>
             <h3>Optional cloud history</h3>
-            <p>Private cloud saving is available only when the deployment has its authenticated cloud API configured. A signed-in user must choose “Save private cloud copy” for each document. PDFEnrich then uploads the rebuilt finished PDF and minimal metadata; it does not upload the editable workspace, OCR text, thumbnails, undo history, or signature library. Before PDFEnrich marks the copy saved, the configured private malware-scanning service may read that exact cloud object to return a clean or rejected result. The finished PDF itself can contain any visible signatures and form answers the user placed on it. Delete individual cloud copies in PDFEnrich or delete the entire account to remove active account-linked cloud data.</p>
+            <p>Private cloud saving is available only when the deployment has its authenticated cloud API configured. A signed-in user must choose “Save private cloud copy” for each document. PDFEnrich then uploads the rebuilt finished PDF and minimal metadata to account-restricted storage. Signing in alone never uploads a browser-local document, and saving one document never uploads the user's other local documents.</p>
+            <p>A confirmed private cloud copy can be listed and downloaded after the account holder signs in on another supported device. The cloud copy is a finished PDF, not a synchronized editable workspace: PDFEnrich does not upload the editable workspace, OCR text, thumbnails, undo history, or signature library. Changes made after opening a cloud PDF remain local until the user deliberately saves another private cloud version.</p>
+            <p>Before PDFEnrich marks the copy saved, the configured private malware-scanning service may read that exact cloud object to return a clean or rejected result. The finished PDF itself can contain any visible signatures and form answers the user placed on it. Users can delete individual cloud copies, empty applicable trash, or delete the entire account to request removal of active account-linked cloud data, subject to the retention limits below.</p>
             <h3>Sharing and signing requests</h3>
             <p>Creating a sharing or signing link uploads the exported PDF to Firebase. Anyone who has the high-entropy bearer link can open or download it until expiration or revocation. The raw capability is kept in the URL fragment so it is not sent in ordinary page requests; Firebase records and object identifiers use its SHA-256 hash. Recipient name, recipient email, requester details, the optional message, and required fields are stored in the expiring signing-request record rather than encoded into the link. Those details and the link may also pass through the email provider you choose to send them. Do not create a link unless you are authorized to disclose the document and recipient information.</p>
           </section>
@@ -197,7 +216,7 @@ export function PrivacyPolicyPage() {
             <h2>When information is disclosed</h2>
             <p>PDFEnrich limits disclosure to the following situations:</p>
             <ul>
-              <li><strong>Service providers:</strong> website hosting and content delivery providers; Google Firebase Authentication, Firestore, Storage, App Check, reCAPTCHA Enterprise, and Google Sign-In; and, only when private cloud saving is configured, the private malware-scanning service identified by the operator for that deployment.</li>
+              <li><strong>Service providers:</strong> website hosting and content delivery providers; Google Firebase Authentication, Firestore, Storage, Analytics, App Check, reCAPTCHA Enterprise, and Google Sign-In; and, only when private cloud saving is configured, the private malware-scanning service identified by the operator for that deployment.</li>
               <li><strong>People you direct:</strong> recipients of sharing or signing links and email providers you use to send them.</li>
               <li><strong>Legal and safety:</strong> authorities or other parties when reasonably necessary to comply with law, protect users, investigate abuse, or defend legal rights.</li>
               <li><strong>Business transition:</strong> a buyer, successor, or adviser in a merger, financing, reorganization, or sale, subject to appropriate confidentiality and notice where required.</li>
@@ -252,6 +271,7 @@ export function PrivacyPolicyPage() {
             <span className="privacy-section-number">11</span>
             <h2>Security</h2>
             <p>PDFEnrich uses browser-local processing where practical, HTTPS in production, Firebase access controls, randomly generated sharing tokens, time-limited links, App Check/reCAPTCHA abuse controls, owner-restricted account data, and deletion tools. Access to account directories, analytics, and support records is restricted to authorized operator workflows.</p>
+            <p>A private cloud PDF is protected by the signed-in account boundary, so anyone who gains access to that account or an already signed-in device may be able to open it. Users should use a unique password, protect access to their email and Google account, sign out on shared devices, and promptly report suspected unauthorized access.</p>
             <p>No system is perfectly secure. PDFEnrich does not claim ISO certification, end-to-end encryption, HIPAA compliance, a business-associate agreement, or an external security audit unless a separate page expressly documents it. Use local-only tools for highly sensitive files and avoid cloud history or sharing unless your organization has approved those services.</p>
             <p>If a security incident creates a legal notification obligation, PDFEnrich will investigate and provide notices required by applicable law.</p>
           </section>
