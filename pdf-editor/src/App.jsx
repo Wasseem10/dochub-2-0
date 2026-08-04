@@ -3342,6 +3342,10 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
           if (progress >= 100) setCloudSaveStage("verifying");
         },
       });
+      await setPrivateCloudHistoryEnabled(true, {
+        expectedUserId: operationOwnerId,
+        signal: abortController.signal,
+      });
       if (
         storageOwnerIdRef.current !== operationOwnerId
         || activeDocumentOwnerIdRef.current !== operationOwnerId
