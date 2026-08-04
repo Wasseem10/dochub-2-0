@@ -1,8 +1,13 @@
 import { defineConfig, devices } from "@playwright/test";
 import { existsSync } from "node:fs";
 
-const localChrome = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
-const chromiumLaunchOptions = existsSync(localChrome) ? { executablePath: localChrome } : {};
+const localChromeCandidates = [
+  "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+  "C:/Program Files/Google/Chrome/Application/chrome.exe",
+  "C:/Program Files (x86)/Google/Chrome/Application/chrome.exe",
+];
+const localChrome = localChromeCandidates.find((candidate) => existsSync(candidate));
+const chromiumLaunchOptions = localChrome ? { executablePath: localChrome } : {};
 
 export default defineConfig({
   testDir: "./tests/browser",
