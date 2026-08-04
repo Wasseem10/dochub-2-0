@@ -1988,6 +1988,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   const location = useLocation();
   const {
     authReady,
+    authError,
     currentUser,
     isFirebaseConfigured,
     authenticate,
@@ -5811,6 +5812,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
         onComplete={completeAuth}
         onPasswordReset={sendAuthPasswordReset}
         authReady={authReady}
+        authError={authError}
         isFirebaseConfigured={isFirebaseConfigured}
         routeNotice={location.state?.notice}
       />
@@ -7177,7 +7179,7 @@ function LandingPage({ fileInputRef, onUpload, onSelectFiles, onLogin }) {
   );
 }
 
-function AuthPage({ mode, setMode, onBack, onComplete, onPasswordReset, authReady, routeNotice = "" }) {
+function AuthPage({ mode, setMode, onBack, onComplete, onPasswordReset, authReady, authError = "", routeNotice = "" }) {
   const isSignup = mode === "signup";
   const isPasswordReset = mode === "forgot-password";
   const authMetadata = isSignup
@@ -7207,6 +7209,10 @@ function AuthPage({ mode, setMode, onBack, onComplete, onPasswordReset, authRead
   const emailInputRef = useRef(null);
   const passwordInputRef = useRef(null);
   const hasManualAuthInputRef = useRef(false);
+
+  useEffect(() => {
+    if (authError) setError(authError);
+  }, [authError]);
 
   useEffect(() => {
     const clearPreviewCredentialAutofill = () => {
@@ -7256,6 +7262,10 @@ function AuthPage({ mode, setMode, onBack, onComplete, onPasswordReset, authRead
     setIsSubmitting(true);
     const result = await onComplete({ provider: "google" });
     setIsSubmitting(false);
+    if (result?.redirecting) {
+      setNotice("Opening Google sign-in…");
+      return;
+    }
     if (!result?.ok) setError(result?.error || "Google sign-in failed.");
   };
 
