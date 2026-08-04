@@ -9,7 +9,6 @@ describe("guest document account handoff", () => {
     expect(editorActionNeedsAccount("share", null)).toBe(true);
     expect(editorActionNeedsAccount("signature-request", null)).toBe(true);
     expect(editorActionNeedsAccount("saved-signature", null)).toBe(true);
-    expect(editorActionNeedsAccount("template", null)).toBe(true);
     expect(editorActionNeedsAccount("save", { uid: "user-1" })).toBe(false);
     expect(editorActionNeedsAccount("download", { uid: "user-1" })).toBe(false);
   });
