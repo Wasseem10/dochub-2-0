@@ -29,6 +29,7 @@ import "./comparison-pages.css";
 import "./components/editor/finish-export-modal.css";
 import { migratePdfEnrichStorage } from "./brand/storageMigration.js";
 import { installProductionMonitoring } from "./monitoring/productionMonitoring.js";
+import { VercelWebAnalytics } from "./analytics/VercelWebAnalytics.jsx";
 
 migratePdfEnrichStorage();
 installProductionMonitoring();
@@ -40,5 +41,6 @@ createRoot(rootElement).render(
   <React.StrictMode>
     <AppRouter />
     <PrivacyConsentBanner />
+    <VercelWebAnalytics />
   </React.StrictMode>,
 );
