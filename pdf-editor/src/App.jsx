@@ -103,6 +103,7 @@ import { calculateEditorFitZoom, EDITOR_ZOOM_MODE, editorZoomLabel } from "./too
 import { claimGuestDocument, editorActionNeedsAccount, resolveEditorStorageOwnerId } from "./tools/guestDocumentSession.js";
 import { clearEditorSession, loadEditorSession, saveEditorSession } from "./tools/editorSessionStore.js";
 import { loadLocalDocuments, saveLocalDocuments } from "./tools/localDocumentStore.js";
+import { dataUrlToArrayBuffer } from "./tools/dataUrl.js";
 import { downloadFileNameForMime, sanitizePdfDisplayName } from "./tools/safeFileName.js";
 import {
   createCloudIdempotencyKey,
@@ -433,11 +434,6 @@ function arrayBufferToDataUrl(buffer) {
     reader.onerror = reject;
     reader.readAsDataURL(new Blob([buffer], { type: "application/pdf" }));
   });
-}
-
-async function dataUrlToArrayBuffer(dataUrl) {
-  const response = await fetch(dataUrl);
-  return response.arrayBuffer();
 }
 
 function compactDocumentRecordForStorage(documentRecord) {
