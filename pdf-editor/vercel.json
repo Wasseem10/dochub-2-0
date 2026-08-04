@@ -54,6 +54,10 @@
   ],
   "rewrites": [
     {
+      "source": "/__/firebase/init.json",
+      "destination": "/firebase-init.json"
+    },
+    {
       "source": "/__/auth/:path*",
       "destination": "https://pdf-editor-1137a.firebaseapp.com/__/auth/:path*"
     },
