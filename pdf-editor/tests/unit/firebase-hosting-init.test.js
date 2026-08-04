@@ -7,7 +7,7 @@ describe("Firebase hosting initialization", () => {
 
     expect(config).toMatchObject({
       apiKey: expect.stringMatching(/^AIza/),
-      authDomain: "pdf-editor-1137a.firebaseapp.com",
+      authDomain: "pdfenrich.com",
       projectId: "pdf-editor-1137a",
       messagingSenderId: "371323215902",
     });

@@ -5,7 +5,7 @@ import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 
 export function resolveFirebaseAuthDomain(hostname = "", configuredDomain = "") {
-  return /^(?:www\.)?pdfenrich\.com$/i.test(hostname) ? hostname.toLowerCase() : configuredDomain;
+  return /^(?:www\.)?pdfenrich\.com$/i.test(hostname) ? "pdfenrich.com" : configuredDomain;
 }
 
 const firebaseConfig = {

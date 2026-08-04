@@ -19,7 +19,7 @@ function environment({ userAgent = "Desktop", mobile = false, coarse = false, wi
 describe("Google authentication flow", () => {
   it("uses the same-origin helper only on the production PDFEnrich domain", () => {
     expect(resolveFirebaseAuthDomain("pdfenrich.com", "project.firebaseapp.com")).toBe("pdfenrich.com");
-    expect(resolveFirebaseAuthDomain("www.pdfenrich.com", "project.firebaseapp.com")).toBe("www.pdfenrich.com");
+    expect(resolveFirebaseAuthDomain("www.pdfenrich.com", "project.firebaseapp.com")).toBe("pdfenrich.com");
     expect(resolveFirebaseAuthDomain("localhost", "project.firebaseapp.com")).toBe("project.firebaseapp.com");
   });
 
