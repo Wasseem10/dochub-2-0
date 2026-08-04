@@ -37,11 +37,13 @@ export const appCheck = firebaseApp && appCheckSiteKey && typeof window !== "und
     })
   : null;
 export const auth = firebaseApp ? getAuth(firebaseApp) : null;
-if (auth) {
-  setPersistence(auth, browserLocalPersistence).catch(() => {
-    // Auth still works without this, but refresh persistence may depend on browser settings.
-  });
-}
+// Redirect sign-in stores its pending result in the selected persistence layer. Expose
+// this promise so redirect recovery never races the initial persistence configuration.
+export const authPersistenceReady = auth
+  ? setPersistence(auth, browserLocalPersistence).catch(() => {
+      // Firebase keeps its default persistence when a browser limits local storage.
+    })
+  : Promise.resolve();
 export const googleProvider = firebaseApp ? new GoogleAuthProvider() : null;
 export const db = firebaseApp ? getFirestore(firebaseApp) : null;
 export const storage = firebaseApp ? getStorage(firebaseApp) : null;

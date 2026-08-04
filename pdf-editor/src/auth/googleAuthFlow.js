@@ -4,6 +4,7 @@ const POPUP_FALLBACK_CODES = new Set([
   "auth/operation-not-supported-in-this-environment",
   "auth/web-storage-unsupported",
 ]);
+const EMBEDDED_BROWSER_USER_AGENT = /\b(?:FBAN|FBAV|Instagram|Line\/|Twitter|Snapchat|TikTok|LinkedInApp)\b/i;
 
 export function prefersGoogleRedirect(environment = globalThis) {
   const navigatorValue = environment?.navigator;
@@ -16,6 +17,10 @@ export function shouldFallbackFromGooglePopup(error) {
   return POPUP_FALLBACK_CODES.has(error?.code || "");
 }
 
+export function isEmbeddedMobileBrowser(environment = globalThis) {
+  return EMBEDDED_BROWSER_USER_AGENT.test(environment?.navigator?.userAgent || "");
+}
+
 export async function authenticateWithGoogleProvider({
   auth,
   provider,
@@ -23,6 +28,10 @@ export async function authenticateWithGoogleProvider({
   redirect,
   environment = globalThis,
 }) {
+  if (isEmbeddedMobileBrowser(environment)) {
+    return { credential: null, redirecting: false, errorCode: "auth/embedded-browser" };
+  }
+
   if (prefersGoogleRedirect(environment)) {
     await redirect(auth, provider);
     return { credential: null, redirecting: true };
