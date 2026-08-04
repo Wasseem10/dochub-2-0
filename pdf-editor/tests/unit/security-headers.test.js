@@ -33,10 +33,12 @@ describe("production response headers", () => {
   it("proxies the Firebase auth helper through the production origin", async () => {
     const configuration = await vercelConfiguration();
     const authRewrite = configuration.rewrites.find(({ source }) => source === "/__/auth/:path*");
+    const firebaseInitRewrite = configuration.rewrites.find(({ source }) => source === "/__/firebase/init.json");
     const authHeaders = configuration.headers.find(({ source }) => source === "/__/auth/(.*)")?.headers || [];
     const values = Object.fromEntries(authHeaders.map(({ key, value }) => [key.toLowerCase(), value]));
 
     expect(authRewrite?.destination).toBe("https://pdf-editor-1137a.firebaseapp.com/__/auth/:path*");
+    expect(firebaseInitRewrite?.destination).toBe("/firebase-init.json");
     expect(values["content-security-policy"]).toContain("frame-ancestors 'self' https://pdfenrich.com");
     expect(values["content-security-policy"]).toContain("https://www.pdfenrich.com");
     expect(values["x-frame-options"]).toBe("SAMEORIGIN");
