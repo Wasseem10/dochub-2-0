@@ -111,15 +111,14 @@ import { downloadFileNameForMime, sanitizePdfDisplayName } from "./tools/safeFil
 import {
   createCloudIdempotencyKey,
   downloadPrivateCloudPdf,
-  getPrivateCloudStatus,
   isPrivateCloudConfigured,
   listPrivateCloudDocuments,
-  readCloudHistoryPreference,
   removePrivateCloudDocument,
   restorePrivateCloudDocument,
   savePrivateCloudPdf,
   setPrivateCloudHistoryEnabled,
   sha256Hex,
+  shouldLoadAccountCloudDocuments,
   writeCloudHistoryPreference,
 } from "./cloud/privateCloudDocuments.js";
 import {
@@ -2065,7 +2064,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   const [saveState, setSaveState] = useState("saved");
   const [isOffline, setIsOffline] = useState(() => typeof navigator !== "undefined" && !navigator.onLine);
   const [cloudHistoryEnabled, setCloudHistoryEnabled] = useState(() => (
-    readCloudHistoryPreference(currentUser?.uid)
+    Boolean(currentUser?.uid && isPrivateCloudConfigured)
   ));
   const [cloudCatalogStatus, setCloudCatalogStatus] = useState(
     isPrivateCloudConfigured ? "idle" : "local-only",
@@ -2547,35 +2546,22 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   }, [currentUser?.uid, isPublicEditor, storageOwnerId]);
 
   useEffect(() => {
-    if (isPublicEditor || !currentUser?.uid) {
+    if (!shouldLoadAccountCloudDocuments({
+      userId: currentUser?.uid,
+      configured: isPrivateCloudConfigured,
+      publicEditor: isPublicEditor,
+    })) {
       setCloudHistoryEnabled(false);
-      setCloudCatalogStatus("local-only");
+      setCloudCatalogStatus(isPrivateCloudConfigured ? "local-only" : "not-configured");
       return undefined;
     }
     if (!documentCatalogReady) return undefined;
-    if (!isPrivateCloudConfigured) {
-      setCloudHistoryEnabled(false);
-      setCloudCatalogStatus("not-configured");
-      return undefined;
-    }
 
     let cancelled = false;
-    setCloudCatalogStatus("checking");
-    getPrivateCloudStatus({ expectedUserId: currentUser.uid })
-      .then(async (status) => {
-        if (cancelled) return;
-        const enabled = status?.enabled === true;
-        setCloudHistoryEnabled(enabled);
-        writeCloudHistoryPreference(currentUser.uid, enabled);
-        if (!enabled) {
-          setDocuments((records) => records.filter((documentRecord) => (
-            !documentRecord.cloudOnly || documentRecord.legacyCloudDocumentId
-          )));
-          setCloudCatalogStatus("local-only");
-          return;
-        }
-        setCloudCatalogStatus("loading");
-        const cloudDocuments = await listPrivateCloudDocuments({ expectedUserId: currentUser.uid });
+    setCloudHistoryEnabled(true);
+    setCloudCatalogStatus("loading");
+    listPrivateCloudDocuments({ expectedUserId: currentUser.uid })
+      .then(async (cloudDocuments) => {
         if (cancelled) return;
         const localDocuments = await loadLocalDocuments(currentUser.uid).catch(() => safeLoadDocuments(currentUser.uid));
         if (cancelled || storageOwnerIdRef.current !== currentUser.uid) return;
@@ -2596,8 +2582,8 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       .catch(() => {
         if (cancelled) return;
         setCloudCatalogStatus("error");
-        setCloudHistoryEnabled(readCloudHistoryPreference(currentUser.uid));
-        showToast("Private cloud history is unavailable. Local editing still works.");
+        setCloudHistoryEnabled(true);
+        showToast("Account documents are temporarily unavailable. Local editing still works.");
       });
 
     return () => {
@@ -2639,49 +2625,6 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   const showToast = (message) => {
     setToast(message);
     window.setTimeout(() => setToast(""), 2600);
-  };
-
-  const changePrivateCloudHistory = async (enabled) => {
-    if (!currentUser?.uid || !isPrivateCloudConfigured) {
-      showToast("Private cloud storage is not connected. Local documents were not uploaded.");
-      return false;
-    }
-    const operationOwnerId = currentUser.uid;
-    setCloudCatalogStatus("updating");
-    try {
-      await setPrivateCloudHistoryEnabled(enabled, { expectedUserId: operationOwnerId });
-      if (storageOwnerIdRef.current !== operationOwnerId) return false;
-      setCloudHistoryEnabled(enabled);
-      writeCloudHistoryPreference(operationOwnerId, enabled);
-      if (!enabled) {
-        setDocuments((records) => records.filter((documentRecord) => (
-          !documentRecord.cloudOnly || documentRecord.legacyCloudDocumentId
-        )));
-        setCloudCatalogStatus("local-only");
-        showToast("Cloud history hidden. Existing private cloud copies were not deleted.");
-        return true;
-      }
-      const response = await listPrivateCloudDocuments({ expectedUserId: operationOwnerId });
-      if (storageOwnerIdRef.current !== operationOwnerId) return false;
-      const localDocuments = await loadLocalDocuments(operationOwnerId).catch(() => []);
-      if (storageOwnerIdRef.current !== operationOwnerId) return false;
-      setDocuments((records) => mergeLocalAndPrivateCloudDocuments(
-        operationOwnerId,
-        mergeLocalAndLegacyCloudDocuments(
-          localDocuments,
-          records.filter((documentRecord) => documentRecord.legacyCloudDocumentId),
-        ),
-        response?.documents || response || [],
-      ));
-      setCloudCatalogStatus("ready");
-      showToast("Private cloud history enabled. Local documents remain browser-only.");
-      return true;
-    } catch (error) {
-      logRedactedClientError("Private cloud preference update failed", error);
-      setCloudCatalogStatus("error");
-      showToast("The private cloud preference could not be changed.");
-      return false;
-    }
   };
 
   const replaceDocuments = async (nextDocuments) => {
@@ -5937,7 +5880,6 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
         cloudHistoryEnabled={cloudHistoryEnabled}
         cloudCatalogStatus={cloudCatalogStatus}
         cloudConfigured={isPrivateCloudConfigured}
-        onCloudHistoryChange={changePrivateCloudHistory}
         cloudTrashDocuments={cloudTrashDocuments}
         cloudTrashStatus={cloudTrashStatus}
         onRestoreCloudDocument={restoreCloudDocument}
@@ -8003,7 +7945,6 @@ export function UploadLanding({
   cloudHistoryEnabled = false,
   cloudCatalogStatus = "local-only",
   cloudConfigured = false,
-  onCloudHistoryChange,
   cloudTrashDocuments = [],
   cloudTrashStatus = "idle",
   onRestoreCloudDocument,
@@ -8575,7 +8516,7 @@ export function UploadLanding({
           <div className="library-head">
             <h2>Settings</h2>
             <span className="settings-status">
-              {cloudHistoryEnabled ? "Private cloud history on" : "Browser-local by default"}
+              {cloudHistoryEnabled ? "Account documents connected" : "Browser-local only"}
             </span>
           </div>
           <div className="settings-grid">
@@ -8584,22 +8525,21 @@ export function UploadLanding({
               <span>Browser-only for edits, annotations, page organization, and signatures.</span>
             </article>
             <article>
-              <strong>Private cloud history</strong>
+              <strong>Account documents</strong>
               <span>{cloudHistoryEnabled
-                ? `${privateCloudDocumentCount} private cloud document${privateCloudDocumentCount === 1 ? "" : "s"} visible. New local files upload only after you turn on account autosave for that document.`
-                : "Off. Signing in and local autosave never upload your PDFs."}</span>
+                ? `${privateCloudDocumentCount} cloud document${privateCloudDocumentCount === 1 ? "" : "s"} available automatically on every device signed in to this account. New files join the account after account autosave is approved for that document.`
+                : cloudConfigured
+                  ? "Sign in to see documents already saved to your account on every device."
+                  : "Cloud storage is not connected in this environment."}</span>
               <button
                 type="button"
-                disabled={!cloudConfigured || cloudCatalogStatus === "updating"}
-                onClick={() => onCloudHistoryChange?.(!cloudHistoryEnabled)}
+                disabled
               >
                 {!cloudConfigured
                   ? "Not connected"
-                  : cloudCatalogStatus === "updating"
-                    ? "Updating…"
-                    : cloudHistoryEnabled
-                      ? "Hide cloud history"
-                      : "Enable cloud history"}
+                  : cloudCatalogStatus === "loading"
+                    ? "Loading account documents…"
+                    : "Automatic on signed-in devices"}
               </button>
             </article>
             <article>
@@ -8641,11 +8581,6 @@ export function UploadLanding({
             <div className="dashboard-premium-empty">
               <span><Trash2 size={25} /></span>
               <div><strong>Private cloud storage is not connected</strong><small>Browser-only documents are deleted locally and do not enter cloud Trash.</small></div>
-            </div>
-          ) : !cloudHistoryEnabled ? (
-            <div className="dashboard-premium-empty">
-              <span><Trash2 size={25} /></span>
-              <div><strong>Cloud history is hidden</strong><small>Enable private cloud history in Settings to review recoverable documents.</small></div>
             </div>
           ) : cloudTrashStatus === "loading" ? (
             <div className="dashboard-premium-empty">
