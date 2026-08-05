@@ -79,6 +79,8 @@ import "pdfjs-dist/build/pdf.worker.mjs";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { db, storage } from "./firebase";
 import { useAuth } from "./auth/AuthContext.jsx";
+import { shouldUseDirectGoogleCredential } from "./auth/googleAuthFlow.js";
+import { renderGoogleCredentialButton } from "./auth/googleIdentityCredential.js";
 import { beginToolOperation, fileSizeBucket, pageCountBucket, trackProductEvent, trackToolUpload, trackUploadValidationFailure } from "./analytics/productAnalytics.js";
 import { logRedactedClientError } from "./monitoring/productionMonitoring.js";
 import { AuthRequiredModal } from "./components/editor/AuthRequiredModal.jsx";
@@ -2719,8 +2721,8 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     }
   }, [location.state, navigate]);
 
-  const completeAuth = async ({ email, password, name, provider }) => {
-    const result = await authenticate({ mode: authMode, email, password, name, provider });
+  const completeAuth = async ({ email, password, name, provider, googleIdToken }) => {
+    const result = await authenticate({ mode: authMode, email, password, name, provider, googleIdToken });
     if (result?.ok) {
       await finishAuthenticatedNavigation(result.user);
     }
@@ -7209,6 +7211,11 @@ function AuthPage({ mode, setMode, onBack, onComplete, onPasswordReset, authRead
   const emailInputRef = useRef(null);
   const passwordInputRef = useRef(null);
   const hasManualAuthInputRef = useRef(false);
+  const googleCredentialButtonRef = useRef(null);
+  const [googleCredentialReady, setGoogleCredentialReady] = useState(false);
+  const [googleCredentialLoadError, setGoogleCredentialLoadError] = useState("");
+  const [googleCredentialAttempt, setGoogleCredentialAttempt] = useState(0);
+  const useDirectMobileGoogleCredential = typeof window !== "undefined" && shouldUseDirectGoogleCredential(window);
 
   useEffect(() => {
     if (authError) setError(authError);
@@ -7269,6 +7276,40 @@ function AuthPage({ mode, setMode, onBack, onComplete, onPasswordReset, authRead
     if (!result?.ok) setError(result?.error || "Google sign-in failed.");
   };
 
+  const submitGoogleCredential = useCallback(async (googleIdToken) => {
+    if (!googleIdToken || isSubmitting) return;
+    setNotice("");
+    setError("");
+    setIsSubmitting(true);
+    const result = await onComplete({ provider: "google-id-token", googleIdToken });
+    setIsSubmitting(false);
+    if (!result?.ok) setError(result?.error || "Google sign-in failed.");
+  }, [isSubmitting, onComplete]);
+
+  useEffect(() => {
+    if (!useDirectMobileGoogleCredential || !authReady || isSubmitting || !googleCredentialButtonRef.current) return undefined;
+    let active = true;
+    setGoogleCredentialReady(false);
+    setGoogleCredentialLoadError("");
+    renderGoogleCredentialButton({
+      element: googleCredentialButtonRef.current,
+      text: isSignup ? "signup_with" : "signin_with",
+      onCredential: (googleIdToken) => {
+        if (active) void submitGoogleCredential(googleIdToken);
+      },
+      onError: () => {
+        if (active) setError("Google did not return a sign-in credential. Try again.");
+      },
+    }).then(() => {
+      if (active) setGoogleCredentialReady(true);
+    }).catch(() => {
+      if (active) setGoogleCredentialLoadError("Google sign-in could not load. Check your connection and try again.");
+    });
+    return () => {
+      active = false;
+    };
+  }, [authReady, googleCredentialAttempt, isSignup, isSubmitting, submitGoogleCredential, useDirectMobileGoogleCredential]);
+
   const switchMode = () => {
     setError("");
     setNotice("");
@@ -7287,10 +7328,17 @@ function AuthPage({ mode, setMode, onBack, onComplete, onPasswordReset, authRead
           {routeNotice && <div className="auth-notice">{routeNotice}</div>}
           {!isPasswordReset && (
             <>
-              <button type="button" className="sso-button google-button" onClick={submitGoogleAuth} disabled={!authReady || isSubmitting}>
-                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="" />
-                <span>{isSignup ? "Sign up with Google" : "Sign in with Google"}</span>
-              </button>
+              {useDirectMobileGoogleCredential ? (
+                <div className={`google-identity-button ${isSubmitting ? "is-disabled" : ""}`} aria-busy={isSubmitting || !googleCredentialReady}>
+                  <div ref={googleCredentialButtonRef} />
+                  {googleCredentialLoadError && <button type="button" className="sso-button google-button" onClick={() => { setGoogleCredentialLoadError(""); setGoogleCredentialAttempt((attempt) => attempt + 1); }}><span>Retry Google sign-in</span></button>}
+                </div>
+              ) : (
+                <button type="button" className="sso-button google-button" onClick={submitGoogleAuth} disabled={!authReady || isSubmitting}>
+                  <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="" />
+                  <span>{isSignup ? "Sign up with Google" : "Sign in with Google"}</span>
+                </button>
+              )}
               <div className="auth-divider"><span /> OR USE YOUR EMAIL <span /></div>
             </>
           )}

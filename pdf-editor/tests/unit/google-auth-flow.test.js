@@ -3,6 +3,7 @@ import {
   authenticateWithGoogleProvider,
   isEmbeddedMobileBrowser,
   prefersGoogleRedirect,
+  shouldUseDirectGoogleCredential,
   shouldFallbackFromGooglePopup,
 } from "../../src/auth/googleAuthFlow.js";
 import { formatAuthError } from "../../src/auth/FirebaseAuthProvider.jsx";
@@ -27,6 +28,12 @@ describe("Google authentication flow", () => {
     expect(prefersGoogleRedirect(environment({ userAgent: "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X)" }))).toBe(true);
     expect(prefersGoogleRedirect(environment({ coarse: true, width: 820 }))).toBe(true);
     expect(prefersGoogleRedirect(environment())).toBe(false);
+  });
+
+  it("uses the direct credential flow only in supported mobile browsers", () => {
+    expect(shouldUseDirectGoogleCredential(environment({ mobile: true }))).toBe(true);
+    expect(shouldUseDirectGoogleCredential(environment())).toBe(false);
+    expect(shouldUseDirectGoogleCredential(environment({ userAgent: "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) Instagram 390.0" }))).toBe(false);
   });
 
   it("uses redirect directly on mobile without attempting a popup", async () => {

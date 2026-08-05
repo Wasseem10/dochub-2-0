@@ -21,6 +21,10 @@ export function isEmbeddedMobileBrowser(environment = globalThis) {
   return EMBEDDED_BROWSER_USER_AGENT.test(environment?.navigator?.userAgent || "");
 }
 
+export function shouldUseDirectGoogleCredential(environment = globalThis) {
+  return prefersGoogleRedirect(environment) && !isEmbeddedMobileBrowser(environment);
+}
+
 export async function authenticateWithGoogleProvider({
   auth,
   provider,
