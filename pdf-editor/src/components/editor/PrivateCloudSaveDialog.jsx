@@ -66,8 +66,8 @@ export function PrivateCloudSaveDialog({
         <header>
           <span className="private-cloud-dialog-mark"><LockKeyhole size={20} /></span>
           <div>
-            <small>Optional private cloud copy</small>
-            <h2 id="private-cloud-title">Save this PDF across devices</h2>
+            <small>Save to your PDFEnrich account</small>
+            <h2 id="private-cloud-title">Open this document on every device</h2>
           </div>
           <button
             ref={closeRef}
@@ -81,8 +81,8 @@ export function PrivateCloudSaveDialog({
         </header>
 
         <p id="private-cloud-description">
-          Editing and autosave stay in this browser by default. This action uploads the current edited PDF
-          to your private account storage; it does not upload other local documents.
+          Confirm once to save this PDF to your private account. You can then open it on your phone or any
+          other device where you sign in. Other local documents are not uploaded.
         </p>
 
         <div className="private-cloud-boundaries">
@@ -111,7 +111,7 @@ export function PrivateCloudSaveDialog({
 
         <footer>
           <button type="button" disabled={working} onClick={onClose}>
-            {stage === "saved" ? "Done" : "Keep local only"}
+            {stage === "saved" ? "Done" : "Keep in this browser only"}
           </button>
           {stage !== "saved" && (
             <button
@@ -120,7 +120,7 @@ export function PrivateCloudSaveDialog({
               disabled={working || !cloudConfigured}
               onClick={onConfirm}
             >
-              {stage === "error" ? <><RotateCw size={17} /> Retry private save</> : <><CloudUpload size={17} /> Save private cloud copy</>}
+              {stage === "error" ? <><RotateCw size={17} /> Retry account save</> : <><CloudUpload size={17} /> Save to my account</>}
             </button>
           )}
         </footer>
