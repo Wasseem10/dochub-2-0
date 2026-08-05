@@ -12,7 +12,7 @@ const CONTENT_SECURITY_POLICY = [
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https://www.gstatic.com https://*.googleusercontent.com",
   "font-src 'self' data:",
-  "connect-src 'self' blob: https://*.firebaseapp.com https://*.firebaseio.com wss://*.firebaseio.com https://*.googleapis.com wss://*.googleapis.com https://www.google.com https://www.google-analytics.com https://region1.google-analytics.com https://analytics.google.com",
+  "connect-src 'self' blob: https://udtddtoghuuazlczgkuf.supabase.co https://*.firebaseapp.com https://*.firebaseio.com wss://*.firebaseio.com https://*.googleapis.com wss://*.googleapis.com https://www.google.com https://www.google-analytics.com https://region1.google-analytics.com https://analytics.google.com",
   "frame-src 'self' blob: https://*.firebaseapp.com https://accounts.google.com https://www.google.com",
   "worker-src 'self' blob:",
   "child-src 'self' blob:",

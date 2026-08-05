@@ -19,7 +19,7 @@ vi.mock("firebase/app-check", () => ({
   getToken: firebaseMocks.getAppCheckToken,
 }));
 
-const apiBase = "https://private-cloud.example";
+const apiBase = "https://udtddtoghuuazlczgkuf.supabase.co/functions/v1/private-cloud";
 const documentId = `doc_${"A".repeat(24)}`;
 const versionId = `ver_${"B".repeat(24)}`;
 const uploadId = "c".repeat(64);
@@ -52,6 +52,78 @@ afterEach(() => {
 });
 
 describe("private cloud save terminal-state contract", () => {
+  it("uploads through the server-issued private Supabase URL before finalization", async () => {
+    const cloud = await loadConfiguredClient();
+    const blob = new Blob(["%PDF-1.7\n1 0 obj<</Type /Page>>endobj\n%%EOF\n"], {
+      type: "application/pdf",
+    });
+    const checksumSha256 = await cloud.sha256Hex(blob);
+    const signedUrl = "https://udtddtoghuuazlczgkuf.supabase.co/storage/v1/object/upload/sign/pdfenrich-private-documents/users/test/document.pdf?token=signed-upload-token";
+    const requests = [];
+    globalThis.XMLHttpRequest = class FakeXmlHttpRequest {
+      constructor() {
+        this.headers = {};
+        this.status = 0;
+        this.upload = {};
+        requests.push(this);
+      }
+
+      open(method, url) {
+        this.method = method;
+        this.url = url;
+      }
+
+      setRequestHeader(name, value) {
+        this.headers[name] = value;
+      }
+
+      send(body) {
+        this.body = body;
+        queueMicrotask(() => {
+          this.status = 200;
+          this.onload?.();
+          this.onloadend?.();
+        });
+      }
+    };
+    globalThis.fetch = vi.fn()
+      .mockResolvedValueOnce(jsonResponse({
+        state: "uploading",
+        uploadId,
+        documentId,
+        versionId,
+        uploadSessionUrl: signedUrl,
+      }, 201))
+      .mockResolvedValueOnce(jsonResponse({
+        state: "active",
+        verified: true,
+        documentId,
+        versionId,
+        sizeBytes: blob.size,
+        checksumSha256,
+        updatedAt: "2026-08-04T02:00:00.000Z",
+      }));
+
+    await expect(cloud.savePrivateCloudPdf({
+      blob,
+      fileName: "document.pdf",
+      checksumSha256,
+      idempotencyKey,
+    })).resolves.toMatchObject({ state: "active", verified: true });
+
+    expect(requests).toHaveLength(1);
+    expect(requests[0]).toMatchObject({
+      method: "PUT",
+      url: signedUrl,
+      headers: { "Content-Type": "application/pdf" },
+      body: blob,
+    });
+    expect(requests[0].headers).not.toHaveProperty("Content-Range");
+    expect(globalThis.fetch.mock.calls[1][0]).toBe(
+      `${apiBase}/v1/documents/uploads/${uploadId}/finalize`,
+    );
+  });
+
   it("finalizes an already-uploaded retry without starting a second byte upload", async () => {
     const cloud = await loadConfiguredClient();
     const blob = new Blob(["%PDF-1.7\n%%EOF\n"], { type: "application/pdf" });

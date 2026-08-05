@@ -2,6 +2,8 @@ import { getToken as getAppCheckToken } from "firebase/app-check";
 import { appCheck, auth } from "../firebase.js";
 
 const API_VERSION = "/v1";
+const DEFAULT_PRIVATE_CLOUD_API_BASE_URL =
+  "https://udtddtoghuuazlczgkuf.supabase.co/functions/v1/private-cloud";
 const CLOUD_HISTORY_KEY = "pdfenrich.private-cloud-history.v1";
 const MAX_UPLOAD_ATTEMPTS = 3;
 const UPLOAD_REQUEST_TIMEOUT_MS = 120_000;
@@ -20,9 +22,9 @@ function normalizeApiBaseUrl(value) {
 }
 
 export const PRIVATE_CLOUD_API_BASE_URL = normalizeApiBaseUrl(
-  import.meta.env.VITE_PRIVATE_CLOUD_API_BASE_URL,
+  import.meta.env.VITE_PRIVATE_CLOUD_API_BASE_URL || DEFAULT_PRIVATE_CLOUD_API_BASE_URL,
 );
-export const isPrivateCloudConfigured = Boolean(PRIVATE_CLOUD_API_BASE_URL && auth && appCheck);
+export const isPrivateCloudConfigured = Boolean(PRIVATE_CLOUD_API_BASE_URL && auth);
 
 export class PrivateCloudError extends Error {
   constructor(message, { code = "cloud_unavailable", status = 0, retryable = false } = {}) {
@@ -329,6 +331,63 @@ function isTrustedResumableSessionUrl(value) {
   }
 }
 
+function isTrustedSupabaseSignedUploadUrl(value) {
+  try {
+    const url = new URL(String(value || ""));
+    const apiOrigin = new URL(PRIVATE_CLOUD_API_BASE_URL).origin;
+    return (
+      url.protocol === "https:"
+      && url.origin === apiOrigin
+      && !url.username
+      && !url.password
+      && url.pathname.startsWith("/storage/v1/object/upload/sign/pdfenrich-private-documents/")
+      && url.searchParams.has("token")
+    );
+  } catch {
+    return false;
+  }
+}
+
+function uploadPdfToSignedSession({ sessionUrl, blob, signal, onProgress }) {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("PUT", sessionUrl);
+    xhr.timeout = UPLOAD_REQUEST_TIMEOUT_MS;
+    xhr.setRequestHeader("Content-Type", "application/pdf");
+    xhr.responseType = "text";
+    xhr.upload.onprogress = (event) => {
+      const transferred = event.lengthComputable ? event.loaded : 0;
+      onProgress?.(Math.min(99, Math.round((transferred / blob.size) * 100)));
+    };
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        onProgress?.(100);
+        resolve();
+        return;
+      }
+      reject(new PrivateCloudError("The PDF upload was interrupted.", {
+        code: "upload_interrupted",
+        status: xhr.status,
+        retryable: xhr.status === 0 || xhr.status === 408 || xhr.status === 409
+          || xhr.status === 429 || xhr.status >= 500,
+      }));
+    };
+    xhr.onerror = () => reject(new PrivateCloudError("The PDF upload was interrupted.", {
+      code: "upload_interrupted",
+      retryable: true,
+    }));
+    xhr.ontimeout = () => reject(new PrivateCloudError("The PDF upload timed out.", {
+      code: "upload_timeout",
+      retryable: true,
+    }));
+    xhr.onabort = () => reject(new DOMException("Upload cancelled.", "AbortError"));
+    const abort = () => xhr.abort();
+    signal?.addEventListener("abort", abort, { once: true });
+    xhr.onloadend = () => signal?.removeEventListener("abort", abort);
+    xhr.send(blob);
+  });
+}
+
 export function readCloudHistoryPreference(userId) {
   if (!userId) return false;
   try {
@@ -480,6 +539,7 @@ export async function savePrivateCloudPdf({
     || (
       begin.state === "uploading"
       && !isTrustedResumableSessionUrl(begin.uploadSessionUrl)
+      && !isTrustedSupabaseSignedUploadUrl(begin.uploadSessionUrl)
     )
   ) {
     throw new PrivateCloudError("The private upload session was not verified.", {
@@ -488,23 +548,44 @@ export async function savePrivateCloudPdf({
       retryable: true,
     });
   }
+  let uploadError = null;
   if (begin.state === "uploading") {
-    await uploadPdfToResumableSession({
-      sessionUrl: begin.uploadSessionUrl,
-      blob,
-      signal,
-      onProgress,
-    });
+    try {
+      if (isTrustedSupabaseSignedUploadUrl(begin.uploadSessionUrl)) {
+        await uploadPdfToSignedSession({
+          sessionUrl: begin.uploadSessionUrl,
+          blob,
+          signal,
+          onProgress,
+        });
+      } else {
+        await uploadPdfToResumableSession({
+          sessionUrl: begin.uploadSessionUrl,
+          blob,
+          signal,
+          onProgress,
+        });
+      }
+    } catch (error) {
+      if (error?.name === "AbortError") throw error;
+      uploadError = error;
+    }
   } else {
     onProgress?.(100);
   }
-  const finalized = await apiRequest(`/documents/uploads/${encodeURIComponent(begin.uploadId)}/finalize`, {
-    method: "POST",
-    idempotencyKey,
-    expectedUserId,
-    signal,
-    body: { checksumSha256 },
-  });
+  let finalized;
+  try {
+    // Finalization is also the authoritative probe after an ambiguous signed-upload response.
+    finalized = await apiRequest(`/documents/uploads/${encodeURIComponent(begin.uploadId)}/finalize`, {
+      method: "POST",
+      idempotencyKey,
+      expectedUserId,
+      signal,
+      body: { checksumSha256 },
+    });
+  } catch (error) {
+    throw uploadError || error;
+  }
   return {
     ...assertTerminalDocumentRecord(finalized, { blob, checksumSha256 }),
     idempotencyKey,
