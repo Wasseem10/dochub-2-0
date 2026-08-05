@@ -369,7 +369,7 @@ export function LatticePdfLanding({ fileInputRef, onUpload, onSelectFiles, onDro
     <section className="freepdf-hero">
       <div className="freepdf-hero-layout">
         <div className="freepdf-hero-copy">
-          <Link className="freepdf-free-promise" to={ROUTE_PATHS.pricing}><Check size={15} aria-hidden="true" /> 100% free. No subscription, payment, or watermark.</Link>
+          <p className="freepdf-free-promise"><ShieldCheck size={17} aria-hidden="true" /> 100% free. No subscriptions, payments, or watermarks.</p>
           <h1>Every PDF task,<br /><span>free and simple.</span></h1>
           <p>Edit, sign, organize, and convert your PDFs in seconds.<br />No subscriptions. No paid plans. Just the tools you need.</p>
         </div>
@@ -382,7 +382,7 @@ export function LatticePdfLanding({ fileInputRef, onUpload, onSelectFiles, onDro
         </div>
 
         <section className="freepdf-trust-strip" aria-label="PDFEnrich promises">
-          <div><span className="freepdf-trust-icon is-lilac"><ShieldCheck size={23} /></span><span><strong>Secure by design</strong><small>Your file stays in this browser</small></span></div>
+          <div><span className="freepdf-trust-icon is-lilac"><ShieldCheck size={23} /></span><span><strong>Browser-based</strong><small>Your file starts in this browser</small></span></div>
           <div><span className="freepdf-trust-icon is-yellow"><Zap size={23} /></span><span><strong>No signup needed</strong><small>Start working right away</small></span></div>
           <div><span className="freepdf-trust-icon is-blue"><Globe2 size={23} /></span><span><strong>Works anywhere</strong><small>On any modern browser</small></span></div>
           <div><span className="freepdf-trust-icon is-pink"><Rocket size={23} /></span><span><strong>Completely free</strong><small>No subscriptions or paid plans</small></span></div>

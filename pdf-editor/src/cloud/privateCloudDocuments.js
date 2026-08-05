@@ -409,6 +409,14 @@ export function writeCloudHistoryPreference(userId, enabled) {
   }
 }
 
+export function shouldLoadAccountCloudDocuments({
+  userId = "",
+  configured = false,
+  publicEditor = false,
+} = {}) {
+  return Boolean(userId && configured && !publicEditor);
+}
+
 export function clearCloudHistoryPreference(userId) {
   if (!userId) return true;
   try {
