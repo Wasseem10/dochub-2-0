@@ -1,0 +1,5 @@
+[functions.private-cloud]
+# Requests carry Firebase ID tokens. The function verifies issuer, audience,
+# signature, revocation, and origin itself, so Supabase's own JWT gateway must
+# not reject the third-party token before the handler runs.
+verify_jwt = false

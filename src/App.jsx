@@ -2124,6 +2124,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     isPrivateCloudConfigured ? "idle" : "local-only",
   );
   const [cloudSaveDialogOpen, setCloudSaveDialogOpen] = useState(false);
+  const [cloudSavePromptAfterUpload, setCloudSavePromptAfterUpload] = useState(false);
   const [cloudTrashDocuments, setCloudTrashDocuments] = useState([]);
   const [cloudTrashStatus, setCloudTrashStatus] = useState("idle");
   const [cloudSaveStage, setCloudSaveStage] = useState("idle");
@@ -2380,6 +2381,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     setPendingImage(null);
     setEditorRouteState("idle");
     setCloudSaveDialogOpen(false);
+    setCloudSavePromptAfterUpload(false);
     cloudSaveAbortRef.current?.abort();
     cloudSaveAbortRef.current = null;
     cloudSaveOperationRef.current = { ownerId: "", documentId: "", checksumSha256: "", key: "" };
@@ -3303,6 +3305,21 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     showToast("Your document is still available in this browser.");
   };
 
+  const promptPrivateCloudSave = (documentId = activeDocumentId) => {
+    if (!currentUser?.uid || !documentId) return false;
+    cloudSaveOperationRef.current = {
+      ownerId: currentUser.uid,
+      documentId,
+      checksumSha256: "",
+      key: "",
+    };
+    setCloudSaveStage("idle");
+    setCloudSaveProgress(0);
+    setCloudSaveError("");
+    setCloudSaveDialogOpen(true);
+    return true;
+  };
+
   const saveDocumentToAccount = async () => {
     if (!(await requireAuthenticationForEditorAction("save"))) return false;
     if (!(await saveActiveDocument(true))) return false;
@@ -3320,17 +3337,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       navigate(editorPath(claimedDocument.id), { state: { publicTool, postAuthAction: "save" } });
       return true;
     }
-    cloudSaveOperationRef.current = {
-      ownerId: currentUser.uid,
-      documentId: activeDocumentId,
-      checksumSha256: "",
-      key: "",
-    };
-    setCloudSaveStage("idle");
-    setCloudSaveProgress(0);
-    setCloudSaveError("");
-    setCloudSaveDialogOpen(true);
-    return true;
+    return promptPrivateCloudSave();
   };
 
   const saveActiveDocumentToPrivateCloud = async () => {
@@ -3469,6 +3476,18 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       setCloudSaveError(error?.message || "The private cloud save did not finish. Your browser copy is still safe.");
     }
   };
+
+  useEffect(() => {
+    if (!cloudSavePromptAfterUpload || !currentUser?.uid || !activeDocumentId) return;
+    setCloudSavePromptAfterUpload(false);
+    if (isPublicEditor) {
+      void saveDocumentToAccount();
+      return;
+    }
+    promptPrivateCloudSave(activeDocumentId);
+    // This is a one-shot handoff; the flag is cleared before either action can re-render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeDocumentId, cloudSavePromptAfterUpload, currentUser?.uid, isPublicEditor]);
 
   const openShareSettings = async () => {
     if (!(await requireAuthenticationForEditorAction("share"))) return;
@@ -3661,6 +3680,9 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       setSaveState("saved");
       setLastSavedAt(stamp);
       setUploadStage({ status: "complete", percent: 100, fileName: displayFileName });
+      if (currentUser?.uid && isPrivateCloudConfigured && !cloudDocumentRecord?.cloudDocumentId) {
+        setCloudSavePromptAfterUpload(true);
+      }
       showToast(detectedFormFields.length
         ? `Found ${detectedFormFields.length} fillable field${detectedFormFields.length === 1 ? "" : "s"}.`
         : detectedItems.length
@@ -5942,6 +5964,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
           </span>
         </div>
         <div className="reference-header-actions" aria-label="Document actions">
+          <button type="button" onClick={saveDocumentToAccount}><Save size={21} /><span>Save to account</span></button>
           <button type="button" onClick={printPdf} disabled={isExporting}><PhPrinter size={22} /><span>{isExporting ? "Preparing…" : "Print"}</span></button>
           <button type="button" aria-label={isExporting ? "Preparing PDF" : "Download"} onClick={exportPdf} disabled={isExporting}><PhDownload size={22} /><span>{isExporting ? "Preparing…" : "Download"}</span></button>
           {publicTool === "share-pdf" && (
@@ -6049,7 +6072,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
                 <button type="button" role="menuitem" onClick={() => {
                   setIsMoreMenuOpen(false);
                   saveDocumentToAccount();
-                }}><LayoutDashboard size={16} /> Save private cloud copy</button>
+                }}><LayoutDashboard size={16} /> Save to account</button>
                 <button type="button" role="menuitem" onClick={() => {
                   renameActiveDocument();
                   setIsMoreMenuOpen(false);
