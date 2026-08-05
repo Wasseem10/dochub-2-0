@@ -5906,6 +5906,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
           </span>
         </div>
         <div className="reference-header-actions" aria-label="Document actions">
+          <button type="button" onClick={saveDocumentToAccount}><Save size={21} /><span>Save to account</span></button>
           <button type="button" onClick={printPdf} disabled={isExporting}><Printer size={23} /><span>{isExporting ? "Preparing…" : "Print"}</span></button>
           <button type="button" aria-label={isExporting ? "Preparing PDF" : "Download"} onClick={exportPdf} disabled={isExporting}><Download size={23} /><span>{isExporting ? "Preparing…" : "Download"}</span></button>
           {publicTool === "share-pdf" && (
@@ -6013,7 +6014,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
                 <button type="button" role="menuitem" onClick={() => {
                   setIsMoreMenuOpen(false);
                   saveDocumentToAccount();
-                }}><LayoutDashboard size={16} /> Save private cloud copy</button>
+                }}><LayoutDashboard size={16} /> Save to account</button>
                 <button type="button" role="menuitem" onClick={() => {
                   renameActiveDocument();
                   setIsMoreMenuOpen(false);
