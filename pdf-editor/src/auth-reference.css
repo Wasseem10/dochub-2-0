@@ -265,6 +265,26 @@
   opacity: 0.66 !important;
 }
 
+.auth-shell .google-identity-button {
+  width: 100%;
+  min-height: 41px;
+}
+
+.auth-shell .google-identity-button > div {
+  display: flex;
+  width: 100%;
+  justify-content: center;
+}
+
+.auth-shell .google-identity-button iframe {
+  max-width: 100%;
+}
+
+.auth-shell .google-identity-button.is-disabled {
+  pointer-events: none;
+  opacity: .66;
+}
+
 .auth-shell .auth-error,
 .auth-shell .auth-notice {
   box-sizing: border-box !important;

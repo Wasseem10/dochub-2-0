@@ -6,11 +6,13 @@ import {
   getAdditionalUserInfo,
   getIdTokenResult,
   getRedirectResult,
+  GoogleAuthProvider,
   onAuthStateChanged,
   reauthenticateWithCredential,
   reauthenticateWithPopup,
   sendPasswordResetEmail,
   signInWithEmailAndPassword,
+  signInWithCredential,
   signInWithPopup,
   signInWithRedirect,
   signOut,
@@ -198,10 +200,10 @@ export default function FirebaseAuthProvider({ children }) {
     authError,
     currentUser,
     isFirebaseConfigured,
-    async authenticate({ mode, email, password, name, provider }) {
+    async authenticate({ mode, email, password, name, provider, googleIdToken }) {
       setAuthError("");
       if (!auth) {
-        if (provider === "google") return { ok: false, error: "Google sign-in requires cloud authentication. Use email sign-in for this local workspace." };
+        if (provider === "google" || provider === "google-id-token") return { ok: false, error: "Google sign-in requires cloud authentication. Use email sign-in for this local workspace." };
         const user = createLocalAuthUser({ email, name });
         try {
           window.localStorage.setItem(LOCAL_AUTH_STORAGE_KEY, JSON.stringify(user));
@@ -215,7 +217,9 @@ export default function FirebaseAuthProvider({ children }) {
       try {
         await authPersistenceReady;
         let credential;
-        if (provider === "google") {
+        if (provider === "google-id-token") {
+          credential = await signInWithCredential(auth, GoogleAuthProvider.credential(googleIdToken));
+        } else if (provider === "google") {
           const googleResult = await authenticateWithGoogleProvider({
             auth,
             provider: googleProvider,
@@ -236,9 +240,10 @@ export default function FirebaseAuthProvider({ children }) {
         }
         const user = await mapFirebaseUserWithClaims(auth.currentUser || credential.user);
         const additionalUserInfo = getAdditionalUserInfo(credential);
-        const isNewAccount = provider === "google" ? Boolean(additionalUserInfo?.isNewUser) : mode === "signup";
+        const isGoogleProvider = provider === "google" || provider === "google-id-token";
+        const isNewAccount = isGoogleProvider ? Boolean(additionalUserInfo?.isNewUser) : mode === "signup";
         trackProductEvent(isNewAccount ? "account_signed_up" : "account_logged_in", {
-          authMethod: provider === "google" ? "google" : "email",
+          authMethod: isGoogleProvider ? "google" : "email",
         });
         setCurrentUser(user);
         return { ok: true, user };
