@@ -23,6 +23,7 @@ describe("production response headers", () => {
     expect(values["content-security-policy"]).not.toContain("https://*.run.app");
     expect(scriptDirective).not.toContain("'unsafe-inline'");
     expect(scriptDirective).not.toContain("'unsafe-eval'");
+    expect(scriptDirective).toContain("https://accounts.google.com");
     expect(values["cross-origin-opener-policy"]).toBe("same-origin-allow-popups");
     expect(values["referrer-policy"]).toBe("no-referrer");
     expect(values["x-content-type-options"]).toBe("nosniff");
