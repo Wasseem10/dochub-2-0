@@ -105,6 +105,7 @@ import { calculateEditorFitZoom, EDITOR_ZOOM_MODE, editorZoomLabel } from "./too
 import { claimGuestDocument, editorActionNeedsAccount, resolveEditorStorageOwnerId } from "./tools/guestDocumentSession.js";
 import { clearEditorSession, loadEditorSession, saveEditorSession } from "./tools/editorSessionStore.js";
 import { loadLocalDocuments, saveLocalDocuments } from "./tools/localDocumentStore.js";
+import { privateCloudDocumentNeedsSync, shouldAutosavePrivateCloudDocument } from "./cloud/privateCloudAutosave.js";
 import { dataUrlToArrayBuffer } from "./tools/dataUrl.js";
 import { downloadFileNameForMime, sanitizePdfDisplayName } from "./tools/safeFileName.js";
 import {
@@ -2034,6 +2035,8 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     key: "",
   });
   const cloudSaveAbortRef = useRef(null);
+  const cloudSaveInFlightRef = useRef(false);
+  const cloudAutosaveQueuedRef = useRef(false);
   const lastPagePointRef = useRef({ x: 0.52, y: 0.28 });
   const editorClipboardRef = useRef(null);
   const detectedTextEditHistoryRef = useRef(new Map());
@@ -2074,6 +2077,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   const [cloudSaveStage, setCloudSaveStage] = useState("idle");
   const [cloudSaveProgress, setCloudSaveProgress] = useState(0);
   const [cloudSaveError, setCloudSaveError] = useState("");
+  const [cloudAutosaveRevision, setCloudAutosaveRevision] = useState(0);
   const [lastSavedAt, setLastSavedAt] = useState(null);
   const [undoStack, setUndoStack] = useState([]);
   const [redoStack, setRedoStack] = useState([]);
@@ -2326,8 +2330,11 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     setPendingImage(null);
     setEditorRouteState("idle");
     setCloudSaveDialogOpen(false);
+    setCloudAutosaveRevision(0);
     cloudSaveAbortRef.current?.abort();
     cloudSaveAbortRef.current = null;
+    cloudSaveInFlightRef.current = false;
+    cloudAutosaveQueuedRef.current = false;
     cloudSaveOperationRef.current = { ownerId: "", documentId: "", checksumSha256: "", key: "" };
     void previousPdfDocument?.destroy?.().catch?.(() => {});
   }, [storageOwnerId]);
@@ -2477,14 +2484,30 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       }))
       .sort((a, b) => a.page - b.page)
   ), [annotations]);
+  const cloudSyncPending = useMemo(() => privateCloudDocumentNeedsSync({
+    userId: currentUser?.uid || "",
+    ownerId: activeDocument?.ownerId || "",
+    cloudDocumentId: activeDocument?.cloudDocumentId || "",
+    localUpdatedAt: activeDocument?.updatedAt || "",
+    cloudUpdatedAt: activeDocument?.cloudUpdatedAt || "",
+  }), [activeDocument?.cloudDocumentId, activeDocument?.cloudUpdatedAt, activeDocument?.ownerId, activeDocument?.updatedAt, currentUser?.uid]);
+  const cloudSaveWorking = ["preparing", "uploading", "verifying"].includes(cloudSaveStage);
   const saveStatusLabel = useMemo(() => {
     if (saveState === "error") return "Save error";
     if (saveState === "unsaved") return "Unsaved changes";
     if (saveState === "saving") return "Saving...";
+    if (activeDocument?.cloudDocumentId && cloudSaveWorking) return "Saving to your account...";
+    if (activeDocument?.cloudDocumentId && cloudSaveStage === "error") return "Saved in this browser · account sync paused";
+    if (cloudSyncPending) return isOffline
+      ? "Saved in this browser · account sync waiting for internet"
+      : "Saved in this browser · syncing to your account";
+    if (activeDocument?.cloudDocumentId && activeDocument?.cloudUpdatedAt) {
+      return `Account autosave on · ${formatDateTime(activeDocument.cloudUpdatedAt)}`;
+    }
     if (isOffline) return lastSavedAt ? "Saved offline" : "Offline";
     if (lastSavedAt) return `Saved in this browser · ${formatDateTime(lastSavedAt)}`;
     return "Saved in this browser";
-  }, [isOffline, lastSavedAt, saveState]);
+  }, [activeDocument?.cloudDocumentId, activeDocument?.cloudUpdatedAt, cloudSaveStage, cloudSaveWorking, cloudSyncPending, isOffline, lastSavedAt, saveState]);
 
   useEffect(() => {
     setActiveToolMode((currentMode) => resolveModeForTool(tool, currentMode));
@@ -3282,7 +3305,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     return promptPrivateCloudSave();
   };
 
-  const saveActiveDocumentToPrivateCloud = async () => {
+  const saveActiveDocumentToPrivateCloud = async ({ automatic = false } = {}) => {
     if (!currentUser?.uid || !activeDocumentId) return;
     const operationOwnerId = currentUser.uid;
     const operationDocumentId = activeDocumentId;
@@ -3291,13 +3314,18 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     if (!isPrivateCloudConfigured) {
       setCloudSaveStage("error");
       setCloudSaveError("Private cloud storage is not connected on this deployment. Nothing was uploaded.");
-      return;
+      return false;
     }
+    if (cloudSaveInFlightRef.current) {
+      if (automatic) cloudAutosaveQueuedRef.current = true;
+      return false;
+    }
+    cloudSaveInFlightRef.current = true;
     setCloudSaveStage("preparing");
     setCloudSaveProgress(0);
     setCloudSaveError("");
     try {
-      if (!(await saveActiveDocument(true))) throw new Error("The local working copy could not be prepared.");
+      if (!automatic && !(await saveActiveDocument(true))) throw new Error("The local working copy could not be prepared.");
       const exported = await exportPdf({
         download: false,
         showResult: false,
@@ -3397,27 +3425,62 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
         setCloudSaveStage("saved");
         setCloudSaveError("");
         showToast("Private cloud copy confirmed, but this browser could not update its local link.");
-        return;
+        return true;
       }
       setCloudSaveProgress(100);
       setCloudSaveStage("saved");
       setCloudSaveError("");
       cloudSaveAbortRef.current = null;
       cloudSaveOperationRef.current = { ownerId: "", documentId: "", checksumSha256: "", key: "" };
-      showToast(legacyCleanupConfirmed
-        ? "Private cloud copy confirmed."
-        : "Private cloud copy confirmed. The older cloud copy still needs cleanup.");
+      if (!automatic) {
+        showToast(legacyCleanupConfirmed
+          ? "Account autosave is on for this document."
+          : "Account autosave is on. The older cloud copy still needs cleanup.");
+      }
+      return true;
     } catch (error) {
       if (
         error?.name === "AbortError"
         || storageOwnerIdRef.current !== operationOwnerId
         || activeDocumentOwnerIdRef.current !== operationOwnerId
-      ) return;
+      ) return false;
       logRedactedClientError("Private cloud save failed", error);
       setCloudSaveStage("error");
       setCloudSaveError(error?.message || "The private cloud save did not finish. Your browser copy is still safe.");
+      if (automatic) showToast("Account autosave paused. Your browser copy is still safe.");
+      return false;
+    } finally {
+      cloudSaveInFlightRef.current = false;
+      if (
+        cloudAutosaveQueuedRef.current
+        && currentUserIdRef.current === operationOwnerId
+        && activeDocumentIdRef.current === operationDocumentId
+      ) {
+        cloudAutosaveQueuedRef.current = false;
+        setCloudAutosaveRevision((revision) => revision + 1);
+      }
     }
   };
+
+  useEffect(() => {
+    const shouldAutosave = shouldAutosavePrivateCloudDocument({
+      configured: isPrivateCloudConfigured,
+      isOffline,
+      saveState,
+      userId: currentUser?.uid || "",
+      ownerId: activeDocument?.ownerId || "",
+      cloudDocumentId: activeDocument?.cloudDocumentId || "",
+      localUpdatedAt: activeDocument?.updatedAt || "",
+      cloudUpdatedAt: activeDocument?.cloudUpdatedAt || "",
+    });
+    if (!shouldAutosave || activeDocumentId !== activeDocument?.id) return undefined;
+    const timer = window.setTimeout(() => {
+      void saveActiveDocumentToPrivateCloud({ automatic: true });
+    }, 1400);
+    return () => window.clearTimeout(timer);
+    // The revision re-checks a newer local version queued during an in-flight upload.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeDocument?.cloudDocumentId, activeDocument?.cloudUpdatedAt, activeDocument?.id, activeDocument?.ownerId, activeDocument?.updatedAt, activeDocumentId, cloudAutosaveRevision, currentUser?.uid, isOffline, saveState]);
 
   useEffect(() => {
     if (!cloudSavePromptAfterUpload || !currentUser?.uid || !activeDocumentId) return;
@@ -5906,7 +5969,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
           </span>
         </div>
         <div className="reference-header-actions" aria-label="Document actions">
-          <button type="button" onClick={saveDocumentToAccount}><Save size={21} /><span>Save to account</span></button>
+          <button type="button" onClick={saveDocumentToAccount}><Save size={21} /><span>{activeDocument?.cloudDocumentId ? "Account autosave on" : "Save to account"}</span></button>
           <button type="button" onClick={printPdf} disabled={isExporting}><Printer size={23} /><span>{isExporting ? "Preparing…" : "Print"}</span></button>
           <button type="button" aria-label={isExporting ? "Preparing PDF" : "Download"} onClick={exportPdf} disabled={isExporting}><Download size={23} /><span>{isExporting ? "Preparing…" : "Download"}</span></button>
           {publicTool === "share-pdf" && (
@@ -8523,7 +8586,7 @@ export function UploadLanding({
             <article>
               <strong>Private cloud history</strong>
               <span>{cloudHistoryEnabled
-                ? `${privateCloudDocumentCount} private cloud document${privateCloudDocumentCount === 1 ? "" : "s"} visible. New local files upload only when you choose Save private cloud copy.`
+                ? `${privateCloudDocumentCount} private cloud document${privateCloudDocumentCount === 1 ? "" : "s"} visible. New local files upload only after you turn on account autosave for that document.`
                 : "Off. Signing in and local autosave never upload your PDFs."}</span>
               <button
                 type="button"
@@ -9099,7 +9162,7 @@ function Inspector({
             <input value={signatureText} onChange={(event) => setSignatureText(event.target.value)} />
           </label>
           <button type="button" className="panel-action" onClick={onSignatureModal}><PenLine size={17} /> Create signature</button>
-          <button type="button" className="panel-action" onClick={onSave}><Save size={17} /> Save private cloud copy</button>
+          <button type="button" className="panel-action" onClick={onSave}><Save size={17} /> Turn on account autosave</button>
           <button type="button" className="panel-action" onClick={onExport}><Download size={17} /> Export PDF</button>
           <button type="button" className="panel-action" onClick={onShare}><Share2 size={17} /> Share</button>
           <button type="button" className="panel-action" onClick={onPrint}><Printer size={17} /> Print</button>

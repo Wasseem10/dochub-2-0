@@ -14,7 +14,7 @@ function stageLabel(stage, progress) {
   if (stage === "preparing") return "Preparing the edited PDF";
   if (stage === "uploading") return `Uploading private copy · ${Math.max(0, Math.min(100, progress || 0))}%`;
   if (stage === "verifying") return "Verifying checksum and PDF safety";
-  if (stage === "saved") return "Private cloud copy confirmed";
+  if (stage === "saved") return "Account autosave is on";
   if (stage === "error") return "Cloud save did not finish";
   return "Ready to save";
 }
@@ -82,7 +82,8 @@ export function PrivateCloudSaveDialog({
 
         <p id="private-cloud-description">
           Confirm once to save this PDF to your private account. You can then open it on your phone or any
-          other device where you sign in. Other local documents are not uploaded.
+          other device where you sign in, and future edits to this document will autosave to your account.
+          Other local documents are not uploaded.
         </p>
 
         <div className="private-cloud-boundaries">
@@ -92,7 +93,7 @@ export function PrivateCloudSaveDialog({
           </article>
           <article>
             <CloudUpload size={19} />
-            <div><strong>Private cloud PDF</strong><span>The finished PDF—including visible signatures or form answers you added—and minimal metadata. The server verifies its checksum, PDF safety, and configured private malware scan before confirming it saved.</span></div>
+            <div><strong>Account autosave</strong><span>The finished PDF—including visible signatures or form answers you added—and minimal metadata. The server verifies its checksum and PDF safety before confirming each saved version.</span></div>
           </article>
         </div>
 
@@ -120,7 +121,7 @@ export function PrivateCloudSaveDialog({
               disabled={working || !cloudConfigured}
               onClick={onConfirm}
             >
-              {stage === "error" ? <><RotateCw size={17} /> Retry account save</> : <><CloudUpload size={17} /> Save to my account</>}
+              {stage === "error" ? <><RotateCw size={17} /> Retry account save</> : <><CloudUpload size={17} /> Turn on account autosave</>}
             </button>
           )}
         </footer>
