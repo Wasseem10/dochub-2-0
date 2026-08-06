@@ -369,7 +369,7 @@ export function LatticePdfLanding({ fileInputRef, onUpload, onSelectFiles, onDro
     <section className="freepdf-hero">
       <div className="freepdf-hero-layout">
         <div className="freepdf-hero-copy">
-          <Link className="freepdf-free-promise" to={ROUTE_PATHS.pricing}><Check size={15} aria-hidden="true" /> 100% free. No subscription, payment, or watermark.</Link>
+          <div className="freepdf-free-promise"><Check size={15} aria-hidden="true" /><span>100% free. No subscription, payment, or watermark.</span></div>
           <h1>Every PDF task,<br /><span>free and simple.</span></h1>
           <p>Edit, sign, organize, and convert your PDFs in seconds.<br />No subscriptions. No paid plans. Just the tools you need.</p>
         </div>

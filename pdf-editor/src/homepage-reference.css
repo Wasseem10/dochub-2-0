@@ -81,6 +81,22 @@
   flex: 0 0 auto;
 }
 
+.freepdf-free-promise {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 13px;
+  color: #4f5b72;
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1.4;
+}
+
+.freepdf-free-promise svg {
+  flex: 0 0 auto;
+  color: #2851eb;
+}
+
 .freepdf-hero h1 {
   max-width: 860px;
   color: #07132d;
@@ -482,6 +498,14 @@
   }
 
   .freepdf-hero-copy { max-width: 390px; }
+
+  .freepdf-free-promise {
+    max-width: calc(100vw - 42px);
+    justify-content: center;
+    margin-bottom: 10px;
+    font-size: 10px;
+    text-align: center;
+  }
 
   .freepdf-hero h1 {
     max-width: 360px;
