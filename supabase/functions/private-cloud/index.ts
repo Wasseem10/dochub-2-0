@@ -1,6 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "@supabase/supabase-js";
 import { createRemoteJWKSet, jwtVerify } from "jose";
+import { EncryptedPDFError, PDFDocument } from "pdf-lib";
 
 const FIREBASE_PROJECT_ID = "pdf-editor-1137a";
 const FIREBASE_WEB_API_KEY = "AIzaSyDciB_bwz04gAkgGTWAbctTZ2IMhslCE54";
@@ -230,7 +231,7 @@ function publicDocument(record: Record<string, unknown>) {
   };
 }
 
-function inspectPdf(bytes: Uint8Array) {
+async function inspectPdf(bytes: Uint8Array) {
   if (!bytes.length || bytes.length > MAX_FILE_BYTES) {
     throw new ApiError("file_size_not_allowed", "The PDF exceeds the private cloud file limit.", 413);
   }
@@ -241,17 +242,27 @@ function inspectPdf(bytes: Uint8Array) {
     throw new ApiError("invalid_pdf", "The uploaded file did not pass PDF validation.", 422);
   }
 
-  let pageCount = 0;
   let overlap = "";
   for (let offset = 0; offset < bytes.length; offset += 1024 * 1024) {
     const text = overlap + decoder.decode(bytes.slice(offset, Math.min(bytes.length, offset + 1024 * 1024)));
     if (/\/Encrypt\b/.test(text)) {
       throw new ApiError("encrypted_pdf", "Encrypted PDFs are not supported for private cloud saving.", 422);
     }
-    for (const match of text.matchAll(/\/Type\s*\/Page\b/g)) {
-      if ((match.index || 0) + match[0].length > overlap.length) pageCount += 1;
-    }
     overlap = text.slice(-64);
+  }
+
+  let pageCount = 0;
+  try {
+    const document = await PDFDocument.load(bytes, {
+      ignoreEncryption: false,
+      updateMetadata: false,
+    });
+    pageCount = document.getPageCount();
+  } catch (error) {
+    if (error instanceof EncryptedPDFError) {
+      throw new ApiError("encrypted_pdf", "Encrypted PDFs are not supported for private cloud saving.", 422);
+    }
+    throw new ApiError("invalid_pdf", "The uploaded PDF page structure could not be verified.", 422);
   }
   if (pageCount < 1 || pageCount > 10000) {
     throw new ApiError("invalid_pdf", "The uploaded PDF page structure could not be verified.", 422);
@@ -318,7 +329,18 @@ async function beginUpload(uid: string, request: Request) {
     .eq("idempotency_key_hash", idempotencyKeyHash)
     .maybeSingle();
   if (replayError) throw new ApiError("cloud_unavailable", "Private cloud storage is temporarily unavailable.", 503);
-  if (replay) return reuseUploadIntent(uid, replay);
+  if (replay?.state === "failed") {
+    await admin.storage.from(PRIVATE_BUCKET).remove([String(replay.storage_path)]);
+    const { error: cleanupError } = await admin
+      .from("private_cloud_upload_intents")
+      .delete()
+      .eq("upload_id", replay.upload_id)
+      .eq("firebase_uid", uid)
+      .eq("state", "failed");
+    if (cleanupError) throw new ApiError("cloud_unavailable", "Private cloud storage is temporarily unavailable.", 503);
+  } else if (replay) {
+    return reuseUploadIntent(uid, replay);
+  }
 
   if (requestedDocumentId) {
     const { data: owned, error } = await admin
@@ -430,7 +452,7 @@ async function finalizeUpload(uid: string, uploadId: string, request: Request) {
   }
   let inspection;
   try {
-    inspection = inspectPdf(bytes);
+    inspection = await inspectPdf(bytes);
   } catch (error) {
     await admin.storage.from(PRIVATE_BUCKET).remove([String(intent.storage_path)]);
     await admin.from("private_cloud_upload_intents").update({ state: "failed", updated_at: new Date().toISOString() }).eq("upload_id", uploadId);
