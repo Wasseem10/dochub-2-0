@@ -23,6 +23,7 @@ test("Share PDF explains the account boundary and exposes the secure-link action
 
   await expect(page.getByRole("button", { name: "Share PDF", exact: true })).toBeVisible();
   await expect(page.getByText("Review the document, then choose Share PDF to create a secure link.")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Sign in to sync", exact: true })).toBeVisible();
 });
 
 test("Request Signatures keeps the page editable and lets the user reopen the request dialog", async ({ page }) => {

@@ -18,6 +18,8 @@ import CalendarDays from "lucide-react/dist/esm/icons/calendar-days.mjs";
 import ChartNoAxesColumnIncreasing from "lucide-react/dist/esm/icons/chart-no-axes-column-increasing.mjs";
 import Check from "lucide-react/dist/esm/icons/check.mjs";
 import CheckCircle2 from "lucide-react/dist/esm/icons/check-circle-2.mjs";
+import Cloud from "lucide-react/dist/esm/icons/cloud.mjs";
+import CloudOff from "lucide-react/dist/esm/icons/cloud-off.mjs";
 import ChevronDown from "lucide-react/dist/esm/icons/chevron-down.mjs";
 import ChevronUp from "lucide-react/dist/esm/icons/chevron-up.mjs";
 import CircleHelp from "lucide-react/dist/esm/icons/circle-help.mjs";
@@ -46,6 +48,7 @@ import PenLine from "lucide-react/dist/esm/icons/pen-line.mjs";
 import Printer from "lucide-react/dist/esm/icons/printer.mjs";
 import Plus from "lucide-react/dist/esm/icons/plus.mjs";
 import Redo2 from "lucide-react/dist/esm/icons/redo-2.mjs";
+import RefreshCw from "lucide-react/dist/esm/icons/refresh-cw.mjs";
 import RotateCw from "lucide-react/dist/esm/icons/rotate-cw.mjs";
 import Save from "lucide-react/dist/esm/icons/save.mjs";
 import ScanText from "lucide-react/dist/esm/icons/scan-text.mjs";
@@ -57,8 +60,8 @@ import Link from "lucide-react/dist/esm/icons/link.mjs";
 import PanelsTopLeft from "lucide-react/dist/esm/icons/panels-top-left.mjs";
 import Stamp from "lucide-react/dist/esm/icons/stamp.mjs";
 import StickyNote from "lucide-react/dist/esm/icons/sticky-note.mjs";
-import LayoutDashboard from "lucide-react/dist/esm/icons/layout-dashboard.mjs";
 import Lock from "lucide-react/dist/esm/icons/lock.mjs";
+import LogIn from "lucide-react/dist/esm/icons/log-in.mjs";
 import Circle from "lucide-react/dist/esm/icons/circle.mjs";
 import Minus from "lucide-react/dist/esm/icons/minus.mjs";
 import Move from "lucide-react/dist/esm/icons/move.mjs";
@@ -2424,12 +2427,27 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     if (saveState === "error") return "Save error";
     if (saveState === "unsaved") return "Unsaved changes";
     if (saveState === "saving") return "Saving...";
-    if (isOffline) return lastSavedAt ? "Saved offline" : "Offline";
-    if (activeDocument?.cloudDirty || cloudSaveStage === "error") return "Saved here · account sync pending";
+    if (!currentUser?.uid) return lastSavedAt
+      ? `Saved in this browser · Sign in to sync · ${formatDateTime(lastSavedAt)}`
+      : "Saved in this browser · Sign in to sync";
+    if (isOffline) return lastSavedAt ? "Saved offline · account sync waiting" : "Offline · account sync waiting";
+    if (["preparing", "uploading", "verifying"].includes(cloudSaveStage)) return "Saving to your account...";
+    if (activeDocument?.cloudDirty || cloudSaveStage === "error" || !activeDocument?.cloudDocumentId) return "Saved here · syncing to your account";
     if (activeDocument?.cloudDocumentId && lastSavedAt) return `Synced to your account · ${formatDateTime(lastSavedAt)}`;
-    if (lastSavedAt) return `Saved in this browser · ${formatDateTime(lastSavedAt)}`;
-    return "Saved in this browser";
-  }, [activeDocument?.cloudDirty, activeDocument?.cloudDocumentId, cloudSaveStage, isOffline, lastSavedAt, saveState]);
+    return "Account autosave on";
+  }, [activeDocument?.cloudDirty, activeDocument?.cloudDocumentId, cloudSaveStage, currentUser?.uid, isOffline, lastSavedAt, saveState]);
+  const accountSyncPresentation = useMemo(() => {
+    if (!currentUser?.uid) return { kind: "signed-out", label: "Sign in to sync", actionable: true };
+    if (isOffline) return { kind: "waiting", label: "Waiting for internet", actionable: false };
+    if (["preparing", "uploading", "verifying"].includes(cloudSaveStage)) {
+      return { kind: "syncing", label: "Syncing…", actionable: false };
+    }
+    if (cloudSaveStage === "error") return { kind: "error", label: "Retry sync", actionable: true };
+    if (activeDocument?.cloudDirty || !activeDocument?.cloudDocumentId) {
+      return { kind: "queued", label: "Auto-sync queued", actionable: false };
+    }
+    return { kind: "synced", label: "Synced", actionable: false };
+  }, [activeDocument?.cloudDirty, activeDocument?.cloudDocumentId, cloudSaveStage, currentUser?.uid, isOffline]);
 
   useEffect(() => {
     setActiveToolMode((currentMode) => resolveModeForTool(tool, currentMode));
@@ -3159,28 +3177,13 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       publicTool,
       notice: intent === "share" || intent === "signature-request"
         ? `Sign in to save this document before creating a persistent ${intent === "signature-request" ? "signing" : "sharing"} link.`
-        : "Your document is safe in this browser. Sign in only if you want to create a private cloud copy.",
+        : "Your document is safe in this browser. Sign in and this PDF will sync automatically across your devices.",
     });
   };
 
   const dismissAuthAction = () => {
     setAuthRequiredAction("");
     showToast("Your document is still available in this browser.");
-  };
-
-  const promptPrivateCloudSave = (documentId = activeDocumentId) => {
-    if (!currentUser?.uid || !documentId) return false;
-    cloudSaveOperationRef.current = {
-      ownerId: currentUser.uid,
-      documentId,
-      checksumSha256: "",
-      key: "",
-    };
-    setCloudSaveStage("idle");
-    setCloudSaveProgress(0);
-    setCloudSaveError("");
-    setCloudSaveDialogOpen(true);
-    return true;
   };
 
   const saveDocumentToAccount = async () => {
@@ -3200,7 +3203,24 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       navigate(editorPath(claimedDocument.id), { state: { publicTool, postAuthAction: "save" } });
       return true;
     }
-    return promptPrivateCloudSave();
+    setCloudSaveDialogOpen(false);
+    setCloudSaveStage("idle");
+    setCloudSaveError("");
+    setCloudSyncRetryNonce((revision) => revision + 1);
+    showToast("Account autosave is on. This PDF will sync automatically.");
+    return true;
+  };
+
+  const handleAccountSyncAction = () => {
+    if (!currentUser?.uid) {
+      void saveDocumentToAccount();
+      return;
+    }
+    if (cloudSaveStage !== "error") return;
+    setCloudSaveDialogOpen(false);
+    setCloudSaveStage("idle");
+    setCloudSaveError("");
+    setCloudSyncRetryNonce((revision) => revision + 1);
   };
 
   const saveActiveDocumentToPrivateCloud = async ({ automatic = false } = {}) => {
@@ -5678,7 +5698,9 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       setCloudSaveStage("idle");
       setCloudSaveProgress(0);
       setCloudSaveError("");
-      setCloudSaveDialogOpen(true);
+      setCloudSaveDialogOpen(false);
+      setCloudSyncRetryNonce((revision) => revision + 1);
+      showToast("Signed in. This PDF will sync automatically.");
     } else if (postAuthAction === "share") {
       setShareModalOpen(true);
     } else if (postAuthAction === "signature-request") {
@@ -5910,7 +5932,26 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
           </span>
         </div>
         <div className="reference-header-actions" aria-label="Document actions">
-          <button type="button" onClick={printPdf} disabled={isExporting}><Printer size={23} /><span>{isExporting ? "Preparing…" : "Print"}</span></button>
+          {accountSyncPresentation.actionable ? (
+            <button
+              type="button"
+              className={`reference-account-sync is-${accountSyncPresentation.kind}`}
+              onClick={handleAccountSyncAction}
+              aria-label={accountSyncPresentation.label}
+              title={accountSyncPresentation.kind === "signed-out"
+                ? "Sign in to automatically sync this PDF across your devices"
+                : "Retry account sync"}
+            >
+              {accountSyncPresentation.kind === "signed-out" ? <LogIn size={20} /> : <RefreshCw size={20} />}
+              <span>{accountSyncPresentation.label}</span>
+            </button>
+          ) : (
+            <span className={`reference-account-sync is-${accountSyncPresentation.kind}`} role="status" aria-label={accountSyncPresentation.label}>
+              {accountSyncPresentation.kind === "waiting" ? <CloudOff size={20} /> : accountSyncPresentation.kind === "syncing" ? <LoaderCircle size={20} className="spin" /> : <Cloud size={20} />}
+              <span>{accountSyncPresentation.label}</span>
+            </span>
+          )}
+          <button type="button" className="reference-print-button" onClick={printPdf} disabled={isExporting}><Printer size={23} /><span>{isExporting ? "Preparing…" : "Print"}</span></button>
           <button type="button" aria-label={isExporting ? "Preparing PDF" : "Download"} onClick={exportPdf} disabled={isExporting}><Download size={23} /><span>{isExporting ? "Preparing…" : "Download"}</span></button>
           {publicTool === "share-pdf" && (
             <button type="button" aria-label="Share PDF" onClick={openShareSettings}><Share2 size={23} /><span>Share</span></button>
@@ -6016,8 +6057,11 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
                 }}><Home size={16} /> Back to home</button>
                 <button type="button" role="menuitem" onClick={() => {
                   setIsMoreMenuOpen(false);
-                  saveDocumentToAccount();
-                }}><LayoutDashboard size={16} /> Save private cloud copy</button>
+                  if (accountSyncPresentation.actionable) handleAccountSyncAction();
+                }} disabled={!accountSyncPresentation.actionable}>
+                  {accountSyncPresentation.kind === "signed-out" ? <LogIn size={16} /> : <Cloud size={16} />}
+                  {accountSyncPresentation.kind === "signed-out" ? "Sign in to sync" : accountSyncPresentation.kind === "error" ? "Retry account sync" : "Account autosave on"}
+                </button>
                 <button type="button" role="menuitem" onClick={() => {
                   renameActiveDocument();
                   setIsMoreMenuOpen(false);
@@ -6730,6 +6774,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
               annotations={annotations}
               saveState={saveState}
               saveStatusLabel={saveStatusLabel}
+              accountSyncLabel={currentUser?.uid ? "Account autosave on" : "Sign in to sync"}
               onSave={saveDocumentToAccount}
               onExport={exportPdf}
               onShare={openShareSettings}
@@ -8848,6 +8893,7 @@ function Inspector({
   annotations,
   saveState,
   saveStatusLabel,
+  accountSyncLabel,
   onSave,
   onExport,
   onShare,
@@ -9103,7 +9149,7 @@ function Inspector({
             <input value={signatureText} onChange={(event) => setSignatureText(event.target.value)} />
           </label>
           <button type="button" className="panel-action" onClick={onSignatureModal}><PenLine size={17} /> Create signature</button>
-          <button type="button" className="panel-action" onClick={onSave}><Save size={17} /> Save private cloud copy</button>
+          <button type="button" className="panel-action" onClick={onSave}><Cloud size={17} /> {accountSyncLabel}</button>
           <button type="button" className="panel-action" onClick={onExport}><Download size={17} /> Export PDF</button>
           <button type="button" className="panel-action" onClick={onShare}><Share2 size={17} /> Share</button>
           <button type="button" className="panel-action" onClick={onPrint}><Printer size={17} /> Print</button>

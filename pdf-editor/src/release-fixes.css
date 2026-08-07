@@ -355,7 +355,15 @@
     height: 38px !important;
     padding: 0 !important;
   }
-  main.editor-shell .reference-header-actions > button:first-child { display: none !important; }
+  main.editor-shell .reference-header-actions .reference-account-sync {
+    display: inline-flex !important;
+    width: 38px !important;
+    min-width: 38px !important;
+    height: 38px !important;
+    padding: 0 !important;
+  }
+  main.editor-shell .reference-header-actions .reference-account-sync > span { display: none !important; }
+  main.editor-shell .reference-header-actions .reference-print-button { display: none !important; }
   main.editor-shell .reference-header-actions > button > span { display: none !important; }
   main.editor-shell .reference-header-actions .reference-done-button {
     display: inline-flex !important;

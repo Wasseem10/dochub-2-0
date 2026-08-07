@@ -1,4 +1,4 @@
-const browserPrivacy = "Choosing a file does not upload its contents to PDFEnrich. Processing runs in this browser, and the result is downloaded directly to this device.";
+const browserPrivacy = "Processing runs in this browser. Guest files stay on this device; PDFs opened while signed in also sync privately to your account for cross-device access.";
 
 export const PRIMARY_SEARCH_TOOL_IDS = Object.freeze([
   "edit-pdf",

@@ -3,10 +3,10 @@ import X from "lucide-react/dist/esm/icons/x.mjs";
 
 const actionContent = {
   save: {
-    title: "Save this document to your account",
-    description: "Sign in to save this document to your account and access it later.",
-    primary: "Sign in to save",
-    secondary: "Continue without saving",
+    title: "Sync this PDF across devices",
+    description: "Sign in and this PDF will sync automatically to your private account.",
+    primary: "Sign in to sync",
+    secondary: "Keep on this device",
   },
   share: {
     title: "Create a persistent sharing link",
@@ -36,7 +36,7 @@ export function AuthRequiredModal({ action = "save", onClose, onSignIn }) {
           <button type="button" className="modal-close" onClick={onClose} aria-label="Close sign-in prompt"><X size={18} /></button>
         </header>
         <div className="auth-required-note">
-          Your PDF and current edits stay in this browser unless you choose to sign in.
+          Your PDF and current edits stay in this browser until you sign in.
         </div>
         <footer>
           <button type="button" className="modal-secondary" onClick={onClose}>{content.secondary}</button>

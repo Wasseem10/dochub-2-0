@@ -81,6 +81,28 @@ main.editor-shell .reference-save-state {
 main.editor-shell .reference-save-state.is-unsaved { color: #b26b18; }
 
 main.editor-shell .reference-header-actions { display: flex; flex: 0 0 auto; align-items: center; gap: 7px; }
+main.editor-shell .reference-account-sync {
+  display: inline-flex;
+  min-width: 112px;
+  height: 40px;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 12px;
+  border: 1px solid #d8dee8;
+  border-radius: 10px;
+  background: #f8fafc;
+  color: #4f5b6d;
+  font-size: 13px;
+  font-weight: 680;
+  white-space: nowrap;
+}
+main.editor-shell .reference-account-sync.is-synced { color: #26763a; }
+main.editor-shell .reference-account-sync.is-syncing svg { animation: reference-sync-spin .8s linear infinite; }
+main.editor-shell button.reference-account-sync.is-signed-out { border-color: #b7c6e6; background: #fff; color: #1f355c; }
+main.editor-shell button.reference-account-sync.is-error { border-color: #d8b4b4; background: #fffafa; color: #8b3434; }
+@keyframes reference-sync-spin { to { transform: rotate(360deg); } }
 main.editor-shell .reference-header-actions > button {
   display: inline-flex;
   min-width: 96px;
@@ -422,6 +444,8 @@ main.editor-shell .comment-editor { position: absolute; top: calc(100% + 10px); 
   main.editor-shell .reference-header-actions { gap: 5px; }
   main.editor-shell .reference-header-actions > button { min-width: 40px; width: 40px; height: 40px; padding: 0; font-size: 10px; }
   main.editor-shell .reference-header-actions > button > span { display: none; }
+  main.editor-shell .reference-header-actions .reference-account-sync { min-width: 40px; width: 40px; height: 40px; padding: 0; }
+  main.editor-shell .reference-header-actions .reference-account-sync > span { display: none; }
   main.editor-shell .reference-header-actions .reference-done-button { width: 64px !important; min-width: 64px !important; height: 40px; font-size: 14px; }
   main.editor-shell .reference-header-actions .reference-done-button > span { display: inline; }
   main.editor-shell .reference-tool-ribbon { width: calc(100% - 16px) !important; min-height: 76px !important; height: 76px !important; margin: 8px !important; padding: 5px 8px !important; border-radius: 18px !important; }
@@ -1278,7 +1302,7 @@ main.editor-shell .reference-compact-tools {
 @media (max-width: 600px) {
   main.editor-shell .reference-brand-divider,
   main.editor-shell .reference-document-name,
-  main.editor-shell .reference-header-actions > button:first-child {
+  main.editor-shell .reference-header-actions .reference-print-button {
     display: none !important;
   }
 

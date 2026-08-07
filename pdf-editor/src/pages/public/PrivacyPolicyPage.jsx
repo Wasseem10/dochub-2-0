@@ -48,11 +48,11 @@ const dataRows = [
     retention: "In memory until the tab closes; local saved work remains until you delete it or clear site data.",
   },
   {
-    category: "Optional private cloud PDFs",
+    category: "Signed-in account PDFs",
     examples: "The finished edited PDF, sanitized display name, size, MIME type, checksum, internal IDs, timestamps, version, and deletion status. Visible signatures or form answers already placed in the finished PDF are part of those PDF bytes.",
-    source: "You only when signed in and choosing “Save private cloud copy” for that document.",
-    purpose: "Keep a durable private PDF copy and version history across sessions or devices.",
-    disclosed: "Google Cloud Firestore and Cloud Storage for Firebase; when configured, the private malware-scanning service used to verify that cloud copy.",
+    source: "You when opening or editing a PDF while signed in, with account sync disclosed in the product.",
+    purpose: "Keep an account-restricted PDF copy and version history that you can open after signing in on another supported device.",
+    disclosed: "Supabase Edge Functions, Postgres metadata, and private Supabase Storage; Firebase Authentication supplies the signed-in identity token.",
     retention: "Until permanent document or account deletion, subject to the configured trash-recovery window and provider backup or soft-delete periods.",
   },
   {
@@ -135,7 +135,7 @@ export function PrivacyPolicyPage() {
           <section id="summary">
             <span className="privacy-section-number">01</span>
             <h2>Plain-language summary</h2>
-            <p>PDFEnrich is designed so supported editing and conversion can happen on your device. Choosing a file or signing in does not, by itself, upload that file to PDFEnrich. Data leaves your browser only when needed to deliver a feature you choose, such as saving a specific private cloud copy, submitting support, allowing optional analytics, or creating a share link.</p>
+            <p>PDFEnrich is designed so supported editing and conversion happen on your device. Guest files stay in that browser. When you are signed in, PDFs you open and later edited versions also sync as private account copies so they can be opened on another signed-in device. Support, optional analytics, and sharing use separate data paths.</p>
             <div className="privacy-promise-list">
               <p><CheckCircle2 size={17} /> PDFEnrich does not sell personal information or share it for cross-context behavioral advertising.</p>
               <p><CheckCircle2 size={17} /> PDFEnrich does not put file names, PDF contents, extracted text, signatures, form answers, or document URLs into product analytics.</p>
@@ -173,8 +173,10 @@ export function PrivacyPolicyPage() {
             <h2>How PDF files are handled</h2>
             <h3>Browser-only workflows</h3>
             <p>The editor and supported page, image, protection, OCR, and conversion tools process files in browser memory. Saved guest work may use IndexedDB or local storage on your device. Clearing PDFEnrich site data removes those browser copies, but PDFEnrich cannot delete downloads, browser backups, or copies you saved elsewhere.</p>
-            <h3>Optional cloud history</h3>
-            <p>Private cloud saving is available only when the deployment has its authenticated cloud API configured. A signed-in user must choose “Save private cloud copy” for each document. PDFEnrich then uploads the rebuilt finished PDF and minimal metadata; it does not upload the editable workspace, OCR text, thumbnails, undo history, or signature library. Before PDFEnrich marks the copy saved, the configured private malware-scanning service may read that exact cloud object to return a clean or rejected result. The finished PDF itself can contain any visible signatures and form answers the user placed on it. Delete individual cloud copies in PDFEnrich or delete the entire account to remove active account-linked cloud data.</p>
+            <h3>Signed-in account synchronization</h3>
+            <p>When the authenticated account-document API is available, PDFs opened while signed in automatically upload as rebuilt finished PDFs with minimal metadata to account-restricted storage. Existing browser-only documents are not bulk uploaded; opening one while signed in imports that document into account sync.</p>
+            <p>A confirmed account copy can be listed and downloaded after the same account signs in on another supported device. PDFEnrich does not upload the editable workspace, extracted OCR text, thumbnails, undo history, or signature library as separate cloud data. After an edit is saved locally, the rebuilt finished PDF is uploaded as a newer immutable version.</p>
+            <p>Before PDFEnrich marks the copy saved, the backend verifies the authenticated owner, checksum, size, page count, and PDF structure. The finished PDF can contain visible signatures and form answers the user placed on it. Users can delete individual account copies or delete the entire account to request removal of active account-linked cloud data, subject to the retention limits below.</p>
             <h3>Sharing and signing requests</h3>
             <p>Creating a sharing or signing link uploads the exported PDF to Firebase. Anyone who has the high-entropy bearer link can open or download it until expiration or revocation. The raw capability is kept in the URL fragment so it is not sent in ordinary page requests; Firebase records and object identifiers use its SHA-256 hash. Recipient name, recipient email, requester details, the optional message, and required fields are stored in the expiring signing-request record rather than encoded into the link. Those details and the link may also pass through the email provider you choose to send them. Do not create a link unless you are authorized to disclose the document and recipient information.</p>
           </section>
@@ -197,7 +199,7 @@ export function PrivacyPolicyPage() {
             <h2>When information is disclosed</h2>
             <p>PDFEnrich limits disclosure to the following situations:</p>
             <ul>
-              <li><strong>Service providers:</strong> website hosting and content delivery providers; Google Firebase Authentication, Firestore, Storage, App Check, reCAPTCHA Enterprise, and Google Sign-In; and, only when private cloud saving is configured, the private malware-scanning service identified by the operator for that deployment.</li>
+              <li><strong>Service providers:</strong> website hosting and content delivery providers; Google Firebase Authentication, Firestore, Storage, App Check, reCAPTCHA Enterprise, and Google Sign-In; and Supabase Edge Functions, Postgres, and private Storage for signed-in account PDFs.</li>
               <li><strong>People you direct:</strong> recipients of sharing or signing links and email providers you use to send them.</li>
               <li><strong>Legal and safety:</strong> authorities or other parties when reasonably necessary to comply with law, protect users, investigate abuse, or defend legal rights.</li>
               <li><strong>Business transition:</strong> a buyer, successor, or adviser in a merger, financing, reorganization, or sale, subject to appropriate confidentiality and notice where required.</li>

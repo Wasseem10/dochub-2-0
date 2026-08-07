@@ -125,9 +125,9 @@ export function EditorToolUploadPage({ toolId, fileInputRef, onUpload, onDropFil
         </div>
 
         <div className="editor-tool-trust-row" aria-label="Upload information">
-          <span><Lock size={16} /> Your file stays in your browser</span>
+          <span><Lock size={16} /> Guest files stay in this browser</span>
           <span><CheckCircle2 size={16} /> {requiresAccountForCloudAction ? "Sign in required to create a link" : "No account required"}</span>
-          <span><ShieldCheck size={16} /> No file uploads to our servers</span>
+          <span><ShieldCheck size={16} /> Signed-in PDFs sync privately</span>
         </div>
       </section>
       <ToolGuideContent tool={tool} />
