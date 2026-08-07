@@ -123,7 +123,9 @@ import {
 } from "./cloud/privateCloudDocuments.js";
 import {
   applyPrivateCloudSaveResult,
+  isPrivateCloudDocumentOpenInFlight,
   mergeLocalAndPrivateCloudDocuments,
+  privateCloudDocumentOpenKey,
   privateCloudDocumentRequiresDownload,
   privateCloudPlaceholder,
   replaceWithHydratedPrivateCloudDocument,
@@ -4104,7 +4106,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       return;
     }
     if (privateCloudDocumentRequiresDownload(documentRecord)) {
-      const openKey = `${operationOwnerId}:${documentRecord.cloudDocumentId}`;
+      const openKey = privateCloudDocumentOpenKey(operationOwnerId, documentRecord);
       if (cloudDocumentOpenRef.current.has(openKey)) return;
       cloudDocumentOpenRef.current.add(openKey);
       try {
@@ -5727,6 +5729,12 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       setEditorRouteState(resolved.status);
       return;
     }
+
+    if (isPrivateCloudDocumentOpenInFlight(
+      cloudDocumentOpenRef.current,
+      storageOwnerId,
+      resolved.document,
+    )) return;
 
     setEditorRouteState("loading");
     if (resolved.document.cloudOnly && resolved.document.cloudDocumentId) {

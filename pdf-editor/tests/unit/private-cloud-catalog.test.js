@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
   applyPrivateCloudSaveResult,
   mergeLocalAndPrivateCloudDocuments,
+  isPrivateCloudDocumentOpenInFlight,
+  privateCloudDocumentOpenKey,
   privateCloudDocumentRequiresDownload,
   replaceWithHydratedPrivateCloudDocument,
   selectNextPrivateCloudSyncDocument,
@@ -162,5 +164,18 @@ describe("private cloud multi-device catalog", () => {
       hydrated,
       local,
     ]);
+  });
+
+  it("blocks a second route hydration while the downloaded cloud PDF is still opening", () => {
+    const cloudDocument = {
+      id: "cloud-document",
+      cloudDocumentId: "doc_abcdefghijklmnopqrstuvwxyz",
+      cloudOnly: false,
+      pages: [{ id: "page-1" }],
+    };
+    const openKey = privateCloudDocumentOpenKey("account-a", cloudDocument);
+    expect(openKey).toBe("account-a:doc_abcdefghijklmnopqrstuvwxyz");
+    expect(isPrivateCloudDocumentOpenInFlight(new Set([openKey]), "account-a", cloudDocument)).toBe(true);
+    expect(isPrivateCloudDocumentOpenInFlight(new Set(), "account-a", cloudDocument)).toBe(false);
   });
 });

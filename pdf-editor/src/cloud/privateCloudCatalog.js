@@ -132,6 +132,16 @@ export function privateCloudDocumentRequiresDownload(documentRecord) {
   );
 }
 
+export function privateCloudDocumentOpenKey(ownerId, documentRecord) {
+  if (!ownerId || !documentRecord?.cloudDocumentId) return "";
+  return `${ownerId}:${documentRecord.cloudDocumentId}`;
+}
+
+export function isPrivateCloudDocumentOpenInFlight(openKeys, ownerId, documentRecord) {
+  const openKey = privateCloudDocumentOpenKey(ownerId, documentRecord);
+  return Boolean(openKey && openKeys?.has(openKey));
+}
+
 export function shouldNavigateBeforePrivateCloudDownload(view, documentRecord) {
   return privateCloudDocumentRequiresDownload(documentRecord)
     && view !== "editor"

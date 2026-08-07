@@ -6,6 +6,8 @@ Signed-in PDF uploads and edited versions must sync automatically to the authent
 
 Cloud-only account documents shown on phones must enter a visible editor loading state immediately, download only once, and open the verified PDF from memory even when Safari cannot retain an offline browser cache. A mobile document tap must never leave the dashboard appearing inert after the authenticated download succeeds.
 
+While an account PDF is downloading or being prepared, the editor route must not start a second local hydration for the same cloud document. A successful account download must not be replaced by a stale concurrent hydration error.
+
 Use `runtime-public/pdfenrich-logo.png` as the primary logo on the landing page. It has intentional white margins, so display it through the `.brand-wordmark--logo` crop container rather than as an uncropped square image. All visible product naming, page metadata, exports, and user-facing copy must use PDFEnrich rather than any prior brand.
 
 Run the local server yourself and open the preview in the in-app browser. Do not give the user server-start instructions when you can run it.
