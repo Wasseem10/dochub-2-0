@@ -101,6 +101,30 @@ export function shouldSyncPrivateCloudDocument({
   );
 }
 
+export function selectNextPrivateCloudSyncDocument({
+  documents,
+  userId,
+  cloudConfigured,
+  offline,
+  attemptedKeys = new Set(),
+}) {
+  return (documents || []).find((documentRecord) => {
+    const attemptKey = `${userId}:${documentRecord?.id || ""}`;
+    const hasLocalContent = Boolean(
+      documentRecord?.pdfDataUrl
+      || (Array.isArray(documentRecord?.pages) && documentRecord.pages.length),
+    );
+    return hasLocalContent
+      && !attemptedKeys.has(attemptKey)
+      && shouldSyncPrivateCloudDocument({
+        documentRecord,
+        userId,
+        cloudConfigured,
+        offline,
+      });
+  }) || null;
+}
+
 export function applyPrivateCloudSaveResult(documentRecord, result, updatedAt = new Date().toISOString()) {
   return {
     ...documentRecord,

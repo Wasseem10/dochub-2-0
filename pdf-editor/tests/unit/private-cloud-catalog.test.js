@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   applyPrivateCloudSaveResult,
   mergeLocalAndPrivateCloudDocuments,
+  selectNextPrivateCloudSyncDocument,
   shouldSyncPrivateCloudDocument,
 } from "../../src/cloud/privateCloudCatalog.js";
 
@@ -105,5 +106,37 @@ describe("private cloud multi-device catalog", () => {
       offline: true,
     })).toBe(false);
     expect(pending.cloudDirty).toBe(true);
+  });
+
+  it("selects an older browser-local PDF for background sync from the dashboard", () => {
+    const pending = localRecord({
+      id: "older-local-document",
+      cloudDocumentId: "",
+      cloudVersionId: "",
+      cloudDirty: true,
+      pdfDataUrl: "data:application/pdf;base64,JVBERi0xLjQK",
+    });
+    expect(selectNextPrivateCloudSyncDocument({
+      documents: [pending],
+      userId: "account-a",
+      cloudConfigured: true,
+      offline: false,
+    })).toBe(pending);
+  });
+
+  it("does not loop a dashboard document already attempted in this session", () => {
+    const pending = localRecord({
+      id: "older-local-document",
+      cloudDocumentId: "",
+      cloudDirty: true,
+      pages: [{ id: "page-1", source: "blank" }],
+    });
+    expect(selectNextPrivateCloudSyncDocument({
+      documents: [pending],
+      userId: "account-a",
+      cloudConfigured: true,
+      offline: false,
+      attemptedKeys: new Set(["account-a:older-local-document"]),
+    })).toBeNull();
   });
 });

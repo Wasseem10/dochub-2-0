@@ -125,6 +125,7 @@ import {
   applyPrivateCloudSaveResult,
   mergeLocalAndPrivateCloudDocuments,
   privateCloudPlaceholder,
+  selectNextPrivateCloudSyncDocument,
   shouldSyncPrivateCloudDocument,
 } from "./cloud/privateCloudCatalog.js";
 import {
@@ -1980,6 +1981,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   const cloudSaveAbortRef = useRef(null);
   const cloudSyncInFlightRef = useRef(false);
   const cloudSyncRetryRef = useRef({ documentId: "", attempt: 0, timer: null });
+  const backgroundCloudSyncAttemptedRef = useRef(new Set());
   const lastPagePointRef = useRef({ x: 0.52, y: 0.28 });
   const editorClipboardRef = useRef(null);
   const detectedTextEditHistoryRef = useRef(new Map());
@@ -2254,6 +2256,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     pdfPageRenderGenerationRef.current.clear();
     editorClipboardRef.current = null;
     detectedTextEditHistoryRef.current.clear();
+    backgroundCloudSyncAttemptedRef.current.clear();
     setActiveDocumentId(null);
     setDocuments([]);
     documentsRef.current = [];
@@ -4011,6 +4014,34 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     }
     setEditorRouteState("ready");
   }, []);
+
+  useEffect(() => {
+    if (
+      view !== "dashboard"
+      || !currentUser?.uid
+      || !documentCatalogReady
+      || cloudCatalogStatus !== "ready"
+      || cloudSyncInFlightRef.current
+    ) return undefined;
+
+    const candidate = selectNextPrivateCloudSyncDocument({
+      documents,
+      userId: currentUser.uid,
+      cloudConfigured: isPrivateCloudConfigured,
+      offline: isOffline,
+      attemptedKeys: backgroundCloudSyncAttemptedRef.current,
+    });
+    if (!candidate) return undefined;
+
+    const attemptKey = `${currentUser.uid}:${candidate.id}`;
+    backgroundCloudSyncAttemptedRef.current.add(attemptKey);
+    const timer = window.setTimeout(() => {
+      hydrateDocument(candidate).catch(() => {
+        backgroundCloudSyncAttemptedRef.current.delete(attemptKey);
+      });
+    }, 250);
+    return () => window.clearTimeout(timer);
+  }, [cloudCatalogStatus, currentUser?.uid, documentCatalogReady, documents, hydrateDocument, isOffline, view]);
 
   const openDocument = async (documentRecord) => {
     if (documentRecord.ownerId && documentRecord.ownerId !== storageOwnerIdRef.current) {
