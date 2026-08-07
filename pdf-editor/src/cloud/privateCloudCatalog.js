@@ -125,6 +125,27 @@ export function selectNextPrivateCloudSyncDocument({
   }) || null;
 }
 
+export function privateCloudDocumentRequiresDownload(documentRecord) {
+  return Boolean(
+    documentRecord?.cloudDocumentId
+    && (documentRecord.cloudOnly || documentRecord.cloudRefreshRequired),
+  );
+}
+
+export function shouldNavigateBeforePrivateCloudDownload(view, documentRecord) {
+  return privateCloudDocumentRequiresDownload(documentRecord)
+    && view !== "editor"
+    && view !== "public-editor";
+}
+
+export function replaceWithHydratedPrivateCloudDocument(documents, hydratedDocument) {
+  if (!hydratedDocument?.id) return documents || [];
+  return [
+    hydratedDocument,
+    ...(documents || []).filter((documentRecord) => documentRecord.id !== hydratedDocument.id),
+  ];
+}
+
 export function applyPrivateCloudSaveResult(documentRecord, result, updatedAt = new Date().toISOString()) {
   return {
     ...documentRecord,

@@ -124,8 +124,11 @@ import {
 import {
   applyPrivateCloudSaveResult,
   mergeLocalAndPrivateCloudDocuments,
+  privateCloudDocumentRequiresDownload,
   privateCloudPlaceholder,
+  replaceWithHydratedPrivateCloudDocument,
   selectNextPrivateCloudSyncDocument,
+  shouldNavigateBeforePrivateCloudDownload,
   shouldSyncPrivateCloudDocument,
 } from "./cloud/privateCloudCatalog.js";
 import {
@@ -1982,6 +1985,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   const cloudSyncInFlightRef = useRef(false);
   const cloudSyncRetryRef = useRef({ documentId: "", attempt: 0, timer: null });
   const backgroundCloudSyncAttemptedRef = useRef(new Set());
+  const cloudDocumentOpenRef = useRef(new Set());
   const lastPagePointRef = useRef({ x: 0.52, y: 0.28 });
   const editorClipboardRef = useRef(null);
   const detectedTextEditHistoryRef = useRef(new Map());
@@ -2257,6 +2261,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     editorClipboardRef.current = null;
     detectedTextEditHistoryRef.current.clear();
     backgroundCloudSyncAttemptedRef.current.clear();
+    cloudDocumentOpenRef.current.clear();
     setActiveDocumentId(null);
     setDocuments([]);
     documentsRef.current = [];
@@ -3518,7 +3523,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   };
 
   const loadPdfFile = async (file, { cloudDocumentRecord = null } = {}) => {
-    if (!file) return;
+    if (!file) return false;
     const loadOwnerId = storageOwnerId;
     const displayFileName = sanitizePdfDisplayName(file.name);
     setUploadStage({ status: "validating", percent: 8, fileName: displayFileName });
@@ -3527,7 +3532,8 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       trackUploadValidationFailure(publicTool || "edit-pdf", "invalid_pdf");
       setUploadError(validationError);
       setUploadStage({ status: "error", percent: 0, fileName: displayFileName });
-      return;
+      if (cloudDocumentRecord) throw new Error(validationError);
+      return false;
     }
 
     try {
@@ -3581,7 +3587,16 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       };
 
       const persisted = await upsertDocument(documentRecord, loadOwnerId);
-      if (!persisted) throw new Error("The working copy could not be stored.");
+      if (!persisted && !cloudDocumentRecord) throw new Error("The working copy could not be stored.");
+      if (!persisted) {
+        const inMemoryDocuments = replaceWithHydratedPrivateCloudDocument(
+          documentsRef.current,
+          documentRecord,
+        );
+        documentsRef.current = inMemoryDocuments;
+        setDocuments(inMemoryDocuments);
+        setUploadError("This PDF opened from your account, but Safari could not keep an offline browser copy.");
+      }
       if (storageOwnerIdRef.current !== loadOwnerId) return;
       trackToolUpload(publicTool || "edit-pdf", workingFile, { pageCount: loadedPages.length });
       activeDocumentOwnerIdRef.current = loadOwnerId;
@@ -3599,22 +3614,28 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       setTool(resolveEditorActiveTool(publicTool, detectedItems.length));
       setZoomMode(usesMobileEditorLayout() ? EDITOR_ZOOM_MODE.FIT_WIDTH : EDITOR_ZOOM_MODE.CUSTOM);
       setZoom(100);
-      setSaved(true);
-      setSaveState("saved");
-      setLastSavedAt(stamp);
+      setSaved(persisted);
+      setSaveState(persisted ? "saved" : "error");
+      if (persisted) setLastSavedAt(stamp);
       setUploadStage({ status: "complete", percent: 100, fileName: displayFileName });
-      showToast(detectedFormFields.length
-        ? `Found ${detectedFormFields.length} fillable field${detectedFormFields.length === 1 ? "" : "s"}.`
-        : detectedItems.length
-          ? `Found ${detectedItems.length} editable text item${detectedItems.length === 1 ? "" : "s"}. Choose Edit Text when you need them.`
-          : "This looks scanned. OCR is not enabled in this browser build yet.");
+      setEditorRouteState("ready");
+      showToast(!persisted
+        ? "Opened from your account. Offline caching is unavailable in this browser."
+        : detectedFormFields.length
+          ? `Found ${detectedFormFields.length} fillable field${detectedFormFields.length === 1 ? "" : "s"}.`
+          : detectedItems.length
+            ? `Found ${detectedItems.length} editable text item${detectedItems.length === 1 ? "" : "s"}. Choose Edit Text when you need them.`
+            : "This looks scanned. OCR is not enabled in this browser build yet.");
       navigate(isPublicEditor ? publicEditorDocumentPath(publicTool, documentRecord.id) : editorPath(documentRecord.id), { state: { publicTool } });
       window.setTimeout(() => setUploadStage({ status: "idle", percent: 0, fileName: "" }), 900);
+      return true;
     } catch (error) {
       if (storageOwnerIdRef.current !== loadOwnerId || error?.name === "AbortError") return;
       trackUploadValidationFailure(publicTool || "edit-pdf", "invalid_pdf");
       setUploadError(getPdfLoadErrorMessage(error));
       setUploadStage({ status: "error", percent: 0, fileName: displayFileName });
+      if (cloudDocumentRecord) throw error;
+      return false;
     }
   };
 
@@ -4055,6 +4076,11 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       return;
     }
     setEditorRouteState("loading");
+    if (shouldNavigateBeforePrivateCloudDownload(view, documentRecord)) {
+      setUploadStage({ status: "Opening account document", percent: 8, fileName: documentRecord.name });
+      navigate(editorPath(documentRecord.id));
+      return;
+    }
     if (documentRecord.cloudOnly && documentRecord.legacyCloudDocumentId) {
       try {
         setUploadStage({ status: "Opening older cloud copy", percent: 24, fileName: documentRecord.name });
@@ -4077,7 +4103,10 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       }
       return;
     }
-    if ((documentRecord.cloudOnly || documentRecord.cloudRefreshRequired) && documentRecord.cloudDocumentId) {
+    if (privateCloudDocumentRequiresDownload(documentRecord)) {
+      const openKey = `${operationOwnerId}:${documentRecord.cloudDocumentId}`;
+      if (cloudDocumentOpenRef.current.has(openKey)) return;
+      cloudDocumentOpenRef.current.add(openKey);
       try {
         setUploadStage({ status: "Downloading private copy", percent: 24, fileName: documentRecord.name });
         const blob = await downloadPrivateCloudPdf(documentRecord.cloudDocumentId, {
@@ -4111,7 +4140,8 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
           }
         }
         const file = new File([blob], documentRecord.name, { type: "application/pdf" });
-        await loadPdfFile(file, { cloudDocumentRecord: documentRecord });
+        const opened = await loadPdfFile(file, { cloudDocumentRecord: documentRecord });
+        if (!opened) throw new Error("The verified account PDF could not be prepared for editing.");
         if (recoveredLocalCopy) {
           showToast("Opened the latest account version. Unsynced browser changes were kept as a recovered copy.");
         }
@@ -4120,6 +4150,8 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
         setUploadStage({ status: "error", percent: 0, fileName: documentRecord.name });
         setEditorRouteState(error?.status === 401 || error?.status === 403 ? "unauthorized" : "error");
         showToast("The private cloud copy could not be opened. Your local documents are unchanged.");
+      } finally {
+        cloudDocumentOpenRef.current.delete(openKey);
       }
       return;
     }

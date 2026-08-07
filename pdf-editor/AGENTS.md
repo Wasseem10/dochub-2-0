@@ -4,6 +4,8 @@ The product name is PDFEnrich and its canonical production domain is `https://pd
 
 Signed-in PDF uploads and edited versions must sync automatically to the authenticated account's private cloud storage and appear in Documents on every device using that same account. Guest files remain browser-local. Mobile dashboard layouts must expose a clearly labeled Documents action, and Recent documents must lead to the complete account document library rather than a device-only list.
 
+Cloud-only account documents shown on phones must enter a visible editor loading state immediately, download only once, and open the verified PDF from memory even when Safari cannot retain an offline browser cache. A mobile document tap must never leave the dashboard appearing inert after the authenticated download succeeds.
+
 Use `runtime-public/pdfenrich-logo.png` as the primary logo on the landing page. It has intentional white margins, so display it through the `.brand-wordmark--logo` crop container rather than as an uncropped square image. All visible product naming, page metadata, exports, and user-facing copy must use PDFEnrich rather than any prior brand.
 
 Run the local server yourself and open the preview in the in-app browser. Do not give the user server-start instructions when you can run it.

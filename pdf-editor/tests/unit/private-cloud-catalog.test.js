@@ -2,7 +2,10 @@ import { describe, expect, it } from "vitest";
 import {
   applyPrivateCloudSaveResult,
   mergeLocalAndPrivateCloudDocuments,
+  privateCloudDocumentRequiresDownload,
+  replaceWithHydratedPrivateCloudDocument,
   selectNextPrivateCloudSyncDocument,
+  shouldNavigateBeforePrivateCloudDownload,
   shouldSyncPrivateCloudDocument,
 } from "../../src/cloud/privateCloudCatalog.js";
 
@@ -138,5 +141,26 @@ describe("private cloud multi-device catalog", () => {
       offline: false,
       attemptedKeys: new Set(["account-a:older-local-document"]),
     })).toBeNull();
+  });
+
+  it("routes a cloud-only dashboard document to a visible editor loading state before downloading", () => {
+    const cloudOnly = {
+      id: "cloud-document",
+      cloudDocumentId: "doc_abcdefghijklmnopqrstuvwxyz",
+      cloudOnly: true,
+    };
+    expect(privateCloudDocumentRequiresDownload(cloudOnly)).toBe(true);
+    expect(shouldNavigateBeforePrivateCloudDownload("dashboard", cloudOnly)).toBe(true);
+    expect(shouldNavigateBeforePrivateCloudDownload("editor", cloudOnly)).toBe(false);
+  });
+
+  it("keeps a hydrated cloud PDF available in memory when mobile offline caching fails", () => {
+    const placeholder = { id: "cloud-document", cloudOnly: true, pages: [] };
+    const hydrated = { id: "cloud-document", cloudOnly: false, pages: [{ id: "page-1" }] };
+    const local = { id: "local-document", cloudOnly: false };
+    expect(replaceWithHydratedPrivateCloudDocument([placeholder, local], hydrated)).toEqual([
+      hydrated,
+      local,
+    ]);
   });
 });
