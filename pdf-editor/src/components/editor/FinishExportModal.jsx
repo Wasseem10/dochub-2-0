@@ -66,7 +66,9 @@ export function FinishExportModal({
   onSelectFormat,
   onClose,
   onDownload,
+  onFinishLater,
   isWorking = false,
+  isSavingForLater = false,
   progress = 0,
   error = "",
 }) {
@@ -74,6 +76,7 @@ export function FinishExportModal({
   const onCloseRef = useRef(onClose);
   const selected = FINISH_EXPORT_FORMATS.find((format) => format.id === selectedFormat)
     || FINISH_EXPORT_FORMATS[0];
+  const isBusy = isWorking || isSavingForLater;
 
   useEffect(() => {
     onCloseRef.current = onClose;
@@ -84,21 +87,21 @@ export function FinishExportModal({
     window.document.body.style.overflow = "hidden";
     selectedButtonRef.current?.focus();
     const onKeyDown = (event) => {
-      if (event.key === "Escape" && !isWorking) onCloseRef.current();
+      if (event.key === "Escape" && !isBusy) onCloseRef.current();
     };
     window.addEventListener("keydown", onKeyDown);
     return () => {
       window.document.body.style.overflow = previousOverflow;
       window.removeEventListener("keydown", onKeyDown);
     };
-  }, [isWorking]);
+  }, [isBusy]);
 
   return (
     <div
       className="finish-export-backdrop"
       role="presentation"
       onMouseDown={(event) => {
-        if (event.target === event.currentTarget && !isWorking) onClose();
+        if (event.target === event.currentTarget && !isBusy) onClose();
       }}
     >
       <section
@@ -113,13 +116,13 @@ export function FinishExportModal({
             <span>Editing complete</span>
             <h2 id="finish-export-title">Your document is ready</h2>
           </div>
-          <button type="button" aria-label="Close download options" onClick={onClose} disabled={isWorking}>
+          <button type="button" aria-label="Close finish options" onClick={onClose} disabled={isBusy}>
             <X size={20} />
           </button>
         </header>
 
         <div className="finish-export-body">
-          <p id="finish-export-description">Choose the format you want to download.</p>
+          <p id="finish-export-description">Download a copy now, or finish later and return to your dashboard.</p>
           <div className="finish-export-file-summary">
             <FileText size={18} aria-hidden="true" />
             <span><strong>{fileName}</strong><small>{pageCount} page{pageCount === 1 ? "" : "s"} ready to export</small></span>
@@ -138,7 +141,7 @@ export function FinishExportModal({
                   key={format.id}
                   ref={isSelected ? selectedButtonRef : undefined}
                   onClick={() => onSelectFormat(format.id)}
-                  disabled={isWorking}
+                  disabled={isBusy}
                 >
                   <span className="finish-export-radio" aria-hidden="true" />
                   <span className="finish-export-format-icon"><FormatIcon size={22} strokeWidth={1.8} /><em>{format.extension}</em></span>
@@ -161,8 +164,11 @@ export function FinishExportModal({
         </div>
 
         <footer>
-          <button type="button" className="finish-export-secondary" onClick={onClose} disabled={isWorking}>Keep editing</button>
-          <button type="button" className="finish-export-primary" onClick={onDownload} disabled={isWorking}>
+          <button type="button" className="finish-export-secondary" onClick={onClose} disabled={isBusy}>Keep editing</button>
+          <button type="button" className="finish-export-later" onClick={onFinishLater} disabled={isBusy}>
+            {isSavingForLater ? <><LoaderCircle className="is-spinning" size={17} /> Saving…</> : <>Finish later</>}
+          </button>
+          <button type="button" className="finish-export-primary" onClick={onDownload} disabled={isBusy}>
             {isWorking ? <><LoaderCircle className="is-spinning" size={17} /> Preparing…</> : <>Download {selected.label}</>}
           </button>
         </footer>

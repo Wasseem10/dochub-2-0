@@ -132,4 +132,6 @@ The July 29, 2026 dashboard reference `ChatGPT Image Jul 29, 2026, 03_19_44 PM.p
 
 The editor Finish action opens a post-edit download chooser instead of immediately leaving the editor. Use a compact two-column desktop dialog and a touch-friendly mobile bottom sheet with PDF recommended by default and real PDF, PNG, Word, Excel, JPG, and PowerPoint exports. Multi-page image exports must include every page in a ZIP, conversion progress and errors must stay visible, and completing a download must not force the user away from the editor.
 
+The Finish chooser must also include a clear Finish later action that saves the current work and returns to `/app/dashboard` without requiring a download. The editor header must expose a direct dashboard return as well.
+
 Signed-in PDFs sync to the private account automatically after local persistence; users must never need to click a Save to account control. Show a clear Sign in to sync action to guests, then replace it with visible queued, syncing, synced, offline, or retry status. Returning from sign-in must immediately queue the active PDF without opening a confirmation dialog.

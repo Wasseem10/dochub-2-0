@@ -310,6 +310,17 @@
   background: #f3f5f8;
 }
 
+.finish-export-later {
+  border: 1px solid #b9c2d2;
+  background: #eef1f6;
+  color: #293449;
+}
+
+.finish-export-later:hover {
+  border-color: #9faabd;
+  background: #e5e9f0;
+}
+
 .finish-export-primary {
   min-width: 142px;
   border: 1px solid #2851eb;
@@ -385,11 +396,18 @@
     position: sticky;
     bottom: 0;
     z-index: 2;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
     padding: 12px 17px calc(14px + env(safe-area-inset-bottom));
   }
 
   .finish-export-modal > footer button {
-    flex: 1;
+    width: 100%;
+  }
+
+  .finish-export-modal > footer .finish-export-primary {
+    grid-column: 1 / -1;
+    grid-row: 1;
   }
 }
 

@@ -2042,6 +2042,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   const [finishExportProgress, setFinishExportProgress] = useState(0);
   const [finishExportError, setFinishExportError] = useState("");
   const [isFinishExporting, setIsFinishExporting] = useState(false);
+  const [isFinishingLater, setIsFinishingLater] = useState(false);
   const [signedExportReview, setSignedExportReview] = useState(null);
   const [uploadError, setUploadError] = useState("");
   const [uploadStage, setUploadStage] = useState({ status: "idle", percent: 0, fileName: "" });
@@ -5830,7 +5831,10 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   };
 
   const finishEditing = async () => {
-    await saveActiveDocument(true);
+    if (!(await saveActiveDocument(true))) {
+      showToast("Your changes could not be saved yet. Keep editing and try again.");
+      return;
+    }
     setFinishExportFormat("pdf");
     setFinishExportProgress(0);
     setFinishExportError("");
@@ -5838,10 +5842,29 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   };
 
   const closeFinishExport = () => {
-    if (isFinishExporting) return;
+    if (isFinishExporting || isFinishingLater) return;
     setFinishExportOpen(false);
     setFinishExportError("");
     setFinishExportProgress(0);
+  };
+
+  const finishEditingLater = async () => {
+    if (isFinishExporting || isExporting || isFinishingLater) return;
+    setIsFinishingLater(true);
+    setFinishExportError("");
+    try {
+      if (!(await saveActiveDocument(true))) {
+        setFinishExportError("Your changes could not be saved yet. Keep editing and try again.");
+        return;
+      }
+      setFinishExportOpen(false);
+      showToast(currentUser?.uid
+        ? "Saved. Account sync will continue from your dashboard."
+        : "Saved in this browser. You can continue from your dashboard.");
+      navigate(ROUTE_PATHS.dashboard);
+    } finally {
+      setIsFinishingLater(false);
+    }
   };
 
   const downloadFinishedDocument = async () => {
@@ -6034,7 +6057,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
         </div>
       </header>
       <header className="file-header">
-        <button type="button" className="editor-home-button" onClick={() => navigate(ROUTE_PATHS.home)} title="Back to PDFEnrich home" aria-label="Back to PDFEnrich home"><Home size={21} /></button>
+        <button type="button" className="editor-home-button" onClick={() => navigate(ROUTE_PATHS.dashboard)} title="Back to dashboard" aria-label="Back to dashboard"><Home size={21} /></button>
         <button
           type="button"
           className="pdfnet-brand"
@@ -6962,7 +6985,9 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
           }}
           onClose={closeFinishExport}
           onDownload={downloadFinishedDocument}
+          onFinishLater={finishEditingLater}
           isWorking={isFinishExporting || isExporting}
+          isSavingForLater={isFinishingLater}
           progress={finishExportProgress}
           error={finishExportError}
         />

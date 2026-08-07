@@ -28,6 +28,7 @@ describe("editor finish export chooser", () => {
         onSelectFormat={() => {}}
         onClose={() => {}}
         onDownload={() => {}}
+        onFinishLater={() => {}}
       />,
     );
 
@@ -37,6 +38,8 @@ describe("editor finish export chooser", () => {
     expect(html).toContain('role="radiogroup"');
     expect(html).toContain('aria-checked="true"');
     expect(html).toContain("Download Word");
+    expect(html).toContain("Finish later");
+    expect(html).toContain("return to your dashboard");
   });
 
   it("rejects conversion when no edited PDF bytes are available", async () => {
