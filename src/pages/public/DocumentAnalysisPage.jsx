@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import Bot from "lucide-react/dist/esm/icons/bot.mjs";
 import Check from "lucide-react/dist/esm/icons/check.mjs";
 import Database from "lucide-react/dist/esm/icons/database.mjs";
@@ -14,7 +14,9 @@ import Upload from "lucide-react/dist/esm/icons/upload.mjs";
 import { Link } from "react-router-dom";
 import { trackProductEvent } from "../../analytics/productAnalytics.js";
 import { PageMetadata } from "../../components/public/PageMetadata.jsx";
+import { ScannedPdfPrompt } from "../../components/public/ScannedPdfPrompt.jsx";
 import { ToolGuideContent } from "../../components/public/ToolGuideContent.jsx";
+import { usePdfTextExtractionInterceptor } from "../../hooks/usePdfTextExtractionInterceptor.js";
 import { ROUTE_PATHS } from "../../router/routePaths.js";
 import { toolSeoSchemas } from "../../tools/toolSeoSchemas.js";
 import {
@@ -26,7 +28,7 @@ import {
   summarizePages,
   translateDocumentText,
 } from "../../tools/documentIntelligence.js";
-import { createPdfFromPlainText, textContentToPlainText } from "../../tools/textConversion.js";
+import { createPdfFromPlainText } from "../../tools/textConversion.js";
 
 const QUESTION_TOOLS = new Set(["ai-pdf", "chat-with-pdf", "ask-pdf"]);
 const MODES = Object.freeze({
@@ -42,12 +44,6 @@ const MODES = Object.freeze({
 const LANGUAGES = [
   ["en", "English"], ["es", "Spanish"], ["fr", "French"], ["de", "German"], ["it", "Italian"], ["pt", "Portuguese"], ["ja", "Japanese"], ["ko", "Korean"], ["zh", "Chinese"],
 ];
-
-async function loadPdfRenderer() {
-  const pdfjs = await import("pdfjs-dist");
-  pdfjs.GlobalWorkerOptions.workerSrc = new URL("pdfjs-dist/build/pdf.worker.mjs", import.meta.url).toString();
-  return pdfjs;
-}
 
 function formatBytes(bytes) {
   return bytes < 1024 * 1024 ? `${Math.max(1, Math.round(bytes / 1024))} KB` : `${(bytes / 1024 / 1024).toFixed(1)} MB`;
@@ -82,6 +78,7 @@ export function DocumentAnalysisPage({ tool }) {
   const [query, setQuery] = useState("");
   const [sourceLanguage, setSourceLanguage] = useState("en");
   const [targetLanguage, setTargetLanguage] = useState("es");
+  const [ocrLanguage, setOcrLanguage] = useState("eng");
   const [result, setResult] = useState(null);
   const [conversation, setConversation] = useState([]);
   const [status, setStatus] = useState("idle");
@@ -90,36 +87,27 @@ export function DocumentAnalysisPage({ tool }) {
   const ModeIcon = mode.icon;
   const fullText = useMemo(() => pages.map((page) => `Page ${page.pageNumber}\n${page.text}`).join("\n\n"), [pages]);
 
-  const choose = async (nextFile) => {
-    setError(""); setResult(null); setConversation([]);
-    if (!nextFile) return;
-    if (nextFile.type !== "application/pdf" && !nextFile.name.toLowerCase().endsWith(".pdf")) return setError("Choose a PDF file.");
-    if (!nextFile.size) return setError("This PDF is empty.");
-    if (nextFile.size > 20 * 1024 * 1024) return setError("Choose a PDF no larger than 20 MB.");
-    setStatus("reading"); setProgress(0);
-    let documentProxy;
-    try {
-      const pdfjs = await loadPdfRenderer();
-      documentProxy = await pdfjs.getDocument({ data: new Uint8Array(await nextFile.arrayBuffer()) }).promise;
-      if (documentProxy.numPages > 100) throw new Error("Document analysis supports up to 100 pages.");
-      const extracted = [];
-      let characters = 0;
-      for (let pageNumber = 1; pageNumber <= documentProxy.numPages; pageNumber += 1) {
-        const page = await documentProxy.getPage(pageNumber);
-        const text = textContentToPlainText(await page.getTextContent());
-        characters += text.length;
-        if (characters > 600_000) throw new Error("This PDF contains too much text for safe browser analysis.");
-        extracted.push({ pageNumber, text });
-        setProgress(Math.round(pageNumber / documentProxy.numPages * 100));
-      }
-      if (!extracted.some((page) => page.text.trim())) throw new Error("No embedded text was found. Run OCR PDF first, then analyze the searchable copy.");
-      setFile(nextFile); setPages(extracted); setStatus("ready");
-      trackProductEvent("document_opened", { toolId: tool.id });
-    } catch (loadError) {
-      setFile(null); setPages([]); setStatus("idle"); setError(loadError?.message || "This PDF could not be analyzed.");
-    } finally {
-      await documentProxy?.destroy?.();
+  const beginFilePreparation = useCallback(() => {
+    setFile(null); setPages([]); setResult(null); setConversation([]); setStatus("idle"); setProgress(0); setError("");
+  }, []);
+
+  const acceptPreparedText = useCallback(({ file: nextFile, pages: extracted }) => {
+    setFile(nextFile); setPages(extracted); setStatus("ready"); setError("");
+    trackProductEvent("document_opened", { toolId: tool.id });
+  }, [tool.id]);
+
+  const upload = usePdfTextExtractionInterceptor({
+    onStart: beginFilePreparation,
+    onTextReady: acceptPreparedText,
+  });
+
+  const choose = (nextFile) => {
+    if (nextFile?.size > 20 * 1024 * 1024) {
+      beginFilePreparation();
+      setError("Choose a PDF no larger than 20 MB.");
+      return;
     }
+    void upload.handleFile(nextFile);
   };
 
   const run = async () => {
@@ -158,7 +146,17 @@ export function DocumentAnalysisPage({ tool }) {
     <PageMetadata title={tool.seoTitle} description={tool.metaDescription} canonicalUrl={tool.canonicalUrl} schemas={toolSeoSchemas(tool)} />
     <nav className="tool-breadcrumbs" aria-label="Breadcrumb"><Link to={ROUTE_PATHS.tools}>PDF tools</Link><span>/</span><span aria-current="page">{tool.name}</span></nav>
     <section className="analysis-hero"><div><span><Sparkles size={15} /> {tool.id === "translate-pdf" ? "Beta · browser model required" : "Available · private browser analysis"}</span><h1>{tool.searchPriority ? tool.heroHeadline : `${tool.name}, grounded in your document`}.</h1><p>{tool.searchPriority ? `${tool.heroSubheadline} Review every result against the source pages.` : `${tool.shortDescription} Every extracted result stays tied to source pages for review.`}</p></div><aside><ShieldCheck size={22} /><strong>No document text enters analytics</strong><small>Analysis runs in this tab and is not saved.</small></aside></section>
-    {!file ? <section className="analysis-upload" onDragOver={(event) => event.preventDefault()} onDrop={(event) => { event.preventDefault(); void choose(event.dataTransfer.files?.[0]); }}><input ref={inputRef} type="file" accept="application/pdf,.pdf" onChange={(event) => { void choose(event.target.files?.[0]); event.target.value = ""; }} /><span><Upload size={27} /></span><h2>Choose a text-based PDF</h2><p>Valid, unencrypted PDFs up to 20 MB and 100 pages. Image-only scans need OCR first.</p><button type="button" onClick={() => inputRef.current?.click()}>Choose a PDF</button></section> : <div className="analysis-workspace"><aside className="analysis-source-card"><FileText size={24} /><h2>{file.name}</h2><p>{formatBytes(file.size)} · {pages.length} page{pages.length === 1 ? "" : "s"}</p><ul><li><Check size={15} /> {fullText.length.toLocaleString()} extracted characters</li><li><Check size={15} /> Source page citations retained</li><li><Check size={15} /> No document-content logging</li></ul><button type="button" onClick={() => inputRef.current?.click()}><Upload size={16} /> Replace PDF</button><input ref={inputRef} type="file" accept="application/pdf,.pdf" onChange={(event) => { void choose(event.target.files?.[0]); event.target.value = ""; }} /></aside>
+    {!file ? upload.phase === "prompting" || upload.phase === "processing" ? <ScannedPdfPrompt
+      file={upload.pendingFile}
+      language={ocrLanguage}
+      onLanguageChange={setOcrLanguage}
+      onRunOcr={() => { void upload.runPendingOcr({ language: ocrLanguage }); }}
+      onChooseAnother={() => { upload.reset(); setTimeout(() => inputRef.current?.click(), 0); }}
+      isProcessing={upload.phase === "processing"}
+      progress={upload.progress}
+      message={upload.message}
+      error={upload.error}
+    /> : <section className="analysis-upload" onDragOver={(event) => event.preventDefault()} onDrop={(event) => { event.preventDefault(); choose(event.dataTransfer.files?.[0]); }}><input ref={inputRef} type="file" accept="application/pdf,.pdf" onChange={(event) => { choose(event.target.files?.[0]); event.target.value = ""; }} /><span>{upload.phase === "detecting" ? <LoaderCircle className="is-spinning" size={27} /> : <Upload size={27} />}</span><h2>{upload.phase === "detecting" ? "Checking this PDF" : "Choose a PDF"}</h2><p>{upload.phase === "detecting" ? `${upload.message} ${upload.progress}%` : "Valid, unencrypted PDFs up to 20 MB and 100 pages. Scanned documents can continue with private local OCR."}</p><button type="button" disabled={upload.phase === "detecting"} onClick={() => inputRef.current?.click()}>Choose a PDF</button></section> : <div className="analysis-workspace"><aside className="analysis-source-card"><FileText size={24} /><h2>{file.name}</h2><p>{formatBytes(file.size)} · {pages.length} page{pages.length === 1 ? "" : "s"}</p><ul><li><Check size={15} /> {fullText.length.toLocaleString()} extracted characters</li><li><Check size={15} /> {upload.extractionSource === "ocr" ? "Text recognized with local OCR" : "Embedded text read in this browser"}</li><li><Check size={15} /> Source page citations retained</li><li><Check size={15} /> No document-content logging</li></ul><button type="button" onClick={() => inputRef.current?.click()}><Upload size={16} /> Replace PDF</button><input ref={inputRef} type="file" accept="application/pdf,.pdf" onChange={(event) => { choose(event.target.files?.[0]); event.target.value = ""; }} /></aside>
       <section className="analysis-main-card"><header><span><ModeIcon size={22} /></span><div><h2>{mode.heading}</h2><p>{mode.detail}</p></div></header>
         {QUESTION_TOOLS.has(tool.id) && <div className="analysis-question-box"><label htmlFor="document-question">Question about this PDF</label><div><textarea id="document-question" rows="3" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Example: What is the payment deadline?" /><button type="button" disabled={status === "analyzing"} onClick={run}><Send size={18} /> Ask</button></div></div>}
         {tool.id === "translate-pdf" && <div className="analysis-language"><div className="analysis-language-pair"><label><span>Document language</span><select aria-label="Document language" value={sourceLanguage} onChange={(event) => {
@@ -171,7 +169,7 @@ export function DocumentAnalysisPage({ tool }) {
         <AnalysisResult toolId={tool.id} result={result} conversation={conversation} />
         {(result || conversation.length > 0) && <div className="analysis-downloads">{tool.id === "translate-pdf" ? <><button type="button" onClick={downloadTranslatedPdf}><Download size={16} /> Download translated PDF</button><button type="button" onClick={() => download(result, "text/plain", `${baseName}-translated.txt`, tool.id)}><Download size={16} /> Download TXT</button></> : tool.id === "extract-data-from-pdf" ? <><button type="button" onClick={() => download(JSON.stringify(result, null, 2), "application/json", `${baseName}-data.json`, tool.id)}><Download size={16} /> Download JSON</button><button type="button" onClick={() => download(documentDataCsv(result), "text/csv", `${baseName}-data.csv`, tool.id)}><Download size={16} /> Download CSV</button></> : <button type="button" onClick={() => download(reportText, "text/plain", `${baseName}-${tool.id}.txt`, tool.id)}><Download size={16} /> Download report</button>}</div>}
       </section></div>}
-    {status === "reading" && <div className="analysis-reading"><LoaderCircle className="is-spinning" size={18} /> Extracting document text… {progress}%</div>}{error && !file && <div className="conversion-error" role="alert">{error}</div>}
+    {upload.phase === "detecting" && <div className="analysis-reading"><LoaderCircle className="is-spinning" size={18} /> {upload.message} {upload.progress}%</div>}{(error || upload.error) && !file && upload.phase !== "prompting" && <div className="conversion-error" role="alert">{error || upload.error}</div>}
     <section className="analysis-disclosure"><h2>What “AI” means in this private workflow</h2><p>PDFEnrich uses deterministic local document intelligence for retrieval, extractive summaries, field detection, questions, contract organization, and resume structure. It returns source text and page citations instead of sending your PDF to a generative model. Translation is separate and uses a compatible browser's on-device Translator model. Always review results against the PDF.</p></section>
     <ToolGuideContent tool={tool} />
   </main>;
