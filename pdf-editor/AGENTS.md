@@ -2,6 +2,8 @@
 
 The product name is PDFEnrich and its canonical production domain is `https://pdfenrich.com`. Never reintroduce the prior brand in visible copy, metadata, routes, exports, downloads, generated assets, or user-facing product identifiers. Preserve existing browser-local account, privacy, and signature data when migrating branded storage keys.
 
+Signed-in PDF uploads and edited versions must sync automatically to the authenticated account's private cloud storage and appear in Documents on every device using that same account. Guest files remain browser-local. Mobile dashboard layouts must expose a clearly labeled Documents action, and Recent documents must lead to the complete account document library rather than a device-only list.
+
 Use `runtime-public/pdfenrich-logo.png` as the primary logo on the landing page. It has intentional white margins, so display it through the `.brand-wordmark--logo` crop container rather than as an uncropped square image. All visible product naming, page metadata, exports, and user-facing copy must use PDFEnrich rather than any prior brand.
 
 Run the local server yourself and open the preview in the in-app browser. Do not give the user server-start instructions when you can run it.

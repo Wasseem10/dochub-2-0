@@ -8,7 +8,7 @@ export function editorActionNeedsAccount(action, currentUser) {
 }
 
 export function resolveEditorStorageOwnerId(isPublicEditor, currentUser) {
-  return isPublicEditor ? GUEST_OWNER_ID : currentUser?.uid || GUEST_OWNER_ID;
+  return currentUser?.uid || GUEST_OWNER_ID;
 }
 
 export function recoverDocumentAsGuest(documentRecord, now = () => new Date().toISOString()) {
