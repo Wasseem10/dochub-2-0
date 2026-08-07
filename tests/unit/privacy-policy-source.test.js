@@ -7,13 +7,13 @@ const policySource = readFileSync(
 );
 
 describe("privacy policy document-storage boundaries", () => {
-  it("states that sign-in does not silently upload local PDFs", () => {
-    expect(policySource).toContain("Signing in alone never uploads a browser-local document");
-    expect(policySource).toContain("saving one document never uploads the user's other local documents");
+  it("discloses signed-in automatic sync without bulk-uploading legacy browser documents", () => {
+    expect(policySource).toContain("PDFs opened while signed in automatically upload");
+    expect(policySource).toContain("Existing browser-only documents are not bulk uploaded");
   });
 
   it("separates account storage from editable workspace data and bearer sharing", () => {
-    expect(policySource).toContain("The cloud copy is a finished PDF, not a synchronized editable workspace");
+    expect(policySource).toContain("PDFEnrich does not upload the editable workspace");
     expect(policySource).toContain("This is separate from private account storage");
     expect(policySource).toContain("anyone with that unrevoked bearer link");
   });

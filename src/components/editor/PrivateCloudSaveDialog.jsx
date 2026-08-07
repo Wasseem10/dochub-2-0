@@ -14,9 +14,9 @@ function stageLabel(stage, progress) {
   if (stage === "preparing") return "Preparing the edited PDF";
   if (stage === "uploading") return `Uploading private copy · ${Math.max(0, Math.min(100, progress || 0))}%`;
   if (stage === "verifying") return "Verifying checksum and PDF safety";
-  if (stage === "saved") return "Private cloud copy confirmed";
-  if (stage === "error") return "Cloud save did not finish";
-  return "Ready to save";
+  if (stage === "saved") return "Account sync confirmed";
+  if (stage === "error") return "Account sync did not finish";
+  return "Ready to sync";
 }
 
 export function PrivateCloudSaveDialog({
@@ -66,8 +66,8 @@ export function PrivateCloudSaveDialog({
         <header>
           <span className="private-cloud-dialog-mark"><LockKeyhole size={20} /></span>
           <div>
-            <small>Save to your PDFEnrich account</small>
-            <h2 id="private-cloud-title">Open this document on every device</h2>
+            <small>PDFEnrich account sync</small>
+            <h2 id="private-cloud-title">Finish syncing this document</h2>
           </div>
           <button
             ref={closeRef}
@@ -81,18 +81,18 @@ export function PrivateCloudSaveDialog({
         </header>
 
         <p id="private-cloud-description">
-          Confirm once to save this PDF to your private account. You can then open it on your phone or any
-          other device where you sign in. Other local documents are not uploaded.
+          PDFEnrich automatically syncs PDFs you open while signed in so they are available on your phone
+          and other signed-in devices. Retry below if this save was interrupted.
         </p>
 
         <div className="private-cloud-boundaries">
           <article>
             <HardDrive size={19} />
-            <div><strong>Local working copy</strong><span>Browser-only autosave, editing state, signatures, and temporary previews.</span></div>
+            <div><strong>Local recovery copy</strong><span>Editing state and temporary previews stay available in this browser.</span></div>
           </article>
           <article>
             <CloudUpload size={19} />
-            <div><strong>Private cloud PDF</strong><span>The finished PDF—including visible signatures or form answers you added—and minimal metadata. The server verifies its checksum, PDF safety, and configured private malware scan before confirming it saved.</span></div>
+            <div><strong>Private account PDF</strong><span>The edited PDF—including visible signatures or form answers—and minimal metadata. The server verifies ownership, checksum, and PDF structure before confirming it saved.</span></div>
           </article>
         </div>
 
@@ -111,7 +111,7 @@ export function PrivateCloudSaveDialog({
 
         <footer>
           <button type="button" disabled={working} onClick={onClose}>
-            {stage === "saved" ? "Done" : "Keep in this browser only"}
+            {stage === "saved" ? "Done" : "Close"}
           </button>
           {stage !== "saved" && (
             <button
@@ -120,7 +120,7 @@ export function PrivateCloudSaveDialog({
               disabled={working || !cloudConfigured}
               onClick={onConfirm}
             >
-              {stage === "error" ? <><RotateCw size={17} /> Retry account save</> : <><CloudUpload size={17} /> Save to my account</>}
+              {stage === "error" ? <><RotateCw size={17} /> Retry account sync</> : <><CloudUpload size={17} /> Sync now</>}
             </button>
           )}
         </footer>

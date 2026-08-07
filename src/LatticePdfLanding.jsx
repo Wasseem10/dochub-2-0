@@ -35,8 +35,8 @@ const toolIllustration = (fileName) => `${import.meta.env.BASE_URL}tool-illustra
 
 const faqs = [
   ["Is PDFEnrich really free?", "Yes. PDFEnrich is completely free. There are no subscriptions, paid tiers, checkout, email requirement, or PDFEnrich watermark—and no paid plans are planned."],
-  ["Do I need an account?", "No. Open, edit, and download supported files as a guest. Sign in only for an optional private cloud copy or sharing workflow you choose."],
-  ["Are files processed in my browser?", "Supported editor, page, and image tools process files in your browser. Signing in does not upload them; private cloud saving is an explicit per-document action."],
+  ["Do I need an account?", "No. Open, edit, and download supported files as a guest. When you sign in, PDFs you open are also saved privately to your account for cross-device access."],
+  ["Are files processed in my browser?", "Supported editor, page, and image tools process files in your browser. Guest work stays on that device; signed-in PDFs also sync as finished private copies to your account."],
   ["What is the editor file limit?", "The editor accepts valid, unencrypted PDFs up to 50 MB and 500 pages. Large documents open progressively, so later pages render as you visit them."],
   ["Can PDFEnrich perfectly rewrite original PDF text?", "Not always. The editor can change detected text overlays and add new content, but original fonts, spacing, and layout may vary. Always review the export."],
   ["Does PDFEnrich add a watermark?", "No. PDFEnrich does not add a watermark to supported exports."],
@@ -123,8 +123,8 @@ const privacyProofs = [
     icon: UserRound,
   },
   {
-    title: "Private cloud copies are optional",
-    copy: "A cloud copy is created only when you deliberately choose it for a document.",
+    title: "Clear account sync",
+    copy: "Guest files stay local. PDFs opened while signed in sync privately across your devices.",
     tone: "lilac",
     icon: Cloud,
   },

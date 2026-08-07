@@ -13,9 +13,9 @@ describe("guest document account handoff", () => {
     expect(editorActionNeedsAccount("download", { uid: "user-1" })).toBe(false);
   });
 
-  it("keeps public editor documents in the guest workspace while authentication restores", () => {
+  it("keeps guests local and scopes signed-in public editor documents to the account", () => {
     expect(resolveEditorStorageOwnerId(true, null)).toBe(GUEST_OWNER_ID);
-    expect(resolveEditorStorageOwnerId(true, { uid: "user-1" })).toBe(GUEST_OWNER_ID);
+    expect(resolveEditorStorageOwnerId(true, { uid: "user-1" })).toBe("user-1");
     expect(resolveEditorStorageOwnerId(false, { uid: "user-1" })).toBe("user-1");
   });
 

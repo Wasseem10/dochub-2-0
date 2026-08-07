@@ -48,11 +48,11 @@ const dataRows = [
     retention: "In memory until the tab closes; local saved work remains until you delete it or clear site data.",
   },
   {
-    category: "Optional private cloud PDFs",
+    category: "Signed-in account PDFs",
     examples: "The finished edited PDF, sanitized display name, size, MIME type, checksum, internal IDs, timestamps, version, and deletion status. Visible signatures or form answers already placed in the finished PDF are part of those PDF bytes.",
-    source: "You only when signed in and choosing “Save private cloud copy” for that document.",
+    source: "You when opening or editing a PDF while signed in, with account sync disclosed in the product.",
     purpose: "Keep an account-restricted PDF copy and version history that you can open after signing in on another supported device.",
-    disclosed: "Google Cloud Firestore and Cloud Storage for Firebase; when configured, the private malware-scanning service used to verify that cloud copy.",
+    disclosed: "Supabase Edge Functions, Postgres metadata, and private Supabase Storage; Firebase Authentication supplies the signed-in identity token.",
     retention: "Until permanent document or account deletion, subject to the configured trash-recovery window and provider backup or soft-delete periods.",
   },
   {
@@ -94,7 +94,7 @@ export function PrivacyPolicyPage() {
     <main className="privacy-policy-page">
       <PageMetadata
         title="Privacy Policy | PDFEnrich"
-        description="How PDFEnrich processes browser-local PDFs, optional cloud documents, accounts, analytics, support requests, and privacy rights."
+        description="How PDFEnrich processes guest browser-local PDFs, signed-in account documents, accounts, analytics, support requests, and privacy rights."
         canonicalUrl={ROUTE_PATHS.privacy}
       />
 
@@ -103,7 +103,7 @@ export function PrivacyPolicyPage() {
           <div>
             <span className="privacy-policy-kicker"><ShieldCheck size={16} /> Privacy at PDFEnrich</span>
             <h1>Your documents first. Your data minimized.</h1>
-            <p>This policy explains exactly what stays in your browser, what can move to optional cloud services, why limited personal information is used, and how to control or delete it.</p>
+            <p>This policy explains what stays in your browser, what syncs when you are signed in, why limited personal information is used, and how to control or delete it.</p>
             <small>Effective and last updated {PRIVACY_POLICY_EFFECTIVE_DATE}</small>
           </div>
           <aside aria-label="Privacy highlights">
@@ -117,8 +117,8 @@ export function PrivacyPolicyPage() {
       </header>
 
       <section className="privacy-quick-facts" aria-label="Privacy overview">
-        <article><FileLock2 size={22} /><div><strong>Local by default</strong><p>Supported PDF work runs in your browser unless you deliberately use a cloud feature.</p></div></article>
-        <article><Database size={22} /><div><strong>Cloud is optional</strong><p>Accounts, explicit private saves, support, and sharing use Firebase and are clearly identified.</p></div></article>
+        <article><FileLock2 size={22} /><div><strong>Guest work stays local</strong><p>Supported PDF work runs in your browser when you use PDFEnrich without an account.</p></div></article>
+        <article><Database size={22} /><div><strong>Signed-in PDFs sync</strong><p>PDFs opened while signed in are saved privately to your account for cross-device access.</p></div></article>
         <article><SlidersHorizontal size={22} /><div><strong>Analytics require a choice</strong><p>Optional analytics stay off until you allow them, and Global Privacy Control is honored.</p></div></article>
       </section>
 
@@ -135,7 +135,7 @@ export function PrivacyPolicyPage() {
           <section id="summary">
             <span className="privacy-section-number">01</span>
             <h2>Plain-language summary</h2>
-            <p>PDFEnrich is designed so supported editing and conversion can happen on your device. Choosing a file or signing in does not, by itself, upload that file to PDFEnrich. Data leaves your browser only when needed to deliver a feature you choose, such as saving a specific private cloud copy, submitting support, allowing optional analytics, or creating a share link.</p>
+            <p>PDFEnrich is designed so supported editing and conversion happen on your device. Guest files stay in that browser. When you are signed in, PDFs you open and later edited versions also sync as private account copies so they can be opened on another signed-in device. Support, optional analytics, and sharing use separate data paths.</p>
             <div className="privacy-promise-list">
               <p><CheckCircle2 size={17} /> PDFEnrich does not sell personal information or share it for cross-context behavioral advertising.</p>
               <p><CheckCircle2 size={17} /> PDFEnrich does not put file names, PDF contents, extracted text, signatures, form answers, or document URLs into product analytics.</p>
@@ -145,12 +145,12 @@ export function PrivacyPolicyPage() {
               <article>
                 <span>Local editing</span>
                 <h3>Only on this device</h3>
-                <p>Choosing a file, editing it, or signing in does not upload its PDF bytes. Browser-local work is available only in that browser and can be removed by deleting the document or clearing site data.</p>
+                <p>When signed out, choosing and editing a file does not upload its PDF bytes. Guest work is available only in that browser and can be removed by deleting the document or clearing site data.</p>
               </article>
               <article>
-                <span>Private cloud copy</span>
+                <span>Signed-in account copy</span>
                 <h3>Available across your devices</h3>
-                <p>After signing in, you may deliberately save one document to your account. That action uploads the current finished PDF and minimal metadata so you can open it after signing in on another supported device.</p>
+                <p>After signing in, PDFs you open automatically sync as finished private PDFs with minimal metadata so you can open them after signing in on another supported device.</p>
               </article>
               <article>
                 <span>Share or signing link</span>
@@ -190,10 +190,10 @@ export function PrivacyPolicyPage() {
             <h2>How PDF files are handled</h2>
             <h3>Browser-only workflows</h3>
             <p>The editor and supported page, image, protection, OCR, and conversion tools process files in browser memory. Saved guest work may use IndexedDB or local storage on your device. Clearing PDFEnrich site data removes those browser copies, but PDFEnrich cannot delete downloads, browser backups, or copies you saved elsewhere.</p>
-            <h3>Optional cloud history</h3>
-            <p>Private cloud saving is available only when the deployment has its authenticated cloud API configured. A signed-in user must choose “Save private cloud copy” for each document. PDFEnrich then uploads the rebuilt finished PDF and minimal metadata to account-restricted storage. Signing in alone never uploads a browser-local document, and saving one document never uploads the user's other local documents.</p>
-            <p>A confirmed private cloud copy can be listed and downloaded after the account holder signs in on another supported device. The cloud copy is a finished PDF, not a synchronized editable workspace: PDFEnrich does not upload the editable workspace, OCR text, thumbnails, undo history, or signature library. Changes made after opening a cloud PDF remain local until the user deliberately saves another private cloud version.</p>
-            <p>Before PDFEnrich marks the copy saved, the configured private malware-scanning service may read that exact cloud object to return a clean or rejected result. The finished PDF itself can contain any visible signatures and form answers the user placed on it. Users can delete individual cloud copies, empty applicable trash, or delete the entire account to request removal of active account-linked cloud data, subject to the retention limits below.</p>
+            <h3>Signed-in account synchronization</h3>
+            <p>When the authenticated account-document API is available, PDFs opened while signed in automatically upload as rebuilt finished PDFs with minimal metadata to account-restricted storage. Existing browser-only documents are not bulk uploaded; opening one while signed in imports that document into account sync.</p>
+            <p>A confirmed account copy can be listed and downloaded after the same account signs in on another supported device. PDFEnrich does not upload the editable workspace, extracted OCR text, thumbnails, undo history, or signature library as separate cloud data. After an edit is saved locally, the rebuilt finished PDF is uploaded as a newer immutable version.</p>
+            <p>Before PDFEnrich marks the copy saved, the backend verifies the authenticated owner, checksum, size, page count, and PDF structure. The finished PDF can contain visible signatures and form answers the user placed on it. Users can delete individual account copies, empty applicable trash, or delete the entire account to request removal of active account-linked cloud data, subject to the retention limits below.</p>
             <h3>Sharing and signing requests</h3>
             <p>Creating a sharing or signing link uploads the exported PDF to Firebase. Anyone who has the high-entropy bearer link can open or download it until expiration or revocation. The raw capability is kept in the URL fragment so it is not sent in ordinary page requests; Firebase records and object identifiers use its SHA-256 hash. Recipient name, recipient email, requester details, the optional message, and required fields are stored in the expiring signing-request record rather than encoded into the link. Those details and the link may also pass through the email provider you choose to send them. Do not create a link unless you are authorized to disclose the document and recipient information.</p>
           </section>
@@ -216,7 +216,7 @@ export function PrivacyPolicyPage() {
             <h2>When information is disclosed</h2>
             <p>PDFEnrich limits disclosure to the following situations:</p>
             <ul>
-              <li><strong>Service providers:</strong> website hosting and content delivery providers; Google Firebase Authentication, Firestore, Storage, Analytics, App Check, reCAPTCHA Enterprise, and Google Sign-In; and, only when private cloud saving is configured, the private malware-scanning service identified by the operator for that deployment.</li>
+              <li><strong>Service providers:</strong> website hosting and content delivery providers; Google Firebase Authentication, Firestore, Storage, Analytics, App Check, reCAPTCHA Enterprise, and Google Sign-In; and Supabase Edge Functions, Postgres, and private Storage for signed-in account PDFs.</li>
               <li><strong>People you direct:</strong> recipients of sharing or signing links and email providers you use to send them.</li>
               <li><strong>Legal and safety:</strong> authorities or other parties when reasonably necessary to comply with law, protect users, investigate abuse, or defend legal rights.</li>
               <li><strong>Business transition:</strong> a buyer, successor, or adviser in a merger, financing, reorganization, or sale, subject to appropriate confidentiality and notice where required.</li>
