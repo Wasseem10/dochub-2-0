@@ -13,6 +13,15 @@ const importMap = readFileSync(
 );
 
 describe("Supabase private-cloud PDF finalization", () => {
+  it("allows the deployed PDFEnrich Sites origin to list and open private PDFs", () => {
+    expect(edgeFunction).toContain('"https://realpdf-workspace.wasseem10.chatgpt.site"');
+    expect(edgeFunction).toContain('if (request.method === "OPTIONS")');
+    expect(edgeFunction).toContain('headers["Access-Control-Allow-Origin"] = origin;');
+    expect(edgeFunction).toMatch(
+      /\/v1\\\/documents\\\/\(doc_\[A-Za-z0-9_-\]\{24\}\)\\\/download/,
+    );
+  });
+
   it("parses the PDF page tree instead of rejecting compressed object streams", () => {
     expect(importMap).toContain('"pdf-lib": "npm:pdf-lib@1.17.1"');
     expect(edgeFunction).toContain('import { EncryptedPDFError, PDFDocument } from "pdf-lib";');

@@ -20,6 +20,7 @@ const CHECKSUM_PATTERN = /^[a-f0-9]{64}$/;
 const ALLOWED_ORIGINS = new Set([
   "https://pdfenrich.com",
   "https://www.pdfenrich.com",
+  "https://realpdf-workspace.wasseem10.chatgpt.site",
   "http://localhost:5173",
   "http://127.0.0.1:5173",
   "http://localhost:4173",
