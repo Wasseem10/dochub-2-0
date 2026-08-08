@@ -1,363 +1,301 @@
-import { collection, deleteDoc, doc, getCountFromServer, getDocs, limit, orderBy, query, updateDoc, where } from "firebase/firestore";
+import { collection, getDocs, limit, orderBy, query } from "firebase/firestore";
 import Activity from "lucide-react/dist/esm/icons/activity.mjs";
 import Download from "lucide-react/dist/esm/icons/download.mjs";
+import FileCheck2 from "lucide-react/dist/esm/icons/file-check-2.mjs";
+import FileText from "lucide-react/dist/esm/icons/file-text.mjs";
 import LogIn from "lucide-react/dist/esm/icons/log-in.mjs";
+import MousePointer2 from "lucide-react/dist/esm/icons/mouse-pointer-2.mjs";
 import RefreshCw from "lucide-react/dist/esm/icons/refresh-cw.mjs";
+import Save from "lucide-react/dist/esm/icons/save.mjs";
+import ShieldCheck from "lucide-react/dist/esm/icons/shield-check.mjs";
 import Upload from "lucide-react/dist/esm/icons/upload.mjs";
 import UserPlus from "lucide-react/dist/esm/icons/user-plus.mjs";
 import Users from "lucide-react/dist/esm/icons/users.mjs";
-import FileText from "lucide-react/dist/esm/icons/file-text.mjs";
-import AlertTriangle from "lucide-react/dist/esm/icons/alert-triangle.mjs";
-import CheckCircle2 from "lucide-react/dist/esm/icons/check-circle-2.mjs";
-import Gauge from "lucide-react/dist/esm/icons/gauge.mjs";
-import LifeBuoy from "lucide-react/dist/esm/icons/life-buoy.mjs";
-import Search from "lucide-react/dist/esm/icons/search.mjs";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { analyticsRangeStart, createDailyAnalyticsSeries, createGoogleSearchConversionFunnel, createToolQualityScorecard, filterAnalyticsEvents, groupAnalyticsProperty, summarizeAnalyticsEvents } from "../../analytics/analyticsMetrics.js";
+import {
+  canonicalAnalyticsEventName,
+  createAuthenticationBreakdown,
+  createFeatureUsage,
+  createPrivateAnalyticsSummary,
+  createProductDailySeries,
+  groupTopLevelAnalyticsField,
+} from "../../analytics/analyticsMetrics.js";
+import { loadAdminAnalytics } from "../../analytics/analyticsApi.js";
+import { isInternalTrafficDevice, setInternalTrafficDevice } from "../../analytics/productAnalytics.js";
 import { db } from "../../firebase.js";
 import "./owner-analytics.css";
 
 const EVENT_LABELS = Object.freeze({
-  account_signed_up: "Account created",
-  account_logged_in: "Successful login",
-  homepage_viewed: "Homepage viewed",
-  page_viewed: "Public page viewed",
-  upload_started: "PDF upload started",
-  document_opened: "PDF opened",
-  pdf_downloaded: "PDF downloaded",
-  export_started: "Export started",
-  export_succeeded: "Export completed",
-  export_failed: "Export failed",
-  client_error: "Browser error",
-  unhandled_rejection: "Unhandled browser error",
-  slow_operation: "Slow operation",
+  page_view: "Viewed a page",
+  pdf_upload_started: "Started a PDF upload",
+  pdf_upload_completed: "Uploaded a PDF",
+  pdf_upload_failed: "PDF upload failed",
+  editor_opened: "Opened the editor",
+  pdf_saved: "Saved a PDF",
+  pdf_downloaded: "Downloaded a PDF",
+  signup_started: "Started signup",
+  signup_completed: "Created an account",
+  login_completed: "Signed in",
+  logout_completed: "Signed out",
+  add_text_used: "Used Add Text",
+  edit_text_used: "Edited PDF text",
+  add_image_used: "Added an image",
+  signature_used: "Added a signature",
+  highlight_used: "Used Highlight",
+  draw_used: "Used Draw",
+  annotation_used: "Added an annotation",
+  page_added: "Added a page",
+  page_deleted: "Deleted a page",
+  page_rotated: "Rotated a page",
+  page_reordered: "Reordered pages",
+  undo_used: "Used Undo",
+  redo_used: "Used Redo",
 });
 
+function isoDate(date) {
+  return date.toISOString().slice(0, 10);
+}
+
+function rangeDates(range, customStart, customEnd) {
+  const now = new Date();
+  const end = range === "custom" && customEnd
+    ? new Date(`${customEnd}T23:59:59.999Z`)
+    : now;
+  let start;
+  if (range === "custom" && customStart) start = new Date(`${customStart}T00:00:00.000Z`);
+  else {
+    start = new Date(now);
+    start.setUTCHours(0, 0, 0, 0);
+    if (range === "7d") start.setUTCDate(start.getUTCDate() - 6);
+    if (range === "30d") start.setUTCDate(start.getUTCDate() - 29);
+  }
+  return { start: start.toISOString(), end: end.toISOString() };
+}
+
 function formatEventTime(event) {
-  const value = event.occurredAt?.toDate?.() || event.createdAt?.toDate?.() || event.clientOccurredAt || event.clientCreatedAt;
+  const value = event.clientOccurredAt || event.occurredAt;
   if (!value) return "Just now";
-  return new Intl.DateTimeFormat("en", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
-}
-
-function eventDetail(event) {
-  if (event.properties?.authMethod) return event.properties.authMethod === "google" ? "Google" : "Email and password";
-  if (event.properties?.toolId) return event.properties.toolId.replaceAll("-", " ");
-  return event.actorId ? "Signed-in user" : "Anonymous visitor";
-}
-
-function formatDuration(milliseconds) {
-  if (!Number.isFinite(milliseconds)) return "—";
-  return milliseconds < 1000 ? `${milliseconds} ms` : `${(milliseconds / 1000).toFixed(milliseconds < 10_000 ? 1 : 0)} s`;
+  return new Intl.DateTimeFormat("en", {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    timeZone: "UTC",
+    timeZoneName: "short",
+  }).format(new Date(value));
 }
 
 function formatSignInTime(value) {
-  if (!value) return "Not recorded";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "Not recorded";
-  return new Intl.DateTimeFormat("en", { dateStyle: "medium", timeStyle: "short" }).format(date);
+  if (!value || Number.isNaN(new Date(value).getTime())) return "Not recorded";
+  return new Intl.DateTimeFormat("en", {
+    dateStyle: "medium",
+    timeStyle: "short",
+    timeZone: "UTC",
+  }).format(new Date(value));
+}
+
+function metricCard(label, value, detail, icon) {
+  return { label, value, detail, icon };
 }
 
 export function OwnerAnalyticsPanel({ searchQuery = "" }) {
+  const today = isoDate(new Date());
+  const weekAgo = new Date();
+  weekAgo.setUTCDate(weekAgo.getUTCDate() - 6);
+  const [range, setRange] = useState("7d");
+  const [customStart, setCustomStart] = useState(isoDate(weekAgo));
+  const [customEnd, setCustomEnd] = useState(today);
+  const [includeInternal, setIncludeInternal] = useState(false);
+  const [internalDevice, setInternalDevice] = useState(() => isInternalTrafficDevice());
   const [events, setEvents] = useState([]);
-  const [range, setRange] = useState("30d");
   const [status, setStatus] = useState("loading");
   const [message, setMessage] = useState("");
-  const [supportRequests, setSupportRequests] = useState([]);
-  const [serverCounts, setServerCounts] = useState(null);
+  const [truncated, setTruncated] = useState(false);
+  const [featureSort, setFeatureSort] = useState("uses");
+  const [chartMetric, setChartMetric] = useState("visitors");
   const [signInProfiles, setSignInProfiles] = useState([]);
   const [identityMessage, setIdentityMessage] = useState("");
 
-  const loadAnalytics = useCallback(async () => {
-    if (!db) {
-      setStatus("error");
-      setMessage("Firebase analytics storage is not configured for this deployment.");
-      return;
-    }
+  const selectedDates = useMemo(
+    () => rangeDates(range, customStart, customEnd),
+    [customEnd, customStart, range],
+  );
+
+  const loadAnalytics = useCallback(async (signal) => {
     setStatus("loading");
     setMessage("");
-    setServerCounts(null);
     try {
-      const analyticsCollection = collection(db, "productAnalyticsEvents");
-      const rangeStart = analyticsRangeStart(range);
-      const eventQuery = rangeStart
-        ? query(analyticsCollection, where("clientOccurredAt", ">=", rangeStart), orderBy("clientOccurredAt", "desc"), limit(5000))
-        : query(analyticsCollection, orderBy("clientOccurredAt", "desc"), limit(5000));
-      const supportQuery = query(collection(db, "supportRequests"), orderBy("clientCreatedAt", "desc"), limit(250));
-      const identityQuery = query(collection(db, "authUserProfiles"), orderBy("lastSignInAt", "desc"), limit(250));
-      const identityProfiles = getDocs(identityQuery)
-        .then((identitySnapshot) => ({
-          rows: identitySnapshot.docs.map((profileDocument) => ({ id: profileDocument.id, ...profileDocument.data() })),
-          error: null,
-        }))
-        .catch((error) => ({ rows: [], error }));
-      const countEvent = async (name, authMethod = null) => {
-        const constraints = [where("name", "==", name)];
-        if (authMethod) constraints.push(where("properties.authMethod", "==", authMethod));
-        if (rangeStart) constraints.push(where("clientOccurredAt", ">=", rangeStart));
-        const snapshot = await getCountFromServer(query(analyticsCollection, ...constraints));
-        return snapshot.data().count;
-      };
-      const aggregateCounts = Promise.all([
-        countEvent("account_signed_up"),
-        countEvent("account_logged_in"),
-        countEvent("account_signed_up", "google"),
-        countEvent("account_logged_in", "google"),
-        countEvent("document_opened"),
-        countEvent("pdf_downloaded"),
-        countEvent("client_error"),
-        countEvent("unhandled_rejection"),
-        countEvent("export_failed"),
-        countEvent("slow_operation"),
-        countEvent("page_viewed"),
-      ]).catch(() => null);
-      const [snapshot, supportSnapshot, countValues, identityResult] = await Promise.all([
-        getDocs(eventQuery),
-        getDocs(supportQuery),
-        aggregateCounts,
-        identityProfiles,
-      ]);
-      setEvents(snapshot.docs.map((eventDocument) => ({ id: eventDocument.id, ...eventDocument.data() })));
-      setSupportRequests(supportSnapshot.docs.map((requestDocument) => ({ id: requestDocument.id, ...requestDocument.data() })));
-      setSignInProfiles(identityResult.rows);
-      setIdentityMessage(identityResult.error?.code === "permission-denied"
-        ? "Deploy the owner-only authUserProfiles Firestore rule to begin listing sign-in identities."
-        : identityResult.error
-          ? "Sign-in identities could not be loaded right now."
-          : "");
-      if (countValues) {
-        const [signups, logins, googleSignups, googleLogins, uploads, downloads, clientErrors, unhandledRejections, failedExports, slowOperations, pageViews] = countValues;
-        setServerCounts({
-          signups,
-          logins,
-          googleAuth: googleSignups + googleLogins,
-          uploads,
-          downloads,
-          clientErrors: clientErrors + unhandledRejections,
-          failedExports,
-          slowOperations,
-          pageViews,
-          conversionRate: uploads ? Math.round((downloads / uploads) * 100) : 0,
-        });
-      } else {
-        setMessage("Scalable totals are waiting for the analytics indexes to finish deploying. Recent activity is shown below.");
-      }
+      const payload = await loadAdminAnalytics({
+        ...selectedDates,
+        includeInternal,
+        signal,
+      });
+      setEvents(payload.events || []);
+      setTruncated(payload.truncated === true);
       setStatus("ready");
     } catch (error) {
+      if (error?.name === "AbortError") return;
       setStatus("error");
-      setMessage(error?.code === "permission-denied"
-        ? "Analytics access is waiting for the owner-only Firestore rule to be deployed."
-        : "PDFEnrich could not load analytics right now. Try refreshing in a moment.");
+      setMessage(error?.code === "analytics_forbidden"
+        ? "This Firebase account does not have the PDFEnrich analytics claim."
+        : "Private product analytics could not be loaded. Verify the analytics API deployment and try again.");
     }
-  }, [range]);
+  }, [includeInternal, selectedDates]);
 
   useEffect(() => {
-    loadAnalytics();
+    const controller = new AbortController();
+    void loadAnalytics(controller.signal);
+    return () => controller.abort();
   }, [loadAnalytics]);
 
-  const filteredEvents = useMemo(() => filterAnalyticsEvents(events, range), [events, range]);
-  const metrics = useMemo(() => summarizeAnalyticsEvents(filteredEvents), [filteredEvents]);
-  const displayedMetrics = serverCounts ? { ...metrics, ...serverCounts } : metrics;
-  const dailySeries = useMemo(() => createDailyAnalyticsSeries(filteredEvents, range === "7d" ? 7 : 14), [filteredEvents, range]);
-  const maxDailyEvents = Math.max(1, ...dailySeries.map((day) => day.events));
-  const recentEvents = filteredEvents.slice(0, 12);
-  const trafficSources = useMemo(() => groupAnalyticsProperty(filteredEvents, "trafficSource"), [filteredEvents]);
-  const landingPages = useMemo(() => groupAnalyticsProperty(filteredEvents, "landingPath"), [filteredEvents]);
-  const googleSearchFunnel = useMemo(() => createGoogleSearchConversionFunnel(filteredEvents), [filteredEvents]);
-  const toolQuality = useMemo(() => createToolQualityScorecard(filteredEvents), [filteredEvents]);
-  const diagnosticEvents = filteredEvents.filter((event) => ["client_error", "unhandled_rejection", "slow_operation", "export_failed"].includes(event.name)).slice(0, 10);
-  const normalizedIdentityQuery = searchQuery.trim().toLowerCase();
-  const visibleSignInProfiles = useMemo(() => signInProfiles.filter((profile) => {
-    if (!normalizedIdentityQuery) return true;
-    return [profile.displayName, profile.email, profile.provider]
-      .some((value) => String(value || "").toLowerCase().includes(normalizedIdentityQuery));
-  }), [normalizedIdentityQuery, signInProfiles]);
-  const updateSupportStatus = async (requestId, statusValue) => {
-    await updateDoc(doc(db, "supportRequests", requestId), { status: statusValue });
-    setSupportRequests((items) => items.map((item) => item.id === requestId ? { ...item, status: statusValue } : item));
-  };
-  const removeSupportRequest = async (requestId) => {
-    await deleteDoc(doc(db, "supportRequests", requestId));
-    setSupportRequests((items) => items.filter((item) => item.id !== requestId));
-  };
+  useEffect(() => {
+    if (!db) return;
+    getDocs(query(collection(db, "authUserProfiles"), orderBy("lastSignInAt", "desc"), limit(250)))
+      .then((snapshot) => {
+        setSignInProfiles(snapshot.docs.map((profile) => ({ id: profile.id, ...profile.data() })));
+        setIdentityMessage("");
+      })
+      .catch(() => setIdentityMessage("The owner-only sign-in directory is not available in this environment."));
+  }, []);
 
+  const summary = useMemo(() => createPrivateAnalyticsSummary(events), [events]);
+  const featureUsage = useMemo(() => createFeatureUsage(events, featureSort), [events, featureSort]);
+  const authentication = useMemo(() => createAuthenticationBreakdown(events), [events]);
+  const trafficSources = useMemo(() => groupTopLevelAnalyticsField(events, "trafficSource"), [events]);
+  const devices = useMemo(() => groupTopLevelAnalyticsField(events, "deviceCategory", { eventName: null, limit: 4 }), [events]);
+  const dailySeries = useMemo(
+    () => createProductDailySeries(events, selectedDates.start, selectedDates.end),
+    [events, selectedDates],
+  );
+  const chartMaximum = Math.max(1, ...dailySeries.map((day) => day[chartMetric]));
+  const recentEvents = events.slice(0, 30);
+  const normalizedSearch = searchQuery.trim().toLowerCase();
+  const visibleProfiles = signInProfiles.filter((profile) => !normalizedSearch || [
+    profile.displayName,
+    profile.email,
+    profile.provider,
+  ].some((value) => String(value || "").toLowerCase().includes(normalizedSearch)));
   const cards = [
-    { label: "New accounts", value: displayedMetrics.signups, detail: "Successful registrations", icon: UserPlus, tone: "coral" },
-    { label: "Successful logins", value: displayedMetrics.logins, detail: "Email and Google logins", icon: LogIn, tone: "blue" },
-    { label: "Google sign-ins", value: displayedMetrics.googleAuth, detail: "Google account authentications", icon: Users, tone: "coral" },
-    { label: "Documents opened", value: displayedMetrics.uploads, detail: "PDFs opened in the editor", icon: FileText, tone: "blue" },
-    { label: "PDFs downloaded", value: displayedMetrics.downloads, detail: `${displayedMetrics.conversionRate}% of opened documents`, icon: Download, tone: "green" },
+    metricCard("Unique Visitors", summary.metrics.uniqueVisitors, "Random browser visitor IDs", Users),
+    metricCard("Page Views", summary.metrics.pageViews, "Consented page views", MousePointer2),
+    metricCard("PDF Uploads", summary.metrics.uploads, "Successfully loaded PDFs", Upload),
+    metricCard("Editor Opens", summary.metrics.editorOpens, "Documents opened in editor", FileText),
+    metricCard("PDF Saves", summary.metrics.saves, "Confirmed editor saves", Save),
+    metricCard("PDF Downloads", summary.metrics.downloads, "Finished PDF downloads", Download),
+    metricCard("New Accounts", summary.metrics.accounts, "Completed registrations", UserPlus),
   ];
+
+  const setDeviceExclusion = (excluded) => {
+    const next = setInternalTrafficDevice(excluded);
+    setInternalDevice(next);
+  };
 
   return (
     <section className="owner-analytics" aria-labelledby="analytics-title">
       <header className="owner-analytics-head">
         <div>
-          <span>Owner workspace</span>
-          <h2 id="analytics-title">Workspace overview</h2>
-          <p>Private operational metrics and account sign-ins. PDF names and document contents are never collected.</p>
+          <span>Private owner analytics</span>
+          <h2 id="analytics-title">Are people reaching a finished PDF?</h2>
+          <p>Anonymous and signed-in product journeys, without filenames, PDF text, signatures, form values, or document URLs.</p>
         </div>
         <div className="owner-analytics-actions">
           <label>
-            <span>Time period</span>
+            <span>Date range</span>
             <select value={range} onChange={(event) => setRange(event.target.value)}>
-              <option value="7d">Last 7 days</option>
-              <option value="30d">Last 30 days</option>
-              <option value="90d">Last 90 days</option>
-              <option value="all">All time</option>
+              <option value="today">Today</option>
+              <option value="7d">Last 7 Days</option>
+              <option value="30d">Last 30 Days</option>
+              <option value="custom">Custom</option>
             </select>
           </label>
-          <button type="button" onClick={loadAnalytics} disabled={status === "loading"}><RefreshCw size={16} /> Refresh</button>
+          <button type="button" onClick={() => loadAnalytics()} disabled={status === "loading"}><RefreshCw size={16} /> Refresh</button>
         </div>
       </header>
 
-      {message && <div className="owner-analytics-notice" role={status === "error" ? "alert" : "status"}>{message}</div>}
+      {range === "custom" && (
+        <div className="owner-analytics-custom-range">
+          <label><span>Start (UTC)</span><input type="date" value={customStart} max={customEnd} onChange={(event) => setCustomStart(event.target.value)} /></label>
+          <label><span>End (UTC)</span><input type="date" value={customEnd} min={customStart} max={today} onChange={(event) => setCustomEnd(event.target.value)} /></label>
+        </div>
+      )}
+
+      <div className="owner-analytics-traffic-controls">
+        <div><ShieldCheck size={18} /><span><strong>{internalDevice ? "This device is excluded" : "This device is counted normally"}</strong><small>Internal events are stored with a flag and excluded from the dashboard by default.</small></span></div>
+        <button type="button" onClick={() => setDeviceExclusion(!internalDevice)}>{internalDevice ? "Stop excluding this device" : "Exclude this device from analytics"}</button>
+        <label><input type="checkbox" checked={includeInternal} onChange={(event) => setIncludeInternal(event.target.checked)} /> Include internal traffic</label>
+      </div>
+
+      {message && <div className="owner-analytics-notice" role="alert">{message}</div>}
+      {truncated && <div className="owner-analytics-notice" role="status">This range exceeded the 25,000-event query window. Narrow the dates for exact detail.</div>}
       {status === "loading" && !events.length && <div className="owner-analytics-loading">Loading private analytics…</div>}
 
-      <div className="owner-analytics-cards">
-        {cards.map(({ label, value, detail, icon: Icon, tone }) => (
-          <article key={label}>
-            <span className={`is-${tone}`}><Icon size={21} /></span>
-            <small>{label}</small>
-            <strong>{value.toLocaleString()}</strong>
-            <p>{detail}</p>
-          </article>
+      <div className="owner-analytics-cards is-seven">
+        {cards.map(({ label, value, detail, icon: Icon }) => (
+          <article key={label}><span><Icon size={19} /></span><small>{label}</small><strong>{value.toLocaleString()}</strong><p>{detail}</p></article>
         ))}
       </div>
 
-      <article className="owner-analytics-activity owner-google-funnel">
-        <div className="owner-analytics-section-title">
-          <div><h2>Google search conversion</h2><p>Consented visitors followed anonymously from landing page to registration</p></div>
-          <strong><Search size={16} /> {googleSearchFunnel.visitToSignupRate}% overall</strong>
-        </div>
-        <ol aria-label="Google search conversion funnel">
-          {[
-            ["Google visitors", googleSearchFunnel.googleVisitors, "Organic landing sessions"],
-            ["Uploaded a PDF", googleSearchFunnel.uploads, `${googleSearchFunnel.visitToUploadRate}% of visitors`],
-            ["Completed a PDF", googleSearchFunnel.completedPdfs, `${googleSearchFunnel.uploadToCompletionRate}% of uploaders`],
-            ["Created an account", googleSearchFunnel.signups, `${googleSearchFunnel.completionToSignupRate}% of completers`],
-          ].map(([label, value, detail], index) => (
-            <li key={label}>
-              <small>0{index + 1}</small>
-              <span>{label}</span>
-              <strong>{value.toLocaleString()}</strong>
-              <p>{detail}</p>
-            </li>
-          ))}
-        </ol>
-        <footer>Counts require optional analytics consent and use a random browser visitor ID. No PDF names, content, form answers, or account email addresses enter the funnel.</footer>
-      </article>
-
-      <article className="owner-analytics-activity owner-auth-ledger">
-        <div className="owner-analytics-section-title">
-          <div><h2>Sign-in activity</h2><p>Owner-only Firebase account directory, updated when an account signs in</p></div>
-          <strong>{visibleSignInProfiles.length.toLocaleString()} account{visibleSignInProfiles.length === 1 ? "" : "s"}</strong>
-        </div>
-        {identityMessage && <div className="owner-identity-notice" role="status">{identityMessage}</div>}
-        {visibleSignInProfiles.length ? (
-          <div className="owner-auth-table" role="table" aria-label="Sign-in activity">
-            <div className="owner-auth-row is-head" role="row"><span>Name</span><span>Email</span><span>Method</span><span>Last sign-in</span></div>
-            {visibleSignInProfiles.map((profile) => (
-              <div className="owner-auth-row" role="row" key={profile.id}>
-                <strong>{profile.displayName || "PDFEnrich user"}</strong>
-                <a href={`mailto:${profile.email}`}>{profile.email}</a>
-                <span><i className={`is-${profile.provider}`} />{profile.provider === "google" ? "Google" : "Email and password"}</span>
-                <time dateTime={profile.lastSignInAt}>{formatSignInTime(profile.lastSignInAt)}</time>
-              </div>
-            ))}
-          </div>
-        ) : <div className="owner-analytics-empty"><LogIn size={24} /><strong>{normalizedIdentityQuery ? "No matching sign-ins" : "No sign-in identities recorded yet"}</strong><p>{normalizedIdentityQuery ? "Try another name, email, or provider." : "Existing accounts appear here after their next successful Firebase sign-in."}</p></div>}
+      <article className="owner-analytics-conversions">
+        {[
+          ["Visitor → PDF Upload", summary.conversions.visitorToUpload],
+          ["PDF Upload → Editor Open", summary.conversions.uploadToEditor],
+          ["Editor Open → Download", summary.conversions.editorToDownload],
+          ["Visitor → Signup", summary.conversions.visitorToSignup],
+        ].map(([label, value]) => <div key={label}><span>{label}</span><strong>{value}%</strong></div>)}
       </article>
 
       <div className="owner-analytics-grid">
-        <article className="owner-analytics-chart">
-          <div className="owner-analytics-section-title">
-            <div><h2>Daily activity</h2><p>All tracked product events</p></div>
-            <strong><Activity size={16} /> {filteredEvents.length.toLocaleString()} recent events</strong>
-          </div>
-          <div className="owner-analytics-bars" aria-label="Daily analytics chart">
-            {dailySeries.map((day) => (
-              <div key={day.key} title={`${day.label}: ${day.events} events from ${day.users} users`}>
-                <span><i style={{ height: `${Math.max(day.events ? 8 : 2, (day.events / maxDailyEvents) * 100)}%` }} /></span>
-                <small>{day.label}</small>
-              </div>
-            ))}
+        <article className="owner-analytics-activity">
+          <div className="owner-analytics-section-title"><div><h2>Product Usage</h2><p>Distinct people who performed a meaningful product action</p></div><Activity size={20} /></div>
+          <div className="owner-product-usage">
+            {[
+              ["Uploaded a PDF", summary.productUsage.uploadVisitors],
+              ["Opened the editor", summary.productUsage.editorVisitors],
+              ["Used an editor feature", summary.productUsage.featureVisitors],
+              ["Downloaded a PDF", summary.productUsage.downloadVisitors],
+            ].map(([label, value]) => <div key={label}><span>{label}</span><strong>{value.toLocaleString()}</strong></div>)}
           </div>
         </article>
 
-        <article className="owner-analytics-funnel">
-          <div className="owner-analytics-section-title"><div><h2>PDF usage</h2><p>Upload-to-download funnel</p></div><Upload size={20} /></div>
-          <dl>
-            <div><dt>Completed uploads</dt><dd>{displayedMetrics.uploads.toLocaleString()}</dd></div>
-            <div><dt>PDF downloads</dt><dd>{displayedMetrics.downloads.toLocaleString()}</dd></div>
-            <div><dt>Download conversion</dt><dd>{displayedMetrics.conversionRate}%</dd></div>
-          </dl>
+        <article className="owner-analytics-activity owner-auth-breakdown">
+          <div className="owner-analytics-section-title"><div><h2>Anonymous vs Signed-In</h2><p>Who completed PDF downloads</p></div><LogIn size={20} /></div>
+          <div className="owner-auth-split"><span style={{ width: `${authentication.anonymousRate}%` }} /><i style={{ width: `${authentication.signedInRate}%` }} /></div>
+          <dl><div><dt>Anonymous</dt><dd>{authentication.anonymousRate}% <small>{authentication.anonymous}</small></dd></div><div><dt>Signed in</dt><dd>{authentication.signedInRate}% <small>{authentication.signedIn}</small></dd></div></dl>
         </article>
       </div>
+
+      <article className="owner-analytics-activity owner-feature-usage">
+        <div className="owner-analytics-section-title">
+          <div><h2>Feature Usage</h2><p>Completed editor actions—not tool selections or pointer movement</p></div>
+          <div className="owner-sort-actions"><button type="button" className={featureSort === "uses" ? "is-active" : ""} onClick={() => setFeatureSort("uses")}>Sort by uses</button><button type="button" className={featureSort === "uniqueUsers" ? "is-active" : ""} onClick={() => setFeatureSort("uniqueUsers")}>Sort by users</button></div>
+        </div>
+        {featureUsage.length ? <div className="owner-feature-table"><div className="is-head"><span>Feature</span><span>Uses</span><span>Unique Users</span></div>{featureUsage.map((feature) => <div key={feature.eventName}><strong>{feature.label}</strong><span>{feature.uses.toLocaleString()}</span><span>{feature.uniqueUsers.toLocaleString()}</span></div>)}</div> : <div className="owner-analytics-empty"><FileCheck2 size={24} /><strong>No editor features used in this range</strong><p>Successful feature actions will appear here.</p></div>}
+      </article>
+
+      <article className="owner-analytics-activity owner-product-funnel">
+        <div className="owner-analytics-section-title"><div><h2>Conversion Funnel</h2><p>Unique visitors reaching each step in order</p></div></div>
+        <ol>{summary.funnel.map((stage, index) => <li key={stage.key}><small>0{index + 1}</small><span>{stage.label}</span><strong>{stage.value.toLocaleString()}</strong>{index > 0 && <em>{stage.fromPreviousRate}% from previous</em>}</li>)}</ol>
+      </article>
+
+      <article className="owner-analytics-activity owner-timeseries">
+        <div className="owner-analytics-section-title"><div><h2>Daily Activity</h2><p>UTC calendar days</p></div><select value={chartMetric} onChange={(event) => setChartMetric(event.target.value)}><option value="visitors">Unique Visitors</option><option value="uploads">PDF Uploads</option><option value="downloads">PDF Downloads</option></select></div>
+        <div className="owner-timeseries-bars">{dailySeries.map((day) => <div key={day.key} title={`${day.label}: ${day[chartMetric]}`}><span><i style={{ height: `${Math.max(day[chartMetric] ? 6 : 1, (day[chartMetric] / chartMaximum) * 100)}%` }} /></span><small>{day.label}</small></div>)}</div>
+      </article>
 
       <div className="owner-acquisition-grid">
-        <article className="owner-analytics-activity">
-          <div className="owner-analytics-section-title"><div><h2>Traffic acquisition</h2><p>Privacy-safe first-touch source for this browser session</p></div><strong>{displayedMetrics.pageViews.toLocaleString()} page views</strong></div>
-          <div className="owner-acquisition-list">{trafficSources.length ? trafficSources.map((item) => <div key={item.label}><span>{item.label.replaceAll("_", " ")}</span><strong>{item.value.toLocaleString()}</strong></div>) : <p>No public page views recorded yet.</p>}</div>
-        </article>
-        <article className="owner-analytics-activity">
-          <div className="owner-analytics-section-title"><div><h2>Top landing pages</h2><p>The first public route visitors entered</p></div></div>
-          <div className="owner-acquisition-list">{landingPages.length ? landingPages.map((item) => <div key={item.label}><span>{item.label}</span><strong>{item.value.toLocaleString()}</strong></div>) : <p>No landing-page data recorded yet.</p>}</div>
-        </article>
+        <article className="owner-analytics-activity"><div className="owner-analytics-section-title"><div><h2>Traffic Sources</h2><p>Referrer category or safe UTM campaign</p></div></div><div className="owner-acquisition-list">{trafficSources.length ? trafficSources.map((item) => <div key={item.label}><span>{item.label}</span><strong>{item.value.toLocaleString()}</strong></div>) : <p>No referrer data in this range.</p>}</div></article>
+        <article className="owner-analytics-activity"><div className="owner-analytics-section-title"><div><h2>Devices</h2><p>Responsive viewport category—no fingerprinting</p></div></div><div className="owner-acquisition-list">{devices.length ? devices.map((item) => <div key={item.label}><span>{item.label}</span><strong>{item.value.toLocaleString()}</strong></div>) : <p>No device data in this range.</p>}</div></article>
       </div>
 
-      <article className="owner-analytics-activity owner-monitoring">
-        <div className="owner-analytics-section-title"><div><h2>Production health</h2><p>Privacy-safe failures and slow operations</p></div><Gauge size={20} /></div>
-        <div className="owner-monitoring-cards">
-          <span><strong>{displayedMetrics.clientErrors.toLocaleString()}</strong><small>Browser errors</small></span>
-          <span><strong>{displayedMetrics.failedExports.toLocaleString()}</strong><small>Failed exports</small></span>
-          <span><strong>{displayedMetrics.slowOperations.toLocaleString()}</strong><small>Slow operations</small></span>
-        </div>
-        {diagnosticEvents.length ? <div className="owner-analytics-table">
-          <div className="owner-analytics-row is-head"><span>Issue</span><span>Category</span><span>Route</span><span>Time</span></div>
-          {diagnosticEvents.map((event) => <div className="owner-analytics-row" key={event.id}><strong><AlertTriangle size={14} /> {EVENT_LABELS[event.name]}</strong><span>{event.properties?.errorCategory || event.properties?.durationBucket || "unknown"}</span><span>{event.properties?.route || event.properties?.toolId || event.properties?.operation || "unknown"}</span><time>{formatEventTime(event)}</time></div>)}
-        </div> : <div className="owner-analytics-empty"><CheckCircle2 size={24} /><strong>No production issues in this period</strong><p>New privacy-safe client errors and slow operations will appear here.</p></div>}
-      </article>
-
-      <article className="owner-analytics-activity owner-tool-quality">
-        <div className="owner-analytics-section-title"><div><h2>Core tool quality</h2><p>Completion, download conversion, speed, and failures from anonymous production events</p></div><strong><Gauge size={16} /> Priority 1</strong></div>
-        <div className="owner-quality-table" role="table" aria-label="Core tool quality scorecard">
-          <div className="owner-quality-row is-head" role="row"><span>Tool</span><span>Uploads</span><span>Rejected</span><span>Attempts</span><span>Success</span><span>Downloads</span><span>Median</span><span>P95</span><span>Failures</span></div>
-          {toolQuality.map((tool) => (
-            <div className="owner-quality-row" role="row" key={tool.toolId}>
-              <strong>{tool.toolId.replaceAll("-", " ")}</strong>
-              <span>{tool.uploads.toLocaleString()}</span>
-              <span>{tool.validationFailures.toLocaleString()}</span>
-              <span>{tool.attempts.toLocaleString()}</span>
-              <span className={tool.successRate === null ? "" : tool.successRate >= 95 ? "is-healthy" : "is-warning"}>{tool.successRate === null ? "—" : `${tool.successRate}%`}</span>
-              <span>{tool.downloads.toLocaleString()}</span>
-              <span>{formatDuration(tool.medianDurationMs)}</span>
-              <span>{formatDuration(tool.p95DurationMs)}</span>
-              <span>{tool.failures.toLocaleString()} <small>{tool.failedByDevice.mobile ? `(${tool.failedByDevice.mobile} mobile)` : ""}</small></span>
-            </div>
-          ))}
-        </div>
-      </article>
-
-      <article className="owner-analytics-activity owner-support-inbox">
-        <div className="owner-analytics-section-title"><div><h2>Support inbox</h2><p>Private requests sent from the public support form</p></div><strong><LifeBuoy size={16} /> {supportRequests.filter((item) => item.status === "new").length} new</strong></div>
-        {supportRequests.length ? <div className="owner-support-list">{supportRequests.map((request) => <section key={request.id}><header><span className={`is-${request.status}`}>{request.status}</span><strong>{request.category.replaceAll("_", " ")}</strong><time>{formatEventTime(request)}</time></header><h3>{request.name} <a href={`mailto:${request.email}`}>{request.email}</a></h3><p>{request.message}</p><footer><button type="button" onClick={() => updateSupportStatus(request.id, request.status === "resolved" ? "new" : "resolved")}>{request.status === "resolved" ? "Reopen" : "Mark resolved"}</button><button type="button" onClick={() => removeSupportRequest(request.id)}>Delete</button></footer></section>)}</div> : <div className="owner-analytics-empty"><LifeBuoy size={24} /><strong>No support requests</strong><p>Messages from the public support page will appear here.</p></div>}
-      </article>
-
       <article className="owner-analytics-activity">
-        <div className="owner-analytics-section-title"><div><h2>Recent activity</h2><p>Latest privacy-safe events</p></div></div>
-        {recentEvents.length ? (
-          <div className="owner-analytics-table">
-            <div className="owner-analytics-row is-head"><span>Event</span><span>Source</span><span>User</span><span>Time</span></div>
-            {recentEvents.map((event) => (
-              <div className="owner-analytics-row" key={event.id}>
-                <strong>{EVENT_LABELS[event.name] || event.name.replaceAll("_", " ")}</strong>
-                <span>{eventDetail(event)}</span>
-                <span>{event.actorId ? "Signed in" : "Guest"}</span>
-                <time>{formatEventTime(event)}</time>
-              </div>
-            ))}
-          </div>
-        ) : <div className="owner-analytics-empty"><Activity size={24} /><strong>No activity in this period</strong><p>Events will appear after people use this PDFEnrich release.</p></div>}
+        <div className="owner-analytics-section-title"><div><h2>Recent Activity</h2><p>Safe anonymized product events</p></div><strong>{events.length.toLocaleString()} events loaded</strong></div>
+        {recentEvents.length ? <div className="owner-analytics-table"><div className="owner-analytics-row is-head"><span>Time</span><span>Visitor</span><span>Action</span><span>Context</span></div>{recentEvents.map((event) => { const canonicalName = canonicalAnalyticsEventName(event.name); return <div className="owner-analytics-row" key={event.id}><time>{formatEventTime(event)}</time><span>{event.actorId ? "Signed-in user" : "Anonymous visitor"}{event.internalTraffic ? " · Internal" : ""}</span><strong>{EVENT_LABELS[canonicalName] || canonicalName.replaceAll("_", " ")}</strong><span>{event.properties?.featureId || event.properties?.toolId || event.path || "Product"}</span></div>; })}</div> : <div className="owner-analytics-empty"><Activity size={24} /><strong>No activity in this range</strong><p>Events appear after a visitor allows optional analytics and uses PDFEnrich.</p></div>}
+      </article>
+
+      <article className="owner-analytics-activity owner-auth-ledger">
+        <div className="owner-analytics-section-title"><div><h2>Sign-in Directory</h2><p>Owner-only Firebase account ledger; identity data is separate from anonymous events</p></div><strong>{visibleProfiles.length.toLocaleString()} accounts</strong></div>
+        {identityMessage && <div className="owner-identity-notice" role="status">{identityMessage}</div>}
+        {visibleProfiles.length ? <div className="owner-auth-table" role="table" aria-label="Sign-in directory"><div className="owner-auth-row is-head" role="row"><span>Name</span><span>Email</span><span>Method</span><span>Last sign-in (UTC)</span></div>{visibleProfiles.map((profile) => <div className="owner-auth-row" role="row" key={profile.id}><strong>{profile.displayName || "PDFEnrich user"}</strong><a href={`mailto:${profile.email}`}>{profile.email}</a><span>{profile.provider === "google" ? "Google" : "Email and password"}</span><time>{formatSignInTime(profile.lastSignInAt)}</time></div>)}</div> : <div className="owner-analytics-empty"><LogIn size={24} /><strong>No matching sign-ins</strong><p>Signed-in accounts appear after Firebase records their next login.</p></div>}
       </article>
     </section>
   );

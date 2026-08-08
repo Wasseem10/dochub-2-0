@@ -29,6 +29,202 @@ export const PRIORITY_ONE_TOOL_IDS = Object.freeze([
   "compare-pdf",
 ]);
 
+export const ANALYTICS_FEATURES = Object.freeze({
+  add_text_used: "Add Text",
+  edit_text_used: "Edit Text",
+  add_image_used: "Add Image",
+  signature_used: "Signature",
+  highlight_used: "Highlight",
+  draw_used: "Draw",
+  annotation_used: "Annotation",
+  page_added: "Add Page",
+  page_deleted: "Delete Page",
+  page_rotated: "Rotate Page",
+  page_reordered: "Reorder Page",
+  undo_used: "Undo",
+  redo_used: "Redo",
+});
+
+const EVENT_ALIASES = Object.freeze({
+  page_viewed: "page_view",
+  homepage_viewed: "page_view",
+  // This legacy event was emitted only after a PDF parsed successfully.
+  upload_started: "pdf_upload_completed",
+  upload_validation_failed: "pdf_upload_failed",
+  document_opened: "editor_opened",
+  account_signed_up: "signup_completed",
+  account_logged_in: "login_completed",
+});
+
+export function canonicalAnalyticsEventName(name) {
+  return EVENT_ALIASES[name] || name;
+}
+
+export function analyticsVisitorKey(event) {
+  return event?.visitorId || (event?.actorId ? `user:${event.actorId}` : "");
+}
+
+function eventsNamed(events, name) {
+  return events.filter((event) => canonicalAnalyticsEventName(event.name) === name);
+}
+
+function uniqueVisitors(events) {
+  return new Set(events.map(analyticsVisitorKey).filter(Boolean));
+}
+
+function percent(value, total) {
+  return total ? Math.round((value / total) * 100) : 0;
+}
+
+export function createFeatureUsage(events, sortBy = "uses") {
+  return Object.entries(ANALYTICS_FEATURES)
+    .map(([eventName, label]) => {
+      const matching = eventsNamed(events, eventName);
+      return {
+        eventName,
+        label,
+        uses: matching.length,
+        uniqueUsers: uniqueVisitors(matching).size,
+      };
+    })
+    .filter((feature) => feature.uses > 0)
+    .sort((left, right) => (
+      sortBy === "uniqueUsers"
+        ? right.uniqueUsers - left.uniqueUsers || right.uses - left.uses
+        : right.uses - left.uses || right.uniqueUsers - left.uniqueUsers
+    ));
+}
+
+export function createProductFunnel(events) {
+  const byVisitor = new Map();
+  for (const event of [...events].sort((left, right) => eventDate(left) - eventDate(right))) {
+    const visitor = analyticsVisitorKey(event);
+    if (!visitor) continue;
+    const rows = byVisitor.get(visitor) || [];
+    rows.push(canonicalAnalyticsEventName(event.name));
+    byVisitor.set(visitor, rows);
+  }
+  const featureNames = new Set(Object.keys(ANALYTICS_FEATURES));
+  const stageDefinitions = [
+    { key: "visitors", label: "Unique Visitors", match: () => true },
+    { key: "uploads", label: "Uploaded PDF", match: (name) => name === "pdf_upload_completed" },
+    { key: "editorOpens", label: "Opened Editor", match: (name) => name === "editor_opened" },
+    { key: "featureUsers", label: "Used Editor Feature", match: (name) => featureNames.has(name) },
+    { key: "downloads", label: "Downloaded PDF", match: (name) => name === "pdf_downloaded" },
+    { key: "accounts", label: "Created Account", match: (name) => name === "signup_completed" },
+  ];
+  const counts = Array(stageDefinitions.length).fill(0);
+  for (const names of byVisitor.values()) {
+    counts[0] += 1;
+    let cursor = 0;
+    for (let stage = 1; stage < stageDefinitions.length; stage += 1) {
+      const found = names.findIndex((name, index) => index >= cursor && stageDefinitions[stage].match(name));
+      if (found < 0) break;
+      counts[stage] += 1;
+      cursor = found + 1;
+    }
+  }
+  return stageDefinitions.map((stage, index) => ({
+    ...stage,
+    match: undefined,
+    value: counts[index],
+    fromPreviousRate: index ? percent(counts[index], counts[index - 1]) : 100,
+  }));
+}
+
+export function createPrivateAnalyticsSummary(events) {
+  const visitors = uniqueVisitors(events);
+  const pageViews = eventsNamed(events, "page_view");
+  const uploads = eventsNamed(events, "pdf_upload_completed");
+  const editorOpens = eventsNamed(events, "editor_opened");
+  const saves = eventsNamed(events, "pdf_saved");
+  const downloads = eventsNamed(events, "pdf_downloaded");
+  const accounts = eventsNamed(events, "signup_completed");
+  const featureEvents = events.filter((event) => ANALYTICS_FEATURES[canonicalAnalyticsEventName(event.name)]);
+  const visitorCount = visitors.size;
+  const uploadVisitors = uniqueVisitors(uploads).size;
+  const editorVisitors = uniqueVisitors(editorOpens).size;
+  const featureVisitors = uniqueVisitors(featureEvents).size;
+  const downloadVisitors = uniqueVisitors(downloads).size;
+  const signupVisitors = uniqueVisitors(accounts).size;
+  return {
+    metrics: {
+      uniqueVisitors: visitorCount,
+      pageViews: pageViews.length,
+      uploads: uploads.length,
+      editorOpens: editorOpens.length,
+      saves: saves.length,
+      downloads: downloads.length,
+      accounts: accounts.length,
+    },
+    conversions: {
+      visitorToUpload: percent(uploadVisitors, visitorCount),
+      uploadToEditor: percent(editorVisitors, uploadVisitors),
+      editorToDownload: percent(downloadVisitors, editorVisitors),
+      visitorToSignup: percent(signupVisitors, visitorCount),
+    },
+    productUsage: {
+      uploadVisitors,
+      editorVisitors,
+      featureVisitors,
+      downloadVisitors,
+    },
+    funnel: createProductFunnel(events),
+  };
+}
+
+export function createAuthenticationBreakdown(events, eventName = "pdf_downloaded") {
+  const matching = eventsNamed(events, eventName);
+  const signedIn = matching.filter((event) => Boolean(event.actorId)).length;
+  const anonymous = matching.length - signedIn;
+  return {
+    eventName,
+    total: matching.length,
+    anonymous,
+    signedIn,
+    anonymousRate: percent(anonymous, matching.length),
+    signedInRate: percent(signedIn, matching.length),
+  };
+}
+
+export function groupTopLevelAnalyticsField(events, field, { eventName = "page_view", limit = 8 } = {}) {
+  const counts = new Map();
+  for (const event of events) {
+    if (eventName && canonicalAnalyticsEventName(event.name) !== eventName) continue;
+    const value = String(event[field] || event.properties?.[field] || "unknown").slice(0, 120);
+    counts.set(value, (counts.get(value) || 0) + 1);
+  }
+  return [...counts.entries()]
+    .map(([label, value]) => ({ label, value }))
+    .sort((left, right) => right.value - left.value || left.label.localeCompare(right.label))
+    .slice(0, limit);
+}
+
+export function createProductDailySeries(events, start, end) {
+  const first = new Date(start);
+  const last = new Date(end);
+  first.setHours(0, 0, 0, 0);
+  last.setHours(0, 0, 0, 0);
+  const days = [];
+  for (let cursor = new Date(first); cursor <= last && days.length < 92; cursor.setDate(cursor.getDate() + 1)) {
+    const key = cursor.toISOString().slice(0, 10);
+    const next = new Date(cursor);
+    next.setDate(next.getDate() + 1);
+    const rows = events.filter((event) => {
+      const time = eventDate(event).getTime();
+      return time >= cursor.getTime() && time < next.getTime();
+    });
+    days.push({
+      key,
+      label: new Intl.DateTimeFormat("en", { month: "short", day: "numeric" }).format(cursor),
+      visitors: uniqueVisitors(rows).size,
+      uploads: eventsNamed(rows, "pdf_upload_completed").length,
+      downloads: eventsNamed(rows, "pdf_downloaded").length,
+    });
+  }
+  return days;
+}
+
 function percentile(values, ratio) {
   if (!values.length) return null;
   const sorted = [...values].sort((a, b) => a - b);

@@ -104,7 +104,7 @@ import "pdfjs-dist/build/pdf.worker.mjs";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { db, storage } from "./firebase";
 import { useAuth } from "./auth/AuthContext.jsx";
-import { beginToolOperation, fileSizeBucket, pageCountBucket, trackProductEvent, trackToolUpload, trackUploadValidationFailure } from "./analytics/productAnalytics.js";
+import { beginToolOperation, clientEnvironment, fileSizeBucket, pageCountBucket, trackProductEvent, trackToolUpload, trackUploadValidationFailure } from "./analytics/productAnalytics.js";
 import { logRedactedClientError } from "./monitoring/productionMonitoring.js";
 import { AuthRequiredModal } from "./components/editor/AuthRequiredModal.jsx";
 import { FinishExportModal } from "./components/editor/FinishExportModal.jsx";
@@ -299,6 +299,22 @@ const referencePrimaryTools = [
   { id: "link", label: "Link", icon: PhLink },
   { id: "note", label: "Note", icon: PhNote },
 ];
+
+const EDITOR_ANNOTATION_EVENT = Object.freeze({
+  text: "add_text_used",
+  image: "add_image_used",
+  signature: "signature_used",
+  initials: "signature_used",
+  highlight: "highlight_used",
+  draw: "draw_used",
+});
+
+function trackEditorAnnotationFeature(annotationType) {
+  trackProductEvent(EDITOR_ANNOTATION_EVENT[annotationType] || "annotation_used", {
+    toolId: "edit-pdf",
+    featureId: String(annotationType || "annotation").slice(0, 80),
+  });
+}
 
 const TOOL_PERSISTENT_INSTRUCTIONS = Object.freeze({
   erase: { label: "Erase", instruction: "Select an annotation or existing text item to remove it." },
@@ -2404,7 +2420,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     if (!activeDocumentId || editorRouteState !== "ready" || !pages.length) return;
     if (trackedDocumentOpenRef.current.has(activeDocumentId)) return;
     trackedDocumentOpenRef.current.add(activeDocumentId);
-    trackProductEvent("document_opened", {
+    trackProductEvent("editor_opened", {
       toolId: publicTool || "edit-pdf",
       pageCountBucket: pageCountBucket(pages.length),
     });
@@ -2760,6 +2776,12 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     setLastSavedAt(stamp);
     setSaved(true);
     window.setTimeout(() => setSaveState("saved"), immediate ? 0 : 180);
+    if (immediate) {
+      trackProductEvent("pdf_saved", {
+        toolId: publicTool || "edit-pdf",
+        pageCountBucket: pageCountBucket(pages.length),
+      });
+    }
     return true;
   };
 
@@ -2909,6 +2931,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     if (!changed) return;
     setUndoStack((stack) => [...stack.slice(-24), snapshot]);
     setRedoStack([]);
+    trackProductEvent("edit_text_used", { toolId: "edit-pdf", featureId: "edit-text" });
   };
 
   const updateAnnotation = (id, patch) => {
@@ -2986,6 +3009,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       item.type !== "text" || !shouldDiscardTextAnnotation(item.content)
     ));
     commitAnnotations([...retainedAnnotations, annotation]);
+    trackEditorAnnotationFeature(annotation.type);
     setSelectedId(annotation.id);
     setTool("select");
   };
@@ -3554,6 +3578,11 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
 
   const loadPdfFile = async (file, { cloudDocumentRecord = null } = {}) => {
     if (!file) return;
+    trackProductEvent("pdf_upload_started", {
+      toolId: publicTool || "edit-pdf",
+      fileSizeBucket: fileSizeBucket(file.size || 0),
+      ...clientEnvironment(),
+    });
     const loadOwnerId = storageOwnerId;
     const displayFileName = sanitizePdfDisplayName(file.name);
     setUploadStage({ status: "validating", percent: 8, fileName: displayFileName });
@@ -3851,6 +3880,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     setIsPageAppendMenuOpen(false);
     markUnsaved();
     showToast("Blank page added.");
+    trackProductEvent("page_added", { toolId: "edit-pdf", featureId: "add-blank-page" });
   };
 
   const duplicatePageAt = (targetIndex) => {
@@ -3893,6 +3923,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     setPageIndex((value) => clamp(value > removedIndex ? value - 1 : value, 0, pages.length - 2));
     markUnsaved();
     showToast("Page deleted.");
+    trackProductEvent("page_deleted", { toolId: "edit-pdf", featureId: "delete-page" });
   };
 
   const deleteCurrentPage = () => deletePageAt(pageIndex);
@@ -3911,6 +3942,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       setSelectedDetectedTextId(null);
       markUnsaved();
       showToast(`Page ${targetIndex + 1} rotated clockwise.`);
+      trackProductEvent("page_rotated", { toolId: "edit-pdf", featureId: "rotate-page" });
     };
 
     if (!page.image) {
@@ -3953,6 +3985,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     setPageIndex(next.pageIndex);
     markUnsaved();
     showToast(`Moved page ${fromIndex + 1} to position ${toIndex + 1}.`);
+    trackProductEvent("page_reordered", { toolId: "edit-pdf", featureId: "reorder-page" });
   };
 
   const startPagePointerReorder = (event, fromIndex) => {
@@ -4672,6 +4705,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
         } : {}),
     };
     commitAnnotations([...annotations, finalized]);
+    trackEditorAnnotationFeature(finalized.type);
     setDraft(null);
     if (finalized.type === "draw") {
       // Keep the pen ready for the next stroke. Selecting each completed stroke
@@ -4748,6 +4782,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     setSelectedId(null);
     setSelectedDetectedTextId(null);
     markUnsaved();
+    trackProductEvent("undo_used", { toolId: "edit-pdf", featureId: "undo" });
   };
 
   const redo = () => {
@@ -4759,6 +4794,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     setSelectedId(null);
     setSelectedDetectedTextId(null);
     markUnsaved();
+    trackProductEvent("redo_used", { toolId: "edit-pdf", featureId: "redo" });
   };
 
   const duplicateSelected = () => {
@@ -7954,7 +7990,7 @@ export function UploadLanding({
     "AI Tools": ROUTE_PATHS.tools,
     Shared: ROUTE_PATHS.documents,
     Settings: ROUTE_PATHS.settings,
-    Analytics: ROUTE_PATHS.analytics,
+    Analytics: ROUTE_PATHS.adminAnalytics,
     Trash: ROUTE_PATHS.trash,
     Team: ROUTE_PATHS.settings,
     Integrations: ROUTE_PATHS.settings,

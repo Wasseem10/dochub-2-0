@@ -15,7 +15,7 @@ import {
   updateProfile,
 } from "firebase/auth";
 import { auth, googleProvider, isFirebaseConfigured } from "../firebase.js";
-import { trackProductEvent } from "../analytics/productAnalytics.js";
+import { trackProductEvent, trackProductEventAsync } from "../analytics/productAnalytics.js";
 import {
   clearCloudHistoryPreference,
   deletePrivateCloudAccountData,
@@ -150,6 +150,7 @@ export default function FirebaseAuthProvider({ children }) {
     currentUser,
     isFirebaseConfigured,
     async authenticate({ mode, email, password, name, provider }) {
+      if (mode === "signup") trackProductEvent("signup_started", { authMethod: provider === "google" ? "google" : "email" });
       if (!auth) {
         if (provider === "google") return { ok: false, error: "Google sign-in requires cloud authentication. Use email sign-in for this local workspace." };
         const user = createLocalAuthUser({ email, name });
@@ -158,7 +159,7 @@ export default function FirebaseAuthProvider({ children }) {
         } catch {
           return { ok: false, error: "This browser blocked local workspace storage. Allow site storage and try again." };
         }
-        trackProductEvent(mode === "signup" ? "account_signed_up" : "account_logged_in", { authMethod: "email" });
+        trackProductEvent(mode === "signup" ? "signup_completed" : "login_completed", { authMethod: "local" });
         setCurrentUser(user);
         return { ok: true, user };
       }
@@ -174,7 +175,7 @@ export default function FirebaseAuthProvider({ children }) {
         const user = await mapFirebaseUserWithClaims(auth.currentUser || credential.user);
         const additionalUserInfo = getAdditionalUserInfo(credential);
         const isNewAccount = provider === "google" ? Boolean(additionalUserInfo?.isNewUser) : mode === "signup";
-        trackProductEvent(isNewAccount ? "account_signed_up" : "account_logged_in", {
+        trackProductEvent(isNewAccount ? "signup_completed" : "login_completed", {
           authMethod: provider === "google" ? "google" : "email",
         });
         setCurrentUser(user);
@@ -227,6 +228,13 @@ export default function FirebaseAuthProvider({ children }) {
       }
     },
     async logout() {
+      const analyticsRequest = trackProductEventAsync("logout_completed", {
+        authMethod: currentUser?.providers?.includes("google.com") ? "google" : currentUser?.providers?.includes("local") ? "local" : "email",
+      });
+      await Promise.race([
+        analyticsRequest,
+        new Promise((resolve) => window.setTimeout(resolve, 120)),
+      ]);
       if (auth) await signOut(auth);
       else {
         try {

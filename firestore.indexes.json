@@ -12,6 +12,30 @@
       "collectionGroup": "productAnalyticsEvents",
       "queryScope": "COLLECTION",
       "fields": [
+        { "fieldPath": "internalTraffic", "order": "ASCENDING" },
+        { "fieldPath": "clientOccurredAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "productAnalyticsEvents",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "visitorId", "order": "ASCENDING" },
+        { "fieldPath": "clientOccurredAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "productAnalyticsEvents",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "actorId", "order": "ASCENDING" },
+        { "fieldPath": "clientOccurredAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "productAnalyticsEvents",
+      "queryScope": "COLLECTION",
+      "fields": [
         { "fieldPath": "name", "order": "ASCENDING" },
         { "fieldPath": "properties.authMethod", "order": "ASCENDING" },
         { "fieldPath": "clientOccurredAt", "order": "ASCENDING" }
@@ -51,6 +75,12 @@
     }
   ],
   "fieldOverrides": [
+    {
+      "collectionGroup": "productAnalyticsEvents",
+      "fieldPath": "expiresAt",
+      "ttl": true,
+      "indexes": []
+    },
     {
       "collectionGroup": "privateDocuments",
       "fieldPath": "ownerId",

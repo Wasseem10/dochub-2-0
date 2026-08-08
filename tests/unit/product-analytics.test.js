@@ -68,7 +68,7 @@ describe("privacy-safe product analytics", () => {
     expect(googleAnalyticsEventFor({ name: "client_error", properties: {} })).toBeNull();
   });
 
-  it("keeps conversion events compatible with the currently deployed analytics rules", () => {
+  it("keeps only properties accepted by the protected ingestion API", () => {
     expect(analyticsPersistenceProperties({
       toolId: "compress-pdf",
       durationBucket: "3_6s",
@@ -81,9 +81,7 @@ describe("privacy-safe product analytics", () => {
     })).toEqual({
       toolId: "compress-pdf",
       durationBucket: "3_6s",
-      trafficSource: "organic",
-      referrerDomain: "google.com",
-      landingPath: "/compress-pdf",
+      durationMs: 4200,
     });
   });
 });

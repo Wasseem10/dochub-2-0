@@ -1,9 +1,33 @@
-import { OPTIONAL_ANALYTICS_RETENTION_DAYS } from "../privacy/privacyConfig.js";
 import { optionalAnalyticsAllowed } from "../privacy/privacyChoices.js";
 import { privacySafeRoute } from "../privacy/privacySafeRoute.js";
 import { queueGoogleAnalyticsEvent } from "./googleAnalytics.js";
 
 const ALLOWED_EVENTS = new Set([
+  "page_view",
+  "pdf_upload_started",
+  "pdf_upload_completed",
+  "pdf_upload_failed",
+  "editor_opened",
+  "pdf_saved",
+  "pdf_downloaded",
+  "signup_started",
+  "signup_completed",
+  "login_completed",
+  "logout_completed",
+  "add_text_used",
+  "edit_text_used",
+  "add_image_used",
+  "signature_used",
+  "highlight_used",
+  "draw_used",
+  "annotation_used",
+  "page_added",
+  "page_deleted",
+  "page_rotated",
+  "page_reordered",
+  "undo_used",
+  "redo_used",
+  // Accepted during the transition from the earlier event vocabulary.
   "homepage_viewed",
   "page_viewed",
   "tool_opened",
@@ -19,7 +43,6 @@ const ALLOWED_EVENTS = new Set([
   "optional_account_created",
   "account_signed_up",
   "account_logged_in",
-  "pdf_downloaded",
   "result_downloaded",
   "task_feedback_submitted",
   "client_error",
@@ -27,24 +50,9 @@ const ALLOWED_EVENTS = new Set([
   "slow_operation",
 ]);
 
-const ALLOWED_PROPERTIES = new Set(["toolId", "fileSizeBucket", "pageCountBucket", "errorCategory", "result", "authMethod", "route", "operation", "durationBucket", "durationMs", "deviceClass", "browserFamily", "trafficSource", "referrerDomain", "landingPath"]);
-const ANALYTICS_COLLECTION = "productAnalyticsEvents";
-const VISITOR_KEY = "realpdf_analytics_visitor_id";
-const ATTRIBUTION_KEY = "pdfenrich_session_attribution_v1";
-const PAGE_VIEWS_KEY = "pdfenrich_session_page_views_v1";
-const memoryPageViews = new Set();
-const ATTRIBUTED_CONVERSION_EVENTS = new Set([
-  "upload_started",
-  "document_opened",
-  "export_started",
-  "export_succeeded",
-  "export_failed",
-  "pdf_downloaded",
-  "result_downloaded",
-  "account_signed_up",
-]);
-const FIRESTORE_ANALYTICS_PROPERTIES = new Set([
+const ALLOWED_PROPERTIES = new Set([
   "toolId",
+  "featureId",
   "fileSizeBucket",
   "pageCountBucket",
   "errorCategory",
@@ -53,10 +61,53 @@ const FIRESTORE_ANALYTICS_PROPERTIES = new Set([
   "route",
   "operation",
   "durationBucket",
+  "durationMs",
+  "deviceClass",
+  "browserFamily",
   "trafficSource",
   "referrerDomain",
   "landingPath",
+  "utmSource",
+  "utmMedium",
+  "utmCampaign",
 ]);
+const FIRESTORE_ANALYTICS_PROPERTIES = new Set([
+  "toolId",
+  "featureId",
+  "fileSizeBucket",
+  "pageCountBucket",
+  "errorCategory",
+  "result",
+  "authMethod",
+  "operation",
+  "durationBucket",
+  "durationMs",
+  "utmSource",
+  "utmMedium",
+  "utmCampaign",
+]);
+const ATTRIBUTED_CONVERSION_EVENTS = new Set([
+  "pdf_upload_started",
+  "pdf_upload_completed",
+  "editor_opened",
+  "export_started",
+  "export_succeeded",
+  "pdf_downloaded",
+  "result_downloaded",
+  "signup_completed",
+  "upload_started",
+  "document_opened",
+  "account_signed_up",
+]);
+const VISITOR_KEY = "pdfenrich_analytics_visitor_id_v2";
+const LEGACY_VISITOR_KEY = "realpdf_analytics_visitor_id";
+const SESSION_KEY = "pdfenrich_analytics_session_id_v1";
+const INTERNAL_TRAFFIC_KEY = "pdfenrich_internal_traffic_v1";
+const ATTRIBUTION_KEY = "pdfenrich_session_attribution_v1";
+const PAGE_VIEWS_KEY = "pdfenrich_session_page_views_v1";
+const DEFAULT_ANALYTICS_API_BASE_URL = "https://us-central1-pdf-editor-1137a.cloudfunctions.net/analyticsApi";
+const ANALYTICS_API_BASE_URL = String(import.meta.env.VITE_ANALYTICS_API_BASE_URL || DEFAULT_ANALYTICS_API_BASE_URL).replace(/\/+$/, "");
+const memoryPageViews = new Set();
 
 function safeHostname(value) {
   try {
@@ -66,17 +117,30 @@ function safeHostname(value) {
   }
 }
 
+function safeCampaignParameters(searchParams) {
+  const safeValue = (key, maximum) => String(searchParams.get(key) || "")
+    .replace(/[^A-Za-z0-9._~-]/g, "-")
+    .slice(0, maximum);
+  const utmSource = safeValue("utm_source", 80);
+  const utmMedium = safeValue("utm_medium", 80);
+  const utmCampaign = safeValue("utm_campaign", 120);
+  return {
+    ...(utmSource ? { utmSource } : {}),
+    ...(utmMedium ? { utmMedium } : {}),
+    ...(utmCampaign ? { utmCampaign } : {}),
+  };
+}
+
 function classifyTrafficSource(referrerDomain, searchParams) {
-  const medium = (searchParams.get("utm_medium") || "").toLowerCase();
-  if (/(^|_)(cpc|ppc|paid|display|affiliate)(_|$)/.test(medium)) return "paid";
-  if (/(^|_)(email|newsletter)(_|$)/.test(medium)) return "email";
-  if (/(^|_)(social|social-network)(_|$)/.test(medium)) return "social";
-  if (/(^|_)(organic|search)(_|$)/.test(medium)) return "organic";
   if (searchParams.has("utm_source")) return "campaign";
   if (!referrerDomain) return "direct";
-  if (/(^|\.)(google|bing|yahoo|duckduckgo|ecosia|baidu|yandex|brave)\./.test(referrerDomain)) return "organic";
-  if (/(^|\.)(facebook|instagram|linkedin|tiktok|twitter|x|reddit|youtube|pinterest)\./.test(referrerDomain)) return "social";
-  return "referral";
+  if (/(^|\.)(google)\./.test(referrerDomain)) return "google";
+  if (/(^|\.)(bing)\./.test(referrerDomain)) return "bing";
+  if (/(^|\.)(reddit)\./.test(referrerDomain)) return "reddit";
+  if (/(^|\.)(chatgpt|openai)\./.test(referrerDomain)) return "chatgpt";
+  if (/(^|\.)(facebook|instagram)\./.test(referrerDomain)) return "facebook";
+  if (/(^|\.)(twitter|x)\./.test(referrerDomain)) return "x";
+  return "other";
 }
 
 export function currentTrafficAttribution() {
@@ -93,71 +157,70 @@ export function currentTrafficAttribution() {
   const referrerDomain = safeHostname(document.referrer);
   const ownDomain = safeHostname(window.location.origin);
   const externalReferrer = referrerDomain && referrerDomain !== ownDomain ? referrerDomain : "";
+  const searchParams = new URLSearchParams(window.location.search);
   const attribution = {
-    trafficSource: classifyTrafficSource(externalReferrer, new URLSearchParams(window.location.search)),
+    trafficSource: classifyTrafficSource(externalReferrer, searchParams),
     referrerDomain: externalReferrer,
     landingPath: privacySafeRoute(window.location.pathname),
+    ...safeCampaignParameters(searchParams),
   };
   if (analyticsAllowed) {
-    try { window.sessionStorage.setItem(ATTRIBUTION_KEY, JSON.stringify(attribution)); } catch { /* Keep attribution in this event only. */ }
+    try { window.sessionStorage.setItem(ATTRIBUTION_KEY, JSON.stringify(attribution)); } catch { /* Keep attribution in memory. */ }
   }
   return attribution;
 }
 
-function visitorId() {
+function randomIdentifier(prefix) {
+  const random = globalThis.crypto?.randomUUID?.().replaceAll("-", "")
+    || `${Date.now().toString(36)}${Math.random().toString(36).slice(2)}${Math.random().toString(36).slice(2)}`;
+  return `${prefix}_${random}`;
+}
+
+export function currentVisitorId() {
   try {
-    const existing = window.localStorage.getItem(VISITOR_KEY);
-    if (existing) return existing;
-    const created = globalThis.crypto?.randomUUID?.() || `visitor-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    const current = window.localStorage.getItem(VISITOR_KEY);
+    if (/^anon_[A-Za-z0-9_-]{16,80}$/.test(current || "")) return current;
+    const legacy = window.localStorage.getItem(LEGACY_VISITOR_KEY);
+    const created = legacy
+      ? `anon_${legacy.replace(/[^A-Za-z0-9_-]/g, "").slice(0, 75)}`
+      : randomIdentifier("anon");
     window.localStorage.setItem(VISITOR_KEY, created);
     return created;
   } catch {
-    return `session-${Math.random().toString(36).slice(2)}`;
+    return randomIdentifier("anon");
   }
 }
 
-async function persistProductEvent(event) {
-  if (!optionalAnalyticsAllowed()) return;
+export function currentSessionId() {
   try {
-    const [{ auth, db }, { addDoc, collection, serverTimestamp, Timestamp }] = await Promise.all([
-      import("../firebase.js"),
-      import("firebase/firestore"),
-    ]);
-    if (!db) return;
-    await addDoc(collection(db, ANALYTICS_COLLECTION), {
-      name: event.name,
-      properties: analyticsPersistenceProperties(event.properties),
-      actorId: auth?.currentUser?.uid || null,
-      visitorId: visitorId(),
-      occurredAt: serverTimestamp(),
-      clientOccurredAt: new Date().toISOString(),
-      expiresAt: Timestamp.fromDate(new Date(Date.now() + OPTIONAL_ANALYTICS_RETENTION_DAYS * 24 * 60 * 60 * 1000)),
-    });
-  } catch (error) {
-    if (import.meta.env.DEV) {
-      const diagnosticCode = String(error?.code || error?.name || "analytics_error")
-        .replace(/[^A-Za-z0-9_.:/-]/g, "")
-        .slice(0, 64);
-      console.warn("[PDFEnrich analytics] Event storage failed", { code: diagnosticCode });
-    }
+    const existing = window.sessionStorage.getItem(SESSION_KEY);
+    if (/^session_[A-Za-z0-9_-]{16,80}$/.test(existing || "")) return existing;
+    const created = randomIdentifier("session");
+    window.sessionStorage.setItem(SESSION_KEY, created);
+    return created;
+  } catch {
+    return randomIdentifier("session");
   }
 }
 
-function queueProductEventPersistence(event) {
-  if (!optionalAnalyticsAllowed()) return;
-  const isLowPriorityPageView = ["page_viewed", "homepage_viewed"].includes(event.name);
-  if (!isLowPriorityPageView) {
-    void persistProductEvent(event);
-    return;
+export function isInternalTrafficDevice() {
+  if (typeof window === "undefined") return false;
+  try {
+    return window.localStorage.getItem(INTERNAL_TRAFFIC_KEY) === "true";
+  } catch {
+    return false;
   }
+}
 
-  // Page-view storage loads the optional Firebase client. Keep that work out of
-  // the homepage's critical rendering path so the hero and upload control win
-  // the initial network/main-thread budget. Conversion and error events remain
-  // immediate; page views begin after the page is fully loaded.
-  const persistAfterLoad = () => window.setTimeout(() => void persistProductEvent(event), 1500);
-  if (document.readyState === "complete") persistAfterLoad();
-  else window.addEventListener("load", persistAfterLoad, { once: true });
+export function setInternalTrafficDevice(excluded) {
+  if (typeof window === "undefined") return false;
+  try {
+    if (excluded) window.localStorage.setItem(INTERNAL_TRAFFIC_KEY, "true");
+    else window.localStorage.removeItem(INTERNAL_TRAFFIC_KEY);
+    return isInternalTrafficDevice();
+  } catch {
+    return false;
+  }
 }
 
 export function fileSizeBucket(bytes = 0) {
@@ -195,7 +258,7 @@ export function clientEnvironment() {
   else if (/Chrome\//.test(userAgent)) browserFamily = "chrome";
   else if (/Safari\//.test(userAgent)) browserFamily = "safari";
   return {
-    deviceClass: window.innerWidth <= 820 ? "mobile" : "desktop",
+    deviceClass: window.innerWidth <= 640 ? "mobile" : window.innerWidth <= 1024 ? "tablet" : "desktop",
     browserFamily,
   };
 }
@@ -215,23 +278,102 @@ export function sanitizeAnalyticsProperties(properties = {}) {
   }));
 }
 
-export function trackProductEvent(name, properties = {}) {
-  if (!ALLOWED_EVENTS.has(name)) return false;
+export function analyticsPersistenceProperties(properties = {}) {
+  return Object.fromEntries(Object.entries(properties).filter(([key]) => FIRESTORE_ANALYTICS_PROPERTIES.has(key)));
+}
+
+async function persistProductEvent(event) {
+  if (!optionalAnalyticsAllowed() || typeof window === "undefined" || !ANALYTICS_API_BASE_URL) return false;
+  try {
+    const [{ appCheck, auth }, { getToken: getAppCheckToken }] = await Promise.all([
+      import("../firebase.js"),
+      import("firebase/app-check"),
+    ]);
+    const headers = { "Content-Type": "application/json" };
+    const user = auth?.currentUser;
+    if (user) headers.Authorization = `Bearer ${await user.getIdToken()}`;
+    if (appCheck) {
+      const result = await getAppCheckToken(appCheck, false);
+      if (result?.token) headers["X-Firebase-AppCheck"] = result.token;
+    }
+    const attribution = currentTrafficAttribution();
+    const environment = clientEnvironment();
+    const response = await fetch(`${ANALYTICS_API_BASE_URL}/v1/events`, {
+      method: "POST",
+      headers,
+      keepalive: true,
+      body: JSON.stringify({
+        eventName: event.name,
+        visitorId: currentVisitorId(),
+        sessionId: currentSessionId(),
+        path: privacySafeRoute(window.location.pathname),
+        internalTraffic: isInternalTrafficDevice(),
+        deviceCategory: environment.deviceClass,
+        browserFamily: environment.browserFamily,
+        trafficSource: attribution.trafficSource,
+        referrerDomain: attribution.referrerDomain,
+        properties: analyticsPersistenceProperties(event.properties),
+        clientOccurredAt: new Date().toISOString(),
+      }),
+    });
+    return response.ok;
+  } catch (error) {
+    if (import.meta.env.DEV) {
+      const diagnosticCode = String(error?.code || error?.name || "analytics_error")
+        .replace(/[^A-Za-z0-9_.:/-]/g, "")
+        .slice(0, 64);
+      console.warn("[PDFEnrich analytics] Event storage failed", { code: diagnosticCode });
+    }
+    return false;
+  }
+}
+
+function buildEvent(name, properties = {}) {
+  if (!ALLOWED_EVENTS.has(name)) return null;
   const attribution = typeof window !== "undefined" && ATTRIBUTED_CONVERSION_EVENTS.has(name)
     ? currentTrafficAttribution()
     : {};
-  const event = { name, properties: sanitizeAnalyticsProperties({ ...attribution, ...properties }) };
+  return { name, properties: sanitizeAnalyticsProperties({ ...attribution, ...properties }) };
+}
+
+function dispatchProductEvent(event) {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new CustomEvent("pdfenrich:analytics", { detail: event }));
+  queueGoogleAnalyticsEvent(event);
+}
+
+function queueProductEventPersistence(event) {
+  if (!optionalAnalyticsAllowed()) return;
+  const isLowPriorityPageView = ["page_view", "page_viewed", "homepage_viewed"].includes(event.name);
+  if (!isLowPriorityPageView) {
+    void persistProductEvent(event);
+    return;
+  }
+  const persistAfterLoad = () => window.setTimeout(() => void persistProductEvent(event), 1500);
+  if (document.readyState === "complete") persistAfterLoad();
+  else window.addEventListener("load", persistAfterLoad, { once: true });
+}
+
+export function trackProductEvent(name, properties = {}) {
+  const event = buildEvent(name, properties);
+  if (!event) return false;
   if (typeof window !== "undefined") {
-    window.dispatchEvent(new CustomEvent("realpdf:analytics", { detail: event }));
+    dispatchProductEvent(event);
     queueProductEventPersistence(event);
-    queueGoogleAnalyticsEvent(event);
   }
   if (import.meta.env.DEV) console.info("[PDFEnrich analytics]", event);
   return true;
 }
 
+export async function trackProductEventAsync(name, properties = {}) {
+  const event = buildEvent(name, properties);
+  if (!event || typeof window === "undefined") return false;
+  dispatchProductEvent(event);
+  return persistProductEvent(event);
+}
+
 export function trackToolUpload(toolId, file, { pageCount } = {}) {
-  return trackProductEvent("upload_started", {
+  return trackProductEvent("pdf_upload_completed", {
     toolId,
     fileSizeBucket: fileSizeBucket(file?.size || 0),
     ...(Number.isFinite(pageCount) ? { pageCountBucket: pageCountBucket(pageCount) } : {}),
@@ -240,7 +382,7 @@ export function trackToolUpload(toolId, file, { pageCount } = {}) {
 }
 
 export function trackUploadValidationFailure(toolId, errorCategory = "invalid_file") {
-  return trackProductEvent("upload_validation_failed", {
+  return trackProductEvent("pdf_upload_failed", {
     toolId,
     errorCategory,
     ...clientEnvironment(),
@@ -252,7 +394,6 @@ export function beginToolOperation(toolId, { operation = "export", slowAfterMs =
   const environment = clientEnvironment();
   let completed = false;
   trackProductEvent("export_started", { toolId, operation, ...environment });
-
   const finish = (name, properties = {}) => {
     if (completed) return false;
     completed = true;
@@ -260,19 +401,12 @@ export function beginToolOperation(toolId, { operation = "export", slowAfterMs =
     const durationMs = Math.max(0, finishedAt - startedAt);
     const timing = { durationMs, durationBucket: durationBucket(durationMs) };
     trackProductEvent(name, { toolId, operation, ...environment, ...timing, ...properties });
-    if (durationMs >= slowAfterMs) {
-      trackProductEvent("slow_operation", { toolId, operation, ...environment, ...timing });
-    }
+    if (durationMs >= slowAfterMs) trackProductEvent("slow_operation", { toolId, operation, ...environment, ...timing });
     return true;
   };
-
   return {
-    succeed(properties = {}) {
-      return finish("export_succeeded", properties);
-    },
-    fail(errorCategory = "processing_error", properties = {}) {
-      return finish("export_failed", { errorCategory, ...properties });
-    },
+    succeed(properties = {}) { return finish("export_succeeded", properties); },
+    fail(errorCategory = "processing_error", properties = {}) { return finish("export_failed", { errorCategory, ...properties }); },
   };
 }
 
@@ -293,14 +427,8 @@ export function trackPageView(route = "/") {
       memoryPageViews.add(normalizedRoute);
     }
   }
-  const properties = { route: normalizedRoute, ...currentTrafficAttribution() };
-  trackProductEvent("page_viewed", properties);
-  if (normalizedRoute === "/") trackProductEvent("homepage_viewed", properties);
+  trackProductEvent("page_view", { route: normalizedRoute, ...currentTrafficAttribution() });
   return true;
-}
-
-export function analyticsPersistenceProperties(properties = {}) {
-  return Object.fromEntries(Object.entries(properties).filter(([key]) => FIRESTORE_ANALYTICS_PROPERTIES.has(key)));
 }
 
 export function trackComparisonCta(route, placement) {

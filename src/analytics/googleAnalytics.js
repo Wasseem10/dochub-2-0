@@ -1,9 +1,12 @@
 import { optionalAnalyticsAllowed } from "../privacy/privacyChoices.js";
 
 const GOOGLE_EVENT_NAMES = Object.freeze({
+  page_view: "funnel_landing",
   page_viewed: "funnel_landing",
+  pdf_upload_completed: "pdf_upload",
   upload_started: "pdf_upload",
   export_succeeded: "pdf_completed",
+  signup_completed: "sign_up",
   account_signed_up: "sign_up",
 });
 
@@ -26,6 +29,7 @@ export function googleAnalyticsEventFor(event) {
       landing_path: properties.landingPath,
       method: properties.authMethod,
       device_category: properties.deviceClass,
+      internal_traffic: properties.internalTraffic,
     }),
   };
 }

@@ -11,6 +11,6 @@ export function firebaseAdminServices(bucketName) {
     appCheck: getAppCheck(app),
     auth: getAuth(app),
     db: getFirestore(app),
-    bucket: getStorage(app).bucket(bucketName),
+    bucket: bucketName ? getStorage(app).bucket(bucketName) : null,
   });
 }

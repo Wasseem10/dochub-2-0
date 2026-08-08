@@ -3,6 +3,8 @@ export const PRIVACY_CHOICE_EVENT = "pdfenrich:privacy-choice-changed";
 
 const OPTIONAL_ANALYTICS_STORAGE_KEYS = Object.freeze([
   "realpdf_analytics_visitor_id",
+  "pdfenrich_analytics_visitor_id_v2",
+  "pdfenrich_analytics_session_id_v1",
   "pdfenrich_session_attribution_v1",
   "pdfenrich_session_page_views_v1",
   "pdfenrich_reported_diagnostics",

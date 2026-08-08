@@ -11,6 +11,8 @@ export default [
       ".npm-cache/**",
       "design-evidence/**",
       "audit-evidence/**",
+      "work/**",
+      "tmp/**",
       "public/**",
       "runtime-public/**",
     ],

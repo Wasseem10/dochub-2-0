@@ -16,9 +16,13 @@ import {
 import { isRecentAuthentication, PrivateCloudSecurityError } from "./security/privateCloudDocumentService.js";
 import { createPrivateMalwareScanner } from "./security/productionPdfInspection.js";
 import { createPrivateCloudDocumentService } from "./services/privateCloudDocuments.js";
+import { loadAnalyticsConfig } from "./analyticsConfig.js";
+import { createAnalyticsApiHandler } from "./analyticsApi.js";
+import { createProductAnalyticsService } from "./services/productAnalytics.js";
 
 const runtimeServiceAccount = defineString("PRIVATE_CLOUD_SERVICE_ACCOUNT_EMAIL");
 let backend;
+let productAnalyticsBackend;
 
 function privateCloudBackend() {
   if (backend) return backend;
@@ -39,6 +43,18 @@ function privateCloudBackend() {
     }),
   });
   return backend;
+}
+
+function analyticsBackend() {
+  if (productAnalyticsBackend) return productAnalyticsBackend;
+  const config = loadAnalyticsConfig();
+  const admin = firebaseAdminServices();
+  productAnalyticsBackend = Object.freeze({
+    admin,
+    config,
+    analytics: createProductAnalyticsService({ db: admin.db, retentionDays: config.retentionDays }),
+  });
+  return productAnalyticsBackend;
 }
 
 function routePath(request) {
@@ -267,6 +283,7 @@ export function createPrivateCloudApiHandler({ backendProvider = privateCloudBac
 }
 
 const apiHandler = createPrivateCloudApiHandler();
+const productAnalyticsApiHandler = createAnalyticsApiHandler({ backendProvider: analyticsBackend });
 
 const privateCloudFunctionOptions = {
   timeoutSeconds: 540,
@@ -290,6 +307,14 @@ export const privateCloudDocumentsApi = onRequest(
   privateCloudFunctionOptions,
   apiHandler,
 );
+
+export const analyticsApi = onRequest({
+  timeoutSeconds: 60,
+  memory: "512MiB",
+  maxInstances: 20,
+  concurrency: 40,
+  invoker: "public",
+}, productAnalyticsApiHandler);
 
 export const reconcilePrivateCloudDocuments = onSchedule({
   ...privateCloudScheduleOptions,
