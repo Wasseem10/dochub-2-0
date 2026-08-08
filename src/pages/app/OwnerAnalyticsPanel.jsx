@@ -1,28 +1,30 @@
 import { collection, getDocs, limit, orderBy, query } from "firebase/firestore";
 import Activity from "lucide-react/dist/esm/icons/activity.mjs";
-import Download from "lucide-react/dist/esm/icons/download.mjs";
+import CalendarDays from "lucide-react/dist/esm/icons/calendar-days.mjs";
+import Check from "lucide-react/dist/esm/icons/check.mjs";
+import ChevronDown from "lucide-react/dist/esm/icons/chevron-down.mjs";
+import CircleHelp from "lucide-react/dist/esm/icons/circle-help.mjs";
 import FileCheck2 from "lucide-react/dist/esm/icons/file-check-2.mjs";
-import FileText from "lucide-react/dist/esm/icons/file-text.mjs";
 import LogIn from "lucide-react/dist/esm/icons/log-in.mjs";
-import MousePointer2 from "lucide-react/dist/esm/icons/mouse-pointer-2.mjs";
+import PencilLine from "lucide-react/dist/esm/icons/pencil-line.mjs";
 import RefreshCw from "lucide-react/dist/esm/icons/refresh-cw.mjs";
-import Save from "lucide-react/dist/esm/icons/save.mjs";
 import ShieldCheck from "lucide-react/dist/esm/icons/shield-check.mjs";
 import Upload from "lucide-react/dist/esm/icons/upload.mjs";
-import UserPlus from "lucide-react/dist/esm/icons/user-plus.mjs";
 import Users from "lucide-react/dist/esm/icons/users.mjs";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useState } from "react";
 import {
   canonicalAnalyticsEventName,
   createAuthenticationBreakdown,
   createFeatureUsage,
-  createPrivateAnalyticsSummary,
+  createOutcomeOverview,
   createProductDailySeries,
+  createToolUsage,
   groupTopLevelAnalyticsField,
 } from "../../analytics/analyticsMetrics.js";
 import { loadAdminAnalytics } from "../../analytics/analyticsApi.js";
 import { isInternalTrafficDevice, setInternalTrafficDevice } from "../../analytics/productAnalytics.js";
 import { db } from "../../firebase.js";
+import { TOOL_BY_ID } from "../../tools/toolRegistry.js";
 import "./owner-analytics.css";
 
 const EVENT_LABELS = Object.freeze({
@@ -50,7 +52,14 @@ const EVENT_LABELS = Object.freeze({
   page_reordered: "Reordered pages",
   undo_used: "Used Undo",
   redo_used: "Used Redo",
+  tool_opened: "Opened a PDF tool",
+  export_started: "Started an export",
+  export_succeeded: "Finished an export",
+  export_failed: "Export failed",
+  result_downloaded: "Downloaded a result",
 });
+
+const JOURNEY_ICONS = Object.freeze({ visit: Users, upload: Upload, use: PencilLine, finish: Check });
 
 function isoDate(date) {
   return date.toISOString().slice(0, 10);
@@ -58,13 +67,9 @@ function isoDate(date) {
 
 function rangeDates(range, customStart, customEnd) {
   const now = new Date();
-  const end = range === "custom" && customEnd
-    ? new Date(`${customEnd}T23:59:59.999Z`)
-    : now;
-  let start;
-  if (range === "custom" && customStart) start = new Date(`${customStart}T00:00:00.000Z`);
-  else {
-    start = new Date(now);
+  const end = range === "custom" && customEnd ? new Date(`${customEnd}T23:59:59.999Z`) : now;
+  const start = range === "custom" && customStart ? new Date(`${customStart}T00:00:00.000Z`) : new Date(now);
+  if (range !== "custom") {
     start.setUTCHours(0, 0, 0, 0);
     if (range === "7d") start.setUTCDate(start.getUTCDate() - 6);
     if (range === "30d") start.setUTCDate(start.getUTCDate() - 29);
@@ -74,7 +79,7 @@ function rangeDates(range, customStart, customEnd) {
 
 function formatEventTime(event) {
   const value = event.clientOccurredAt || event.occurredAt;
-  if (!value) return "Just now";
+  if (!value) return "Time unavailable";
   return new Intl.DateTimeFormat("en", {
     month: "short",
     day: "numeric",
@@ -94,8 +99,40 @@ function formatSignInTime(value) {
   }).format(new Date(value));
 }
 
-function metricCard(label, value, detail, icon) {
-  return { label, value, detail, icon };
+function formatMetric(value, unavailable) {
+  return unavailable ? "—" : value.toLocaleString();
+}
+
+function ActivityChart({ series, unavailable }) {
+  const chartId = useId().replaceAll(":", "");
+  const width = 720;
+  const height = 260;
+  const padding = { top: 18, right: 12, bottom: 52, left: 48 };
+  const values = series.map((day) => day.visitors);
+  const maximum = Math.max(0, ...values);
+  const x = (index) => padding.left + (series.length <= 1 ? 0 : (index / (series.length - 1)) * (width - padding.left - padding.right));
+  const y = (value) => padding.top + (maximum ? (1 - value / maximum) : 1) * (height - padding.top - padding.bottom);
+  const points = series.map((day, index) => `${x(index)},${y(day.visitors)}`).join(" ");
+  const area = series.length ? `M ${x(0)} ${height - padding.bottom} L ${points.replaceAll(",", " ")} L ${x(series.length - 1)} ${height - padding.bottom} Z` : "";
+  const guideValues = [maximum, Math.round(maximum / 2), 0];
+  const labelStep = Math.max(1, Math.ceil(series.length / 7));
+  const hasActivity = !unavailable && maximum > 0;
+
+  return (
+    <div className="owner-chart-wrap">
+      <svg className="owner-chart" viewBox={`0 0 ${width} ${height}`} role="img" aria-labelledby={`${chartId}-title ${chartId}-desc`}>
+        <title id={`${chartId}-title`}>People reached by day</title>
+        <desc id={`${chartId}-desc`}>{hasActivity ? series.map((day) => `${day.label}: ${day.visitors}`).join(", ") : "No recorded visitors in this date range."}</desc>
+        {guideValues.map((value, index) => {
+          const guideY = padding.top + (index / 2) * (height - padding.top - padding.bottom);
+          return <g key={`${value}-${index}`}><line x1={padding.left} x2={width - padding.right} y1={guideY} y2={guideY} /><text x={padding.left - 12} y={guideY + 4}>{unavailable ? "—" : value}</text></g>;
+        })}
+        {hasActivity && <><defs><linearGradient id={`${chartId}-fill`} x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#2f63f5" stopOpacity=".17" /><stop offset="1" stopColor="#2f63f5" stopOpacity="0" /></linearGradient></defs><path className="owner-chart-area" d={area} fill={`url(#${chartId}-fill)`} /><polyline className="owner-chart-line" points={points} />{series.map((day, index) => <circle key={day.key} cx={x(index)} cy={y(day.visitors)} r="4" />)}</>}
+        {series.map((day, index) => (index % labelStep === 0 || index === series.length - 1) && <text className="owner-chart-label" key={day.key} x={x(index)} y={height - 20} textAnchor={index === 0 ? "start" : index === series.length - 1 ? "end" : "middle"}>{day.label}</text>)}
+      </svg>
+      {!hasActivity && <div className="owner-chart-empty">{unavailable ? "Activity is unavailable until analytics reloads." : "No people reached in this period."}</div>}
+    </div>
+  );
 }
 
 export function OwnerAnalyticsPanel({ searchQuery = "" }) {
@@ -112,24 +149,15 @@ export function OwnerAnalyticsPanel({ searchQuery = "" }) {
   const [message, setMessage] = useState("");
   const [truncated, setTruncated] = useState(false);
   const [featureSort, setFeatureSort] = useState("uses");
-  const [chartMetric, setChartMetric] = useState("visitors");
   const [signInProfiles, setSignInProfiles] = useState([]);
   const [identityMessage, setIdentityMessage] = useState("");
 
-  const selectedDates = useMemo(
-    () => rangeDates(range, customStart, customEnd),
-    [customEnd, customStart, range],
-  );
-
+  const selectedDates = useMemo(() => rangeDates(range, customStart, customEnd), [customEnd, customStart, range]);
   const loadAnalytics = useCallback(async (signal) => {
     setStatus("loading");
     setMessage("");
     try {
-      const payload = await loadAdminAnalytics({
-        ...selectedDates,
-        includeInternal,
-        signal,
-      });
+      const payload = await loadAdminAnalytics({ ...selectedDates, includeInternal, signal });
       setEvents(payload.events || []);
       setTruncated(payload.truncated === true);
       setStatus("ready");
@@ -137,8 +165,8 @@ export function OwnerAnalyticsPanel({ searchQuery = "" }) {
       if (error?.name === "AbortError") return;
       setStatus("error");
       setMessage(error?.code === "analytics_forbidden"
-        ? "This Firebase account does not have the PDFEnrich analytics claim."
-        : "Private product analytics could not be loaded. Verify the analytics API deployment and try again.");
+        ? "This account does not have permission to view PDFEnrich analytics."
+        : "Product analytics could not be loaded. Check the analytics service and try again.");
     }
   }, [includeInternal, selectedDates]);
 
@@ -158,145 +186,78 @@ export function OwnerAnalyticsPanel({ searchQuery = "" }) {
       .catch(() => setIdentityMessage("The owner-only sign-in directory is not available in this environment."));
   }, []);
 
-  const summary = useMemo(() => createPrivateAnalyticsSummary(events), [events]);
+  const overview = useMemo(() => createOutcomeOverview(events), [events]);
+  const topTools = useMemo(() => createToolUsage(events), [events]);
   const featureUsage = useMemo(() => createFeatureUsage(events, featureSort), [events, featureSort]);
   const authentication = useMemo(() => createAuthenticationBreakdown(events), [events]);
   const trafficSources = useMemo(() => groupTopLevelAnalyticsField(events, "trafficSource"), [events]);
   const devices = useMemo(() => groupTopLevelAnalyticsField(events, "deviceCategory", { eventName: null, limit: 4 }), [events]);
-  const dailySeries = useMemo(
-    () => createProductDailySeries(events, selectedDates.start, selectedDates.end),
-    [events, selectedDates],
-  );
-  const chartMaximum = Math.max(1, ...dailySeries.map((day) => day[chartMetric]));
+  const dailySeries = useMemo(() => createProductDailySeries(events, selectedDates.start, selectedDates.end), [events, selectedDates]);
   const recentEvents = events.slice(0, 30);
   const normalizedSearch = searchQuery.trim().toLowerCase();
-  const visibleProfiles = signInProfiles.filter((profile) => !normalizedSearch || [
-    profile.displayName,
-    profile.email,
-    profile.provider,
-  ].some((value) => String(value || "").toLowerCase().includes(normalizedSearch)));
-  const cards = [
-    metricCard("Unique Visitors", summary.metrics.uniqueVisitors, "Random browser visitor IDs", Users),
-    metricCard("Page Views", summary.metrics.pageViews, "Consented page views", MousePointer2),
-    metricCard("PDF Uploads", summary.metrics.uploads, "Successfully loaded PDFs", Upload),
-    metricCard("Editor Opens", summary.metrics.editorOpens, "Documents opened in editor", FileText),
-    metricCard("PDF Saves", summary.metrics.saves, "Confirmed editor saves", Save),
-    metricCard("PDF Downloads", summary.metrics.downloads, "Finished PDF downloads", Download),
-    metricCard("New Accounts", summary.metrics.accounts, "Completed registrations", UserPlus),
+  const visibleProfiles = signInProfiles.filter((profile) => !normalizedSearch || [profile.displayName, profile.email, profile.provider].some((value) => String(value || "").toLowerCase().includes(normalizedSearch)));
+  const unavailable = status === "error" && events.length === 0;
+  const isLoadingFirstPage = status === "loading" && events.length === 0;
+  const rangeLabel = range === "today" ? "Today" : range === "7d" ? "Last 7 days" : range === "30d" ? "Last 30 days" : "Custom range";
+  const metricRows = [
+    { label: "People reached", value: overview.peopleReached, detail: "Visited PDFEnrich", help: "Distinct privacy-safe visitor IDs recorded during this period." },
+    { label: "Used a PDF tool", value: overview.usedTool, detail: "Reached a tool after upload", help: "Distinct people whose recorded journey included an upload followed by tool activity." },
+    { label: "Finished a PDF", value: overview.finishedPdf, detail: "Completed or downloaded", help: "Distinct people whose recorded journey reached a successful export or download." },
   ];
-
-  const setDeviceExclusion = (excluded) => {
-    const next = setInternalTrafficDevice(excluded);
-    setInternalDevice(next);
-  };
+  const setDeviceExclusion = (excluded) => setInternalDevice(setInternalTrafficDevice(excluded));
 
   return (
-    <section className="owner-analytics" aria-labelledby="analytics-title">
+    <section className="owner-analytics" aria-labelledby="analytics-title" aria-busy={status === "loading"}>
       <header className="owner-analytics-head">
         <div>
-          <span>Private owner analytics</span>
-          <h2 id="analytics-title">Are people reaching a finished PDF?</h2>
-          <p>Anonymous and signed-in product journeys, without filenames, PDF text, signatures, form values, or document URLs.</p>
+          <h1 id="analytics-title">Product overview</h1>
+          <p>See how people discover PDFEnrich, use the tools, and complete their PDF work.</p>
         </div>
         <div className="owner-analytics-actions">
-          <label>
-            <span>Date range</span>
-            <select value={range} onChange={(event) => setRange(event.target.value)}>
-              <option value="today">Today</option>
-              <option value="7d">Last 7 Days</option>
-              <option value="30d">Last 30 Days</option>
-              <option value="custom">Custom</option>
-            </select>
-          </label>
+          <label className="owner-range-select"><CalendarDays size={17} /><span className="sr-only">Date range</span><select value={range} aria-label="Date range" onChange={(event) => setRange(event.target.value)}><option value="today">Today</option><option value="7d">Last 7 days</option><option value="30d">Last 30 days</option><option value="custom">Custom range</option></select><ChevronDown size={15} aria-hidden="true" /></label>
           <button type="button" onClick={() => loadAnalytics()} disabled={status === "loading"}><RefreshCw size={16} /> Refresh</button>
         </div>
       </header>
 
-      {range === "custom" && (
-        <div className="owner-analytics-custom-range">
-          <label><span>Start (UTC)</span><input type="date" value={customStart} max={customEnd} onChange={(event) => setCustomStart(event.target.value)} /></label>
-          <label><span>End (UTC)</span><input type="date" value={customEnd} min={customStart} max={today} onChange={(event) => setCustomEnd(event.target.value)} /></label>
-        </div>
-      )}
+      {range === "custom" && <div className="owner-analytics-custom-range"><label><span>Start date (UTC)</span><input type="date" value={customStart} max={customEnd} onChange={(event) => setCustomStart(event.target.value)} /></label><label><span>End date (UTC)</span><input type="date" value={customEnd} min={customStart} max={today} onChange={(event) => setCustomEnd(event.target.value)} /></label></div>}
+      {message && <div className="owner-analytics-notice is-error" role="alert"><span>{message}</span><button type="button" onClick={() => loadAnalytics()}>Try again</button></div>}
+      {truncated && <div className="owner-analytics-notice" role="status">This period exceeded the 25,000-event window. Choose a shorter date range for exact totals.</div>}
+      {isLoadingFirstPage && <div className="owner-analytics-loading"><span /> Loading product activity…</div>}
 
-      <div className="owner-analytics-traffic-controls">
-        <div><ShieldCheck size={18} /><span><strong>{internalDevice ? "This device is excluded" : "This device is counted normally"}</strong><small>Internal events are stored with a flag and excluded from the dashboard by default.</small></span></div>
-        <button type="button" onClick={() => setDeviceExclusion(!internalDevice)}>{internalDevice ? "Stop excluding this device" : "Exclude this device from analytics"}</button>
-        <label><input type="checkbox" checked={includeInternal} onChange={(event) => setIncludeInternal(event.target.checked)} /> Include internal traffic</label>
+      <div className="owner-summary-grid" aria-label={`${rangeLabel} summary`}>
+        {metricRows.map((metric) => <article key={metric.label}><div><h2>{metric.label}</h2><CircleHelp size={16} aria-label={metric.help} title={metric.help} /></div><strong>{formatMetric(metric.value, unavailable)}</strong><p>{unavailable ? "Unavailable" : metric.detail}</p></article>)}
       </div>
 
-      {message && <div className="owner-analytics-notice" role="alert">{message}</div>}
-      {truncated && <div className="owner-analytics-notice" role="status">This range exceeded the 25,000-event query window. Narrow the dates for exact detail.</div>}
-      {status === "loading" && !events.length && <div className="owner-analytics-loading">Loading private analytics…</div>}
+      <ol className="owner-journey" aria-label="PDF completion journey">
+        {overview.journey.map((stage, index) => {
+          const Icon = JOURNEY_ICONS[stage.key];
+          return <li key={stage.key}><span className="owner-journey-icon"><Icon size={25} /></span><div><small>{stage.label}</small><strong>{formatMetric(stage.value, unavailable)}</strong><p>{unavailable ? "Unavailable" : `${stage.rate}% of people`}</p></div>{index < overview.journey.length - 1 && <span className="owner-journey-arrow" aria-hidden="true">→</span>}</li>;
+        })}
+      </ol>
 
-      <div className="owner-analytics-cards is-seven">
-        {cards.map(({ label, value, detail, icon: Icon }) => (
-          <article key={label}><span><Icon size={19} /></span><small>{label}</small><strong>{value.toLocaleString()}</strong><p>{detail}</p></article>
-        ))}
+      <div className="owner-primary-grid">
+        <article className="owner-activity-panel"><div className="owner-section-heading"><h2>{range === "7d" ? "7-day activity" : `${rangeLabel} activity`}</h2><span><i /> People reached</span></div><ActivityChart series={dailySeries} unavailable={unavailable} /></article>
+        <article className="owner-tools-panel"><div className="owner-section-heading"><h2>Most-used tools</h2></div>{topTools.length ? <ol>{topTools.map((tool, index) => <li key={tool.toolId}><span>{index + 1}</span><strong>{TOOL_BY_ID.get(tool.toolId)?.name || tool.toolId.replaceAll("-", " ")}</strong><em>{tool.uniqueUsers.toLocaleString()} {tool.uniqueUsers === 1 ? "person" : "people"}</em></li>)}</ol> : <div className="owner-tools-empty"><Activity size={22} /><strong>{unavailable ? "Tool use unavailable" : "No tool use recorded"}</strong><p>{unavailable ? "Reload analytics to see tool activity." : "Tools appear after a consented visitor uses them."}</p></div>}</article>
       </div>
 
-      <article className="owner-analytics-conversions">
-        {[
-          ["Visitor → PDF Upload", summary.conversions.visitorToUpload],
-          ["PDF Upload → Editor Open", summary.conversions.uploadToEditor],
-          ["Editor Open → Download", summary.conversions.editorToDownload],
-          ["Visitor → Signup", summary.conversions.visitorToSignup],
-        ].map(([label, value]) => <div key={label}><span>{label}</span><strong>{value}%</strong></div>)}
-      </article>
+      <details className="owner-more-details">
+        <summary><strong>More details</strong><span>View accounts, devices, traffic sources, and event history.</span><ChevronDown size={18} /></summary>
+        <div className="owner-detail-content">
+          <section className="owner-detail-section owner-traffic-controls"><div className="owner-detail-heading"><div><h2>Analytics controls</h2><p>Internal traffic is excluded by default.</p></div><ShieldCheck size={19} /></div><div className="owner-control-row"><div><strong>{internalDevice ? "This device is excluded" : "This device is counted"}</strong><small>Only the internal flag is stored with eligible events.</small></div><button type="button" onClick={() => setDeviceExclusion(!internalDevice)}>{internalDevice ? "Count this device" : "Exclude this device"}</button><label><input type="checkbox" checked={includeInternal} onChange={(event) => setIncludeInternal(event.target.checked)} /> Include internal traffic</label></div></section>
 
-      <div className="owner-analytics-grid">
-        <article className="owner-analytics-activity">
-          <div className="owner-analytics-section-title"><div><h2>Product Usage</h2><p>Distinct people who performed a meaningful product action</p></div><Activity size={20} /></div>
-          <div className="owner-product-usage">
-            {[
-              ["Uploaded a PDF", summary.productUsage.uploadVisitors],
-              ["Opened the editor", summary.productUsage.editorVisitors],
-              ["Used an editor feature", summary.productUsage.featureVisitors],
-              ["Downloaded a PDF", summary.productUsage.downloadVisitors],
-            ].map(([label, value]) => <div key={label}><span>{label}</span><strong>{value.toLocaleString()}</strong></div>)}
+          <div className="owner-detail-grid">
+            <section className="owner-detail-section"><div className="owner-detail-heading"><div><h2>Traffic sources</h2><p>Safe source categories from page views</p></div></div><div className="owner-compact-list">{trafficSources.length ? trafficSources.map((item) => <div key={item.label}><span>{item.label}</span><strong>{item.value.toLocaleString()}</strong></div>) : <p>No source data in this period.</p>}</div></section>
+            <section className="owner-detail-section"><div className="owner-detail-heading"><div><h2>Devices</h2><p>Responsive viewport categories</p></div></div><div className="owner-compact-list">{devices.length ? devices.map((item) => <div key={item.label}><span>{item.label}</span><strong>{item.value.toLocaleString()}</strong></div>) : <p>No device data in this period.</p>}</div></section>
+            <section className="owner-detail-section"><div className="owner-detail-heading"><div><h2>Finished PDFs</h2><p>Anonymous and signed-in events</p></div></div><div className="owner-auth-split"><span style={{ width: `${authentication.anonymousRate}%` }} /><i style={{ width: `${authentication.signedInRate}%` }} /></div><div className="owner-compact-list"><div><span>Anonymous</span><strong>{authentication.anonymous.toLocaleString()}</strong></div><div><span>Signed in</span><strong>{authentication.signedIn.toLocaleString()}</strong></div></div></section>
           </div>
-        </article>
 
-        <article className="owner-analytics-activity owner-auth-breakdown">
-          <div className="owner-analytics-section-title"><div><h2>Anonymous vs Signed-In</h2><p>Who completed PDF downloads</p></div><LogIn size={20} /></div>
-          <div className="owner-auth-split"><span style={{ width: `${authentication.anonymousRate}%` }} /><i style={{ width: `${authentication.signedInRate}%` }} /></div>
-          <dl><div><dt>Anonymous</dt><dd>{authentication.anonymousRate}% <small>{authentication.anonymous}</small></dd></div><div><dt>Signed in</dt><dd>{authentication.signedInRate}% <small>{authentication.signedIn}</small></dd></div></dl>
-        </article>
-      </div>
+          <section className="owner-detail-section"><div className="owner-detail-heading"><div><h2>Editor feature use</h2><p>Completed actions, not pointer movement or tool selection</p></div><div className="owner-sort-actions"><button type="button" className={featureSort === "uses" ? "is-active" : ""} onClick={() => setFeatureSort("uses")}>Uses</button><button type="button" className={featureSort === "uniqueUsers" ? "is-active" : ""} onClick={() => setFeatureSort("uniqueUsers")}>People</button></div></div>{featureUsage.length ? <div className="owner-data-table owner-feature-table"><div className="is-head"><span>Feature</span><span>Uses</span><span>People</span></div>{featureUsage.map((feature) => <div key={feature.eventName}><strong>{feature.label}</strong><span>{feature.uses.toLocaleString()}</span><span>{feature.uniqueUsers.toLocaleString()}</span></div>)}</div> : <div className="owner-detail-empty"><FileCheck2 size={22} /><strong>No editor feature use in this period</strong></div>}</section>
 
-      <article className="owner-analytics-activity owner-feature-usage">
-        <div className="owner-analytics-section-title">
-          <div><h2>Feature Usage</h2><p>Completed editor actions—not tool selections or pointer movement</p></div>
-          <div className="owner-sort-actions"><button type="button" className={featureSort === "uses" ? "is-active" : ""} onClick={() => setFeatureSort("uses")}>Sort by uses</button><button type="button" className={featureSort === "uniqueUsers" ? "is-active" : ""} onClick={() => setFeatureSort("uniqueUsers")}>Sort by users</button></div>
+          <section className="owner-detail-section"><div className="owner-detail-heading"><div><h2>Recent activity</h2><p>Privacy-safe product events only</p></div><strong>{events.length.toLocaleString()} events loaded</strong></div>{recentEvents.length ? <div className="owner-data-table owner-event-table"><div className="is-head"><span>Time</span><span>Visitor</span><span>Action</span><span>Context</span></div>{recentEvents.map((event, index) => { const canonicalName = canonicalAnalyticsEventName(event.name); return <div key={event.id || `${canonicalName}-${index}`}><time>{formatEventTime(event)}</time><span>{event.actorId ? "Signed in" : "Anonymous"}{event.internalTraffic ? " · Internal" : ""}</span><strong>{EVENT_LABELS[canonicalName] || canonicalName.replaceAll("_", " ")}</strong><span>{event.properties?.featureId || event.properties?.toolId || event.path || "Product"}</span></div>; })}</div> : <div className="owner-detail-empty"><Activity size={22} /><strong>No activity in this period</strong></div>}</section>
+
+          <section className="owner-detail-section"><div className="owner-detail-heading"><div><h2>Sign-in directory</h2><p>Firebase identity records, kept separate from anonymous analytics</p></div><strong>{visibleProfiles.length.toLocaleString()} accounts</strong></div>{identityMessage && <div className="owner-identity-notice" role="status">{identityMessage}</div>}{visibleProfiles.length ? <div className="owner-data-table owner-account-table" role="table" aria-label="Sign-in directory"><div className="is-head" role="row"><span>Name</span><span>Email</span><span>Method</span><span>Last sign-in (UTC)</span></div>{visibleProfiles.map((profile) => <div role="row" key={profile.id}><strong>{profile.displayName || "PDFEnrich user"}</strong><a href={`mailto:${profile.email}`}>{profile.email}</a><span>{profile.provider === "google" ? "Google" : "Email and password"}</span><time>{formatSignInTime(profile.lastSignInAt)}</time></div>)}</div> : <div className="owner-detail-empty"><LogIn size={22} /><strong>No matching sign-ins</strong></div>}</section>
         </div>
-        {featureUsage.length ? <div className="owner-feature-table"><div className="is-head"><span>Feature</span><span>Uses</span><span>Unique Users</span></div>{featureUsage.map((feature) => <div key={feature.eventName}><strong>{feature.label}</strong><span>{feature.uses.toLocaleString()}</span><span>{feature.uniqueUsers.toLocaleString()}</span></div>)}</div> : <div className="owner-analytics-empty"><FileCheck2 size={24} /><strong>No editor features used in this range</strong><p>Successful feature actions will appear here.</p></div>}
-      </article>
-
-      <article className="owner-analytics-activity owner-product-funnel">
-        <div className="owner-analytics-section-title"><div><h2>Conversion Funnel</h2><p>Unique visitors reaching each step in order</p></div></div>
-        <ol>{summary.funnel.map((stage, index) => <li key={stage.key}><small>0{index + 1}</small><span>{stage.label}</span><strong>{stage.value.toLocaleString()}</strong>{index > 0 && <em>{stage.fromPreviousRate}% from previous</em>}</li>)}</ol>
-      </article>
-
-      <article className="owner-analytics-activity owner-timeseries">
-        <div className="owner-analytics-section-title"><div><h2>Daily Activity</h2><p>UTC calendar days</p></div><select value={chartMetric} onChange={(event) => setChartMetric(event.target.value)}><option value="visitors">Unique Visitors</option><option value="uploads">PDF Uploads</option><option value="downloads">PDF Downloads</option></select></div>
-        <div className="owner-timeseries-bars">{dailySeries.map((day) => <div key={day.key} title={`${day.label}: ${day[chartMetric]}`}><span><i style={{ height: `${Math.max(day[chartMetric] ? 6 : 1, (day[chartMetric] / chartMaximum) * 100)}%` }} /></span><small>{day.label}</small></div>)}</div>
-      </article>
-
-      <div className="owner-acquisition-grid">
-        <article className="owner-analytics-activity"><div className="owner-analytics-section-title"><div><h2>Traffic Sources</h2><p>Referrer category or safe UTM campaign</p></div></div><div className="owner-acquisition-list">{trafficSources.length ? trafficSources.map((item) => <div key={item.label}><span>{item.label}</span><strong>{item.value.toLocaleString()}</strong></div>) : <p>No referrer data in this range.</p>}</div></article>
-        <article className="owner-analytics-activity"><div className="owner-analytics-section-title"><div><h2>Devices</h2><p>Responsive viewport category—no fingerprinting</p></div></div><div className="owner-acquisition-list">{devices.length ? devices.map((item) => <div key={item.label}><span>{item.label}</span><strong>{item.value.toLocaleString()}</strong></div>) : <p>No device data in this range.</p>}</div></article>
-      </div>
-
-      <article className="owner-analytics-activity">
-        <div className="owner-analytics-section-title"><div><h2>Recent Activity</h2><p>Safe anonymized product events</p></div><strong>{events.length.toLocaleString()} events loaded</strong></div>
-        {recentEvents.length ? <div className="owner-analytics-table"><div className="owner-analytics-row is-head"><span>Time</span><span>Visitor</span><span>Action</span><span>Context</span></div>{recentEvents.map((event) => { const canonicalName = canonicalAnalyticsEventName(event.name); return <div className="owner-analytics-row" key={event.id}><time>{formatEventTime(event)}</time><span>{event.actorId ? "Signed-in user" : "Anonymous visitor"}{event.internalTraffic ? " · Internal" : ""}</span><strong>{EVENT_LABELS[canonicalName] || canonicalName.replaceAll("_", " ")}</strong><span>{event.properties?.featureId || event.properties?.toolId || event.path || "Product"}</span></div>; })}</div> : <div className="owner-analytics-empty"><Activity size={24} /><strong>No activity in this range</strong><p>Events appear after a visitor allows optional analytics and uses PDFEnrich.</p></div>}
-      </article>
-
-      <article className="owner-analytics-activity owner-auth-ledger">
-        <div className="owner-analytics-section-title"><div><h2>Sign-in Directory</h2><p>Owner-only Firebase account ledger; identity data is separate from anonymous events</p></div><strong>{visibleProfiles.length.toLocaleString()} accounts</strong></div>
-        {identityMessage && <div className="owner-identity-notice" role="status">{identityMessage}</div>}
-        {visibleProfiles.length ? <div className="owner-auth-table" role="table" aria-label="Sign-in directory"><div className="owner-auth-row is-head" role="row"><span>Name</span><span>Email</span><span>Method</span><span>Last sign-in (UTC)</span></div>{visibleProfiles.map((profile) => <div className="owner-auth-row" role="row" key={profile.id}><strong>{profile.displayName || "PDFEnrich user"}</strong><a href={`mailto:${profile.email}`}>{profile.email}</a><span>{profile.provider === "google" ? "Google" : "Email and password"}</span><time>{formatSignInTime(profile.lastSignInAt)}</time></div>)}</div> : <div className="owner-analytics-empty"><LogIn size={24} /><strong>No matching sign-ins</strong><p>Signed-in accounts appear after Firebase records their next login.</p></div>}
-      </article>
+      </details>
     </section>
   );
 }

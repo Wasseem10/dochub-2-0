@@ -70,6 +70,8 @@ The dashboard left navigation follows the selected July 23, 2026 Quiet Editorial
 
 The owner Analytics page must use the same Editorial Monochrome dashboard shell and dense document-management rhythm, including the shared searchable top bar, flat metric strips, fine dividers, compact controls, and oxblood-only emphasis. Keep an owner-only sign-in directory that clearly identifies the account name, email, Google versus email/password method, and Firebase last sign-in time; do not add this identity data to anonymous product analytics events.
 
+The selected August 7, 2026 owner Analytics redesign is Outcome Snapshot (ideation option 1), with `work/design-references/analytics-outcome-snapshot-selected-2026-08-07.png` as its source. Use a simple blue, charcoal, white, and soft-gray outcome overview with exactly three primary metrics, one short visit-to-finish journey, a compact activity chart, a real top-tools list, and collapsed details. This supersedes oxblood and red on Analytics. Every visible value must come from live analytics data; show honest zero, empty, loading, or unavailable states rather than mock or fallback numbers.
+
 Before finishing any implementation change in this prototype, commit the scoped work and push it to the configured GitHub branch so the connected live deployment can update.
 
 The dashboard All tools action stays inside the PDFEnrich app shell at `/app/tools`. Keep the persistent navigation rail and shared tool search, but use a bright, easy-to-scan catalog inspired by Smallpdf: white three-column tool cards on a powder-blue canvas, clearly color-coded tool icons, a prominent Popular tools section, compact category chips, and grouped More tools below. Favor clear visual scanning over dense neutral list rows.

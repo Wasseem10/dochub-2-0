@@ -95,6 +95,77 @@ export function createFeatureUsage(events, sortBy = "uses") {
     ));
 }
 
+const TOOL_USE_EVENTS = new Set([
+  "tool_opened",
+  "editor_opened",
+  "pdf_saved",
+  "pdf_downloaded",
+  "result_downloaded",
+  "export_started",
+  "export_succeeded",
+]);
+
+const FINISHED_PDF_EVENTS = new Set([
+  "pdf_downloaded",
+  "result_downloaded",
+  "export_succeeded",
+]);
+
+function isToolUseEvent(event) {
+  const name = canonicalAnalyticsEventName(event.name);
+  return TOOL_USE_EVENTS.has(name) || Boolean(ANALYTICS_FEATURES[name]);
+}
+
+export function createOutcomeOverview(events) {
+  const byVisitor = new Map();
+  for (const event of [...events].sort((left, right) => eventDate(left) - eventDate(right))) {
+    const visitor = analyticsVisitorKey(event);
+    if (!visitor) continue;
+    const outcome = byVisitor.get(visitor) || { uploaded: false, used: false, finished: false };
+    const name = canonicalAnalyticsEventName(event.name);
+    if (name === "pdf_upload_completed") outcome.uploaded = true;
+    if (outcome.uploaded && isToolUseEvent(event)) outcome.used = true;
+    if (outcome.used && FINISHED_PDF_EVENTS.has(name)) outcome.finished = true;
+    byVisitor.set(visitor, outcome);
+  }
+
+  const peopleReached = byVisitor.size;
+  const uploaded = [...byVisitor.values()].filter((outcome) => outcome.uploaded).length;
+  const usedTool = [...byVisitor.values()].filter((outcome) => outcome.used).length;
+  const finishedPdf = [...byVisitor.values()].filter((outcome) => outcome.finished).length;
+
+  return {
+    peopleReached,
+    uploaded,
+    usedTool,
+    finishedPdf,
+    journey: [
+      { key: "visit", label: "Visit", value: peopleReached, rate: peopleReached ? 100 : 0 },
+      { key: "upload", label: "Upload", value: uploaded, rate: percent(uploaded, peopleReached) },
+      { key: "use", label: "Use a tool", value: usedTool, rate: percent(usedTool, peopleReached) },
+      { key: "finish", label: "Finish", value: finishedPdf, rate: percent(finishedPdf, peopleReached) },
+    ],
+  };
+}
+
+export function createToolUsage(events, limit = 5) {
+  const tools = new Map();
+  for (const event of events) {
+    const toolId = String(event.properties?.toolId || "").trim();
+    if (!toolId || !isToolUseEvent(event)) continue;
+    const current = tools.get(toolId) || { toolId, uses: 0, visitors: new Set() };
+    current.uses += 1;
+    const visitor = analyticsVisitorKey(event);
+    if (visitor) current.visitors.add(visitor);
+    tools.set(toolId, current);
+  }
+  return [...tools.values()]
+    .map(({ toolId, uses, visitors }) => ({ toolId, uses, uniqueUsers: visitors.size }))
+    .filter((tool) => tool.uniqueUsers > 0)
+    .sort((left, right) => right.uniqueUsers - left.uniqueUsers || right.uses - left.uses || left.toolId.localeCompare(right.toolId))
+    .slice(0, limit);
+}
+
 export function createProductFunnel(events) {
   const byVisitor = new Map();
   for (const event of [...events].sort((left, right) => eventDate(left) - eventDate(right))) {

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { priorityOneToolCoverage } from "../../config/priority-one-quality.mjs";
-import { analyticsRangeStart, createDailyAnalyticsSeries, createGoogleSearchConversionFunnel, createToolQualityScorecard, filterAnalyticsEvents, groupAnalyticsProperty, PRIORITY_ONE_TOOL_IDS, summarizeAnalyticsEvents } from "../../src/analytics/analyticsMetrics.js";
+import { analyticsRangeStart, createDailyAnalyticsSeries, createGoogleSearchConversionFunnel, createOutcomeOverview, createToolQualityScorecard, createToolUsage, filterAnalyticsEvents, groupAnalyticsProperty, PRIORITY_ONE_TOOL_IDS, summarizeAnalyticsEvents } from "../../src/analytics/analyticsMetrics.js";
 
 const now = new Date("2026-07-20T12:00:00.000Z");
 
@@ -100,6 +100,49 @@ describe("owner analytics metrics", () => {
       completionToSignupRate: 100,
       visitToSignupRate: 33,
     });
+  });
+
+  it("builds the product overview only from observed visitor journeys", () => {
+    const outcomeEvents = [
+      { name: "page_view", visitorId: "finished", clientOccurredAt: "2026-07-20T08:00:00.000Z", properties: {} },
+      { name: "pdf_upload_completed", visitorId: "finished", clientOccurredAt: "2026-07-20T08:01:00.000Z", properties: { toolId: "merge-pdf" } },
+      { name: "export_succeeded", visitorId: "finished", clientOccurredAt: "2026-07-20T08:02:00.000Z", properties: { toolId: "merge-pdf" } },
+      { name: "page_view", visitorId: "used", clientOccurredAt: "2026-07-20T09:00:00.000Z", properties: {} },
+      { name: "pdf_upload_completed", visitorId: "used", clientOccurredAt: "2026-07-20T09:01:00.000Z", properties: { toolId: "edit-pdf" } },
+      { name: "editor_opened", visitorId: "used", clientOccurredAt: "2026-07-20T09:02:00.000Z", properties: { toolId: "edit-pdf" } },
+      { name: "page_view", visitorId: "visit-only", clientOccurredAt: "2026-07-20T10:00:00.000Z", properties: {} },
+      { name: "export_succeeded", visitorId: "out-of-order", clientOccurredAt: "2026-07-20T07:00:00.000Z", properties: { toolId: "compress-pdf" } },
+      { name: "pdf_upload_completed", visitorId: "out-of-order", clientOccurredAt: "2026-07-20T11:00:00.000Z", properties: { toolId: "compress-pdf" } },
+    ];
+
+    expect(createOutcomeOverview(outcomeEvents)).toEqual({
+      peopleReached: 4,
+      uploaded: 3,
+      usedTool: 2,
+      finishedPdf: 1,
+      journey: [
+        { key: "visit", label: "Visit", value: 4, rate: 100 },
+        { key: "upload", label: "Upload", value: 3, rate: 75 },
+        { key: "use", label: "Use a tool", value: 2, rate: 50 },
+        { key: "finish", label: "Finish", value: 1, rate: 25 },
+      ],
+    });
+  });
+
+  it("ranks tools by real unique users and ignores events without a tool", () => {
+    const usageEvents = [
+      { name: "editor_opened", visitorId: "visitor-1", properties: { toolId: "edit-pdf" } },
+      { name: "add_text_used", visitorId: "visitor-1", properties: { toolId: "edit-pdf" } },
+      { name: "editor_opened", visitorId: "visitor-2", properties: { toolId: "edit-pdf" } },
+      { name: "export_succeeded", visitorId: "visitor-3", properties: { toolId: "merge-pdf" } },
+      { name: "page_view", visitorId: "visitor-4", properties: {} },
+    ];
+
+    expect(createToolUsage(usageEvents)).toEqual([
+      { toolId: "edit-pdf", uses: 3, uniqueUsers: 2 },
+      { toolId: "merge-pdf", uses: 1, uniqueUsers: 1 },
+    ]);
+    expect(createToolUsage([])).toEqual([]);
   });
 
   it("keeps the production scorecard aligned with the release-gate manifest", () => {
