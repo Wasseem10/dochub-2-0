@@ -1,48 +1,59 @@
-# PDFEnrich minimal authentication loading screen QA
+# Document Recovery Design QA
 
-## Evidence
+## Comparison target
 
-- Source visual truth: `C:\Users\wasse\OneDrive\Desktop\pdf-editor\work\design-references\auth-loading-minimal-selected-2026-08-01.png`
-- Desktop implementation: `C:\Users\wasse\OneDrive\Desktop\pdf-editor\work\design-qa\auth-loading-minimal-2026-08-01\implementation-desktop.png`
-- Mobile implementation: `C:\Users\wasse\OneDrive\Desktop\pdf-editor\work\design-qa\auth-loading-minimal-2026-08-01\implementation-mobile.png`
-- Desktop viewport and pixels: 1440 x 1024 CSS px, device scale factor 1, 1440 x 1024 source and implementation pixels; no density normalization required.
-- Mobile viewport and pixels: 390 x 844 CSS px, device scale factor 1, 390 x 844 implementation pixels.
-- State: protected dashboard route during authentication/lazy-loading, before the dashboard becomes interactive.
-
-## Full-view comparison
-
-The source and implementation were opened together at the same 1440 x 1024 frame. Both use a pure-white full viewport, the isolated official blue PDFEnrich document mark, and a single neutral hairline track with blue progress. The implementation intentionally makes the mark and track slightly smaller than the generated source to honor the user's final direction: “super small and basic.” No card, dashboard preview, wordmark, heading, label, or other visible text remains.
-
-## Focused-region comparison
-
-A separate crop was not needed because the loader is the only visible region and remains clear in the full-frame comparison. Browser geometry confirms the 84 x 58 indicator group is centered exactly at 720 x 512 on desktop and 195 x 422 on mobile. The mark container is 42 x 42 and the progress track is 72 x 2.
-
-## Required fidelity surfaces
-
-- Fonts and typography: no visible typography by design. The accessible status retains an ARIA label without rendering copy.
-- Spacing and layout rhythm: the indicator group is mathematically centered in both verified viewports with a 14px mark-to-track gap and ample white space.
-- Colors and visual tokens: pure white background, official PDFEnrich blue `#2851eb`, and a light neutral-gray track match the selected direction.
-- Image quality and asset fidelity: the implementation crops the supplied `runtime-public/pdfenrich-logo.png` and does not approximate or redraw the brand mark. The mark is sharp at the implemented size with no stretch, shadow, or halo.
-- Copy and content: no visible words, letters, or numbers appear. The screen-reader-only status label remains “Opening PDFEnrich.”
+- Source visual truth: `C:\Users\wasse\.codex\generated_images\019fdd27-b9df-7503-bb3c-9f512b98bf89\exec-be1f5304-4ba0-4b4e-ad98-f1a2b2383389.png`
+- Browser-rendered implementation: `C:\Users\wasse\OneDrive\Desktop\pdf-editor\work\design-qa\document-recovery\desktop-pass1.png`
+- Responsive evidence: `C:\Users\wasse\OneDrive\Desktop\pdf-editor\work\design-qa\document-recovery\mobile-viewport-pass1.png` and `mobile-pass1.png`
+- Full-view comparison: `C:\Users\wasse\OneDrive\Desktop\pdf-editor\work\design-qa\document-recovery\comparison-pass1.png`
+- Focused comparison: `C:\Users\wasse\OneDrive\Desktop\pdf-editor\work\design-qa\document-recovery\focused-copy-actions-pass1.png`
+- Desktop viewport: 1440 × 1024 CSS px at device scale factor 1
+- Source pixels: 1440 × 1024
+- Implementation pixels: 1440 × 1024
+- Density normalization: none; source and implementation were compared at identical pixel and CSS dimensions
+- Mobile viewport: 390 × 844 CSS px at device scale factor 1
+- State: saved-document editor route failure (`state="error"`)
 
 ## Findings
 
-- No actionable P0, P1, or P2 visual differences.
-- No remaining P3 recommendation is necessary for this intentionally minimal state.
+- No actionable P0, P1, or P2 differences remain.
+- Fonts and typography: Funnel Display and DM Sans reproduce the source hierarchy, optical weight, line breaks, and compact control labels. The heading retains the intended two-line desktop composition and becomes a deliberate three-line mobile heading.
+- Spacing and layout rhythm: the 108 px hairline header, two-column desktop split, copy width, button grouping, reassurance row, and illustration scale closely match the selected option. The mobile version becomes a single-column touch layout with full-width primary controls and no horizontal clipping.
+- Colors and visual tokens: the page uses the selected white canvas, charcoal/navy text, PDFEnrich blue actions, powder-blue supporting surface, and fine neutral borders. Contrast remains readable in both viewport captures.
+- Image quality and asset fidelity: the recovery editor is a dedicated 1024 px raster asset generated for the selected design. It remains sharp, fully visible, and uncropped at desktop and mobile widths. The official runtime PDFEnrich logo is used instead of recreating the mark.
+- Copy and content: the visual hierarchy and recovery intent match the selected option. The body text intentionally avoids claiming that a missing or unauthorized file definitely still exists, while retaining the same retry/library guidance. The official runtime wordmark uses its approved lowercase artwork.
 
-## Interaction and runtime checks
+## Browser verification
 
-- The loading indicator appeared on `/app/dashboard` while authentication initialized, then cleared and revealed the dashboard.
-- Focused route-guard suite passed: 13 tests.
-- Production build passed.
-- Desktop and mobile center alignment passed.
-- Reduced-motion CSS keeps a static half-filled progress state.
-- Browser console contained no errors. Existing PDF.js fake-worker warnings appeared after the dashboard loaded and are unrelated to this loading-screen change.
+- The error heading, explanatory copy, three recovery actions, reassurance, status label, logo button, and illustration all rendered in the in-app browser.
+- Clicking `Try again` changed the live preview into the `Opening your document.` loading state with `aria-busy="true"`.
+- The real app route wires `Try again` to a fresh route-resolution attempt, `Back to Documents` to the document library, and `PDFEnrich home`/the wordmark to the appropriate home route.
+- Desktop and mobile states were captured after the app finished rendering.
+- Browser console errors checked: none.
+
+## Full-view comparison evidence
+
+The paired 1440 × 1024 comparison confirms equivalent page hierarchy: official logo and hairline header, left-aligned two-line recovery title, three-line explanation, blue primary and outlined secondary actions, home link, quiet reassurance, and a right-weighted editor illustration with restrained powder-blue depth.
+
+## Focused comparison evidence
+
+The focused copy-and-actions comparison confirms the heading weight and wrapping, body measure, button height and hierarchy, home-link treatment, and reassurance icon/copy rhythm are consistent with the selected mock. No additional crop was needed for the illustration because its full editor frame and selection details remain readable in the full-view comparison.
 
 ## Comparison history
 
-- Pass 1: no actionable P0/P1/P2 findings; no visual fix loop required.
+- Pass 1: compared the selected mock with the browser-rendered 1440 × 1024 implementation and the focused copy/actions crop. No actionable P0/P1/P2 mismatches were found, so no visual correction loop was required.
+- Responsive pass: verified the intentionally recomposed 390 × 844 mobile layout. No overflow, clipped controls, or inaccessible action targets were found.
 
-## Final result
+## Implementation checklist
+
+- [x] Match the selected Recovery Desk composition.
+- [x] Use official PDFEnrich branding and a real illustration asset.
+- [x] Make retry, document-library, and home recovery actions functional.
+- [x] Provide loading, failure, focus, hover, reduced-motion, and responsive states.
+- [x] Verify targeted tests, type checking, production build, desktop render, mobile render, interaction, and console output.
+
+## Follow-up polish
+
+- P3: if future copy testing favors the mock’s account-specific sentence, it can be used only for states where the catalog confirms the record is still present.
 
 final result: passed

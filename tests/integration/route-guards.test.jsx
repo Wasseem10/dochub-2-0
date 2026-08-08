@@ -204,11 +204,17 @@ describe("safe error routes", () => {
   });
 
   it("renders a helpful invalid-document state", async () => {
+    let retryCount = 0;
     const { renderer } = await renderRoutes([{
       path: "/app/editor/:documentId",
-      element: <EditorRouteStatePage state="not-found" onBack={() => {}} />,
+      element: <EditorRouteStatePage state="not-found" onRetry={() => { retryCount += 1; }} onBack={() => {}} />,
     }], ["/app/editor/missing-document"], authValue({ currentUser: { uid: "user-1" } }));
-    expect(renderer.root.findByType("h1").children.join("")).toBe("Document not found");
+    expect(renderer.root.findByType("h1").children.join("")).toBe("We couldn’t open this document.");
+    expect(renderedText(renderer)).toContain("Back to Documents");
+    await act(async () => {
+      renderer.root.findAllByType("button").find((button) => button.children.join("") === "Try again").props.onClick();
+    });
+    expect(retryCount).toBe(1);
   });
 
   it("renders a helpful 404 with authenticated dashboard navigation", async () => {

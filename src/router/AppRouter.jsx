@@ -1,9 +1,10 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useState } from "react";
 import { createBrowserRouter, RouterProvider, useParams, useSearchParams } from "react-router-dom";
 import { AppLayout } from "../layouts/AppLayout.jsx";
 import { AuthLayout } from "../layouts/AuthLayout.jsx";
 import { PublicLayout } from "../layouts/PublicLayout.jsx";
 import { NotFoundPage } from "../pages/errors/NotFoundPage.jsx";
+import { EditorRouteStatePage } from "../pages/app/EditorRouteStatePage.jsx";
 import { AboutPage } from "../pages/public/AboutPage.jsx";
 import { ComparisonHubPage } from "../pages/public/ComparisonHubPage.jsx";
 import { PublicPlaceholderPage } from "../pages/public/PublicPlaceholderPage.jsx";
@@ -62,6 +63,18 @@ function PublicToolBoundary({ children }) {
     )}>
       {children}
     </Suspense>
+  );
+}
+
+function DocumentRecoveryPreview() {
+  const [state, setState] = useState("error");
+  return (
+    <EditorRouteStatePage
+      state={state}
+      onRetry={() => setState("loading")}
+      onBack={() => {}}
+      onHome={() => {}}
+    />
   );
 }
 
@@ -211,6 +224,7 @@ export const appRouteObjects = [
       { path: ROUTE_PATHS.sign, element: <PublicToolBoundary><LazySigningRequestPage /></PublicToolBoundary> },
       { path: ROUTE_PATHS.signPattern, element: <PublicToolBoundary><LazySigningRequestPage /></PublicToolBoundary> },
       ...(import.meta.env.DEV ? [{ path: "/__route-error-preview", element: <RouteErrorView /> }] : []),
+      ...(import.meta.env.DEV ? [{ path: "/__document-recovery-preview", element: <DocumentRecoveryPreview /> }] : []),
       { path: "*", element: <NotFoundPage /> },
     ],
   },
