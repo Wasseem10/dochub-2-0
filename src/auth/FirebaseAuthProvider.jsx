@@ -66,7 +66,9 @@ async function mapFirebaseUserWithClaims(user) {
   const mapped = mapFirebaseUser(user);
   if (!mapped) return null;
   try {
-    const token = await getIdTokenResult(user);
+    // Refresh once when restoring the session so newly granted or revoked
+    // authorization claims take effect without waiting for the cached token.
+    const token = await getIdTokenResult(user, true);
     return { ...mapped, isAnalyticsOwner: token.claims?.pdfenrichAdmin === true };
   } catch {
     return mapped;
