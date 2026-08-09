@@ -1,4 +1,4 @@
-export function EditorRouteStatePage({ state, onBack, backLabel = "Back to documents", onHome }) {
+export function EditorRouteStatePage({ state, onRetry, onBack, backLabel = "Back to documents", onHome }) {
   const isDesignPreview = import.meta.env.DEV
     && typeof window !== "undefined"
     && new URLSearchParams(window.location.search).get("preview") === "document-opening";
@@ -59,7 +59,9 @@ export function EditorRouteStatePage({ state, onBack, backLabel = "Back to docum
     : state === "error"
       ? "Document could not be opened"
       : "Document not found";
-  const message = "The document may have been removed, belongs to another account, or is not available in this workspace.";
+  const message = state === "error"
+    ? "Your account documents could not be loaded. Check your connection and try again."
+    : "The document may have been removed, belongs to another account, or is not available in this workspace.";
 
   return (
     <main className="route-state-page">
@@ -67,7 +69,7 @@ export function EditorRouteStatePage({ state, onBack, backLabel = "Back to docum
         <span className="route-status-pill">Editor unavailable</span>
         <h1>{title}</h1>
         <p>{message}</p>
-        <div className="route-state-actions"><button type="button" onClick={onBack}>{backLabel}</button>{onHome && <button type="button" onClick={onHome}>PDFEnrich home</button>}</div>
+        <div className="route-state-actions">{state === "error" && onRetry && <button type="button" onClick={onRetry}>Try again</button>}<button type="button" onClick={onBack}>{backLabel}</button>{onHome && <button type="button" onClick={onHome}>PDFEnrich home</button>}</div>
       </section>
     </main>
   );

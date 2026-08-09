@@ -4,12 +4,19 @@
 
 /**
  * Resolve a document route without leaking another account's document payload.
- * @param {{ documentId?: string, documents: EditorDocumentRecord[], userId?: string, catalogReady: boolean }} options
+ * @param {{ documentId?: string, documents: EditorDocumentRecord[], userId?: string, catalogReady: boolean, catalogError?: boolean }} options
  */
-export function resolveEditorDocument({ documentId, documents, userId, catalogReady }) {
+export function resolveEditorDocument({
+  documentId,
+  documents,
+  userId,
+  catalogReady,
+  catalogError = false,
+}) {
   if (!documentId) return { status: "not-found", document: null };
   const documentRecord = documents.find((item) => item.id === documentId) || null;
   if (!documentRecord) {
+    if (catalogError) return { status: "error", document: null };
     return { status: catalogReady ? "not-found" : "loading", document: null };
   }
   if (documentRecord.ownerId && documentRecord.ownerId !== userId) {

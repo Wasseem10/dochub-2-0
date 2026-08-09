@@ -1995,6 +1995,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   const documentsRef = useRef([]);
   const [documentCatalogReady, setDocumentCatalogReady] = useState(false);
   const [editorRouteState, setEditorRouteState] = useState("idle");
+  const [editorRouteRetryKey, setEditorRouteRetryKey] = useState(0);
   const [activeDocumentId, setActiveDocumentId] = useState(null);
   const activeDocumentIdRef = useRef(null);
   activeDocumentIdRef.current = activeDocumentId;
@@ -2605,6 +2606,13 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       showToast("Account documents could not refresh. Try again when you are online.");
       return false;
     }
+  };
+
+  const retryEditorRoute = async () => {
+    if (currentUser?.uid && isPrivateCloudConfigured && cloudCatalogStatus === "error") {
+      await refreshPrivateCloudDocuments();
+    }
+    setEditorRouteRetryKey((value) => value + 1);
   };
 
   const replaceDocuments = async (nextDocuments) => {
@@ -5724,7 +5732,18 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       documentId,
       documents,
       userId: storageOwnerId,
-      catalogReady: documentCatalogReady,
+      catalogReady: documentCatalogReady && (
+        !currentUser?.uid
+        || !isPrivateCloudConfigured
+        || cloudCatalogStatus === "ready"
+        || cloudCatalogStatus === "local-only"
+        || cloudCatalogStatus === "not-configured"
+      ),
+      catalogError: Boolean(
+        currentUser?.uid
+        && isPrivateCloudConfigured
+        && cloudCatalogStatus === "error",
+      ),
     });
     if (resolved.status !== "ready") {
       setEditorRouteState(resolved.status);
@@ -5743,7 +5762,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       return;
     }
     hydrateDocument(resolved.document).catch(() => setEditorRouteState("error"));
-  }, [activeDocumentId, documentCatalogReady, documentId, documents, hydrateDocument, pages.length, storageOwnerId, view]);
+  }, [activeDocumentId, cloudCatalogStatus, currentUser?.uid, documentCatalogReady, documentId, documents, editorRouteRetryKey, hydrateDocument, pages.length, storageOwnerId, view]);
 
   useEffect(() => {
     const requestedTool = location.state?.publicTool;
@@ -6004,7 +6023,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   }
 
   if ((view === "editor" || view === "public-editor") && (editorRouteState !== "ready" || !pages.length)) {
-    return <EditorRouteStatePage state={editorRouteState} onBack={() => navigate(view === "public-editor" ? publicEditorPath(publicTool) : ROUTE_PATHS.documents)} backLabel={view === "public-editor" ? `Back to ${getEditorToolPreset(publicTool)?.label || "PDF tools"}` : "Back to documents"} onHome={view === "public-editor" ? () => navigate(ROUTE_PATHS.home) : undefined} />;
+    return <EditorRouteStatePage state={editorRouteState} onRetry={retryEditorRoute} onBack={() => navigate(view === "public-editor" ? publicEditorPath(publicTool) : ROUTE_PATHS.documents)} backLabel={view === "public-editor" ? `Back to ${getEditorToolPreset(publicTool)?.label || "PDF tools"}` : "Back to documents"} onHome={view === "public-editor" ? () => navigate(ROUTE_PATHS.home) : undefined} />;
   }
 
   return (
