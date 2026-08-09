@@ -9,6 +9,26 @@ describe("editor route restoration", () => {
     expect(resolveEditorDocument({ documentId: "missing", documents: [], userId: "user-1", catalogReady: true }).status).toBe("not-found");
   });
 
+  it("keeps a cross-device route loading until the account catalog settles", () => {
+    expect(resolveEditorDocument({
+      documentId: "cloud-doc-account-copy",
+      documents: [],
+      userId: "user-1",
+      catalogReady: false,
+      catalogError: false,
+    }).status).toBe("loading");
+  });
+
+  it("reports an account catalog failure instead of claiming the document was removed", () => {
+    expect(resolveEditorDocument({
+      documentId: "cloud-doc-account-copy",
+      documents: [],
+      userId: "user-1",
+      catalogReady: false,
+      catalogError: true,
+    }).status).toBe("error");
+  });
+
   it("returns only documents owned by the authenticated user", () => {
     expect(resolveEditorDocument({ documentId: "doc-1", documents: [ownedDocument], userId: "user-1", catalogReady: true })).toEqual({
       status: "ready",
