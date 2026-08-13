@@ -4,6 +4,8 @@ import { fileURLToPath } from "node:url";
 import { COMPARISON_PATHS } from "../src/comparison/comparisonData.js";
 import { toolDirectoryMetadata } from "../src/seo/publicPageMetadata.js";
 import { TOOL_REGISTRY } from "../src/tools/toolRegistry.js";
+import { HOMEPAGE_DESCRIPTION, HOMEPAGE_TITLE } from "../src/seo/homepageMetadata.js";
+import { INDEXNOW_KEY, INDEXNOW_KEY_FILE } from "./indexnow-config.mjs";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
 /** @param {string} path */
@@ -111,7 +113,11 @@ const home = await read("dist/index.html");
 const toolsDirectory = routeHtml.get("/tools") || "";
 const notFound = await read("dist/404.html");
 const robots = await read("dist/robots.txt");
+const indexNowKey = await read(`dist/${INDEXNOW_KEY_FILE}`);
 requireMatch(home.includes('rel="icon" href="/icon.svg"'), "Homepage is missing the stable search favicon.");
+requireMatch(home.includes(`<title>${HOMEPAGE_TITLE}</title>`), "Homepage title is not aligned with the shared search-intent metadata.");
+requireMatch(home.includes(`<meta name="description" content="${HOMEPAGE_DESCRIPTION}"`), "Homepage description is not aligned with the shared search-intent metadata.");
+requireMatch(indexNowKey.trim() === INDEXNOW_KEY, "The deployed IndexNow ownership key is missing or invalid.");
 requireMatch(toolsDirectory.includes(`<title>${expectedDirectoryMetadata.title}</title>`), "/tools: prerendered title does not match the interactive directory title.");
 requireMatch(toolsDirectory.includes(`<meta name="description" content="${expectedDirectoryMetadata.description}"`), "/tools: prerendered description does not match the interactive directory description.");
 requireMatch((home.match(/<a [^>]*href="\//g) || []).length >= 60, "Homepage prerender does not expose enough crawlable tool links.");

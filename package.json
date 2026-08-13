@@ -9,6 +9,7 @@
     "generate:editorial": "python3 scripts/generate-editorial-artifacts.py",
     "audit:editorial": "node scripts/audit-priority-two-editorial.mjs",
     "audit:seo": "npm run build && node scripts/audit-seo.mjs",
+    "indexnow:submit": "node scripts/submit-indexnow.mjs",
     "audit:quality": "node scripts/audit-product-quality.mjs",
     "preview": "vite preview --host 127.0.0.1",
     "lint": "eslint .",

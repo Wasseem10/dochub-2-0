@@ -22,6 +22,7 @@ import X from "lucide-react/dist/esm/icons/x.mjs";
 import Zap from "lucide-react/dist/esm/icons/zap.mjs";
 import { BrandWordmark } from "./components/public/BrandWordmark.jsx";
 import { PageMetadata } from "./components/public/PageMetadata.jsx";
+import { HOMEPAGE_DESCRIPTION, HOMEPAGE_TITLE } from "./seo/homepageMetadata.js";
 import { ProfessionalToolIcon } from "./components/public/ProfessionalToolIcon.jsx";
 import { PUBLIC_FOOTER_NAVIGATION_GROUPS, PUBLIC_LEGAL_LINKS, PUBLIC_PRIMARY_NAV_LINKS } from "./components/public/publicNavigation.js";
 import { absoluteSiteUrl } from "./config/site.js";
@@ -362,14 +363,14 @@ export function LatticePdfLanding({ fileInputRef, onUpload, onSelectFiles, onDro
   }, []);
 
   return <main className="freepdf-page">
-    <PageMetadata title="Free PDF Tools, No Subscription or Watermark | PDFEnrich" description="Edit, sign, fill, merge, split, organize, and convert PDFs completely free - with no subscription, payment, or watermark." canonicalUrl="/" schemas={[{ "@context": "https://schema.org", "@type": "WebSite", "@id": `${absoluteSiteUrl("/")}#website`, name: "PDFEnrich", alternateName: "PDFEnrich", url: absoluteSiteUrl("/"), inLanguage: "en-US" }, { "@context": "https://schema.org", "@type": "Organization", "@id": `${absoluteSiteUrl("/")}#organization`, name: "PDFEnrich", url: absoluteSiteUrl("/"), logo: absoluteSiteUrl("/icon.svg") }, { "@context": "https://schema.org", "@type": "WebApplication", name: "PDFEnrich", url: absoluteSiteUrl("/"), description: "Free browser PDF tools for editing, signing, organizing, and converting PDFs without subscriptions, payment, or watermarks.", applicationCategory: "UtilitiesApplication", applicationSubCategory: "PDF editor", operatingSystem: "Any", browserRequirements: "Requires a modern JavaScript-enabled browser", isAccessibleForFree: true, offers: { "@type": "Offer", price: "0", priceCurrency: "USD" }, featureList: ["Edit PDF", "Sign PDF", "Merge PDF", "Split PDF", "Compress PDF", "Convert PDF"] }]} />
+    <PageMetadata title={HOMEPAGE_TITLE} description={HOMEPAGE_DESCRIPTION} canonicalUrl="/" schemas={[{ "@context": "https://schema.org", "@type": "WebSite", "@id": `${absoluteSiteUrl("/")}#website`, name: "PDFEnrich", alternateName: "PDFEnrich", url: absoluteSiteUrl("/"), inLanguage: "en-US" }, { "@context": "https://schema.org", "@type": "Organization", "@id": `${absoluteSiteUrl("/")}#organization`, name: "PDFEnrich", url: absoluteSiteUrl("/"), logo: absoluteSiteUrl("/icon.svg") }, { "@context": "https://schema.org", "@type": "WebApplication", name: "PDFEnrich", url: absoluteSiteUrl("/"), description: "Free browser PDF tools for editing, signing, organizing, and converting PDFs with no sign up, subscription, payment, or watermark.", applicationCategory: "UtilitiesApplication", applicationSubCategory: "PDF editor", operatingSystem: "Any", browserRequirements: "Requires a modern JavaScript-enabled browser", isAccessibleForFree: true, offers: { "@type": "Offer", price: "0", priceCurrency: "USD" }, featureList: ["Edit PDF", "Sign PDF", "Merge PDF", "Split PDF", "Compress PDF", "Convert PDF"] }]} />
     <input ref={inputRef} className="hidden-input" type="file" accept="application/pdf,.pdf" onChange={onUpload} />
     <SiteHeader onChoose={choose} />
 
     <section className="freepdf-hero">
       <div className="freepdf-hero-layout">
         <div className="freepdf-hero-copy">
-          <Link className="freepdf-free-promise" to={ROUTE_PATHS.pricing}><Check size={15} aria-hidden="true" /> 100% free. No subscription, payment, or watermark.</Link>
+          <div className="freepdf-free-promise"><Check size={15} aria-hidden="true" /> 100% free. No subscriptions, payments, or watermarks.</div>
           <h1>Every PDF task,<br /><span>free and simple.</span></h1>
           <p>Edit, sign, organize, and convert your PDFs in seconds.<br />No subscriptions. No paid plans. Just the tools you need.</p>
         </div>
@@ -382,7 +383,7 @@ export function LatticePdfLanding({ fileInputRef, onUpload, onSelectFiles, onDro
         </div>
 
         <section className="freepdf-trust-strip" aria-label="PDFEnrich promises">
-          <div><span className="freepdf-trust-icon is-lilac"><ShieldCheck size={23} /></span><span><strong>Secure by design</strong><small>Your file stays in this browser</small></span></div>
+          <div><span className="freepdf-trust-icon is-lilac"><ShieldCheck size={23} /></span><span><strong>Browser processing</strong><small>Supported tools keep files in this tab</small></span></div>
           <div><span className="freepdf-trust-icon is-yellow"><Zap size={23} /></span><span><strong>No signup needed</strong><small>Start working right away</small></span></div>
           <div><span className="freepdf-trust-icon is-blue"><Globe2 size={23} /></span><span><strong>Works anywhere</strong><small>On any modern browser</small></span></div>
           <div><span className="freepdf-trust-icon is-pink"><Rocket size={23} /></span><span><strong>Completely free</strong><small>No subscriptions or paid plans</small></span></div>

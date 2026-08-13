@@ -12,6 +12,7 @@ import { resolveSiteUrl } from "./site-url.mjs";
 import { COMPARISONS, COMPARISON_REVIEWED_LABEL, comparisonFaqEntries, comparisonPath, comparisonPlanRows } from "../src/comparison/comparisonData.js";
 import { toolDirectoryMetadata } from "../src/seo/publicPageMetadata.js";
 import { publicPageLastModified } from "../src/seo/publicFreshness.js";
+import { HOMEPAGE_DESCRIPTION, HOMEPAGE_TITLE } from "../src/seo/homepageMetadata.js";
 
 const siteUrl = resolveSiteUrl();
 const template = await readFile("dist/index.html", "utf8");
@@ -34,7 +35,7 @@ const legalDescriptions = {
 };
 /** @type {RouteRecord[]} */
 const routeRecords = [
-  { path: "/", title: "Free PDF Tools, No Subscription or Watermark | PDFEnrich", description: "Edit, sign, fill, merge, split, organize, and convert PDFs completely free - with no subscription, payment, or watermark.", noIndex: false, kind: "home" },
+  { path: "/", title: HOMEPAGE_TITLE, description: HOMEPAGE_DESCRIPTION, noIndex: false, kind: "home" },
   { path: ROUTE_PATHS.about, title: "About PDFEnrich | A simpler browser-first PDF workspace", description: "Meet PDFEnrich, a browser-first PDF workspace built to make editing, organizing, converting, signing, scanning, and reviewing documents feel straightforward.", noIndex: false, kind: "about" },
   { path: ROUTE_PATHS.tools, title: directoryMetadata.title, description: directoryMetadata.description, noIndex: false, kind: "directory" },
   { path: ROUTE_PATHS.features, title: "All PDF Features | PDFEnrich", description: "Explore every released PDFEnrich feature for editing, organizing, converting, signing, scanning, protecting, and reviewing PDFs.", noIndex: false, kind: "directory" },

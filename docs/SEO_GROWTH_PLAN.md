@@ -12,6 +12,7 @@ This plan is designed to maximize qualified unpaid traffic and completed PDF tas
 - A stable square favicon, web manifest, responsive WebP homepage images, immutable asset caching, and no homepage preload of PDF.js or Firebase.
 - Privacy-safe first-touch acquisition analytics for page views, organic visits, landing pages, uploads, successful exports, sign-ups, logins, and PDF downloads.
 - A build-blocking SEO audit: `npm run audit:seo`.
+- IndexNow ownership verification and an explicit changed-URL submission command: `npm run indexnow:submit -- /changed-path`.
 - A Priority 1 product-quality gate covering 21 high-intent tools across simple, complex, scanned, encrypted, malformed, large-document, Android, and iPhone cases: `npm run test:quality`.
 - Owner-only per-tool quality metrics for rejected uploads, attempts, success rate, downloads, median/P95 processing time, and mobile failures.
 - A build-blocking Priority 2 editorial audit covering tool evidence records, original resources, page-specific visual assets, research fixtures, and redaction proof: `npm run audit:editorial`.
@@ -23,7 +24,7 @@ This plan is designed to maximize qualified unpaid traffic and completed PDF tas
 3. Set `VITE_SITE_URL` and `SITE_URL` to the final HTTPS origin, rebuild, and verify every canonical, sitemap URL, social image, and structured-data URL uses it.
 4. Keep the current Vercel URL redirected to the final hostname. Never serve identical indexable copies on two hosts.
 5. Create Google Search Console and Bing Webmaster Tools domain properties, verify ownership, submit `/sitemap.xml`, and review indexing errors weekly.
-6. Enable IndexNow for the final host so Bing and participating engines can discover added or updated pages sooner. It improves discovery speed, not guaranteed rankings.
+6. IndexNow is enabled for the final host. Submit only meaningfully added, updated, redirected, or removed public URLs with `npm run indexnow:submit -- /changed-path`; use `--all` only after a real site-wide migration or redesign. It improves discovery speed, not guaranteed rankings.
 7. Update Organization/WebSite markup, email addresses, social profiles, legal pages, and the favicon with the final brand.
 
 ## Priority 1: product quality is the SEO moat
