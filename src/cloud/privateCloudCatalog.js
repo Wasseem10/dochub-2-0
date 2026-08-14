@@ -114,3 +114,17 @@ export function applyPrivateCloudSaveResult(documentRecord, result, updatedAt = 
     cloudConflict: false,
   };
 }
+
+export function markPrivateCloudDocumentMemoryOnly(documents, documentId) {
+  const documentRecord = (documents || []).find((record) => record.id === documentId);
+  if (!documentRecord?.cloudDocumentId) return null;
+  return documents.map((record) => (
+    record.id === documentId ? { ...record, localCacheUnavailable: true } : record
+  ));
+}
+
+export function markPrivateCloudDocumentsCached(documents) {
+  return (documents || []).map((record) => (
+    record.localCacheUnavailable ? { ...record, localCacheUnavailable: false } : record
+  ));
+}

@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   applyPrivateCloudSaveResult,
+  markPrivateCloudDocumentMemoryOnly,
+  markPrivateCloudDocumentsCached,
   mergeLocalAndPrivateCloudDocuments,
   shouldSyncPrivateCloudDocument,
 } from "../../src/cloud/privateCloudCatalog.js";
@@ -121,5 +123,23 @@ describe("private cloud multi-device catalog", () => {
       offline: true,
     })).toBe(false);
     expect(pending.cloudDirty).toBe(true);
+  });
+
+  it("keeps an authenticated cloud PDF open in memory when mobile storage rejects its cache", () => {
+    const documents = [localRecord(), localRecord({ id: "other", cloudDocumentId: "" })];
+    const retained = markPrivateCloudDocumentMemoryOnly(documents, "local-document");
+
+    expect(retained[0]).toMatchObject({
+      id: "local-document",
+      cloudDocumentId: CLOUD_ID,
+      localCacheUnavailable: true,
+    });
+    expect(markPrivateCloudDocumentMemoryOnly(documents, "other")).toBeNull();
+  });
+
+  it("clears the memory-only marker after a later IndexedDB write succeeds", () => {
+    expect(markPrivateCloudDocumentsCached([
+      localRecord({ localCacheUnavailable: true }),
+    ])[0].localCacheUnavailable).toBe(false);
   });
 });

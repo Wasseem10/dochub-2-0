@@ -129,6 +129,7 @@ import { claimGuestDocument, editorActionNeedsAccount, GUEST_OWNER_ID, resolveEd
 import { clearEditorSession, loadEditorSession, saveEditorSession } from "./tools/editorSessionStore.js";
 import { loadLocalDocuments, saveLocalDocuments } from "./tools/localDocumentStore.js";
 import { downloadFileNameForMime, sanitizePdfDisplayName } from "./tools/safeFileName.js";
+import { hasStoredPdfSource, storedPdfToArrayBuffer } from "./tools/storedPdfSource.js";
 import {
   createCloudIdempotencyKey,
   downloadPrivateCloudPdf,
@@ -142,6 +143,8 @@ import {
 } from "./cloud/privateCloudDocuments.js";
 import {
   applyPrivateCloudSaveResult,
+  markPrivateCloudDocumentMemoryOnly,
+  markPrivateCloudDocumentsCached,
   mergeLocalAndPrivateCloudDocuments,
   privateCloudPlaceholder,
   shouldSyncPrivateCloudDocument,
@@ -547,7 +550,7 @@ function DashboardDocumentThumbnail({ documentRecord, compact = false }) {
       return undefined;
     }
 
-    if (!documentRecord.pdfDataUrl) {
+    if (!hasStoredPdfSource(documentRecord)) {
       setThumbnailUrl(createBlankDocumentThumbnail(documentRecord));
       setIsLoading(false);
       return undefined;
@@ -557,7 +560,7 @@ function DashboardDocumentThumbnail({ documentRecord, compact = false }) {
     setThumbnailUrl("");
     (async () => {
       try {
-        const bytes = await dataUrlToArrayBuffer(documentRecord.pdfDataUrl);
+        const bytes = await storedPdfToArrayBuffer(documentRecord);
         loadingTask = pdfjsLib.getDocument({ data: bytes.slice(0) });
         pdfDocumentProxy = await loadingTask.promise;
         const page = await pdfDocumentProxy.getPage(1);
@@ -2657,7 +2660,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     setEditorRouteRetryKey((value) => value + 1);
   };
 
-  const replaceDocuments = async (nextDocuments) => {
+  const replaceDocuments = async (nextDocuments, { memoryFallbackDocumentId = "" } = {}) => {
     const ownerId = storageOwnerId;
     if (storageOwnerIdRef.current !== ownerId) return false;
     const previousDocuments = documentsRef.current;
@@ -2669,8 +2672,25 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
         .map(compactDocumentRecordForStorage);
       await saveLocalDocuments(ownerId, localRecords);
       if (storageOwnerIdRef.current !== ownerId) return false;
+      if (documentsRef.current === nextDocuments) {
+        const cachedDocuments = markPrivateCloudDocumentsCached(nextDocuments);
+        documentsRef.current = cachedDocuments;
+        setDocuments(cachedDocuments);
+      }
       return true;
     } catch {
+      const memoryDocuments = memoryFallbackDocumentId
+        ? markPrivateCloudDocumentMemoryOnly(nextDocuments, memoryFallbackDocumentId)
+        : null;
+      if (
+        memoryDocuments
+        && storageOwnerIdRef.current === ownerId
+        && documentsRef.current === nextDocuments
+      ) {
+        documentsRef.current = memoryDocuments;
+        setDocuments(memoryDocuments);
+        return true;
+      }
       if (storageOwnerIdRef.current === ownerId && documentsRef.current === nextDocuments) {
         documentsRef.current = previousDocuments;
         setDocuments(previousDocuments);
@@ -2740,12 +2760,16 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     showToast("Signed out.");
   };
 
-  const upsertDocument = async (document, expectedOwnerId = storageOwnerId) => {
+  const upsertDocument = async (
+    document,
+    expectedOwnerId = storageOwnerId,
+    { memoryFallbackDocumentId = "" } = {},
+  ) => {
     if (storageOwnerIdRef.current !== expectedOwnerId) return false;
     const persistedDocuments = await loadLocalDocuments(expectedOwnerId).catch(() => documentsRef.current);
     if (storageOwnerIdRef.current !== expectedOwnerId) return false;
     const nextDocuments = [document, ...persistedDocuments.filter((item) => item.id !== document.id)];
-    return replaceDocuments(nextDocuments);
+    return replaceDocuments(nextDocuments, { memoryFallbackDocumentId });
   };
 
   const markUnsaved = () => {
@@ -2774,7 +2798,9 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
         }
         : document
     ));
-    const persisted = await replaceDocuments(nextDocuments);
+    const persisted = await replaceDocuments(nextDocuments, {
+      memoryFallbackDocumentId: activeDocument?.cloudDocumentId ? saveDocumentId : "",
+    });
     if (
       !persisted
       || storageOwnerIdRef.current !== saveOwnerId
@@ -3403,7 +3429,9 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
           }
           : documentRecord
       ));
-      const localLinkConfirmed = await replaceDocuments(nextDocuments);
+      const localLinkConfirmed = await replaceDocuments(nextDocuments, {
+        memoryFallbackDocumentId: operationDocumentId,
+      });
       if (!localLinkConfirmed) {
         setCloudSaveProgress(100);
         setCloudSaveStage("saved");
@@ -3637,7 +3665,12 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
         location: "My documents",
         uploadedAt: cloudDocumentRecord?.uploadedAt || stamp,
         updatedAt: stamp,
-        pdfDataUrl: await arrayBufferToDataUrl(buffer.slice(0)),
+        // Account PDFs stay as native Blobs so mobile browsers do not need a
+        // second, larger base64 copy before the editor can open.
+        pdfBlob: cloudDocumentRecord?.cloudDocumentId ? workingFile : undefined,
+        pdfDataUrl: cloudDocumentRecord?.cloudDocumentId
+          ? ""
+          : await arrayBufferToDataUrl(buffer.slice(0)),
         pages: loadedPages,
         annotations: detectedFormFields,
         detectedTextItems: detectedItems,
@@ -3651,9 +3684,14 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
         cloudConflict: false,
       };
 
-      const persisted = await upsertDocument(documentRecord, loadOwnerId);
+      const persisted = await upsertDocument(documentRecord, loadOwnerId, {
+        memoryFallbackDocumentId: cloudDocumentRecord?.cloudDocumentId ? documentRecord.id : "",
+      });
       if (!persisted) throw new Error("The working copy could not be stored.");
       if (storageOwnerIdRef.current !== loadOwnerId) return;
+      const openedWithoutLocalCache = Boolean(
+        documentsRef.current.find((item) => item.id === documentRecord.id)?.localCacheUnavailable,
+      );
       trackToolUpload(publicTool || "edit-pdf", workingFile, { pageCount: loadedPages.length });
       activeDocumentOwnerIdRef.current = loadOwnerId;
       setActiveDocumentId(documentRecord.id);
@@ -3674,18 +3712,22 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       setSaveState("saved");
       setLastSavedAt(stamp);
       setUploadStage({ status: "complete", percent: 100, fileName: displayFileName });
-      showToast(detectedFormFields.length
+      showToast(openedWithoutLocalCache
+        ? "Opened from your account. This phone could not keep an offline copy, but your cloud PDF is safe."
+        : detectedFormFields.length
         ? `Found ${detectedFormFields.length} fillable field${detectedFormFields.length === 1 ? "" : "s"}.`
         : detectedItems.length
           ? `Found ${detectedItems.length} editable text item${detectedItems.length === 1 ? "" : "s"}. Choose Edit Text when you need them.`
           : "This looks scanned. OCR is not enabled in this browser build yet.");
       navigate(isPublicEditor ? publicEditorDocumentPath(publicTool, documentRecord.id) : editorPath(documentRecord.id), { state: { publicTool } });
       window.setTimeout(() => setUploadStage({ status: "idle", percent: 0, fileName: "" }), 900);
+      return true;
     } catch (error) {
       if (storageOwnerIdRef.current !== loadOwnerId || error?.name === "AbortError") return;
       trackUploadValidationFailure(publicTool || "edit-pdf", "invalid_pdf");
       setUploadError(getPdfLoadErrorMessage(error));
       setUploadStage({ status: "error", percent: 0, fileName: displayFileName });
+      return false;
     }
   };
 
@@ -4042,7 +4084,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       number: index + 1,
       originalIndex: page.source === "pdf" && page.originalIndex == null ? index : page.originalIndex,
     }));
-    const sourceBytes = documentRecord.pdfDataUrl ? await dataUrlToArrayBuffer(documentRecord.pdfDataUrl) : null;
+    const sourceBytes = await storedPdfToArrayBuffer(documentRecord);
     try { await pdfDocumentRef.current?.destroy?.(); } catch { /* Continue reopening the saved PDF. */ }
     pdfHydrationTokenRef.current += 1;
     pdfPageHydrationTasksRef.current.clear();
@@ -4158,7 +4200,8 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
           }
         }
         const file = new File([blob], documentRecord.name, { type: "application/pdf" });
-        await loadPdfFile(file, { cloudDocumentRecord: documentRecord });
+        const opened = await loadPdfFile(file, { cloudDocumentRecord: documentRecord });
+        if (!opened) throw new Error("The downloaded account PDF could not be prepared by this browser.");
         if (recoveredLocalCopy) {
           showToast("Opened the latest account version. Unsynced browser changes were kept as a recovered copy.");
         }
@@ -4345,8 +4388,8 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       showToast("This document does not belong to the active browser workspace.");
       return;
     }
-    if (documentRecord.pdfDataUrl) {
-      const buffer = await dataUrlToArrayBuffer(documentRecord.pdfDataUrl);
+    if (hasStoredPdfSource(documentRecord)) {
+      const buffer = await storedPdfToArrayBuffer(documentRecord);
       downloadBlob(new Blob([buffer], { type: "application/pdf" }), documentRecord.name);
       return;
     }
