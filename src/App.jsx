@@ -6132,7 +6132,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   }
 
   return (
-    <main className={`editor-shell ${publicTool === "request-signatures" ? "is-signature-request" : ""} ${hasVisibleToolSettings ? "has-tool-settings" : ""} ${tool === "editText" ? "is-smart-text-mode" : ""} ${tool === "textHighlight" ? "is-text-highlight-mode" : ""} ${tool === "highlight" || tool === "textHighlight" ? "is-highlight-settings-mode" : ""} ${zoomMode === EDITOR_ZOOM_MODE.CUSTOM ? "is-custom-zoom" : "is-fit-zoom"}`}>
+    <main className={`editor-shell ${publicTool === "request-signatures" ? "is-signature-request" : ""} ${hasVisibleToolSettings ? "has-tool-settings" : ""} ${tool === "editText" ? "is-smart-text-mode" : ""} ${tool === "textHighlight" ? "is-text-highlight-mode" : ""} ${tool === "highlight" || tool === "textHighlight" ? "is-highlight-settings-mode" : ""} ${isPagesCollapsed ? "has-collapsed-pages" : ""} ${zoomMode === EDITOR_ZOOM_MODE.CUSTOM ? "is-custom-zoom" : "is-fit-zoom"}`}>
       <input ref={fileInputRef} className="hidden-input" type="file" accept="application/pdf" onChange={onUpload} />
       <input ref={appendFileInputRef} className="hidden-input" type="file" accept="application/pdf" onChange={onAppendUpload} />
       <input ref={imageInputRef} className="hidden-input" type="file" accept="image/png,image/jpeg" onChange={onImageUpload} />
@@ -7020,34 +7020,10 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
         )}
       </section>
 
-      <footer className="status-bar">
-        <div />
-        <div className="page-nav" aria-label="Zoom and page navigation">
-          <button className="page-nav-zoom" type="button" onClick={() => setCustomZoom((value) => value - 10)} title="Zoom out" aria-label="Zoom out"><Minus size={21} strokeWidth={2.6} /></button>
-          <select className="page-nav-zoom-select" value={zoomMode === EDITOR_ZOOM_MODE.CUSTOM ? String(zoom) : zoomMode} onChange={(event) => selectZoom(event.target.value)} aria-label="Zoom mode or level">
-            <option value={EDITOR_ZOOM_MODE.FIT_WIDTH}>Fit width</option>
-            <option value={EDITOR_ZOOM_MODE.FIT_PAGE}>Fit page</option>
-            {zoomOptions.map((value) => <option key={value} value={value}>{value}%</option>)}
-          </select>
-          <button className="page-nav-zoom" type="button" onClick={() => setCustomZoom((value) => value + 10)} title="Zoom in" aria-label="Zoom in"><Plus size={22} strokeWidth={2.6} /></button>
-          <span className="page-nav-divider" aria-hidden="true" />
-          <button className="page-nav-first" type="button" onClick={() => setPageIndex(0)} title="First page" aria-label="First page"><ChevronLeft size={25} strokeWidth={2.4} /></button>
-          <input aria-label="Current page" inputMode="numeric" min="1" max={pages.length} value={pageIndex + 1} onChange={(event) => setPageIndex(clamp(Number(event.target.value) - 1 || 0, 0, pages.length - 1))} />
-          <span className="page-nav-total">/ {pages.length}</span>
-          <button type="button" onClick={() => setPageIndex((value) => clamp(value - 1, 0, pages.length - 1))} title="Previous page" aria-label="Previous page"><ChevronUp size={25} strokeWidth={2.4} /></button>
-          <button type="button" onClick={() => setPageIndex((value) => clamp(value + 1, 0, pages.length - 1))} title="Next page" aria-label="Next page"><ChevronDown size={25} strokeWidth={2.4} /></button>
-          <button className="page-nav-last" type="button" onClick={() => setPageIndex(pages.length - 1)} title="Last page" aria-label="Last page"><ChevronRight size={25} strokeWidth={2.4} /></button>
-        </div>
-        <div className="status-tools">
-          <button type="button" onClick={() => setCustomZoom((value) => value - 10)}>-</button>
-          <select value={zoomMode === EDITOR_ZOOM_MODE.CUSTOM ? String(zoom) : zoomMode} onChange={(event) => selectZoom(event.target.value)}>
-            <option value={EDITOR_ZOOM_MODE.FIT_WIDTH}>Fit width</option>
-            <option value={EDITOR_ZOOM_MODE.FIT_PAGE}>Fit page</option>
-            {zoomOptions.map((value) => <option key={value} value={value}>{value}%</option>)}
-          </select>
-          <button type="button" onClick={() => setCustomZoom((value) => value + 10)}>+</button>
-          <span>X: 612.3</span>
-          <span>Y: 792.1</span>
+      <footer className="status-bar status-bar--zoom-corner">
+        <div className="zoom-corner-control" aria-label="Zoom controls">
+          <button type="button" onClick={() => setCustomZoom((value) => value - 10)} title="Zoom out" aria-label="Zoom out"><Minus size={16} strokeWidth={1.8} /></button>
+          <button type="button" onClick={() => setCustomZoom((value) => value + 10)} title="Zoom in" aria-label="Zoom in"><Plus size={16} strokeWidth={1.8} /></button>
         </div>
       </footer>
       {signatureModalOpen && (

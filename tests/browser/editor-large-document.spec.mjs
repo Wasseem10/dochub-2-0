@@ -32,7 +32,6 @@ test("opens large PDFs progressively and preserves the native document on export
 
   await page.getByRole("button", { name: /Page 120\./ }).click();
   await expect(page.locator('.page-surface img[alt="PDF page 120"]')).toBeVisible();
-  await expect(page.getByLabel("Current page")).toHaveValue("120");
 
   const pending = page.waitForEvent("download");
   await page.getByRole("button", { name: "Download", exact: true }).click();

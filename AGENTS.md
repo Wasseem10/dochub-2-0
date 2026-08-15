@@ -38,7 +38,7 @@ Editor toolbar hover and selected states use an Apple-like neutral gray interact
 
 Selecting an editor tool must not trigger a floating bottom-right guidance toast over the document. Put any necessary next-step guidance in the compact contextual strip beneath the toolbar, reserve transient toasts for real completion, warning, or error states, and keep those operational notices light and readable rather than black.
 
-The floating bottom zoom and page navigator follows the selected July 17, 2026 compact rail concept: one low-profile white capsule, borderless Lucide controls, a bordered zoom select, a pale-blue current-page field, one subtle divider, and restrained shadow. Keep zoom out/in, zoom preset, first/previous/next/last page, current page, and total page count functional and aligned.
+The selected August 15, 2026 corner zoom control supersedes the July 17 floating page navigator: show only a small segmented minus/plus zoom control in the bottom-left corner, matching `codex-clipboard-633fedb1-d771-4a5a-9b58-1f97d0506c2b.png`. Do not restore the wide zoom percentage and page-navigation capsule; page movement remains available through the editor's thumbnail and document-navigation workflows.
 
 The mobile editor must be intentionally touch-first rather than a compressed desktop toolbar. Use one compact filename header, an unobstructed document canvas, a six-action bottom tool dock with generous tap targets, and a separate bottom-sheet More menu containing every tool hidden from the dock. Keep the zoom/page capsule below the tool dock, place contextual settings above it, eliminate overlapping toolbar groups and horizontal page gutters, and enlarge transform handles for touch.
 

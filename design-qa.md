@@ -1,43 +1,51 @@
-# Owner Analytics Design QA
+# Corner Zoom Control Design QA
 
 ## Comparison target
 
-- Source visual truth: `C:\Users\wasse\.codex\generated_images\019fdd27-b9df-7503-bb3c-9f512b98bf89\exec-b41dccb4-f955-43d8-ad30-9c0a201d7754.png`
-- Workspace reference: `C:\Users\wasse\OneDrive\Desktop\pdf-editor\work\design-references\analytics-outcome-snapshot-selected-2026-08-07.png`
-- Browser-rendered implementation: `C:\Users\wasse\OneDrive\Desktop\pdf-editor\work\design-evidence\analytics-outcome-snapshot\implementation-desktop-1488x1058.png`
-- Responsive evidence: `C:\Users\wasse\OneDrive\Desktop\pdf-editor\work\design-evidence\analytics-outcome-snapshot\implementation-mobile-390x844.png`
-- Side-by-side comparison: `C:\Users\wasse\OneDrive\Desktop\pdf-editor\work\design-evidence\analytics-outcome-snapshot\comparison-desktop-1488x1058.png`
-- Desktop viewport: 1488 × 1058 CSS px at device scale factor 1
-- Mobile viewport: 390 × 844 CSS px at device scale factor 1
-- State: real empty analytics state; no positive counts or sample events were injected
+- Source visual truth: `C:\Users\wasse\AppData\Local\Temp\codex-clipboard-633fedb1-d771-4a5a-9b58-1f97d0506c2b.png`
+- Browser-rendered implementation: `C:\Users\wasse\OneDrive\Desktop\pdf-editor\work\design-qa\zoom-corner-mobile-final.png`
+- Full-context comparison: `C:\Users\wasse\OneDrive\Desktop\pdf-editor\work\design-qa\zoom-corner-source-vs-implementation.png`
+- Focused component comparison: `C:\Users\wasse\OneDrive\Desktop\pdf-editor\work\design-qa\zoom-corner-focused-comparison.png`
+- Source pixels: 326 × 106 at the provided density.
+- Implementation pixels: 390 × 844 from a 390 × 844 CSS-pixel viewport at device scale factor 1.
+- Normalization: the full-context comparison uses the source at 326 × 106 and the matching bottom-left 326 × 106 region of the implementation. The focused comparison uses equal 100 × 52 crops around the control.
+- State: blank one-page PDF in the mobile editor, fit-width zoom, neutral unfocused zoom buttons.
 
-## Fidelity review
+## Findings
 
-- Layout and hierarchy: the implementation matches the selected outcome-summary structure—Product overview header, three primary metrics, one four-step journey, activity visualization, tool ranking, and one collapsed More details row.
-- Typography and density: compact DM Sans interface type, strong navy figures, thin dividers, and restrained spacing preserve the professional editorial rhythm of the source.
-- Color: Analytics now uses white, charcoal, soft gray, and PDFEnrich blue. The prior red and oxblood Analytics treatment is removed.
-- Data integrity: no trend deltas or comparison percentages appear because the current API does not supply a prior-period comparison. Summary values, journey values, chart points, tool rankings, detail tables, and empty states are derived from the loaded analytics events only.
-- Empty and unavailable states: a valid zero-event period renders zero values and explanatory empty states; an API failure renders unavailable marks plus a retry action instead of fabricated zeros.
-- Responsive behavior: metrics stack cleanly, the journey becomes vertical, chart and tools become one column, controls remain touch-sized, and detailed tables scroll within their own containers.
-
-## Interaction verification
-
-- Date range selection updated the visible activity heading from 7 days to 30 days.
-- More details expanded and exposed analytics controls, traffic, devices, authentication breakdown, feature use, recent events, and the sign-in directory.
-- Refresh and retry remain connected to the authenticated analytics API loader.
-- The implementation passed TypeScript validation and a production build.
-- The final screenshot pass rendered without a new component exception; an earlier temporary preview-prop error was corrected before capture and was not retained in the implementation.
+- No actionable P0, P1, or P2 differences remain.
+- Fonts and typography: the control contains no text; both implementations use simple thin minus and plus marks with matching optical weight.
+- Spacing and layout rhythm: the implementation matches the 78 × 34 segmented footprint, two equal 38 × 32 inner buttons, 4px left inset, 8px bottom inset, centered symbols, compact radius, and low elevation of the source.
+- Colors and visual tokens: white surface, cool-gray border and divider, and muted slate symbols match the source. The surrounding editor canvas is an intentional product-context difference outside the focused component.
+- Image quality and asset fidelity: Lucide vector icons remain sharp at phone density; there are no raster assets inside this control.
+- Copy and content: only minus and plus are visible, matching the source. Accessible labels remain available without adding visible copy.
+- Affordances and accessibility: each half is a real button with a visible focus state and functional zoom behavior.
 
 ## Comparison history
 
-- Pass 1: compared the selected 1488 × 1058 mock with the browser-rendered 1488 × 1058 implementation in one side-by-side image.
-- The implementation intentionally omits the mock’s invented positive figures and prior-week deltas. It substitutes the honest real empty state while retaining the source composition.
-- Responsive pass: verified the 390 × 844 mobile composition and touch-first stacking.
-- Functional pass: verified the range selector and expandable detail surface.
+- Pass 1 found a P2 state mismatch: the first implementation capture retained keyboard focus on the minus button, creating a blue outline absent from the neutral source.
+- Fix: moved focus back to the document and captured the same viewport in a neutral state.
+- Pass 2 evidence: `zoom-corner-focused-comparison.png` shows matching dimensions, segmentation, radius, symbol placement, and neutral styling. No P0/P1/P2 differences remain.
 
-## Remaining differences
+## Interaction verification
 
-- The existing dashboard shell retains its current serif Analytics route title and local-session identity treatment. The selected content layout is faithfully implemented inside that established shell.
-- The activity chart uses the real selected-period date series. Its line and tool rows appear only when real events exist.
+- Plus increased the rendered page width from 365.55px to 421.80px.
+- Minus returned the rendered page width to 365.55px.
+- The former `.page-nav` capsule is absent.
+- Mobile geometry verified at x=4, y=802, width=78, height=34 in a 390 × 844 viewport.
+- Desktop geometry verified at x=16 with the page rail closed and x=192 beside the open 176px page rail.
+- The editor rendered without the route error boundary or a visible runtime error during the final interaction pass.
+
+## Implementation checklist
+
+- [x] Remove the full zoom percentage and page-navigation capsule.
+- [x] Keep only a segmented minus/plus control in the bottom-left corner.
+- [x] Preserve functional zoom-out and zoom-in actions.
+- [x] Verify mobile and desktop placement.
+- [x] Preserve keyboard focus visibility and accessible labels.
+
+## Follow-up polish
+
+- No P3 follow-up is needed for the selected control.
 
 final result: passed

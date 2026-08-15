@@ -31,8 +31,9 @@ async function openEditor(page, { pageCount = 2, name = "mobile-editor.pdf", tit
 }
 
 async function goToPage(page, pageNumber) {
-  await page.getByLabel("Current page").fill(String(pageNumber));
-  await expect(page.getByLabel("Current page")).toHaveValue(String(pageNumber));
+  const thumbnails = page.getByRole("button", { name: "Thumbnails", exact: true });
+  if (await thumbnails.getAttribute("aria-expanded") === "false") await thumbnails.click();
+  await page.getByRole("button", { name: new RegExp(`^Page ${pageNumber}\\.`) }).click();
   await expect(page.getByRole("img", { name: `PDF page ${pageNumber}` })).toBeVisible({ timeout: 20_000 });
 }
 
@@ -223,7 +224,7 @@ test("mobile page reordering, print preparation, and export preserve page order"
   await activateMobileTool(page, "Manage pages");
   await page.getByRole("button", { name: /Page 2\./ }).click();
   await page.getByRole("button", { name: "Move page 2 up", exact: true }).click();
-  await expect(page.getByLabel("Current page")).toHaveValue("1");
+  await expect(page.getByRole("img", { name: "PDF page 1" })).toBeVisible();
   await page.getByRole("button", { name: "Close thumbnails", exact: true }).click();
 
   await activateMobileTool(page, "Print document");

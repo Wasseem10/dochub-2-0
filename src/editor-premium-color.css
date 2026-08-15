@@ -508,3 +508,79 @@
     transition: none !important;
   }
 }
+
+/* Selected August 15, 2026 corner zoom control. The full page/zoom capsule is
+   intentionally removed so the document keeps the visual focus. */
+main.editor-shell .status-bar.status-bar--zoom-corner {
+  left: 192px !important;
+  bottom: 12px !important;
+  display: block !important;
+  width: 78px !important;
+  min-width: 78px !important;
+  max-width: 78px !important;
+  height: 34px !important;
+  min-height: 34px !important;
+  max-height: 34px !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  border: 1px solid #d7dde6 !important;
+  border-radius: 8px !important;
+  background: #ffffff !important;
+  box-shadow: 0 1px 3px rgba(27, 39, 56, 0.12) !important;
+  transform: none !important;
+  backdrop-filter: none !important;
+}
+
+main.editor-shell.has-collapsed-pages .status-bar.status-bar--zoom-corner {
+  left: 16px !important;
+}
+
+main.editor-shell .status-bar > div.zoom-corner-control:first-child {
+  display: grid !important;
+  width: 100% !important;
+  height: 100% !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+}
+
+main.editor-shell .zoom-corner-control button {
+  display: grid !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  height: 32px !important;
+  padding: 0 !important;
+  place-items: center !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  color: #566578 !important;
+  cursor: pointer;
+  transition: background-color 140ms ease, color 140ms ease !important;
+}
+
+main.editor-shell .zoom-corner-control button + button {
+  border-left: 1px solid #e0e5ec !important;
+}
+
+main.editor-shell .zoom-corner-control button:hover {
+  background: #f3f5f8 !important;
+  color: #202b3b !important;
+}
+
+main.editor-shell .zoom-corner-control button:active {
+  background: #e9edf2 !important;
+}
+
+main.editor-shell .zoom-corner-control button:focus-visible {
+  position: relative;
+  z-index: 1;
+  outline: 2px solid rgba(40, 81, 235, 0.34) !important;
+  outline-offset: -2px !important;
+}
+
+@media (max-width: 760px) {
+  main.editor-shell .status-bar.status-bar--zoom-corner,
+  main.editor-shell.has-collapsed-pages .status-bar.status-bar--zoom-corner {
+    left: 4px !important;
+    bottom: max(8px, env(safe-area-inset-bottom)) !important;
+  }
+}

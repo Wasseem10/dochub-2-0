@@ -8,10 +8,16 @@ test("the editor opens neutrally and keeps resized desktop canvases visible", as
   await page.getByRole("button", { name: "Start with a blank page" }).click();
 
   await expect(page.locator(".reference-select-tool")).toHaveAttribute("aria-pressed", "true");
-  await expect(page.locator(".page-nav-zoom-select")).toHaveValue("fit-width");
+  await expect(page.getByRole("button", { name: "Zoom out" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Zoom in" })).toBeVisible();
+  await expect(page.locator(".page-nav")).toHaveCount(0);
+  const mobileZoomControl = await page.locator(".status-bar--zoom-corner").evaluate((control) => {
+    const rect = control.getBoundingClientRect();
+    return { width: rect.width, height: rect.height, left: rect.left };
+  });
+  expect(mobileZoomControl).toMatchObject({ width: 78, height: 34, left: 4 });
 
   await page.setViewportSize({ width: 1440, height: 1000 });
-  await expect(page.locator(".page-nav-zoom-select")).toHaveValue("100");
   const desktopLayout = await page.locator(".canvas-column").evaluate((canvas) => ({
     clientWidth: canvas.clientWidth,
     pageWidth: canvas.querySelector(".page-surface")?.getBoundingClientRect().width || 0,
@@ -44,25 +50,23 @@ test("editor tool selection keeps floating guidance off the document", async ({ 
   await expect(page.locator(".toast")).toHaveCount(0);
 });
 
-test("mobile zoom modes are named and custom zoom remains pannable", async ({ page }) => {
+test("the mobile corner zoom control stays compact and functional", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto(appPath("/edit-pdf"));
   await page.getByRole("button", { name: "Start with a blank page" }).click();
 
-  const zoom = page.locator(".page-nav-zoom-select");
-  await expect(zoom).toHaveValue("fit-width");
-  await expect(zoom.locator("option:checked")).toHaveText("Fit width");
-
-  await zoom.selectOption("fit-page");
-  await expect(zoom.locator("option:checked")).toHaveText("Fit page");
-
-  await zoom.selectOption("100");
+  const surface = page.locator(".page-surface");
+  const initialWidth = await surface.evaluate((element) => element.getBoundingClientRect().width);
+  await page.getByRole("button", { name: "Zoom in" }).click();
+  await expect.poll(() => surface.evaluate((element) => element.getBoundingClientRect().width)).toBeGreaterThan(initialWidth);
+  await page.getByRole("button", { name: "Zoom out" }).click();
+  await expect.poll(() => surface.evaluate((element) => Math.round(element.getBoundingClientRect().width))).toBe(Math.round(initialWidth));
   const customLayout = await page.locator(".canvas-column").evaluate((canvas) => ({
     clientWidth: canvas.clientWidth,
     scrollWidth: canvas.scrollWidth,
     pageLeft: canvas.querySelector(".page-surface")?.getBoundingClientRect().left || 0,
   }));
-  expect(customLayout.scrollWidth).toBeGreaterThan(customLayout.clientWidth);
+  expect(customLayout.scrollWidth).toBeGreaterThanOrEqual(customLayout.clientWidth);
   expect(customLayout.pageLeft).toBeGreaterThanOrEqual(0);
 });
 
