@@ -30,10 +30,6 @@ export function editorPdfRenderScale(width, height, { mobile = false } = {}) {
   ));
 }
 
-export function shouldDeferInitialCloudPage({ cloudDocumentRecord, mobile = false } = {}) {
-  return Boolean(mobile && cloudDocumentRecord?.cloudDocumentId);
-}
-
 export async function releasePdfDocumentWithDeadline(documentProxy, {
   timeoutMs = PDF_DOCUMENT_RELEASE_TIMEOUT_MS,
 } = {}) {

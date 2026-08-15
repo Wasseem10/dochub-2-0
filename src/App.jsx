@@ -179,7 +179,6 @@ import {
   pdfPageHydrationTimeoutMs,
   pdfPageRenderTimeoutMs,
   releasePdfDocumentWithDeadline,
-  shouldDeferInitialCloudPage,
 } from "./tools/editorPdfOpening.js";
 import {
   canSaveEditorSignature,
@@ -3574,7 +3573,6 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     endPercent = 80,
     stagePrefix = "Rendering page",
     progressive = true,
-    deferFirstPage = false,
   } = {}) => {
     const buffer = await file.arrayBuffer();
     let document = await pdfjsLib.getDocument({ data: buffer.slice(0) }).promise;
@@ -3609,21 +3607,6 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       }
       await document.destroy?.();
       return { buffer, documentProxy: null, loadedPages, detectedItems, detectedFormFields };
-    }
-    if (deferFirstPage) {
-      setUploadStage({
-        status: `Preparing ${document.numPages}-page workspace`,
-        percent: endPercent,
-        fileName: file.name,
-      });
-      return {
-        buffer,
-        documentProxy: document,
-        loadedPages: Array.from({ length: document.numPages }, (_, index) => pendingPdfPageRecord(index)),
-        detectedItems: [],
-        detectedFormFields: [],
-        initialPageDeferred: true,
-      };
     }
     setUploadStage({
       status: `${stagePrefix} 1 of ${document.numPages}`,
@@ -3672,20 +3655,16 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       setUploadError("");
       sourceFileRef.current = workingFile;
       setUploadStage({ status: "reading", percent: 18, fileName: displayFileName });
-      const mobileLayout = usesMobileEditorLayout();
-      const deferFirstPage = shouldDeferInitialCloudPage({ cloudDocumentRecord, mobile: mobileLayout });
       const {
         buffer,
         documentProxy,
         loadedPages,
         detectedItems,
         detectedFormFields,
-        initialPageDeferred = false,
       } = await parsePdfFile(workingFile, {
         startPercent: 24,
         endPercent: 80,
         stagePrefix: "Rendering page",
-        deferFirstPage,
       });
       if (storageOwnerIdRef.current !== loadOwnerId) {
         await documentProxy?.destroy?.().catch?.(() => {});
@@ -3758,9 +3737,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       setSaveState("saved");
       setLastSavedAt(stamp);
       setUploadStage({ status: "complete", percent: 100, fileName: displayFileName });
-      showToast(initialPageDeferred
-        ? "Document opened. Page 1 is rendering on this phone."
-        : openedWithoutLocalCache
+      showToast(openedWithoutLocalCache
         ? "Opened from your account. This phone could not keep an offline copy, but your cloud PDF is safe."
         : detectedFormFields.length
         ? `Found ${detectedFormFields.length} fillable field${detectedFormFields.length === 1 ? "" : "s"}.`
