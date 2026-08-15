@@ -1,6 +1,7 @@
 export const MOBILE_PDF_PAGE_RENDER_TIMEOUT_MS = 20_000;
 export const DESKTOP_PDF_PAGE_RENDER_TIMEOUT_MS = 8_000;
 export const PDF_DOCUMENT_RELEASE_TIMEOUT_MS = 1_000;
+export const PDF_PAGE_HYDRATION_TIMEOUT_BUFFER_MS = 2_000;
 
 const MOBILE_MAX_RENDER_PIXELS = 1_600_000;
 const DESKTOP_MAX_RENDER_PIXELS = 4_000_000;
@@ -10,6 +11,10 @@ const PREFERRED_RENDER_SCALE = 1.35;
 
 export function pdfPageRenderTimeoutMs({ mobile = false } = {}) {
   return mobile ? MOBILE_PDF_PAGE_RENDER_TIMEOUT_MS : DESKTOP_PDF_PAGE_RENDER_TIMEOUT_MS;
+}
+
+export function pdfPageHydrationTimeoutMs({ mobile = false } = {}) {
+  return pdfPageRenderTimeoutMs({ mobile }) + PDF_PAGE_HYDRATION_TIMEOUT_BUFFER_MS;
 }
 
 export function editorPdfRenderScale(width, height, { mobile = false } = {}) {

@@ -3,6 +3,7 @@ import {
   DESKTOP_PDF_PAGE_RENDER_TIMEOUT_MS,
   editorPdfRenderScale,
   MOBILE_PDF_PAGE_RENDER_TIMEOUT_MS,
+  pdfPageHydrationTimeoutMs,
   pdfPageRenderTimeoutMs,
   releasePdfDocumentWithDeadline,
   shouldDeferInitialCloudPage,
@@ -24,6 +25,8 @@ describe("mobile PDF opening strategy", () => {
   it("gives slower phones longer to render a PDF page", () => {
     expect(pdfPageRenderTimeoutMs({ mobile: true })).toBe(MOBILE_PDF_PAGE_RENDER_TIMEOUT_MS);
     expect(pdfPageRenderTimeoutMs()).toBe(DESKTOP_PDF_PAGE_RENDER_TIMEOUT_MS);
+    expect(pdfPageHydrationTimeoutMs({ mobile: true })).toBeGreaterThan(MOBILE_PDF_PAGE_RENDER_TIMEOUT_MS);
+    expect(pdfPageHydrationTimeoutMs()).toBeGreaterThan(DESKTOP_PDF_PAGE_RENDER_TIMEOUT_MS);
   });
 
   it("caps unusually large pages more aggressively on mobile", () => {

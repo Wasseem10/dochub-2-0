@@ -176,6 +176,7 @@ import { canMergeDetectedTextRuns, detectedTextBaseline, detectedTextRotation, d
 import { recoverPdfPageRender, withPdfPageDeadline } from "./tools/editorPageRecovery.js";
 import {
   editorPdfRenderScale,
+  pdfPageHydrationTimeoutMs,
   pdfPageRenderTimeoutMs,
   releasePdfDocumentWithDeadline,
   shouldDeferInitialCloudPage,
@@ -2211,11 +2212,14 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       setPages((items) => items.map((page, index) => (
         index === targetIndex ? { ...page, renderStatus: "loading", renderAttempts: 0 } : page
       )));
-      const rendered = await recoverPdfPageRender(async () => {
+      const rendered = await recoverPdfPageRender(async () => withPdfPageDeadline((async () => {
         attemptProxy = pdfDocumentRef.current || await ensurePdfDocumentProxy();
         if (!attemptProxy || sourcePageIndex >= attemptProxy.numPages) throw new Error("The saved PDF page is unavailable.");
         return renderPdfEditorPage(attemptProxy, sourcePageIndex, targetIndex);
-      }, {
+      })(), {
+        label: `Page ${sourcePageIndex + 1} recovery`,
+        timeoutMs: pdfPageHydrationTimeoutMs({ mobile: usesMobileEditorLayout() }),
+      }), {
         onAttemptFailed: async (_error, attempt, maximumAttempts) => {
           if (token !== pdfHydrationTokenRef.current || generation !== (pdfPageRenderGenerationRef.current.get(targetIndex) || 0)) return;
           if (pdfDocumentRef.current === attemptProxy) {
