@@ -4,6 +4,7 @@ import {
   editorPdfRenderScale,
   MOBILE_PDF_PAGE_RENDER_TIMEOUT_MS,
   pdfPageRenderTimeoutMs,
+  releasePdfDocumentWithDeadline,
   shouldDeferInitialCloudPage,
 } from "../../src/tools/editorPdfOpening.js";
 
@@ -30,5 +31,15 @@ describe("mobile PDF opening strategy", () => {
     const desktopScale = editorPdfRenderScale(2_000, 3_000);
     expect(mobileScale).toBeLessThan(desktopScale);
     expect(2_000 * mobileScale * 3_000 * mobileScale).toBeLessThanOrEqual(1_600_001);
+  });
+
+  it("does not let a stalled PDF.js destroy block page recovery", async () => {
+    let releaseFinished = false;
+    const startedAt = Date.now();
+    await releasePdfDocumentWithDeadline({ destroy: () => new Promise(() => {}) }, { timeoutMs: 10 });
+    releaseFinished = true;
+
+    expect(releaseFinished).toBe(true);
+    expect(Date.now() - startedAt).toBeLessThan(200);
   });
 });

@@ -1,5 +1,6 @@
 export const MOBILE_PDF_PAGE_RENDER_TIMEOUT_MS = 20_000;
 export const DESKTOP_PDF_PAGE_RENDER_TIMEOUT_MS = 8_000;
+export const PDF_DOCUMENT_RELEASE_TIMEOUT_MS = 1_000;
 
 const MOBILE_MAX_RENDER_PIXELS = 1_600_000;
 const DESKTOP_MAX_RENDER_PIXELS = 4_000_000;
@@ -26,4 +27,21 @@ export function editorPdfRenderScale(width, height, { mobile = false } = {}) {
 
 export function shouldDeferInitialCloudPage({ cloudDocumentRecord, mobile = false } = {}) {
   return Boolean(mobile && cloudDocumentRecord?.cloudDocumentId);
+}
+
+export async function releasePdfDocumentWithDeadline(documentProxy, {
+  timeoutMs = PDF_DOCUMENT_RELEASE_TIMEOUT_MS,
+} = {}) {
+  if (typeof documentProxy?.destroy !== "function") return;
+  let timer;
+  try {
+    await Promise.race([
+      Promise.resolve().then(() => documentProxy.destroy()).catch(() => undefined),
+      new Promise((resolve) => {
+        timer = globalThis.setTimeout(resolve, Math.max(0, Number(timeoutMs) || 0));
+      }),
+    ]);
+  } finally {
+    globalThis.clearTimeout(timer);
+  }
 }

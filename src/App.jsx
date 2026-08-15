@@ -177,6 +177,7 @@ import { recoverPdfPageRender, withPdfPageDeadline } from "./tools/editorPageRec
 import {
   editorPdfRenderScale,
   pdfPageRenderTimeoutMs,
+  releasePdfDocumentWithDeadline,
   shouldDeferInitialCloudPage,
 } from "./tools/editorPdfOpening.js";
 import {
@@ -2221,7 +2222,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
             pdfDocumentRef.current = null;
             pdfDocumentLoadingRef.current = null;
           }
-          try { await attemptProxy?.destroy?.(); } catch { /* A released worker may already be closed. */ }
+          await releasePdfDocumentWithDeadline(attemptProxy);
           if (attempt < maximumAttempts) {
             setPages((items) => items.map((page, index) => (
               index === targetIndex ? { ...page, renderStatus: "recovering", renderAttempts: attempt } : page
