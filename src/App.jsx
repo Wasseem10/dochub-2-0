@@ -4109,6 +4109,9 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       number: index + 1,
       originalIndex: page.source === "pdf" && page.originalIndex == null ? index : page.originalIndex,
     }));
+    const initialPageIndex = clamp(session?.pageIndex || 0, 0, Math.max(0, documentPages.length - 1));
+    let documentAnnotations = documentRecord.annotations || [];
+    let documentDetectedTextItems = documentRecord.detectedTextItems || [];
     const sourceBytes = await storedPdfToArrayBuffer(documentRecord);
     try { await pdfDocumentRef.current?.destroy?.(); } catch { /* Continue reopening the saved PDF. */ }
     pdfHydrationTokenRef.current += 1;
@@ -4121,15 +4124,41 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       await nextPdfDocument?.destroy?.().catch?.(() => {});
       return;
     }
+    const initialPage = documentPages[initialPageIndex];
+    if (nextPdfDocument && initialPage?.source === "pdf" && !initialPage.image) {
+      const sourcePageIndex = Number.isInteger(initialPage.originalIndex)
+        ? initialPage.originalIndex
+        : initialPageIndex;
+      try {
+        const rendered = await renderPdfEditorPage(nextPdfDocument, sourcePageIndex, initialPageIndex);
+        documentPages[initialPageIndex] = {
+          ...initialPage,
+          ...rendered.pageRecord,
+          id: initialPage.id || rendered.pageRecord.id,
+        };
+        if (!documentDetectedTextItems.some((item) => item.pageNumber === initialPageIndex)) {
+          documentDetectedTextItems = [...documentDetectedTextItems, ...rendered.detectedItems];
+        }
+        if (!documentAnnotations.some((item) => item.page === initialPageIndex && item.source === "pdf-form")) {
+          documentAnnotations = [...documentAnnotations, ...rendered.detectedFormFields];
+        }
+      } catch {
+        documentPages[initialPageIndex] = {
+          ...initialPage,
+          renderStatus: "error",
+          renderAttempts: 2,
+        };
+      }
+    }
     pdfDocumentRef.current = nextPdfDocument;
     activeDocumentOwnerIdRef.current = hydrateOwnerId;
     setActiveDocumentId(documentRecord.id);
     setPages(documentPages);
-    setAnnotations(documentRecord.annotations || []);
-    setDetectedTextItems(documentRecord.detectedTextItems || []);
+    setAnnotations(documentAnnotations);
+    setDetectedTextItems(documentDetectedTextItems);
     setPdfBytes(sourceBytes);
     setFileName(session?.fileName || documentRecord.name);
-    setPageIndex(clamp(session?.pageIndex || 0, 0, Math.max(0, documentPages.length - 1)));
+    setPageIndex(initialPageIndex);
     setUndoStack(session?.undoStack || []);
     setRedoStack(session?.redoStack || []);
     setSelectedId(null);
