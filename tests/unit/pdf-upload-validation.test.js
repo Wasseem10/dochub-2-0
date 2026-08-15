@@ -40,6 +40,10 @@ describe("PDF upload validation", () => {
   it("returns actionable encrypted and corrupted PDF errors", () => {
     expect(getPdfLoadErrorMessage({ name: "PasswordException" })).toContain("password-protected");
     expect(getPdfLoadErrorMessage({ name: "InvalidPDFException" })).toContain("corrupted or invalid");
+    expect(getPdfLoadErrorMessage({
+      name: "PdfPageRenderTimeoutError",
+      code: "PDF_PAGE_RENDER_TIMEOUT",
+    })).toContain("valid");
     expect(getPdfLoadErrorMessage(new Error("unknown"))).toContain("valid, unencrypted");
   });
 });

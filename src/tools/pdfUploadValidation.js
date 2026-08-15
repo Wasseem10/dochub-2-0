@@ -65,6 +65,9 @@ export function getPdfLoadErrorMessage(error) {
   const name = String(error?.name || "");
   const message = String(error?.message || "").toLowerCase();
   if (message.includes("supports up to") && message.includes("pages")) return String(error.message);
+  if (error?.code === "PDF_PAGE_RENDER_TIMEOUT" || name === "PdfPageRenderTimeoutError") {
+    return "This PDF is valid, but its first page took too long to render on this device. Try again or use Reload page in the editor.";
+  }
   if (name === "PasswordException" || message.includes("password")) {
     return "This PDF is password-protected. Remove the password from a copy you are authorized to edit, then try again.";
   }

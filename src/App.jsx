@@ -175,6 +175,11 @@ import { createTextAnnotation, estimateTextAnnotationSize, normalizeEditorText, 
 import { canMergeDetectedTextRuns, detectedTextBaseline, detectedTextRotation, detectedTextSourceFrame, layoutDetectedText, resolveDetectedTextStyle, sampleDetectedTextBackground, splitDetectedTextRun, standardPdfFontVariant } from "./tools/editorDetectedText.js";
 import { recoverPdfPageRender, withPdfPageDeadline } from "./tools/editorPageRecovery.js";
 import {
+  editorPdfRenderScale,
+  pdfPageRenderTimeoutMs,
+  shouldDeferInitialCloudPage,
+} from "./tools/editorPdfOpening.js";
+import {
   canSaveEditorSignature,
   loadEditorSignatureLibrary,
   persistEditorSignatureLibrary,
@@ -860,23 +865,27 @@ function pendingPdfPageRecord(index) {
 async function renderPdfEditorPage(documentProxy, sourcePageIndex, outputPageIndex = sourcePageIndex) {
   let page;
   let renderTask;
+  const mobileLayout = usesMobileEditorLayout();
   const work = (async () => {
     page = await documentProxy.getPage(sourcePageIndex + 1);
-    const [textContent, pdfAnnotations] = await Promise.all([
-      page.getTextContent(),
-      page.getAnnotations({ intent: "display" }),
-    ]);
-    const pageText = textContent.items.map((item) => item.str).join(" ").replace(/\s+/g, " ").trim();
     const textViewport = page.getViewport({ scale: 1 });
-    const viewport = page.getViewport({ scale: 1.35 });
+    const viewport = page.getViewport({
+      scale: editorPdfRenderScale(textViewport.width, textViewport.height, { mobile: mobileLayout }),
+    });
     const canvas = window.document.createElement("canvas");
     const context = canvas.getContext("2d", { alpha: false });
+    if (!context) throw new Error("The PDF page canvas is unavailable.");
     canvas.width = Math.ceil(viewport.width);
     canvas.height = Math.ceil(viewport.height);
     context.fillStyle = "#ffffff";
     context.fillRect(0, 0, canvas.width, canvas.height);
     renderTask = page.render({ canvasContext: context, viewport, background: "#ffffff" });
-    await renderTask.promise;
+    const [, textContent, pdfAnnotations] = await Promise.all([
+      renderTask.promise,
+      page.getTextContent(),
+      page.getAnnotations({ intent: "display" }),
+    ]);
+    const pageText = textContent.items.map((item) => item.str).join(" ").replace(/\s+/g, " ").trim();
     const displayWidth = BASE_PAGE_WIDTH;
     const displayHeight = Math.round(BASE_PAGE_WIDTH * (viewport.height / viewport.width));
     const pageRecord = {
@@ -908,6 +917,7 @@ async function renderPdfEditorPage(documentProxy, sourcePageIndex, outputPageInd
   try {
     return await withPdfPageDeadline(work, {
       label: `Page ${sourcePageIndex + 1}`,
+      timeoutMs: pdfPageRenderTimeoutMs({ mobile: mobileLayout }),
       onTimeout: () => renderTask?.cancel?.(),
     });
   } finally {
@@ -3554,7 +3564,13 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     onUpload({ target: { files, value: "" } });
   };
 
-  const parsePdfFile = async (file, { startPercent = 18, endPercent = 80, stagePrefix = "Rendering page", progressive = true } = {}) => {
+  const parsePdfFile = async (file, {
+    startPercent = 18,
+    endPercent = 80,
+    stagePrefix = "Rendering page",
+    progressive = true,
+    deferFirstPage = false,
+  } = {}) => {
     const buffer = await file.arrayBuffer();
     let document = await pdfjsLib.getDocument({ data: buffer.slice(0) }).promise;
     const renderPageWithRecovery = (targetPageIndex) => recoverPdfPageRender(async () => (
@@ -3588,6 +3604,21 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       }
       await document.destroy?.();
       return { buffer, documentProxy: null, loadedPages, detectedItems, detectedFormFields };
+    }
+    if (deferFirstPage) {
+      setUploadStage({
+        status: `Preparing ${document.numPages}-page workspace`,
+        percent: endPercent,
+        fileName: file.name,
+      });
+      return {
+        buffer,
+        documentProxy: document,
+        loadedPages: Array.from({ length: document.numPages }, (_, index) => pendingPdfPageRecord(index)),
+        detectedItems: [],
+        detectedFormFields: [],
+        initialPageDeferred: true,
+      };
     }
     setUploadStage({
       status: `${stagePrefix} 1 of ${document.numPages}`,
@@ -3636,10 +3667,20 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       setUploadError("");
       sourceFileRef.current = workingFile;
       setUploadStage({ status: "reading", percent: 18, fileName: displayFileName });
-      const { buffer, documentProxy, loadedPages, detectedItems, detectedFormFields } = await parsePdfFile(workingFile, {
+      const mobileLayout = usesMobileEditorLayout();
+      const deferFirstPage = shouldDeferInitialCloudPage({ cloudDocumentRecord, mobile: mobileLayout });
+      const {
+        buffer,
+        documentProxy,
+        loadedPages,
+        detectedItems,
+        detectedFormFields,
+        initialPageDeferred = false,
+      } = await parsePdfFile(workingFile, {
         startPercent: 24,
         endPercent: 80,
         stagePrefix: "Rendering page",
+        deferFirstPage,
       });
       if (storageOwnerIdRef.current !== loadOwnerId) {
         await documentProxy?.destroy?.().catch?.(() => {});
@@ -3712,7 +3753,9 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       setSaveState("saved");
       setLastSavedAt(stamp);
       setUploadStage({ status: "complete", percent: 100, fileName: displayFileName });
-      showToast(openedWithoutLocalCache
+      showToast(initialPageDeferred
+        ? "Document opened. Page 1 is rendering on this phone."
+        : openedWithoutLocalCache
         ? "Opened from your account. This phone could not keep an offline copy, but your cloud PDF is safe."
         : detectedFormFields.length
         ? `Found ${detectedFormFields.length} fillable field${detectedFormFields.length === 1 ? "" : "s"}.`
