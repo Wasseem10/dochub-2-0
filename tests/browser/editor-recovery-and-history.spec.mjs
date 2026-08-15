@@ -171,7 +171,7 @@ test("editor rejects a corrupted PDF with a recoverable explanation", async ({ p
   await expect(page.getByRole("button", { name: "Choose a PDF", exact: true })).toBeVisible();
 });
 
-test("a valid PDF still opens when this device cannot render its first page", async ({ page }) => {
+test("mobile rendering recovers with a lower-memory page preview", async ({ page }) => {
   await page.addInitScript(() => {
     const originalToDataUrl = HTMLCanvasElement.prototype.toDataURL;
     HTMLCanvasElement.prototype.toDataURL = function forcePdfPageCanvasFailure(type, ...args) {
@@ -187,7 +187,8 @@ test("a valid PDF still opens when this device cannot render its first page", as
   });
 
   await expect(page).toHaveURL(/\/edit-pdf\?.*document=/);
-  await expect(page.getByRole("button", { name: "Reload page" })).toBeVisible();
+  await expect(page.getByRole("img", { name: "PDF page 1" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Reload page" })).toHaveCount(0);
   await expect(page.getByText(/smaller than 50 MB/i)).toHaveCount(0);
 });
 

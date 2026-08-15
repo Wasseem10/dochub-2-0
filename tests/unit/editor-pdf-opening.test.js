@@ -18,9 +18,12 @@ describe("mobile PDF opening strategy", () => {
 
   it("caps unusually large pages more aggressively on mobile", () => {
     const mobileScale = editorPdfRenderScale(2_000, 3_000, { mobile: true });
+    const mobileRecoveryScale = editorPdfRenderScale(2_000, 3_000, { mobile: true, recovery: true });
     const desktopScale = editorPdfRenderScale(2_000, 3_000);
     expect(mobileScale).toBeLessThan(desktopScale);
+    expect(mobileRecoveryScale).toBeLessThan(mobileScale);
     expect(2_000 * mobileScale * 3_000 * mobileScale).toBeLessThanOrEqual(1_600_001);
+    expect(2_000 * mobileRecoveryScale * 3_000 * mobileRecoveryScale).toBeLessThanOrEqual(650_001);
   });
 
   it("does not let a stalled PDF.js destroy block page recovery", async () => {

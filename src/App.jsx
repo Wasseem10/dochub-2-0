@@ -863,15 +863,24 @@ function pendingPdfPageRecord(index) {
   };
 }
 
-async function renderPdfEditorPage(documentProxy, sourcePageIndex, outputPageIndex = sourcePageIndex) {
+async function renderPdfEditorPage(
+  documentProxy,
+  sourcePageIndex,
+  outputPageIndex = sourcePageIndex,
+  { recovery = false } = {},
+) {
   let page;
   let renderTask;
   const mobileLayout = usesMobileEditorLayout();
+  const lowMemoryRecovery = recovery;
   const work = (async () => {
     page = await documentProxy.getPage(sourcePageIndex + 1);
     const textViewport = page.getViewport({ scale: 1 });
     const viewport = page.getViewport({
-      scale: editorPdfRenderScale(textViewport.width, textViewport.height, { mobile: mobileLayout }),
+      scale: editorPdfRenderScale(textViewport.width, textViewport.height, {
+        mobile: mobileLayout,
+        recovery: lowMemoryRecovery,
+      }),
     });
     const canvas = window.document.createElement("canvas");
     const context = canvas.getContext("2d", { alpha: false });
@@ -883,8 +892,8 @@ async function renderPdfEditorPage(documentProxy, sourcePageIndex, outputPageInd
     renderTask = page.render({ canvasContext: context, viewport, background: "#ffffff" });
     const [, textContent, pdfAnnotations] = await Promise.all([
       renderTask.promise,
-      page.getTextContent(),
-      page.getAnnotations({ intent: "display" }),
+      page.getTextContent().catch(() => ({ items: [] })),
+      page.getAnnotations({ intent: "display" }).catch(() => []),
     ]);
     const pageText = textContent.items.map((item) => item.str).join(" ").replace(/\s+/g, " ").trim();
     const displayWidth = BASE_PAGE_WIDTH;
@@ -897,7 +906,7 @@ async function renderPdfEditorPage(documentProxy, sourcePageIndex, outputPageInd
       pdfHeight: textViewport.height,
       width: displayWidth,
       height: displayHeight,
-      image: canvas.toDataURL("image/png"),
+      image: canvas.toDataURL(lowMemoryRecovery ? "image/jpeg" : "image/png", 0.88),
       text: pageText,
       source: "pdf",
       hasDetectedText: pageText.length > 0,
@@ -2211,10 +2220,10 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       setPages((items) => items.map((page, index) => (
         index === targetIndex ? { ...page, renderStatus: "loading", renderAttempts: 0 } : page
       )));
-      const rendered = await recoverPdfPageRender(async () => withPdfPageDeadline((async () => {
+      const rendered = await recoverPdfPageRender(async (attempt) => withPdfPageDeadline((async () => {
         attemptProxy = pdfDocumentRef.current || await ensurePdfDocumentProxy();
         if (!attemptProxy || sourcePageIndex >= attemptProxy.numPages) throw new Error("The saved PDF page is unavailable.");
-        return renderPdfEditorPage(attemptProxy, sourcePageIndex, targetIndex);
+        return renderPdfEditorPage(attemptProxy, sourcePageIndex, targetIndex, { recovery: attempt > 1 });
       })(), {
         label: `Page ${sourcePageIndex + 1} recovery`,
         timeoutMs: pdfPageHydrationTimeoutMs({ mobile: usesMobileEditorLayout() }),
@@ -3576,8 +3585,8 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   } = {}) => {
     const buffer = await file.arrayBuffer();
     let document = await pdfjsLib.getDocument({ data: buffer.slice(0) }).promise;
-    const renderPageWithRecovery = (targetPageIndex) => recoverPdfPageRender(async () => (
-      renderPdfEditorPage(document, targetPageIndex)
+    const renderPageWithRecovery = (targetPageIndex) => recoverPdfPageRender(async (attempt) => (
+      renderPdfEditorPage(document, targetPageIndex, targetPageIndex, { recovery: attempt > 1 })
     ), {
       onAttemptFailed: async () => {
         await releasePdfDocumentWithDeadline(document);
@@ -4147,7 +4156,12 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
         ? initialPage.originalIndex
         : initialPageIndex;
       try {
-        const rendered = await renderPdfEditorPage(nextPdfDocument, sourcePageIndex, initialPageIndex);
+        const rendered = await recoverPdfPageRender((attempt) => renderPdfEditorPage(
+          nextPdfDocument,
+          sourcePageIndex,
+          initialPageIndex,
+          { recovery: attempt > 1 },
+        ));
         documentPages[initialPageIndex] = {
           ...initialPage,
           ...rendered.pageRecord,
