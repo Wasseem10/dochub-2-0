@@ -77,5 +77,5 @@ export function getPdfLoadErrorMessage(error) {
   if (name === "MissingPDFException") {
     return "The PDF could not be read from your device. Choose the file again.";
   }
-  return "PDFEnrich could not open this PDF. Try a valid, unencrypted file smaller than 50 MB.";
+  return "This PDF passed the 50 MB size check, but this browser could not finish preparing it. Try again or use a different browser.";
 }

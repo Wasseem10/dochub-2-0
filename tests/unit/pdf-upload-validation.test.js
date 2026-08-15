@@ -44,6 +44,7 @@ describe("PDF upload validation", () => {
       name: "PdfPageRenderTimeoutError",
       code: "PDF_PAGE_RENDER_TIMEOUT",
     })).toContain("valid");
-    expect(getPdfLoadErrorMessage(new Error("unknown"))).toContain("valid, unencrypted");
+    expect(getPdfLoadErrorMessage(new Error("unknown"))).toContain("passed the 50 MB size check");
+    expect(getPdfLoadErrorMessage(new Error("unknown"))).not.toContain("smaller than 50 MB");
   });
 });

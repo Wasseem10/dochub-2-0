@@ -171,6 +171,26 @@ test("editor rejects a corrupted PDF with a recoverable explanation", async ({ p
   await expect(page.getByRole("button", { name: "Choose a PDF", exact: true })).toBeVisible();
 });
 
+test("a valid PDF still opens when this device cannot render its first page", async ({ page }) => {
+  await page.addInitScript(() => {
+    const originalToDataUrl = HTMLCanvasElement.prototype.toDataURL;
+    HTMLCanvasElement.prototype.toDataURL = function forcePdfPageCanvasFailure(type, ...args) {
+      if (type === "image/png") throw new DOMException("Canvas resources unavailable", "InvalidStateError");
+      return originalToDataUrl.call(this, type, ...args);
+    };
+  });
+  await page.goto(appPath("/edit-pdf"));
+  await page.locator('input[type="file"]').first().setInputFiles({
+    name: "valid-render-retry.pdf",
+    mimeType: "application/pdf",
+    buffer: await editorFixture(),
+  });
+
+  await expect(page).toHaveURL(/\/edit-pdf\?.*document=/);
+  await expect(page.getByRole("button", { name: "Reload page" })).toBeVisible();
+  await expect(page.getByText(/smaller than 50 MB/i)).toHaveCount(0);
+});
+
 test("progressive pages finish rendering instead of remaining on an endless loader", async ({ page }) => {
   await page.goto(appPath("/edit-pdf"));
   await page.locator('input[type="file"]').first().setInputFiles({

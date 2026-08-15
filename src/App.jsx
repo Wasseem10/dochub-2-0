@@ -3579,11 +3579,11 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     const renderPageWithRecovery = (targetPageIndex) => recoverPdfPageRender(async () => (
       renderPdfEditorPage(document, targetPageIndex)
     ), {
-      onAttemptFailed: async (_error, attempt, maximumAttempts) => {
-        try { await document?.destroy?.(); } catch { /* The failed renderer may already be closed. */ }
-        if (attempt < maximumAttempts) {
-          document = await pdfjsLib.getDocument({ data: buffer.slice(0) }).promise;
-        }
+      onAttemptFailed: async () => {
+        await releasePdfDocumentWithDeadline(document);
+        // Keep a fresh proxy available after the final failed render as well;
+        // the editor's visible Reload page action needs it immediately.
+        document = await pdfjsLib.getDocument({ data: buffer.slice(0) }).promise;
       },
     });
     if (document.numPages > MAX_PDF_EDITOR_PAGES) {
@@ -3613,9 +3613,22 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       percent: Math.round(startPercent + (endPercent - startPercent) * 0.7),
       fileName: file.name,
     });
-    const firstPage = await renderPageWithRecovery(0);
     const loadedPages = Array.from({ length: document.numPages }, (_, index) => pendingPdfPageRecord(index));
-    loadedPages[0] = firstPage.pageRecord;
+    let firstPage;
+    try {
+      firstPage = await renderPageWithRecovery(0);
+      loadedPages[0] = firstPage.pageRecord;
+    } catch {
+      // The PDF itself has already parsed successfully. A phone can still run
+      // out of canvas/worker resources while rendering its first page, so keep
+      // the valid source open and let the existing page-level recovery UI retry
+      // instead of misreporting the whole document as invalid or oversized.
+      loadedPages[0] = {
+        ...loadedPages[0],
+        renderStatus: "error",
+        renderAttempts: 2,
+      };
+    }
     setUploadStage({
       status: `Preparing ${document.numPages}-page workspace`,
       percent: endPercent,
@@ -3625,8 +3638,9 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       buffer,
       documentProxy: document,
       loadedPages,
-      detectedItems: firstPage.detectedItems,
-      detectedFormFields: firstPage.detectedFormFields,
+      detectedItems: firstPage?.detectedItems || [],
+      detectedFormFields: firstPage?.detectedFormFields || [],
+      firstPageNeedsRetry: !firstPage,
     };
   };
 
@@ -3661,6 +3675,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
         loadedPages,
         detectedItems,
         detectedFormFields,
+        firstPageNeedsRetry,
       } = await parsePdfFile(workingFile, {
         startPercent: 24,
         endPercent: 80,
@@ -3737,7 +3752,9 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       setSaveState("saved");
       setLastSavedAt(stamp);
       setUploadStage({ status: "complete", percent: 100, fileName: displayFileName });
-      showToast(openedWithoutLocalCache
+      showToast(firstPageNeedsRetry
+        ? "PDF opened. Page 1 needs to reload on this device."
+        : openedWithoutLocalCache
         ? "Opened from your account. This phone could not keep an offline copy, but your cloud PDF is safe."
         : detectedFormFields.length
         ? `Found ${detectedFormFields.length} fillable field${detectedFormFields.length === 1 ? "" : "s"}.`
