@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { PDFDocument } from "pdf-lib";
 
 const appPath = (path) => process.env.GITHUB_ACTIONS === "true" ? `/dochub-2-0${path}` : path;
 
@@ -23,7 +24,29 @@ test("the editor opens neutrally and keeps resized desktop canvases visible", as
     pageWidth: canvas.querySelector(".page-surface")?.getBoundingClientRect().width || 0,
   }));
   expect(desktopLayout.clientWidth).toBeGreaterThan(1000);
-  expect(desktopLayout.pageWidth).toBeGreaterThan(500);
+  expect(desktopLayout.pageWidth).toBeGreaterThan(800);
+  expect(desktopLayout.pageWidth).toBeLessThanOrEqual(desktopLayout.clientWidth);
+});
+
+test("an opened desktop document starts at a readable fitted zoom", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.goto(appPath("/edit-pdf"));
+  const document = await PDFDocument.create();
+  document.addPage([612, 792]);
+  const bytes = await document.save();
+  await page.locator('input[type="file"]').first().setInputFiles({
+    name: "readable-on-open.pdf",
+    mimeType: "application/pdf",
+    buffer: Buffer.from(bytes),
+  });
+  await expect(page.locator(".page-surface")).toBeVisible();
+
+  const layout = await page.locator(".canvas-column").evaluate((canvas) => ({
+    canvasWidth: canvas.clientWidth,
+    pageWidth: canvas.querySelector(".page-surface")?.getBoundingClientRect().width || 0,
+  }));
+  expect(layout.pageWidth).toBeGreaterThanOrEqual(layout.canvasWidth * .72);
+  expect(layout.pageWidth).toBeLessThanOrEqual(layout.canvasWidth);
 });
 
 test("editor tool selection keeps floating guidance off the document", async ({ page }) => {

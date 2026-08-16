@@ -40,6 +40,8 @@ Selecting an editor tool must not trigger a floating bottom-right guidance toast
 
 The selected August 15, 2026 corner zoom control supersedes the July 17 floating page navigator: show only a small segmented minus/plus zoom control in the bottom-left corner, matching `codex-clipboard-633fedb1-d771-4a5a-9b58-1f97d0506c2b.png`. Do not restore the wide zoom percentage and page-navigation capsule; page movement remains available through the editor's thumbnail and document-navigation workflows.
 
+Opened editor documents must start at a readable automatic fit-to-width zoom on desktop and mobile. Preserve an explicitly chosen custom zoom when restoring a saved session; legacy sessions without a stored zoom mode must use fit width instead of a fixed 100% view.
+
 The mobile editor must be intentionally touch-first rather than a compressed desktop toolbar. Use one compact filename header, an unobstructed document canvas, a six-action bottom tool dock with generous tap targets, and a separate bottom-sheet More menu containing every tool hidden from the dock. Keep the zoom/page capsule below the tool dock, place contextual settings above it, eliminate overlapping toolbar groups and horizontal page gutters, and enlarge transform handles for touch.
 
 The mobile More sheet uses grouped Edit & mark up, Insert, Shapes, and Document sections with a dimmed backdrop, an explicit close control, safe-area padding, and scrolling within the sheet. It must include Edit Text, Draw, Erase, Highlight, Text Highlight, Whiteout, Image, Stamp, Link, Note, Check, Text field, Date, Initials, Arrow, Line, Rectangle, Circle, Redo, Search, Manage Pages, Share, Print, and Export without duplicating the six dock actions.

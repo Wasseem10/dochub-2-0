@@ -2167,9 +2167,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   const [selectedId, setSelectedId] = useState(null);
   const [selectedDetectedTextId, setSelectedDetectedTextId] = useState(null);
   const [zoom, setZoom] = useState(100);
-  const [zoomMode, setZoomMode] = useState(() => (
-    usesMobileEditorLayout() ? EDITOR_ZOOM_MODE.FIT_WIDTH : EDITOR_ZOOM_MODE.CUSTOM
-  ));
+  const [zoomMode, setZoomMode] = useState(EDITOR_ZOOM_MODE.FIT_WIDTH);
   const [saved, setSaved] = useState(true);
   const [saveState, setSaveState] = useState("saved");
   const [isOffline, setIsOffline] = useState(() => typeof navigator !== "undefined" && !navigator.onLine);
@@ -2468,11 +2466,8 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     const handleLayoutChange = (event) => {
       if (event.matches) {
         setIsPagesCollapsed(true);
-        setZoomMode(EDITOR_ZOOM_MODE.FIT_WIDTH);
-      } else {
-        setZoomMode(EDITOR_ZOOM_MODE.CUSTOM);
-        setZoom(100);
       }
+      setZoomMode(EDITOR_ZOOM_MODE.FIT_WIDTH);
     };
     mobileLayout.addEventListener("change", handleLayoutChange);
     return () => mobileLayout.removeEventListener("change", handleLayoutChange);
@@ -2923,6 +2918,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       sourceFile: sourceFileRef.current,
       pageIndex,
       zoom,
+      zoomMode,
       tool,
       undoStack,
       redoStack,
@@ -3202,6 +3198,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
         sourceFile: sourceFileRef.current,
         pageIndex,
         zoom,
+        zoomMode,
         tool,
         undoStack,
         redoStack,
@@ -3219,7 +3216,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       });
     }, 700);
     return () => window.clearTimeout(timer);
-  }, [activeDocumentId, activeSignature, fileName, lastSavedAt, pageIndex, pages.length, pendingImage, publicTool, redoStack, saveState, saved, selectedDetectedTextId, selectedId, tool, toolSettings, undoStack, zoom]);
+  }, [activeDocumentId, activeSignature, fileName, lastSavedAt, pageIndex, pages.length, pendingImage, publicTool, redoStack, saveState, saved, selectedDetectedTextId, selectedId, tool, toolSettings, undoStack, zoom, zoomMode]);
 
   useEffect(() => {
     if (!pages.length || saveState !== "unsaved") return undefined;
@@ -3830,7 +3827,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       setSelectedId(null);
       setSelectedDetectedTextId(null);
       setTool(resolveEditorActiveTool(publicTool, detectedItems.length));
-      setZoomMode(usesMobileEditorLayout() ? EDITOR_ZOOM_MODE.FIT_WIDTH : EDITOR_ZOOM_MODE.CUSTOM);
+      setZoomMode(EDITOR_ZOOM_MODE.FIT_WIDTH);
       setZoom(100);
       setSaved(true);
       setSaveState("saved");
@@ -4271,8 +4268,11 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     setSelectedId(null);
     setSelectedDetectedTextId(null);
     setTool("select");
-    setZoomMode(usesMobileEditorLayout() ? EDITOR_ZOOM_MODE.FIT_WIDTH : EDITOR_ZOOM_MODE.CUSTOM);
-    setZoom(usesMobileEditorLayout() ? 100 : session?.zoom || 100);
+    const restoredZoomMode = Object.values(EDITOR_ZOOM_MODE).includes(session?.zoomMode)
+      ? session.zoomMode
+      : EDITOR_ZOOM_MODE.FIT_WIDTH;
+    setZoomMode(restoredZoomMode);
+    setZoom(session?.zoom || 100);
     if (session?.toolSettings) {
       setToolSettings((settings) => ({
         ...settings,
