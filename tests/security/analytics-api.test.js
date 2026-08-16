@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { createAnalyticsApiHandler, createAnalyticsRateLimiter } from "../../functions/src/analyticsApi.js";
 import { createProductAnalyticsService, validateAnalyticsPayload } from "../../functions/src/services/productAnalytics.js";
 import { createPrivateAnalyticsSummary } from "../../src/analytics/analyticsMetrics.js";
@@ -16,6 +16,8 @@ const validPayload = Object.freeze({
   properties: { toolId: "edit-pdf", fileSizeBucket: "1_5mb" },
   clientOccurredAt: "2026-08-07T12:00:00.000Z",
 });
+
+afterEach(() => vi.useRealTimers());
 
 function request({ method = "POST", url = "/v1/events", token = "", body = validPayload, query = {} } = {}) {
   const headers = new Map([
@@ -63,6 +65,8 @@ function backend({ claim = false } = {}) {
 
 describe("analytics API security", () => {
   it("records, queries, and summarizes an anonymous product journey end to end", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(validPayload.clientOccurredAt));
     const rows = [];
     const makeQuery = (filters = [], maximum = Infinity) => ({
       where(field, operator, value) { return makeQuery([...filters, { field, operator, value }], maximum); },
@@ -89,6 +93,7 @@ describe("analytics API security", () => {
       metrics: { uniqueVisitors: 1, uploads: 1, editorOpens: 1, downloads: 1 },
       productUsage: { featureVisitors: 1 },
     });
+    vi.useRealTimers();
   });
 
   it("accepts anonymous events and derives signed-in identity from Firebase", async () => {

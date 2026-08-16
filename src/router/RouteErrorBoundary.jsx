@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Circle } from "lucide-react";
 import { Link, isRouteErrorResponse, useRouteError } from "react-router-dom";
 import { BrandWordmark } from "../components/public/BrandWordmark.jsx";
@@ -55,6 +56,23 @@ export function RouteErrorBoundary() {
   const error = useRouteError();
   const technicalDetail = isRouteErrorResponse(error) ? `${error.status} ${error.statusText}` : error?.message;
   const isLoadingFailure = /chunk|dynamically imported|failed to fetch|network/i.test(String(technicalDetail || ""));
+
+  useEffect(() => {
+    if (!isLoadingFailure || typeof window === "undefined") return undefined;
+    const recoveryKey = "pdfenrich.chunk-recovery.v1";
+    const now = Date.now();
+    try {
+      const lastRecovery = Number(window.sessionStorage.getItem(recoveryKey) || 0);
+      if (now - lastRecovery < 60_000) return undefined;
+      window.sessionStorage.setItem(recoveryKey, String(now));
+    } catch {
+      // A blocked session store should not prevent the visible recovery screen.
+      return undefined;
+    }
+
+    const timer = window.setTimeout(() => window.location.reload(), 200);
+    return () => window.clearTimeout(timer);
+  }, [isLoadingFailure]);
 
   return <RouteErrorView isLoadingFailure={isLoadingFailure} technicalDetail={technicalDetail} />;
 }

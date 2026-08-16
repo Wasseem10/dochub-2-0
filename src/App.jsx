@@ -98,9 +98,6 @@ import {
   TextT as PhAddText,
   Trash as PhTrash,
 } from "@phosphor-icons/react";
-import { degrees, PDFDocument, StandardFonts, rgb } from "pdf-lib";
-import * as pdfjsLib from "pdfjs-dist";
-import "pdfjs-dist/build/pdf.worker.mjs";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { db, storage } from "./firebase";
 import { useAuth } from "./auth/AuthContext.jsx";
@@ -162,9 +159,7 @@ import {
   validatePdfUpload,
 } from "./tools/pdfUploadValidation.js";
 import { takePendingPdfFile } from "./tools/pendingPdfFile.js";
-import { drawFlattenedInputAnnotation } from "./tools/pdfEditorAnnotationExport.js";
-import { attachPdfCommentAnnotation } from "./tools/pdfCommentAnnotations.js";
-import { addPdfLinkAnnotation, normalizeEditorLinkUrl } from "./editor/pdfLinkAnnotation.mjs";
+import { normalizeEditorLinkUrl } from "./editor/normalizeEditorLinkUrl.mjs";
 import { centeredAnnotationBounds } from "./editor/annotationPlacement.mjs";
 import { protectPdfBytes } from "./tools/protectPdf.js";
 import { EDITOR_TOOL_MODES, getDefaultToolForMode, getToolsForMode, resolveModeForTool } from "./tools/editorToolModes.js";
@@ -188,11 +183,10 @@ import {
   upsertSavedEditorSignature,
 } from "./tools/editorSignature.js";
 import { duplicateEditorPageState, reorderEditorPageState, rotateEditorPageRecord } from "./tools/editorPageOrganizer.js";
-import { applyNativePdfFormAnnotation, createEditorExportDocument } from "./tools/pdfEditorPageExport.js";
 import { verifySignedPdfExport } from "./tools/pdfExportVerification.js";
 import { sanitizeReplacedPdfBytes } from "./tools/pdfExportSanitizer.js";
 import { closePdfPrintTarget, createPdfPrintTarget, renderPdfDocumentForPrint } from "./tools/pdfPrint.js";
-import { createEditorFormatDownload } from "./tools/editorFinishExport.js";
+import { loadPdfJsRuntime } from "./tools/pdfJsRuntime.js";
 import {
   calculatePdfReviewRenderMetrics,
   clampPdfReviewPage,
@@ -203,10 +197,17 @@ import {
 } from "./tools/pdfReview.js";
 import { MOBILE_EDITOR_MORE_GROUPS } from "./tools/mobileEditorMore.js";
 
-pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
-  "pdfjs-dist/build/pdf.worker.mjs",
-  import.meta.url,
-).toString();
+import "./editor-overrides.css";
+import "./dashboard-redesign.css";
+import "./lattice-pdf.css";
+import "./reference-editor.css";
+import "./dashboard-premium.css";
+import "./dashboard-editorial.css";
+import "./editor-editorial.css";
+import "./auth-reference.css";
+import "./dashboard-bright.css";
+import "./components/editor/finish-export-modal.css";
+import "./editor-premium-color.css";
 
 const BASE_PAGE_WIDTH = 760;
 const BASE_PAGE_HEIGHT = 984;
@@ -216,6 +217,33 @@ const STORAGE_KEY = "paperflow.documents.v1";
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 const MIN_EDITOR_ZOOM = 40;
 const ZOOM_PRESETS = [40, 50, 60, 80, 90, 100, 120, 140, 160];
+const DASHBOARD_THUMBNAIL_RENDER_LIMIT = 2;
+let activeDashboardThumbnailRenders = 0;
+const dashboardThumbnailRenderQueue = [];
+
+function drainDashboardThumbnailRenderQueue() {
+  while (
+    activeDashboardThumbnailRenders < DASHBOARD_THUMBNAIL_RENDER_LIMIT
+    && dashboardThumbnailRenderQueue.length
+  ) {
+    const queued = dashboardThumbnailRenderQueue.shift();
+    activeDashboardThumbnailRenders += 1;
+    Promise.resolve()
+      .then(queued.task)
+      .then(queued.resolve, queued.reject)
+      .finally(() => {
+        activeDashboardThumbnailRenders -= 1;
+        drainDashboardThumbnailRenderQueue();
+      });
+  }
+}
+
+function enqueueDashboardThumbnailRender(task) {
+  return new Promise((resolve, reject) => {
+    dashboardThumbnailRenderQueue.push({ task, resolve, reject });
+    drainDashboardThumbnailRenderQueue();
+  });
+}
 
 function usesMobileEditorLayout() {
   return typeof window !== "undefined" && window.matchMedia("(max-width: 900px)").matches;
@@ -542,8 +570,34 @@ function createBlankDocumentThumbnail(documentRecord) {
 
 function DashboardDocumentThumbnail({ documentRecord, compact = false }) {
   const directImage = documentRecord.pages?.[0]?.image || "";
+  const previewRef = useRef(null);
   const [thumbnailUrl, setThumbnailUrl] = useState(directImage);
-  const [isLoading, setIsLoading] = useState(!directImage && !!documentRecord.pdfDataUrl);
+  const [isLoading, setIsLoading] = useState(false);
+  const [shouldRender, setShouldRender] = useState(() => (
+    !!directImage
+    || !hasStoredPdfSource(documentRecord)
+    || typeof IntersectionObserver === "undefined"
+  ));
+
+  useEffect(() => {
+    if (directImage || !hasStoredPdfSource(documentRecord)) {
+      setShouldRender(true);
+      return undefined;
+    }
+    if (typeof IntersectionObserver === "undefined") {
+      setShouldRender(true);
+      return undefined;
+    }
+
+    setShouldRender(false);
+    const observer = new IntersectionObserver((entries) => {
+      if (!entries.some((entry) => entry.isIntersecting)) return;
+      setShouldRender(true);
+      observer.disconnect();
+    }, { rootMargin: "240px 0px" });
+    if (previewRef.current) observer.observe(previewRef.current);
+    return () => observer.disconnect();
+  }, [directImage, documentRecord]);
 
   useEffect(() => {
     let isActive = true;
@@ -562,11 +616,20 @@ function DashboardDocumentThumbnail({ documentRecord, compact = false }) {
       return undefined;
     }
 
+    if (!shouldRender) {
+      setIsLoading(false);
+      setThumbnailUrl("");
+      return undefined;
+    }
+
     setIsLoading(true);
     setThumbnailUrl("");
-    (async () => {
+    void enqueueDashboardThumbnailRender(async () => {
+      if (!isActive) return;
       try {
         const bytes = await storedPdfToArrayBuffer(documentRecord);
+        if (!isActive) return;
+        const pdfjsLib = await loadPdfJsRuntime();
         loadingTask = pdfjsLib.getDocument({ data: bytes.slice(0) });
         pdfDocumentProxy = await loadingTask.promise;
         const page = await pdfDocumentProxy.getPage(1);
@@ -585,21 +648,21 @@ function DashboardDocumentThumbnail({ documentRecord, compact = false }) {
       } finally {
         if (isActive) setIsLoading(false);
       }
-    })();
+    });
 
     return () => {
       isActive = false;
       try { loadingTask?.destroy?.(); } catch { /* A completed preview task may already be released. */ }
       try { pdfDocumentProxy?.destroy?.(); } catch { /* A completed preview document may already be released. */ }
     };
-  }, [compact, directImage, documentRecord]);
+  }, [compact, directImage, documentRecord, shouldRender]);
 
   if (thumbnailUrl) {
-    return <img src={thumbnailUrl} alt={`First page of ${documentRecord.name}`} />;
+    return <img ref={previewRef} src={thumbnailUrl} alt={`First page of ${documentRecord.name}`} />;
   }
 
   return (
-    <span className={`dashboard-document-placeholder ${isLoading ? "is-loading" : ""}`} aria-label={`${documentRecord.name} preview ${isLoading ? "loading" : "unavailable"}`}>
+    <span ref={previewRef} className={`dashboard-document-placeholder ${isLoading ? "is-loading" : ""}`} aria-label={`${documentRecord.name} preview ${isLoading ? "loading" : "waiting"}`}>
       {isLoading ? <LoaderCircle className="is-spinning" size={compact ? 14 : 27} /> : <FileText size={compact ? 14 : 28} />}
       {!compact && <small>{isLoading ? "Rendering preview" : `${documentRecord.pageCount || documentRecord.pages?.length || 1} page${(documentRecord.pageCount || documentRecord.pages?.length || 1) === 1 ? "" : "s"}`}</small>}
     </span>
@@ -622,10 +685,10 @@ function downloadBlob(blob, name, toolId = "edit-pdf") {
   window.setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-function hexToRgb(hex) {
+function hexToRgb(hex, rgbFactory) {
   const clean = hex.replace("#", "");
   const value = parseInt(clean, 16);
-  return rgb(((value >> 16) & 255) / 255, ((value >> 8) & 255) / 255, (value & 255) / 255);
+  return rgbFactory(((value >> 16) & 255) / 255, ((value >> 8) & 255) / 255, (value & 255) / 255);
 }
 
 function normalizeHexColor(value) {
@@ -697,12 +760,23 @@ function DirectedLineSvg({ annotation, frame, pageWidth = BASE_PAGE_WIDTH, pageH
   );
 }
 
+function multiplyPdfTransforms(first, second) {
+  return [
+    first[0] * second[0] + first[2] * second[1],
+    first[1] * second[0] + first[3] * second[1],
+    first[0] * second[2] + first[2] * second[3],
+    first[1] * second[2] + first[3] * second[3],
+    first[0] * second[4] + first[2] * second[5] + first[4],
+    first[1] * second[4] + first[3] * second[5] + first[5],
+  ];
+}
+
 function extractDetectedTextItems(textContent, viewport, pageRecord, pageIndex) {
   const measurementContext = document.createElement("canvas").getContext("2d");
   const rawItems = textContent.items
     .filter((item) => item.str?.trim())
     .flatMap((item) => {
-      const transform = pdfjsLib.Util.transform(viewport.transform, item.transform);
+      const transform = multiplyPdfTransforms(viewport.transform, item.transform);
       const rawHeight = Math.hypot(transform[2], transform[3]) || Math.abs(item.height || 10);
       const rawWidth = Number(item.width) > 0
         ? Number(item.width)
@@ -2193,6 +2267,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     const sourceBytes = pdfBytesRef.current;
     if (!sourceBytes) return null;
 
+    const pdfjsLib = await loadPdfJsRuntime();
     const loading = pdfjsLib.getDocument({ data: sourceBytes.slice(0) }).promise;
     pdfDocumentLoadingRef.current = loading;
     try {
@@ -3584,6 +3659,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     progressive = true,
   } = {}) => {
     const buffer = await file.arrayBuffer();
+    const pdfjsLib = await loadPdfJsRuntime();
     let document = await pdfjsLib.getDocument({ data: buffer.slice(0) }).promise;
     const renderPageWithRecovery = (targetPageIndex) => recoverPdfPageRender(async (attempt) => (
       renderPdfEditorPage(document, targetPageIndex, targetPageIndex, { recovery: attempt > 1 })
@@ -4143,6 +4219,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     pdfHydrationTokenRef.current += 1;
     pdfPageHydrationTasksRef.current.clear();
     pdfPageRenderGenerationRef.current.clear();
+    const pdfjsLib = sourceBytes ? await loadPdfJsRuntime() : null;
     const nextPdfDocument = sourceBytes
       ? await pdfjsLib.getDocument({ data: sourceBytes.slice(0) }).promise
       : null;
@@ -5261,6 +5338,26 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     setIsExporting(true);
     try {
     await saveActiveDocument(true);
+    const [
+      pdfLib,
+      annotationExport,
+      commentAnnotations,
+      linkAnnotations,
+      pageExport,
+      pdfjsLib,
+    ] = await Promise.all([
+      import("pdf-lib"),
+      import("./tools/pdfEditorAnnotationExport.js"),
+      import("./tools/pdfCommentAnnotations.js"),
+      import("./editor/pdfLinkAnnotation.mjs"),
+      import("./tools/pdfEditorPageExport.js"),
+      loadPdfJsRuntime(),
+    ]);
+    const { degrees, StandardFonts, rgb } = pdfLib;
+    const { drawFlattenedInputAnnotation } = annotationExport;
+    const { attachPdfCommentAnnotation } = commentAnnotations;
+    const { addPdfLinkAnnotation } = linkAnnotations;
+    const { applyNativePdfFormAnnotation, createEditorExportDocument } = pageExport;
     const changedTextPageIndexes = new Set(
       detectedTextItems
         .filter((candidate) => candidate.isEdited || candidate.isDeleted)
@@ -5366,8 +5463,8 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       const boxWidth = item.w * width;
       const fontSize = clamp((item.fontSize || 11) * pdfScale, 4, 54);
       const font = pickPdfFont(item.fontFamily, item.bold, item.italic);
-      const color = hexToRgb(item.color || colors.black);
-      const backgroundColor = hexToRgb(normalizeHexColor(item.backgroundColor) || "#ffffff");
+      const color = hexToRgb(item.color || colors.black, rgb);
+      const backgroundColor = hexToRgb(normalizeHexColor(item.backgroundColor) || "#ffffff", rgb);
       const sourceFrame = detectedTextSourceFrame(item);
       const backgroundPatch = rebuiltPages.get(item.pageNumber)?.textPatches?.get(item.id);
       const backgroundImage = backgroundPatch?.image
@@ -5436,7 +5533,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       const page = pdfDoc.getPages()[annotation.page];
       if (!page) continue;
       const { width, height } = page.getSize();
-      const color = hexToRgb(annotation.color || colors.black);
+      const color = hexToRgb(annotation.color || colors.black, rgb);
 
       if (nativeSourcePreserved && !rebuiltPageIndexes.has(annotation.page) && applyNativePdfFormAnnotation(pdfDoc, annotation)) {
         continue;
@@ -5710,6 +5807,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       return;
     }
     try {
+      const pdfjsLib = await loadPdfJsRuntime();
       const printableDocument = await pdfjsLib.getDocument({ data: exported.bytes.slice(0) }).promise;
       await renderPdfDocumentForPrint(printTarget, printableDocument);
       showToast("The PDF was sent to your printer dialog.");
@@ -6019,6 +6117,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       const exportedPdf = await exportPdf({ download: false, showResult: false, analytics: false });
       if (!exportedPdf) throw new Error("The edited PDF could not be prepared.");
       setFinishExportProgress(8);
+      const { createEditorFormatDownload } = await import("./tools/editorFinishExport.js");
       const converted = await createEditorFormatDownload({
         format: finishExportFormat,
         pdfBytes: exportedPdf.bytes,
@@ -9465,6 +9564,7 @@ function SignedPdfReviewModal({ review, onClose }) {
         const sourceBytes = review.bytes
           ? review.bytes.slice(0)
           : new Uint8Array(await (await fetch(review.url)).arrayBuffer());
+        const pdfjsLib = await loadPdfJsRuntime();
         loadingTask = pdfjsLib.getDocument({ data: sourceBytes });
         const loadedDocument = await loadingTask.promise;
         if (!active) {
@@ -10038,43 +10138,8 @@ function ProtectPdfModal({ fileName, onClose, onProtect }) {
   );
 }
 
-async function createSamplePdf() {
-  const pdfDoc = await PDFDocument.create();
-  const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
-  const bold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-
-  Array.from({ length: 3 }).forEach((_, pageIndex) => {
-    const page = pdfDoc.addPage([612, 792]);
-    page.drawText(pageIndex === 0 ? "SERVICE AGREEMENT" : pageIndex === 1 ? "STATEMENT OF WORK" : "EXHIBIT B", {
-      x: 202,
-      y: 710,
-      size: 18,
-      font: bold,
-      color: rgb(0.07, 0.09, 0.14),
-    });
-    const lines = [
-      "This Service Agreement is made and entered into as of May 15, 2024.",
-      "Client: Acme Corporation, 123 Business Way, Suite 100, Austin, TX.",
-      "Provider: Northfield Solutions, LLC, 500 Innovation Drive, Austin, TX.",
-      "",
-      "1. SCOPE OF SERVICES",
-      "Provider agrees to perform the services described in Exhibit A.",
-      "2. TERM",
-      "This Agreement shall continue for twelve months unless terminated earlier.",
-      "3. PAYMENT TERMS",
-      "Client shall pay Provider the fees set forth in Exhibit B.",
-      "4. CONFIDENTIALITY",
-      "Each Party agrees to keep non-public information confidential.",
-    ];
-    lines.forEach((line, index) => {
-      page.drawText(line, { x: 72, y: 662 - index * 24, size: line.match(/^\d/) ? 12 : 10.5, font: line.match(/^\d/) ? bold : font, color: rgb(0.08, 0.1, 0.16) });
-    });
-  });
-
-  return pdfDoc;
-}
-
 async function createBlankPdf(pageCount) {
+  const { PDFDocument } = await import("pdf-lib");
   const pdfDoc = await PDFDocument.create();
   Array.from({ length: Math.max(1, pageCount) }).forEach(() => {
     pdfDoc.addPage([612, 792]);
