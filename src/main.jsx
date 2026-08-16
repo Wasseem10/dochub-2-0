@@ -4,6 +4,7 @@ import { PrivacyConsentBanner } from "./components/privacy/PrivacyChoices.jsx";
 import { AppRouter } from "./router/AppRouter.jsx";
 import "./styles.css";
 import "./landing-redesign.css";
+import "./lattice-pdf.css";
 import "./brand-wordmark.css";
 import "./route-shells.css";
 import "./tool-platform.css";

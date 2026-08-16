@@ -199,7 +199,6 @@ import { MOBILE_EDITOR_MORE_GROUPS } from "./tools/mobileEditorMore.js";
 
 import "./editor-overrides.css";
 import "./dashboard-redesign.css";
-import "./lattice-pdf.css";
 import "./reference-editor.css";
 import "./dashboard-premium.css";
 import "./dashboard-editorial.css";
