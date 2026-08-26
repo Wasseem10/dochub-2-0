@@ -55,7 +55,7 @@ export const PUBLIC_FOOTER_NAVIGATION_GROUPS = Object.freeze([
     title: "Support",
     links: [
       { label: "Help Center", to: ROUTE_PATHS.support },
-      { label: "Contact us", to: ROUTE_PATHS.contactSales },
+      { label: "Contact us", to: ROUTE_PATHS.support },
       { label: "FAQs", to: "/#faq-title" },
       { label: "Privacy", to: ROUTE_PATHS.privacy },
     ],

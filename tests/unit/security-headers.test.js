@@ -6,6 +6,19 @@ async function vercelConfiguration() {
 }
 
 describe("production response headers", () => {
+  it("consolidates public URLs on the apex domain and retires the sales route", async () => {
+    const configuration = await vercelConfiguration();
+    const wwwRedirect = configuration.redirects.find(({ has }) => has?.some(({ type, value }) => type === "host" && value === "www.pdfenrich.com"));
+    const salesRedirect = configuration.redirects.find(({ source }) => source === "/contact-sales");
+
+    expect(wwwRedirect).toMatchObject({
+      source: "/:path*",
+      destination: "https://pdfenrich.com/:path*",
+      permanent: true,
+    });
+    expect(salesRedirect).toMatchObject({ destination: "/support", permanent: true });
+  });
+
   it("enforces a restrictive CSP and browser security boundaries", async () => {
     const configuration = await vercelConfiguration();
     const globalHeaders = configuration.headers.find(({ source }) => source === "/(.*)")?.headers || [];
@@ -39,5 +52,13 @@ describe("production response headers", () => {
 
     const rewriteSources = configuration.rewrites.map(({ source }) => source);
     expect(rewriteSources).toEqual(expect.arrayContaining(["/share", "/share/(.*)", "/sign", "/sign/(.*)"]));
+  });
+
+  it("keeps public benchmark data available without treating JSON as a search page", async () => {
+    const configuration = await vercelConfiguration();
+    const headers = configuration.headers.find(({ source }) => source === "/research/benchmark/(.*).json")?.headers || [];
+    const values = Object.fromEntries(headers.map(({ key, value }) => [key.toLowerCase(), value]));
+
+    expect(values["x-robots-tag"]).toBe("noindex, nofollow");
   });
 });

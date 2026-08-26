@@ -27,6 +27,7 @@ const directoryMetadata = toolDirectoryMetadata(releasedToolCount);
 /** @typedef {{ path: string, title: string, description: string, noIndex: boolean, tool?: import("../src/tools/toolRegistry.js").ToolRecord, category?: (typeof TOOL_CATEGORY_PAGES)[number], resource?: (typeof EDITORIAL_RESOURCE_PAGES)[number], comparison?: (typeof COMPARISONS)[number], kind?: string }} RouteRecord */
 /** @type {Record<string, string>} */
 const legalDescriptions = {
+  [ROUTE_PATHS.pricing]: "Why PDFEnrich is completely free, with no subscriptions, paid tiers, checkout, or paid plans planned.",
   [ROUTE_PATHS.privacy]: "How PDFEnrich handles browser processing, local storage, optional Firebase cloud history, analytics, and deletion.",
   [ROUTE_PATHS.security]: "Current PDFEnrich browser-processing safeguards, account boundaries, and honest security limitations.",
   [ROUTE_PATHS.help]: "Help for uploading, editing, signing, organizing, converting, and downloading PDFs with PDFEnrich.",
