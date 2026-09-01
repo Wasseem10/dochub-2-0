@@ -129,3 +129,5 @@ The editor Finish action opens a post-edit download chooser instead of immediate
 The selected September 1, 2026 landing hero direction supersedes the earlier hero references only: match the compact Context.dev-style centered composition with IBM Plex Sans, a crisp technical upload console, restrained blue-to-violet atmosphere, fine grid details, and a compact reassurance row. Keep the rest of the homepage unchanged until separately requested, and do not require generated concept images before implementing direct hero feedback.
 
 The homepage hero upload console should use the larger September 1 sizing and accept every document format PDFEnrich can genuinely process. PDFs open directly in the editor; supported Word, spreadsheet, presentation, text, OpenDocument, HTML, archive, and image files must route into their matching browser conversion workflow with the selected file already loaded. Never imply arbitrary file support for formats that are not implemented.
+
+Use IBM Plex Sans at weight 400 throughout the public landing page, including navigation, buttons, trust copy, and the hero; do not reintroduce semibold or bold landing-page text.
