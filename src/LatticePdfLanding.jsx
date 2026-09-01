@@ -360,7 +360,7 @@ export function LatticePdfLanding({ fileInputRef, onUpload, onSelectFiles, onDro
       <div className="freepdf-hero-layout">
         <div className="freepdf-hero-copy">
           <div className="freepdf-free-promise"><Check size={15} aria-hidden="true" /> 100% free. No subscriptions, payments, or watermarks.</div>
-          <h1>Every PDF task,<br /><span>{"{free and simple.}"}</span></h1>
+          <h1>Every document task,<br /><span>{"{free and simple.}"}</span></h1>
           <p>One free workspace, every PDF tool you need.</p>
         </div>
 
