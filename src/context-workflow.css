@@ -1,0 +1,319 @@
+.freepdf-context-workflow {
+  position: relative;
+  width: min(1180px, calc(100% - 48px));
+  padding: 116px 44px 128px;
+  border-right: 1px dashed #dce3f0;
+  border-left: 1px dashed #dce3f0;
+  background: #fff;
+}
+
+.freepdf-context-workflow::before {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  border-top: 1px solid #edf0f6;
+  content: "";
+}
+
+.freepdf-context-workflow-heading {
+  max-width: 830px;
+  margin: 0 auto 54px;
+  text-align: center;
+}
+
+.freepdf-context-workflow-heading > span {
+  display: inline-flex;
+  min-height: 28px;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  border: 1px solid #dce3ef;
+  border-radius: 999px;
+  background: #fff;
+  color: #4e586d;
+  font-size: 10px;
+  letter-spacing: .13em;
+  text-transform: uppercase;
+  box-shadow: 0 4px 12px rgba(27, 47, 91, .05);
+}
+
+.freepdf-context-workflow-heading > span i {
+  width: 7px;
+  height: 7px;
+  border-radius: 2px;
+  background: #2851eb;
+}
+
+.freepdf-context-workflow-heading h2 {
+  margin: 24px auto 0;
+  color: #05070c;
+  font-size: clamp(46px, 5vw, 68px);
+  letter-spacing: -.055em;
+  line-height: .98;
+}
+
+.freepdf-context-workflow-heading h2 em {
+  display: inline;
+  background: linear-gradient(92deg, #2851eb 5%, #6d42eb 96%);
+  background-clip: text;
+  color: transparent;
+  font-style: normal;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.freepdf-context-workflow-heading p {
+  max-width: 620px;
+  margin: 22px auto 0;
+  color: #626b7d;
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.freepdf-how.freepdf-context-workflow > .freepdf-context-workflow-board {
+  display: grid;
+  max-width: 980px;
+  min-height: 470px;
+  grid-template-columns: .88fr 1.12fr;
+  gap: 12px;
+  margin: 0 auto;
+  padding: 12px;
+  border: 1px solid #dfe4ee;
+  border-radius: 28px;
+  background: #f3f5f9;
+  box-shadow: 0 26px 70px rgba(27, 43, 82, .12);
+}
+
+.freepdf-context-workflow-board article {
+  min-width: 0;
+  padding: 32px;
+  border-radius: 18px;
+}
+
+.freepdf-context-workflow-board article > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 22px;
+  border-bottom: 1px solid currentColor;
+  font-size: 13px;
+}
+
+.freepdf-context-workflow-board article > header small {
+  font-size: 12px;
+  letter-spacing: .08em;
+}
+
+.freepdf-context-workflow-board .freepdf-context-workflow-start {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #e1e6ef;
+  background: #fff;
+  color: #111622;
+}
+
+.freepdf-context-workflow-start > header {
+  border-color: #e6eaf1 !important;
+  color: #626b7d;
+}
+
+.freepdf-context-workflow-start-icon {
+  display: grid;
+  width: 66px;
+  height: 66px;
+  margin-top: auto;
+  place-items: center;
+  border: 1px solid #cbd8ff;
+  border-radius: 18px;
+  background: #eef3ff;
+  color: #2851eb;
+}
+
+.freepdf-context-workflow-start h3 {
+  margin: 20px 0 9px;
+  color: #101522;
+  font-size: 26px;
+  letter-spacing: -.035em;
+}
+
+.freepdf-context-workflow-start > p {
+  max-width: 320px;
+  margin: 0;
+  color: #667083;
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.freepdf-context-file-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 28px;
+}
+
+.freepdf-context-file-row span {
+  padding: 7px 9px;
+  border: 1px solid #dfe4ed;
+  border-radius: 7px;
+  background: #f8f9fb;
+  color: #626d82;
+  font-size: 9px;
+  letter-spacing: .08em;
+}
+
+.freepdf-context-workflow-board .freepdf-context-workflow-finish {
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(145deg, #2455ed 0%, #4d42e8 58%, #7141dd 100%);
+  color: #fff;
+  box-shadow: inset 0 1px rgba(255, 255, 255, .24);
+}
+
+.freepdf-context-workflow-finish > header {
+  border-color: rgba(255, 255, 255, .24) !important;
+  color: rgba(255, 255, 255, .86);
+}
+
+.freepdf-context-workflow-steps {
+  display: grid;
+  gap: 8px;
+  margin: 24px 0;
+}
+
+.freepdf-context-workflow-steps > div {
+  display: grid;
+  min-height: 104px;
+  grid-template-columns: auto auto minmax(0, 1fr) auto;
+  gap: 13px;
+  align-items: center;
+  padding: 16px;
+  border: 1px solid rgba(255, 255, 255, .2);
+  border-radius: 13px;
+  background: rgba(255, 255, 255, .09);
+}
+
+.freepdf-context-workflow-step-icon {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, .15);
+}
+
+.freepdf-context-workflow-step-number {
+  color: rgba(255, 255, 255, .58);
+  font-size: 11px;
+}
+
+.freepdf-context-workflow-steps h3 {
+  margin: 0 0 5px;
+  color: #fff;
+  font-size: 17px;
+  letter-spacing: -.02em;
+}
+
+.freepdf-context-workflow-steps p {
+  margin: 0;
+  color: rgba(255, 255, 255, .7);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.freepdf-context-workflow-output {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  margin-top: auto;
+  padding: 15px 16px;
+  border-radius: 12px;
+  background: #fff;
+  color: #111827;
+  box-shadow: 0 14px 28px rgba(17, 24, 39, .18);
+}
+
+.freepdf-context-workflow-output > span {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  border-radius: 50%;
+  background: #eaf0ff;
+  color: #2851eb;
+}
+
+.freepdf-context-workflow-output small,
+.freepdf-context-workflow-output strong {
+  display: block;
+}
+
+.freepdf-context-workflow-output small {
+  margin-bottom: 2px;
+  color: #778096;
+  font-size: 9px;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+}
+
+.freepdf-context-workflow-output strong {
+  font-size: 13px;
+}
+
+.freepdf-context-workflow-output > svg { color: #2851eb; }
+
+@media (max-width: 760px) {
+  .freepdf-context-workflow {
+    width: 100%;
+    padding: 78px 15px 84px;
+    border-right: 0;
+    border-left: 0;
+  }
+
+  .freepdf-context-workflow-heading {
+    margin-bottom: 36px;
+  }
+
+  .freepdf-context-workflow-heading h2 {
+    margin-top: 20px;
+    font-size: clamp(39px, 11vw, 50px);
+  }
+
+  .freepdf-context-workflow-heading p {
+    margin-top: 17px;
+    font-size: 13px;
+  }
+
+  .freepdf-how.freepdf-context-workflow > .freepdf-context-workflow-board {
+    min-height: 0;
+    grid-template-columns: 1fr;
+    gap: 9px;
+    padding: 9px;
+    border-radius: 22px;
+  }
+
+  .freepdf-context-workflow-board article {
+    padding: 24px;
+    border-radius: 15px;
+  }
+
+  .freepdf-context-workflow-start {
+    min-height: 330px;
+  }
+
+  .freepdf-context-workflow-finish {
+    min-height: 450px;
+  }
+
+  .freepdf-context-workflow-steps > div {
+    min-height: 112px;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+  }
+
+  .freepdf-context-workflow-step-number { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .freepdf-context-workflow * { scroll-behavior: auto; }
+}

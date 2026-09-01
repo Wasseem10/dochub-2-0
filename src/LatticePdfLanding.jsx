@@ -85,28 +85,19 @@ const workflowSteps = [
   {
     number: "1",
     title: "Choose your file",
-    copy: "Upload a supported PDF or drag it into the workspace.",
-    image: "fill-pdf.png",
-    imageAlt: "PDF document ready to upload and complete",
-    tone: "coral",
+    copy: "Drop in a supported document or choose one from your device.",
     icon: Upload,
   },
   {
     number: "2",
     title: "Make the change",
     copy: "Use focused editing, signing, page, or conversion controls.",
-    image: "edit-pdf.png",
-    imageAlt: "PDF document with editable text selected",
-    tone: "yellow",
     icon: PencilLine,
   },
   {
     number: "3",
     title: "Download the result",
     copy: "Review your output and download without a watermark.",
-    image: "sign-pdf.png",
-    imageAlt: "Completed signed PDF document ready to download",
-    tone: "blue",
     icon: Download,
   },
 ];
@@ -404,32 +395,32 @@ export function LatticePdfLanding({ fileInputRef, onUpload, onSelectFiles, onDro
 
     <ComparisonTeaser />
 
-    <section className="freepdf-section freepdf-how freepdf-paper-trail" aria-labelledby="how-title">
-      <div className="freepdf-section-heading">
-        <span>How it works</span>
-        <h2 id="how-title">
-          <span>Choose it.</span>{" "}
-          <span>Change it.</span>
-          <br />
-          <span>Download it.</span>
-        </h2>
+    <section className="freepdf-section freepdf-how freepdf-context-workflow" aria-labelledby="how-title">
+      <div className="freepdf-context-workflow-heading">
+        <span><i aria-hidden="true" /> How it works · three steps</span>
+        <h2 id="how-title">From any document to <em>a finished PDF.</em></h2>
+        <p>Bring the file. PDFEnrich keeps the path from first change to final download focused and clear.</p>
       </div>
-      <div className="freepdf-paper-path" aria-label="Three steps from upload to download">
-        {workflowSteps.map(({ number, title, copy, image, imageAlt, tone, icon: Icon }) => (
-          <article className={`freepdf-paper-step is-${tone}`} key={number}>
-            <div className="freepdf-paper-step-copy">
-              <span className="freepdf-paper-number">{number}</span>
-              <div>
-                <h3>{title}</h3>
-                <p>{copy}</p>
-              </div>
-            </div>
-            <div className="freepdf-paper-step-art">
-              <span className="freepdf-paper-action" aria-hidden="true"><Icon size={22} /></span>
-              <img src={toolIllustration(image)} alt={imageAlt} width="512" height="512" loading="lazy" decoding="async" />
-            </div>
-          </article>
-        ))}
+      <div className="freepdf-context-workflow-board" aria-label="Three steps from upload to download">
+        <article className="freepdf-context-workflow-start">
+          <header><span>Start</span><small>01</small></header>
+          <div className="freepdf-context-workflow-start-icon" aria-hidden="true"><Upload size={28} /></div>
+          <h3>{workflowSteps[0].title}</h3>
+          <p>{workflowSteps[0].copy}</p>
+          <div className="freepdf-context-file-row"><span>DOC</span><span>XLS</span><span>PPT</span><span>PDF</span><span>IMG</span></div>
+        </article>
+        <article className="freepdf-context-workflow-finish">
+          <header><span>PDFEnrich</span><small>02—03</small></header>
+          <div className="freepdf-context-workflow-steps">
+            {workflowSteps.slice(1).map(({ number, title, copy, icon: Icon }) => <div key={number}>
+              <span className="freepdf-context-workflow-step-icon" aria-hidden="true"><Icon size={21} /></span>
+              <span className="freepdf-context-workflow-step-number">0{number}</span>
+              <div><h3>{title}</h3><p>{copy}</p></div>
+              <Check size={18} aria-hidden="true" />
+            </div>)}
+          </div>
+          <div className="freepdf-context-workflow-output"><span><Check size={16} aria-hidden="true" /></span><div><small>Ready to download</small><strong>your-document.pdf</strong></div><Download size={19} aria-hidden="true" /></div>
+        </article>
       </div>
     </section>
 

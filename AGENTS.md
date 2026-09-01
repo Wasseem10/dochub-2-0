@@ -131,3 +131,7 @@ The selected September 1, 2026 landing hero direction supersedes the earlier her
 The homepage hero upload console should use the larger September 1 sizing and accept every document format PDFEnrich can genuinely process. PDFs open directly in the editor; supported Word, spreadsheet, presentation, text, OpenDocument, HTML, archive, and image files must route into their matching browser conversion workflow with the selected file already loaded. Never imply arbitrary file support for formats that are not implemented.
 
 Use IBM Plex Sans at weight 400 throughout the public landing page, including navigation, buttons, trust copy, and the hero; do not reintroduce semibold or bold landing-page text.
+
+Make the homepage hero document drop zone unmistakably prominent: use a large, tall target with centered upload icon and instructions plus a conventional dashed boundary. Preserve its full click, touch, keyboard, and drag-and-drop behavior on desktop and mobile.
+
+The September 1, 2026 homepage “How it works” redesign supersedes only the Paper Trail workflow section: use Context.dev-inspired technical framing, centered blue-to-violet headline emphasis, fine dashed page guides, and one large two-part workflow board with a white start panel and blue/violet finish panel. Keep the real three-step PDFEnrich flow, IBM Plex Sans 400, and responsive mobile stack. Do not use red, coral, orange, yellow, or generated imagery in this section.

@@ -19,6 +19,7 @@ import "./homepage-paper-trail.css";
 import "./homepage-faq-guided.css";
 import "./comparison-pages.css";
 import "./context-hero.css";
+import "./context-workflow.css";
 import { migratePdfEnrichStorage } from "./brand/storageMigration.js";
 import { installProductionMonitoring } from "./monitoring/productionMonitoring.js";
 

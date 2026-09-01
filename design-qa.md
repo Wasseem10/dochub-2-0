@@ -48,3 +48,40 @@
 - P3: the reference uses a photographic liquid texture in the lower atmosphere; the implementation deliberately uses a clean CSS color field to honor the user's no-image-generation direction and PDFEnrich's no-sky rule.
 
 final result: passed
+
+# Context-Inspired Workflow Section Design QA
+
+## Comparison target
+
+- Live reference: `https://www.context.dev/`, lower landing-page before/after section.
+- Source capture: `C:\Users\wasse\OneDrive\Desktop\pdf-editor\work\design-qa\context-workflow-2026-09-01\source-context-desktop.png`.
+- Browser-rendered implementation: `C:\Users\wasse\OneDrive\Desktop\pdf-editor\work\design-qa\context-workflow-2026-09-01\implementation-desktop.png` and `implementation-mobile.png` in the same folder.
+- Same-input comparison: `C:\Users\wasse\OneDrive\Desktop\pdf-editor\work\design-qa\context-workflow-2026-09-01\desktop-comparison.png`.
+- Desktop viewport: 1440 x 1024 CSS pixels. Mobile viewport: 390 x 844 CSS pixels.
+- State: homepage workflow section in its default, non-interactive state.
+
+## Findings
+
+- No actionable P0, P1, or P2 differences remain within the requested workflow-only scope.
+- Layout and hierarchy: the implementation carries over the reference's centered technical headline, fine vertical guides, and one large split workflow board while retaining PDFEnrich's real three-step journey.
+- Color: the old coral, red, orange, and yellow workflow accents are removed. The section now uses white, charcoal, PDFEnrich blue, and a restrained violet finish panel.
+- Typography: IBM Plex Sans remains applied at weight 400 across the section. The headline and board labels retain a compact, technical rhythm without copying Context.dev's wording.
+- Assets: the previous stationery illustrations were removed. No generated image, copied competitor asset, hotlink, or placeholder artwork was introduced; the section uses the existing Lucide icon family.
+- Responsive behavior: the desktop split board becomes an intentional vertical stack at phone width, with readable copy, uncropped content, and no horizontal overflow.
+- Content and accessibility: the three steps remain explicit and correctly ordered, the section is labelled by its heading, decorative icons are hidden from assistive technology, and the free/no-watermark claim remains accurate.
+
+## Comparison history
+
+- Pass 1 found a P2 cascade conflict: an older workflow rule kept the finish panel white and introduced an unintended third grid column.
+- Fix: the new workflow board and finish-panel selectors were made specific to the redesigned section.
+- Pass 2 showed the intended full-width two-part board, with the white start panel and blue/violet finish panel aligned to the same outer frame.
+- Pass 3 confirmed the mobile stack, readable spacing, and absence of clipping or horizontal overflow.
+
+## Verification
+
+- `pnpm typecheck` passed.
+- The full production build passed and prerendered all public routes.
+- Desktop and mobile browser captures were checked after the final production build.
+- The combined reference-versus-implementation image was reviewed at original resolution.
+
+final result: passed
