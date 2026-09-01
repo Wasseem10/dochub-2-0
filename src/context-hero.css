@@ -24,12 +24,9 @@ textarea {
 .freepdf-context-hero {
   min-height: 780px;
   border-bottom: 1px solid #dfe5f1;
-  background-color: #fff;
-  background-image:
-    radial-gradient(circle at 17% 102%, rgba(44, 134, 255, .9) 0, rgba(44, 134, 255, .36) 22%, transparent 48%),
-    radial-gradient(circle at 82% 104%, rgba(104, 66, 255, .86) 0, rgba(104, 66, 255, .32) 24%, transparent 51%),
-    linear-gradient(180deg, #fff 0%, #fbfcff 45%, #edf4ff 64%, #7dafff 100%);
-  background-position: center;
+  background-color: #e9f5ff;
+  background-image: url("/homepage/hero-blue-cloud-texture.webp");
+  background-position: center top;
   background-repeat: no-repeat;
   background-size: cover;
 }
@@ -274,10 +271,7 @@ textarea {
   }
 
   .freepdf-context-hero {
-    background-image:
-      radial-gradient(circle at 12% 104%, rgba(44, 134, 255, .9) 0, rgba(44, 134, 255, .3) 25%, transparent 54%),
-      radial-gradient(circle at 90% 100%, rgba(104, 66, 255, .82) 0, rgba(104, 66, 255, .28) 24%, transparent 54%),
-      linear-gradient(180deg, #fff 0%, #f9fbff 52%, #dceaff 73%, #72a8ff 100%);
+    background-position: 44% top;
   }
 
   .freepdf-context-hero::before {

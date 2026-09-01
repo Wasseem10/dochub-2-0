@@ -49,6 +49,54 @@
 
 final result: passed
 
+# Supplied Blue Hero Background Design QA
+
+## Comparison target
+
+- Source visual truth: `C:\Users\wasse\Downloads\ChatGPT Image Sep 1, 2026, 04_14_37 PM.png` (2172 × 724 pixels).
+- Browser-rendered implementation: `C:\Users\wasse\OneDrive\Desktop\pdf-editor\work\design-qa\hero-blue-background-desktop.png` and `hero-blue-background-mobile.png`.
+- Same-input comparison evidence: `C:\Users\wasse\OneDrive\Desktop\pdf-editor\work\design-qa\hero-blue-background-comparison.png`.
+- Desktop viewport: 1440 × 900 CSS pixels at device scale factor 1; the in-app browser capture is 1265 × 712 pixels and the source was proportionally normalized to 1265 × 422 for the comparison sheet.
+- Mobile viewport: 390 × 844 CSS pixels at device scale factor 1; the browser content viewport is 375 × 844 after the visible scrollbar.
+- State: homepage hero at rest, upload console idle, no menu or privacy overlay open.
+
+## Findings
+
+- No actionable P0, P1, or P2 differences remain in the requested background-only scope.
+- Fonts and typography: IBM Plex Sans at weight 400 remains unchanged. The pale center of the supplied image keeps the black headline, blue-violet emphasis, compact supporting copy, and trust promise legible at desktop and mobile sizes.
+- Spacing and layout rhythm: the existing centered hero hierarchy, task row, large upload tray, and reassurance strip are unchanged. The background fills the complete hero without seams or horizontal overflow.
+- Colors and visual tokens: the source image's white center and powder-blue perimeter replace the previous CSS atmosphere exactly as requested. Existing PDFEnrich blue and violet foreground accents remain readable and visually compatible.
+- Image quality and asset fidelity: the supplied 2172 × 724 source is used directly after lossless-dimension WebP optimization, reducing the asset to 46 KB without stretching or visible compression artifacts. Desktop uses a centered top crop; mobile uses a deliberate 44% horizontal focal point so visible blue texture remains around the primary upload action.
+- Copy and content: no hero copy changed. The “Every document task” headline, free-product promise, supported document formats, and reassurance text remain accurate.
+- Interaction and accessibility: the complete upload tray still opens one native file chooser, the four task links retain their correct routes, there is no horizontal overflow, and the browser console returned no warnings or errors.
+
+## Full-view comparison evidence
+
+- The combined source-and-implementation sheet confirms the same blue-white texture, tonal balance, and cloud detail remain visible behind the hero rather than being approximated with a gradient.
+- The desktop and mobile captures confirm the responsive crops preserve the primary content and do not hide the supplied image behind an opaque hero surface.
+
+## Focused region comparison
+
+- A separate close crop was not needed because the background is one full-bleed raster with no small focal subject, typography, logo, or edge detail that could be lost outside the full hero comparison.
+
+## Comparison history
+
+- Pass 1 introduced the optimized supplied asset and replaced both desktop and mobile CSS-generated backgrounds.
+- Pass 1 found no P0/P1/P2 issue: the image remained sharp, the central copy retained contrast, the upload action stayed dominant, and the mobile crop showed texture without overflow. No visual correction was required.
+
+## Implementation checklist
+
+- [x] Use the supplied image as the actual hero background asset.
+- [x] Preserve the existing hero content and upload workflow.
+- [x] Apply deliberate desktop and mobile crops.
+- [x] Verify image sharpness, text contrast, native file chooser, routes, console, and overflow.
+
+## Follow-up polish
+
+- No P3 follow-up is needed for this scoped change.
+
+final result: passed
+
 # Context-Inspired Privacy, FAQ, and Footer Design QA
 
 ## Comparison target
