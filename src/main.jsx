@@ -18,6 +18,7 @@ import "./popular-tools-professional.css";
 import "./homepage-paper-trail.css";
 import "./homepage-faq-guided.css";
 import "./comparison-pages.css";
+import "./context-hero.css";
 import { migratePdfEnrichStorage } from "./brand/storageMigration.js";
 import { installProductionMonitoring } from "./monitoring/productionMonitoring.js";
 
