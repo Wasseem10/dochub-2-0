@@ -33,7 +33,6 @@ import { TOOL_CATEGORIES, TOOL_REGISTRY } from "./tools/toolRegistry.js";
 import { LANDING_DOCUMENT_ACCEPT } from "./tools/landingDocumentUpload.js";
 
 const asset = (fileName) => `${import.meta.env.BASE_URL}homepage/${fileName}`;
-const toolIllustration = (fileName) => `${import.meta.env.BASE_URL}tool-illustrations/${fileName}`;
 
 const faqs = [
   ["Is PDFEnrich really free?", "Yes. PDFEnrich is completely free. There are no subscriptions, paid tiers, checkout, email requirement, or PDFEnrich watermark—and no paid plans are planned."],
@@ -106,19 +105,16 @@ const privacyProofs = [
   {
     title: "Processed in your browser",
     copy: "No document text, signatures, or form values are sent to analytics.",
-    tone: "coral",
     icon: Globe2,
   },
   {
     title: "No account required",
     copy: "Start working right away with supported tools—no signup needed.",
-    tone: "yellow",
     icon: UserRound,
   },
   {
     title: "Clear account sync",
     copy: "Guest files stay local. PDFs opened while signed in sync privately across your devices.",
-    tone: "lilac",
     icon: Cloud,
   },
 ];
@@ -324,7 +320,8 @@ function SiteFooter() {
       <div className="freepdf-footer-main">
         <div className="freepdf-footer-brand-block">
           <Link className="freepdf-footer-brand" to={ROUTE_PATHS.home} aria-label="PDFEnrich home"><BrandWordmark logo /></Link>
-          <p>Every PDF task, finally in one place.</p>
+          <p>Free and simple PDF tools, all in one place.</p>
+          <span>100% free · No subscriptions · No watermarks</span>
         </div>
         <section className="freepdf-footer-directory" aria-label="PDF tool directory">
           {PUBLIC_FOOTER_NAVIGATION_GROUPS.map((group) => <nav key={group.title} aria-label={group.title}>
@@ -336,7 +333,7 @@ function SiteFooter() {
       <div className="freepdf-footer-meta">
         <span>© 2026 PDFEnrich. All rights reserved.</span>
         <nav aria-label="Footer legal">{PUBLIC_LEGAL_LINKS.map(({ label, to }) => <Link key={label} to={to}>{label}</Link>)}</nav>
-        <button type="button" className="freepdf-footer-language" aria-label="Language: English"><Globe2 size={16} /> English <ChevronDown size={15} /></button>
+        <span className="freepdf-footer-domain">pdfenrich.com</span>
       </div>
     </div>
   </footer>;
@@ -346,7 +343,7 @@ export function LatticePdfLanding({ fileInputRef, onUpload, onSelectFiles, onDro
   const fallbackInputRef = useRef(null);
   const inputRef = fileInputRef || fallbackInputRef;
   const [dragging, setDragging] = useState(false);
-  const [openFaqIndex, setOpenFaqIndex] = useState(0);
+  const [openFaqIndex, setOpenFaqIndex] = useState(null);
   const isUploading = Boolean(uploadStage?.status && !["idle", "complete", "error"].includes(uploadStage.status));
   const choose = () => onSelectFiles ? onSelectFiles() : inputRef.current?.click();
 
@@ -424,55 +421,50 @@ export function LatticePdfLanding({ fileInputRef, onUpload, onSelectFiles, onDro
       </div>
     </section>
 
-    <div className="freepdf-privacy-band">
-      <section className="freepdf-section freepdf-privacy freepdf-privacy-proof" aria-labelledby="privacy-title">
-        <div className="freepdf-privacy-art" aria-hidden="true">
-          <img src={toolIllustration("protect-pdf.png")} alt="" width="512" height="512" loading="lazy" decoding="async" />
-        </div>
-        <div className="freepdf-privacy-copy">
-          <span className="freepdf-section-kicker">Privacy, without the fine print</span>
-          <h2 id="privacy-title">Your file stays close to you.</h2>
-          <p>Supported editor, page, and image tools process files in your browser. Firebase is used only for features you deliberately choose, such as sign-in, a private cloud copy, support, or secure sharing.</p>
+    <section className="freepdf-section freepdf-context-privacy" aria-labelledby="privacy-title">
+      <div className="freepdf-context-ending-heading">
+        <span><ShieldCheck size={13} aria-hidden="true" /> Privacy, clearly explained</span>
+        <h2 id="privacy-title">Your document stays <em>under your control.</em></h2>
+        <p>Start locally without an account. Use private account sync only when you deliberately sign in.</p>
+      </div>
+      <div className="freepdf-context-privacy-board">
+        <article className="freepdf-context-privacy-local">
+          <header><span>Start locally</span><small>01</small></header>
+          <span className="freepdf-context-privacy-icon" aria-hidden="true"><Globe2 size={28} /></span>
+          <h3>Work in your browser.</h3>
+          <p>Supported editor, page, and image tools process the document in your browser, with no account required.</p>
+          <ul>
+            {privacyProofs.slice(0, 2).map(({ title, copy, icon: Icon }) => <li key={title}><Icon size={18} aria-hidden="true" /><span><strong>{title}</strong><small>{copy}</small></span></li>)}
+          </ul>
+        </article>
+        <article className="freepdf-context-privacy-sync">
+          <header><span>Optional account sync</span><small>02</small></header>
+          <span className="freepdf-context-privacy-icon" aria-hidden="true"><Cloud size={28} /></span>
+          <h3>Sync only when you sign in.</h3>
+          <p>Guest files stay on that device. PDFs opened while signed in also save as finished private account copies for access across your devices.</p>
+          <div><Check size={18} aria-hidden="true" /><span><strong>{privacyProofs[2].title}</strong><small>{privacyProofs[2].copy}</small></span></div>
           <Link to={ROUTE_PATHS.privacy}>Read the privacy details <ArrowRight size={16} /></Link>
-        </div>
-        <ul>
-          {privacyProofs.map(({ title, copy, tone, icon: Icon }) => (
-            <li key={title}>
-              <span className={`freepdf-privacy-proof-icon is-${tone}`} aria-hidden="true"><Icon size={22} /></span>
-              <span><strong>{title}</strong><small>{copy}</small></span>
-            </li>
-          ))}
-        </ul>
-      </section>
-    </div>
+        </article>
+      </div>
+    </section>
 
-    <section className="freepdf-section freepdf-faq freepdf-faq-guided" aria-labelledby="faq-title">
-      <div className="freepdf-faq-guided-grid">
-        <div className="freepdf-faq-intro">
-          <span className="freepdf-section-kicker">Good to know</span>
-          <h2 id="faq-title">Clear answers<br />before you upload.</h2>
-          <p>Everything important about privacy, access, editing limits, and exports—before you choose a file.</p>
-          <img
-            src={asset("faq-guided-document.png")}
-            alt="PDF document with a question bubble and paperclip"
-            width="640"
-            height="640"
-            loading="lazy"
-            decoding="async"
-          />
-        </div>
-        <div className="freepdf-faq-list" aria-label="Frequently asked questions">
+    <section className="freepdf-section freepdf-context-faq" aria-labelledby="faq-title">
+      <div className="freepdf-context-ending-heading">
+        <span><i aria-hidden="true" /> FAQs</span>
+        <h2 id="faq-title">Frequently asked <em>questions.</em></h2>
+        <p>Clear answers about privacy, access, editing limits, and exports before you choose a file.</p>
+      </div>
+      <div className="freepdf-faq-list freepdf-context-faq-grid" aria-label="Frequently asked questions">
           {faqs.map(([question, answer], index) => {
             const isOpen = openFaqIndex === index;
             const number = String(index + 1).padStart(2, "0");
-            return <article className={`freepdf-faq-item is-tone-${index + 1} ${isOpen ? "is-open" : ""}`} key={question}>
+            return <article className={`freepdf-faq-item ${isOpen ? "is-open" : ""}`} key={question}>
               <button
                 type="button"
                 aria-expanded={isOpen}
                 aria-controls={`homepage-faq-answer-${index}`}
-                onClick={() => setOpenFaqIndex(index)}
+                onClick={() => setOpenFaqIndex(isOpen ? null : index)}
               >
-                <span className="freepdf-faq-number" aria-hidden="true">{number}</span>
                 <span>{question}</span>
                 <span className="freepdf-faq-toggle" aria-hidden="true">{isOpen ? <Minus size={21} /> : <Plus size={21} />}</span>
               </button>
@@ -482,7 +474,6 @@ export function LatticePdfLanding({ fileInputRef, onUpload, onSelectFiles, onDro
               </div> : null}
             </article>;
           })}
-        </div>
       </div>
       <ClosingAssurances />
     </section>

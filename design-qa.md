@@ -49,6 +49,49 @@
 
 final result: passed
 
+# Context-Inspired Privacy, FAQ, and Footer Design QA
+
+## Comparison target
+
+- Live source: `https://www.context.dev/`, using its “Set it up your way,” FAQ, and page-ending structures as the visual reference.
+- Source captures: `C:\Users\wasse\OneDrive\Desktop\pdf-editor\work\design-qa\context-ending-2026-09-01\source-privacy-desktop.jpg`, `source-faq-desktop.jpg`, `source-footer-desktop.jpg`, `source-faq-mobile.jpg`, and `source-footer-mobile.jpg`.
+- Browser-rendered implementation: `implementation-privacy-desktop.jpg`, `implementation-faq-desktop.jpg`, `implementation-faq-open-desktop.jpg`, `implementation-footer-desktop.jpg`, `implementation-privacy-mobile.jpg`, `implementation-faq-mobile.jpg`, and `implementation-footer-mobile.jpg` in the same folder.
+- Same-input comparison evidence: `comparison-privacy-desktop.jpg`, `comparison-faq-desktop.jpg`, `comparison-footer-desktop.jpg`, `comparison-faq-mobile.jpg`, and `comparison-footer-mobile.jpg` in the same folder.
+- Desktop implementation capture: 1265 x 712 pixels at device scale factor 1. Desktop source capture: 1430 x 1017 pixels. Both were normalized into equal 720 x 512 comparison cells without stretching.
+- Mobile implementation capture: 375 x 812 pixels from a 390 x 844 browser test viewport. The reference session retained its wide layout and returned a 1270 x 714 capture after the mobile override, so mobile comparison is structural rather than pixel-precise.
+- State: privacy and footer at rest; FAQ collapsed and first-answer-expanded states; desktop and mobile responsive layouts.
+
+## Findings
+
+- No actionable P0, P1, or P2 differences remain within the requested privacy, FAQ, reassurance, and footer scope.
+- Fonts and typography: IBM Plex Sans remains applied at weight 400. The large centered headings, compact technical badges, blue-to-violet emphasis, and smaller interface labels carry the reference hierarchy without copying its product language.
+- Spacing and layout rhythm: the privacy proof uses the reference's paired white/color board, the FAQ uses a compact two-column desktop card grid, and the ending keeps fine vertical guides and broad white space. The mobile implementation intentionally stacks these structures instead of preserving the reference capture's wide desktop grid.
+- Colors and visual tokens: all warm red, coral, orange, and yellow treatment was removed from these sections. White, charcoal, PDFEnrich blue, and violet now control headings, panels, focus, icons, and reassurance states.
+- Image quality and asset fidelity: the old privacy shield and FAQ document illustrations were removed at the user's request. No generated imagery, copied Context.dev imagery, hotlinks, handcrafted SVGs, or placeholder assets were introduced; existing Lucide icons and the canonical PDFEnrich logo remain sharp and uncropped.
+- Copy and content: the privacy language distinguishes guest-local work from signed-in private account sync, the free-product promise remains explicit, and the FAQ preserves real PDFEnrich limits and capabilities.
+- States and accessibility: every FAQ row is a semantic button, opens and closes independently, updates `aria-expanded`, exposes a labelled answer region, and uses a visible blue focus ring. Mobile rows retain practical tap targets and no section clips horizontally.
+- Footer constraint: Context.dev's dark promotional CTA/footer was intentionally not copied because PDFEnrich's selected ending requires a bright utility-led footer and forbids a redundant final upload CTA. The implementation preserves the reference's grid density and strong section boundary in a white/soft-gray treatment.
+
+## Comparison history
+
+- Pass 1 found one P2 visual regression in the expanded FAQ: the legacy global focus token produced a clipped coral line across the open card.
+- Fix: the new FAQ buttons now use an inset PDFEnrich-blue focus indicator with a matching radius.
+- Pass 2 shows the expanded answer with a clean blue focus boundary and no warm accent remnant. Desktop privacy, collapsed FAQ, expanded FAQ, footer, and all three mobile regions were recaptured after the fix.
+
+## Interaction and build verification
+
+- The first FAQ answer opened, exposed its labelled region, and closed again; the answer region was removed after collapse.
+- Footer navigation remains composed of real routed links. The non-functional language dropdown was removed and replaced with the canonical domain label.
+- The current production bundle rendered without new browser warnings or errors after the import fix.
+- `pnpm typecheck` passed.
+- The full production build passed, prerendered 121 public routes plus the 404 page, and passed the public mobile-loading budget.
+
+## Follow-up polish
+
+- P3: the reference's mobile session retained a wide two-column FAQ, while PDFEnrich uses a deliberate single-column phone layout for legibility and tap comfort. This is an intentional responsive product decision, not a fidelity blocker.
+
+final result: passed
+
 # Context-Inspired Workflow Section Design QA
 
 ## Comparison target
