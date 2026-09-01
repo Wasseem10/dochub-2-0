@@ -14,6 +14,7 @@ import { WorkflowErrorState } from "../../components/public/WorkflowErrorState.j
 import { ROUTE_PATHS } from "../../router/routePaths.js";
 import { toolSeoSchemas } from "../../tools/toolSeoSchemas.js";
 import { createPdfFromPlainText, extractPlainTextFromPdf, validateTextConversionFile } from "../../tools/textConversion.js";
+import { usePendingDocumentFile } from "../../hooks/usePendingDocumentFile.js";
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = new URL("pdfjs-dist/build/pdf.worker.mjs", import.meta.url).toString();
 
@@ -40,6 +41,8 @@ export function TextConversionPage({ tool }) {
     setError(validationError);
     setFile(validationError ? null : nextFile);
   };
+
+  usePendingDocumentFile(tool.id, chooseFile);
 
   const convert = async () => {
     if (!file) return;

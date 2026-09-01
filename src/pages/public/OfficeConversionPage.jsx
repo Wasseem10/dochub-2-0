@@ -20,6 +20,7 @@ import {
   validateOfficeConversionFile,
 } from "../../tools/officeConversion.js";
 import { flattenOcrWords, OCR_LANGUAGES, ocrRenderScaleForPage } from "../../tools/ocrPdf.js";
+import { usePendingDocumentFile } from "../../hooks/usePendingDocumentFile.js";
 
 async function loadPdfRenderer() {
   const pdfjsLib = await import("pdfjs-dist");
@@ -310,6 +311,8 @@ function WordToPdfWorkspace({ tool }) {
       setError("This DOCX file could not be read. Try opening and resaving it in Word or LibreOffice.");
     }
   };
+
+  usePendingDocumentFile(tool.id, loadDocx);
 
   const convert = async () => {
     if (!buffer || !renderHostRef.current) return;

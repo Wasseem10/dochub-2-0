@@ -30,6 +30,7 @@ import { trackComparisonCta } from "./analytics/productAnalytics.js";
 import { ROUTE_PATHS } from "./router/routePaths.js";
 import { ToolIcon } from "./tools/ToolIcon.jsx";
 import { TOOL_CATEGORIES, TOOL_REGISTRY } from "./tools/toolRegistry.js";
+import { LANDING_DOCUMENT_ACCEPT } from "./tools/landingDocumentUpload.js";
 
 const asset = (fileName) => `${import.meta.env.BASE_URL}homepage/${fileName}`;
 const toolIllustration = (fileName) => `${import.meta.env.BASE_URL}tool-illustrations/${fileName}`;
@@ -254,7 +255,7 @@ function Dropzone({ choose, dragging, setDragging, isUploading, uploadError, upl
   return <button
     type="button"
     className={`freepdf-dropzone ${dragging ? "is-dragging" : ""} ${uploadError ? "has-error" : ""}`}
-    aria-label="Choose a PDF from your device"
+    aria-label="Choose a document from your device"
     aria-disabled={isUploading}
     aria-busy={isUploading}
     onClick={openFilePicker}
@@ -270,8 +271,8 @@ function Dropzone({ choose, dragging, setDragging, isUploading, uploadError, upl
     onDrop={(event) => { event.preventDefault(); setDragging(false); if (onDropFiles) onDropFiles(event.dataTransfer.files); else onUpload?.({ target: { files: event.dataTransfer.files, value: "" } }); }}
   >
     <span className="freepdf-upload-icon"><Upload size={26} /></span>
-    <span className="freepdf-dropzone-title">{dragging ? "Drop your PDF here" : isUploading ? "Opening your PDF…" : "Drop your PDF here"}</span>
-    <span className="freepdf-dropzone-copy">or <strong>choose a file</strong> from your device</span>
+    <span className="freepdf-dropzone-title">{dragging ? "Drop your document here" : isUploading ? "Opening your document…" : "Drop your document here"}</span>
+    <span className="freepdf-dropzone-copy">or <strong>choose a file</strong> · PDF, Word, Excel, PowerPoint, text, or image</span>
     <span className="freepdf-dropzone-free"><Check size={15} aria-hidden="true" /> Free to use. No account or payment needed.</span>
     <span className="freepdf-upload-status" aria-live="polite">{uploadError ? <span role="alert">{uploadError}</span> : isUploading ? <><span className="freepdf-upload-status-copy">{uploadStage.status}{uploadStage.fileName ? ` · ${uploadStage.fileName}` : ""}</span><span className="freepdf-upload-progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow={uploadStage.percent || 0}><span style={{ width: `${uploadStage.percent || 0}%` }} /></span></> : null}</span>
   </button>;
@@ -364,7 +365,7 @@ export function LatticePdfLanding({ fileInputRef, onUpload, onSelectFiles, onDro
 
   return <main className="freepdf-page">
     <PageMetadata title={HOMEPAGE_TITLE} description={HOMEPAGE_DESCRIPTION} canonicalUrl="/" schemas={[{ "@context": "https://schema.org", "@type": "WebSite", "@id": `${absoluteSiteUrl("/")}#website`, name: "PDFEnrich", alternateName: "PDFEnrich", url: absoluteSiteUrl("/"), inLanguage: "en-US" }, { "@context": "https://schema.org", "@type": "Organization", "@id": `${absoluteSiteUrl("/")}#organization`, name: "PDFEnrich", url: absoluteSiteUrl("/"), logo: absoluteSiteUrl("/icon.svg") }, { "@context": "https://schema.org", "@type": "WebApplication", name: "PDFEnrich", url: absoluteSiteUrl("/"), description: "Free browser PDF tools for editing, signing, organizing, and converting PDFs with no sign up, subscription, payment, or watermark.", applicationCategory: "UtilitiesApplication", applicationSubCategory: "PDF editor", operatingSystem: "Any", browserRequirements: "Requires a modern JavaScript-enabled browser", isAccessibleForFree: true, offers: { "@type": "Offer", price: "0", priceCurrency: "USD" }, featureList: ["Edit PDF", "Sign PDF", "Merge PDF", "Split PDF", "Compress PDF", "Convert PDF"] }]} />
-    <input ref={inputRef} className="hidden-input" type="file" accept="application/pdf,.pdf" onChange={onUpload} />
+    <input ref={inputRef} className="hidden-input" type="file" accept={LANDING_DOCUMENT_ACCEPT} onChange={onUpload} />
     <SiteHeader onChoose={choose} />
 
     <section className="freepdf-hero freepdf-context-hero">

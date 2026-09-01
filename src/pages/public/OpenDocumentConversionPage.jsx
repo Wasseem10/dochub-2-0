@@ -16,6 +16,7 @@ import { WorkflowErrorState } from "../../components/public/WorkflowErrorState.j
 import { ROUTE_PATHS } from "../../router/routePaths.js";
 import { toolSeoSchemas } from "../../tools/toolSeoSchemas.js";
 import { convertOpenDocumentToPdf, validateOpenDocumentFile } from "../../tools/openDocumentConversion.js";
+import { usePendingDocumentFile } from "../../hooks/usePendingDocumentFile.js";
 
 const MODES = Object.freeze({
   "rtf-to-pdf": { label: "RTF", extension: ".rtf", accept: "application/rtf,text/rtf,.rtf", icon: FileText, heading: "Keep the document's readable text and paragraphs", detail: "The browser parser reads standard RTF text, paragraph breaks, tabs, symbols, and Unicode escapes. Complex text boxes, images, tables, headers, footers, and exact fonts are not reconstructed." },
@@ -64,6 +65,8 @@ export function OpenDocumentConversionPage({ tool }) {
       setFile(null); setBytes(null); setStatus("idle"); setError(`This ${mode.label} file could not be read.`);
     }
   };
+
+  usePendingDocumentFile(tool.id, choose);
 
   const convert = async () => {
     if (!file || !bytes) return;

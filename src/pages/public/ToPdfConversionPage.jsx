@@ -14,6 +14,7 @@ import { ToolGuideContent } from "../../components/public/ToolGuideContent.jsx";
 import { WorkflowErrorState } from "../../components/public/WorkflowErrorState.jsx";
 import { ROUTE_PATHS } from "../../router/routePaths.js";
 import { toolSeoSchemas } from "../../tools/toolSeoSchemas.js";
+import { usePendingDocumentFile } from "../../hooks/usePendingDocumentFile.js";
 import { createPdfFromRenderedDocxPages } from "../../tools/officeConversion.js";
 import {
   createPdfFromPresentation,
@@ -232,6 +233,8 @@ export function ToPdfConversionPage({ tool }) {
       setError(loadError.message || `This ${mode.label} file could not be read.`);
     }
   };
+
+  usePendingDocumentFile(tool.id, loadFile);
 
   const convert = async () => {
     if (!file || !prepared) return;

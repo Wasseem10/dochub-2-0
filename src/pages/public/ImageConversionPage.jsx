@@ -13,6 +13,7 @@ import { PageMetadata } from "../../components/public/PageMetadata.jsx";
 import { ToolGuideContent } from "../../components/public/ToolGuideContent.jsx";
 import { ROUTE_PATHS } from "../../router/routePaths.js";
 import { createPdfFromImages, createStoredZip, IMAGE_CONVERSION_LIMITS, isSupportedImageType } from "../../tools/imageConversion.js";
+import { usePendingDocumentFile } from "../../hooks/usePendingDocumentFile.js";
 import { toolSeoSchemas } from "../../tools/toolSeoSchemas.js";
 import { ExportSuccessState } from "../../components/public/ExportSuccessState.jsx";
 import { WorkflowErrorState } from "../../components/public/WorkflowErrorState.jsx";
@@ -159,6 +160,8 @@ function ImagesToPdfWorkspace({ tool }) {
       setStatus("idle");
     }
   };
+
+  usePendingDocumentFile(tool.id, (file) => addFiles([file]));
 
   const moveImage = (from, to) => {
     if (to < 0 || to >= images.length || from === to) return;
