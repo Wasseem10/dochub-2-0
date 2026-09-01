@@ -11,6 +11,7 @@ import {
   sendPasswordResetEmail,
   signInWithEmailAndPassword,
   signInWithPopup,
+  signInWithRedirect,
   signOut,
   updateProfile,
 } from "firebase/auth";
@@ -113,6 +114,8 @@ export function formatAuthError(error) {
   if (code.includes("auth/user-not-found")) return "No account exists for that email.";
   if (code.includes("auth/weak-password")) return "Use a password with at least 6 characters.";
   if (code.includes("auth/popup-closed-by-user")) return "Google sign-in was closed before it finished.";
+  if (code.includes("auth/popup-blocked")) return "Your browser blocked the Google sign-in window. Allow pop-ups for PDFEnrich and try again.";
+  if (code.includes("auth/network-request-failed")) return "Google sign-in could not reach the authentication service. Check your connection and try again.";
   if (code.includes("auth/unauthorized-domain")) return "This domain is not authorized in Firebase Authentication settings.";
   if (code.includes("auth/requires-recent-login")) return "For security, sign out and sign in again before deleting your account.";
   if (error?.message === "browser_cleanup_failed") {
@@ -166,11 +169,20 @@ export default function FirebaseAuthProvider({ children }) {
         return { ok: true, user };
       }
       try {
-        const credential = provider === "google"
-          ? await signInWithPopup(auth, googleProvider)
-          : mode === "signup"
+        let credential;
+        if (provider === "google") {
+          try {
+            credential = await signInWithPopup(auth, googleProvider);
+          } catch (error) {
+            if (error?.code !== "auth/popup-blocked") throw error;
+            await signInWithRedirect(auth, googleProvider);
+            return { ok: true, redirecting: true };
+          }
+        } else {
+          credential = mode === "signup"
             ? await createUserWithEmailAndPassword(auth, email, password)
             : await signInWithEmailAndPassword(auth, email, password);
+        }
         if (mode === "signup" && provider !== "google" && name?.trim()) {
           await updateProfile(credential.user, { displayName: name.trim() });
         }

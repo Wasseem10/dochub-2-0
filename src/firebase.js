@@ -17,9 +17,16 @@ const productionFirebaseConfig = Object.freeze({
 });
 const useProductionFirebaseDefaults = typeof window !== "undefined";
 
+export function resolveFirebaseAuthDomain(hostname = "", configuredDomain = "") {
+  return /^(?:www\.)?pdfenrich\.com$/i.test(hostname) ? "pdfenrich.com" : configuredDomain;
+}
+
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY || (useProductionFirebaseDefaults ? productionFirebaseConfig.apiKey : ""),
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || (useProductionFirebaseDefaults ? productionFirebaseConfig.authDomain : ""),
+  authDomain: resolveFirebaseAuthDomain(
+    typeof window !== "undefined" ? window.location.hostname : "",
+    import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || (useProductionFirebaseDefaults ? productionFirebaseConfig.authDomain : ""),
+  ),
   projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || (useProductionFirebaseDefaults ? productionFirebaseConfig.projectId : ""),
   storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || (useProductionFirebaseDefaults ? productionFirebaseConfig.storageBucket : ""),
   messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || (useProductionFirebaseDefaults ? productionFirebaseConfig.messagingSenderId : ""),

@@ -1633,21 +1633,16 @@ body:has(.auth-loading-shell) .privacy-consent {
 }
 
 .auth-loading-mark {
-  position: relative;
-  display: block;
-  width: 42px;
-  height: 42px;
-  overflow: hidden;
+  display: grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
 }
 
 .auth-loading-mark img {
-  position: absolute;
-  top: -48px;
-  left: -5px;
   display: block;
-  width: 140px;
-  height: 140px;
-  max-width: none;
+  width: 30px;
+  height: 30px;
 }
 
 .auth-loading-indicator .auth-loading-progress {

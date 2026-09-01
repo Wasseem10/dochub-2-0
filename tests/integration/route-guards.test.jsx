@@ -53,7 +53,9 @@ describe("route guards", () => {
     const status = renderer.root.findByProps({ role: "status" });
     expect(status.props["aria-label"]).toBe("Opening PDFEnrich");
     expect(status.props["aria-live"]).toBe("polite");
-    expect(renderer.root.findByProps({ className: "auth-loading-mark" })).toBeTruthy();
+    const loadingMark = renderer.root.findByProps({ className: "auth-loading-mark" });
+    expect(loadingMark).toBeTruthy();
+    expect(loadingMark.findByType("img").props).toMatchObject({ src: "/icon.svg", width: 30, height: 30 });
     expect(renderer.root.findByProps({ className: "auth-loading-progress" })).toBeTruthy();
     expect(router.state.location.pathname).toBe("/app/dashboard");
   });

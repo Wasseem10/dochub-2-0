@@ -21,7 +21,7 @@ describe("production response headers", () => {
 
   it("enforces a restrictive CSP and browser security boundaries", async () => {
     const configuration = await vercelConfiguration();
-    const globalHeaders = configuration.headers.find(({ source }) => source === "/(.*)")?.headers || [];
+    const globalHeaders = configuration.headers.find(({ source }) => source === "/:path((?!__/auth/).*)")?.headers || [];
     const values = Object.fromEntries(globalHeaders.map(({ key, value }) => [key.toLowerCase(), value]));
     const scriptDirective = values["content-security-policy"]
       .split(";")
@@ -39,6 +39,18 @@ describe("production response headers", () => {
     expect(values["referrer-policy"]).toBe("no-referrer");
     expect(values["x-content-type-options"]).toBe("nosniff");
     expect(values["x-frame-options"]).toBe("DENY");
+  });
+
+  it("serves Firebase authentication callbacks from the PDFEnrich domain", async () => {
+    const configuration = await vercelConfiguration();
+    const rewrites = Object.fromEntries(configuration.rewrites.map(({ source, destination }) => [source, destination]));
+    const authHeaders = configuration.headers.find(({ source }) => source === "/__/auth/(.*)")?.headers || [];
+    const values = Object.fromEntries(authHeaders.map(({ key, value }) => [key.toLowerCase(), value]));
+
+    expect(rewrites["/__/firebase/init.json"]).toBe("/firebase-init.json");
+    expect(rewrites["/__/auth/:path*"]).toBe("https://pdf-editor-1137a.firebaseapp.com/__/auth/:path*");
+    expect(values["x-frame-options"]).toBe("SAMEORIGIN");
+    expect(values["content-security-policy"]).toContain("frame-ancestors 'self' https://pdfenrich.com");
   });
 
   it("prevents private application and bearer-link shells from being cached", async () => {
