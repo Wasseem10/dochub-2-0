@@ -140,9 +140,9 @@ Templates, Contract Analyzer, and Resume Analyzer are out of scope for PDFEnrich
 
 The selected August 5, 2026 landing refinement is Focused Editorial Upload (ideation option 1), with `C:/Users/wasse/.codex/generated_images/019fd278-d0b7-7cb3-951a-e4264584898d/exec-d92f6fb3-e68d-4739-90ff-0580e325b007.png` as its visual source. Preserve its centered editorial hierarchy, quiet icon-and-label task row, large restrained coral upload tray, generous white space, and compact four-item reassurance strip. The “100% free. No subscriptions, payments, or watermarks.” promise is plain non-interactive trust copy and must never be styled or implemented as a hyperlink.
 
-The user-selected September 1, 2026 blue-and-white cloud texture at `runtime-public/homepage/hero-blue-cloud-texture.webp` supersedes the earlier no-sky rule for the homepage hero background only. Use this supplied asset as the full hero background with a deliberate responsive crop; keep the headline, task tabs, upload tray, and reassurance strip legible above it.
-
 The selected September 1, 2026 landing hero direction supersedes the earlier hero references only: match the compact Context.dev-style centered composition with IBM Plex Sans, a crisp technical upload console, restrained blue-to-violet atmosphere, fine grid details, and a compact reassurance row. Keep the rest of the homepage unchanged until separately requested, and do not require generated concept images before implementing direct hero feedback.
+
+The user rejected the September 1 blue cloud image hero background. Keep the homepage hero image-free and use a refined white-to-blue/violet CSS atmosphere with subtle technical grid detail; do not restore the cloud image.
 
 The homepage hero upload console should use the larger September 1 sizing and accept every document format PDFEnrich can genuinely process. PDFs open directly in the editor; supported Word, spreadsheet, presentation, text, OpenDocument, HTML, archive, and image files must route into their matching browser conversion workflow with the selected file already loaded. Never imply arbitrary file support for formats that are not implemented.
 

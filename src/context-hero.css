@@ -24,11 +24,30 @@ textarea {
 .freepdf-context-hero {
   min-height: 780px;
   border-bottom: 1px solid #dfe5f1;
-  background-color: #e9f5ff;
-  background-image: url("/homepage/hero-blue-cloud-texture.webp");
-  background-position: center top;
+  background-color: #f8fbff;
+  background-image:
+    radial-gradient(ellipse 58% 46% at 50% 107%, rgba(46, 104, 232, .2) 0%, rgba(46, 104, 232, .06) 52%, transparent 76%),
+    radial-gradient(ellipse 48% 58% at 0% 104%, rgba(48, 139, 255, .62) 0%, rgba(48, 139, 255, .2) 43%, transparent 70%),
+    radial-gradient(ellipse 48% 58% at 100% 104%, rgba(108, 76, 246, .52) 0%, rgba(108, 76, 246, .16) 44%, transparent 71%),
+    linear-gradient(180deg, #fff 0%, #fbfdff 46%, #f2f6ff 68%, #dce8ff 100%);
+  background-position: center;
   background-repeat: no-repeat;
   background-size: cover;
+}
+
+.freepdf-context-hero::after {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(48, 88, 170, .035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(48, 88, 170, .035) 1px, transparent 1px);
+  background-size: 72px 72px;
+  content: "";
+  opacity: .58;
+  pointer-events: none;
+  -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 18%, #000 82%, transparent 100%);
+  mask-image: linear-gradient(180deg, transparent 0%, #000 18%, #000 82%, transparent 100%);
 }
 
 .freepdf-context-hero::before {
@@ -271,7 +290,16 @@ textarea {
   }
 
   .freepdf-context-hero {
-    background-position: 44% top;
+    background-image:
+      radial-gradient(ellipse 78% 44% at 50% 106%, rgba(46, 104, 232, .18) 0%, rgba(46, 104, 232, .05) 55%, transparent 80%),
+      radial-gradient(ellipse 66% 54% at 0% 104%, rgba(48, 139, 255, .5) 0%, rgba(48, 139, 255, .16) 46%, transparent 74%),
+      radial-gradient(ellipse 66% 54% at 100% 104%, rgba(108, 76, 246, .42) 0%, rgba(108, 76, 246, .13) 46%, transparent 74%),
+      linear-gradient(180deg, #fff 0%, #fbfdff 52%, #f1f6ff 75%, #dfeaff 100%);
+  }
+
+  .freepdf-context-hero::after {
+    background-size: 46px 46px;
+    opacity: .42;
   }
 
   .freepdf-context-hero::before {
