@@ -1139,7 +1139,9 @@
 .scan-video-shell video { display: block; width: 100%; max-height: 330px; object-fit: contain; }
 .scan-video-shell > span { position: absolute; display: grid; place-items: center; gap: 6px; text-align: center; }
 .scan-video-shell > span small { color: #cbd5e1; }
+.scan-camera-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .scan-camera-card > div:last-child button { display: inline-flex; min-height: 44px; align-items: center; gap: 8px; margin-right: 8px; padding: 0 16px; border: 0; border-radius: 11px; background: #046645; color: #fff; font: inherit; font-weight: 750; cursor: pointer; }
+.scan-camera-actions > button { margin-right: 0 !important; }
 .scan-camera-card > div:last-child .scan-camera-secondary { border: 1px solid #cbd8d2; background: #fff; color: #29443b; }
 .scan-camera-card p { color: var(--public-muted); font-size: 13px; line-height: 1.5; }
 .scan-page-list { display: grid; gap: 9px; margin: 14px 0 0; padding: 0; list-style: none; }
@@ -1150,7 +1152,7 @@
 .scan-page-list li > span { display: flex; gap: 4px; }
 .scan-page-list button { display: grid; width: 31px; height: 31px; place-items: center; border: 1px solid #d9e1dd; border-radius: 8px; background: #fff; color: #29443b; cursor: pointer; }
 .scan-page-list button:disabled { cursor: not-allowed; opacity: .35; }
-@media (max-width: 760px) { .scan-camera-card { grid-template-columns: 1fr; } .scan-page-list li { grid-template-columns: 50px minmax(0, 1fr); } .scan-page-list img { width: 50px; height: 50px; } .scan-page-list li > span { grid-column: 1 / -1; justify-content: flex-end; } }
+@media (max-width: 760px) { .scan-camera-card { grid-template-columns: 1fr; } .scan-camera-actions > button { flex: 1 1 150px; justify-content: center; } .scan-page-list li { grid-template-columns: 50px minmax(0, 1fr); } .scan-page-list img { width: 50px; height: 50px; } .scan-page-list li > span { grid-column: 1 / -1; justify-content: flex-end; } }
 
 .document-analysis-page { min-height: 100vh; padding: 24px clamp(16px, 4vw, 58px) 70px; background: radial-gradient(circle at 50% 18%, rgba(69, 91, 235, .08), transparent 35%), #fbfcff; color: var(--public-ink); }
 .document-analysis-page > * { width: min(1180px, 100%); margin-inline: auto; }

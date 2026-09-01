@@ -72,6 +72,7 @@ function downloadPdf(bytes, name, toolId) {
 
 export function ScanPdfPage({ tool }) {
   const inputRef = useRef(null);
+  const cameraInputRef = useRef(null);
   const videoRef = useRef(null);
   const streamRef = useRef(null);
   const isCamera = tool.id === "pdf-scanner";
@@ -129,6 +130,10 @@ export function ScanPdfPage({ tool }) {
 
   const startCamera = async () => {
     setError("");
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setError("Live camera preview is not supported in this browser. Use Open camera to take a page photo instead.");
+      return;
+    }
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: "environment" } }, audio: false });
       streamRef.current = stream;
@@ -200,7 +205,7 @@ export function ScanPdfPage({ tool }) {
       <PageMetadata title={tool.seoTitle} description={tool.metaDescription} canonicalUrl={tool.canonicalUrl} schemas={toolSeoSchemas(tool)} />
     <nav className="tool-breadcrumbs" aria-label="Breadcrumb"><Link to={ROUTE_PATHS.tools}>PDF tools</Link><span>/</span><span aria-current="page">{tool.name}</span></nav>
     <section className="conversion-hero"><div><small>Available · runs in your browser</small><h1>{isCamera ? "Scan paper pages into one PDF." : isSearchable ? "Turn page images into a searchable PDF." : "Build a clean PDF from scanned pages."}</h1><p>{isCamera ? "Use your camera or existing page photos, put them in order, clean them up, and download one PDF." : isSearchable ? "Recognize English text in ordered JPG and PNG pages, then add an invisible text layer for search and copy." : "Add JPG and PNG page images, rotate and reorder them, apply scan cleanup, and download one PDF."}</p></div></section>
-    {isCamera && <section className="scan-camera-card"><div className="scan-video-shell"><video ref={videoRef} muted playsInline />{!cameraOn && <span><Camera size={30} /><strong>Camera preview</strong><small>Use the rear camera for clearer paper scans.</small></span>}</div><div><button type="button" onClick={cameraOn ? capture : startCamera}>{cameraOn ? <><Camera size={18} /> Capture page</> : <><Camera size={18} /> Start camera</>}</button>{cameraOn && <button className="scan-camera-secondary" type="button" onClick={stopCamera}>Stop camera</button>}<p>Camera capture requires browser permission and HTTPS. You can always upload existing photos instead.</p></div></section>}
+    {isCamera && <section className="scan-camera-card"><div className="scan-video-shell"><video ref={videoRef} muted playsInline />{!cameraOn && <span><Camera size={30} /><strong>Camera preview</strong><small>Use the rear camera for clearer paper scans.</small></span>}</div><div><input ref={cameraInputRef} className="hidden-input" type="file" accept="image/*" capture="environment" aria-label="Take a page photo with the rear camera" onChange={(event) => { addFiles(event.target.files); event.target.value = ""; }} /><div className="scan-camera-actions"><button type="button" onClick={() => cameraInputRef.current?.click()}><Camera size={18} /> Open camera</button><button className="scan-camera-secondary" type="button" onClick={cameraOn ? capture : startCamera}>{cameraOn ? <><Camera size={18} /> Capture live preview</> : <><Camera size={18} /> Use live preview</>}</button>{cameraOn && <button className="scan-camera-secondary" type="button" onClick={stopCamera}>Stop preview</button>}</div><p>On a phone, Open camera launches the rear camera. Live preview requires browser permission and HTTPS, and existing photos can still be added below.</p></div></section>}
     <div className="conversion-workspace-grid"><section>
       <div className="conversion-dropzone" onDragOver={(event) => event.preventDefault()} onDrop={(event) => { event.preventDefault(); addFiles(event.dataTransfer.files); }}><input ref={inputRef} type="file" multiple accept="image/jpeg,image/png,.jpg,.jpeg,.png" onChange={(event) => { addFiles(event.target.files); event.target.value = ""; }} /><span><Upload size={27} /></span><h2>Add scanned page images</h2><p>Up to {SCAN_PDF_LIMITS.maxImages} JPG or PNG pages, 20 MB each.</p><button type="button" onClick={() => inputRef.current?.click()}>Choose page images</button></div>
       <WorkflowErrorState message={error} onDismiss={() => setError("")} onRetry={pages.length && status === "idle" ? createPdf : undefined} />

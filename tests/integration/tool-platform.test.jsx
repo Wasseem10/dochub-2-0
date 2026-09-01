@@ -237,6 +237,13 @@ describe("public PDF tool platform", () => {
     for (const toolId of ["pdf-scanner", "scan-to-pdf", "image-to-searchable-pdf"]) {
       const scan = await render(<ScanPdfPage tool={TOOL_BY_ID.get(toolId)} />);
       expect(scan.root.findAllByType("input").some((input) => input.props.type === "file" && input.props.multiple)).toBe(true);
+      const cameraInputs = scan.root.findAllByType("input").filter((input) => input.props.capture === "environment");
+      expect(cameraInputs).toHaveLength(toolId === "pdf-scanner" ? 1 : 0);
+      if (toolId === "pdf-scanner") {
+        expect(cameraInputs[0].props.accept).toBe("image/*");
+        expect(textOf(scan.root).includes("Open camera")).toBe(true);
+        expect(textOf(scan.root).includes("Use live preview")).toBe(true);
+      }
       expect(textOf(scan.root).includes("Private browser processing")).toBe(true);
       await unmount(scan);
     }
