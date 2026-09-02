@@ -108,7 +108,7 @@ textarea {
   color: transparent;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
-  animation: freepdf-type-reveal 5.6s steps(18, end) infinite;
+  animation: freepdf-type-reveal 3.4s steps(18, end) infinite;
   clip-path: inset(0 100% 0 0);
 }
 
@@ -130,8 +130,8 @@ textarea {
   box-shadow: 0 0 0 1px rgba(49, 95, 244, .08);
   content: "";
   animation:
-    freepdf-type-caret-position 5.6s steps(18, end) infinite,
-    freepdf-type-caret-blink .72s step-end infinite;
+    freepdf-type-caret-position 3.4s steps(18, end) infinite,
+    freepdf-type-caret-blink .56s step-end infinite;
 }
 
 .freepdf-context-hero h1 .freepdf-type-text::after {
@@ -139,15 +139,15 @@ textarea {
 }
 
 @keyframes freepdf-type-reveal {
-  0%, 8% { clip-path: inset(0 100% 0 0); }
-  48%, 78% { clip-path: inset(0 0 0 0); }
-  92%, 100% { clip-path: inset(0 100% 0 0); }
+  0%, 2% { clip-path: inset(0 100% 0 0); }
+  36%, 70% { clip-path: inset(0 0 0 0); }
+  94%, 100% { clip-path: inset(0 100% 0 0); }
 }
 
 @keyframes freepdf-type-caret-position {
-  0%, 8% { left: 0; }
-  48%, 78% { left: 100%; }
-  92%, 100% { left: 0; }
+  0%, 2% { left: 0; }
+  36%, 70% { left: 100%; }
+  94%, 100% { left: 0; }
 }
 
 @keyframes freepdf-type-caret-blink {
