@@ -144,6 +144,8 @@ The selected September 1, 2026 landing hero direction supersedes the earlier her
 
 The user rejected the September 1 blue cloud image hero background. Keep the homepage hero image-free and use a refined white-to-blue/violet CSS atmosphere with subtle technical grid detail; do not restore the cloud image.
 
+The hero’s “{free and simple.}” phrase uses a restrained repeating type-and-delete animation with a visible caret and a static reduced-motion fallback. Keep the full headline width reserved so the animation never shifts the hero layout.
+
 The homepage hero upload console should use the larger September 1 sizing and accept every document format PDFEnrich can genuinely process. PDFs open directly in the editor; supported Word, spreadsheet, presentation, text, OpenDocument, HTML, archive, and image files must route into their matching browser conversion workflow with the selected file already loaded. Never imply arbitrary file support for formats that are not implemented.
 
 Use IBM Plex Sans at weight 400 throughout the public landing page, including navigation, buttons, trust copy, and the hero; do not reintroduce semibold or bold landing-page text.
