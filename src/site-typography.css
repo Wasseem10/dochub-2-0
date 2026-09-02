@@ -1,0 +1,31 @@
+@font-face {
+  font-family: "IBM Plex Sans";
+  src: url("../runtime-public/fonts/ibm-plex-sans-latin.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 300 700;
+  font-display: swap;
+}
+
+:root {
+  --pdfenrich-ui-font: "IBM Plex Sans", "IBM Plex Sans Fallback", system-ui, sans-serif;
+  --app-font: var(--pdfenrich-ui-font);
+}
+
+html,
+body,
+#root {
+  font-family: var(--pdfenrich-ui-font) !important;
+  font-style: normal;
+  font-weight: 400;
+}
+
+/*
+ * Keep PDF page content and signature specimens faithful to the document.
+ * Everything else is PDFEnrich interface text and uses one 400-weight face.
+ */
+html body #root *:not(svg):not(svg *):not(.page-surface):not(.page-surface *):not(.sign-document-page):not(.sign-document-page *):not(.comparison-document-page):not(.comparison-document-page *):not(.signature-type-preview):not(.saved-signature-list span):not(.sign-field-overlay.is-signature.is-complete):not(.sign-typed-field strong):not(.preview-sign div) {
+  font-family: var(--pdfenrich-ui-font) !important;
+  font-style: normal !important;
+  font-weight: 400 !important;
+}
+

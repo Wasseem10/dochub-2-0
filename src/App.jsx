@@ -207,6 +207,7 @@ import "./auth-reference.css";
 import "./dashboard-bright.css";
 import "./components/editor/finish-export-modal.css";
 import "./editor-premium-color.css";
+import "./site-typography.css";
 
 const BASE_PAGE_WIDTH = 760;
 const BASE_PAGE_HEIGHT = 984;
