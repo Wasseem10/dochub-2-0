@@ -136,6 +136,8 @@ Privacy-sensitive values—including PDF bytes or text, signatures, form values,
 
 Cloud deletion must be confirmed before the UI removes a document or the Firebase Auth identity. Account deletion requires recent authentication, purges all active and legacy account-owned cloud data through the backend, then clears browser-local account data and deletes the sign-in identity. Cloud functions, IAM, App Check enforcement, quotas, malware scanning, backups, lifecycle policies, reconciliation schedules, and alerts must never be described as active until they are deployed and verified in that environment.
 
+Dashboard Remove is a reversible action: move browser and cloud documents to Trash immediately without a native browser confirmation, and show a compact Undo notice. Ask for confirmation only when the user chooses Delete forever from Trash.
+
 Templates, Contract Analyzer, and Resume Analyzer are out of scope for PDFEnrich. Do not present, link to, route to, or index those features in the public site or app dashboard.
 
 The selected August 5, 2026 landing refinement is Focused Editorial Upload (ideation option 1), with `C:/Users/wasse/.codex/generated_images/019fd278-d0b7-7cb3-951a-e4264584898d/exec-d92f6fb3-e68d-4739-90ff-0580e325b007.png` as its visual source. Preserve its centered editorial hierarchy, quiet icon-and-label task row, large restrained coral upload tray, generous white space, and compact four-item reassurance strip. The “100% free. No subscriptions, payments, or watermarks.” promise is plain non-interactive trust copy and must never be styled or implemented as a hyperlink.

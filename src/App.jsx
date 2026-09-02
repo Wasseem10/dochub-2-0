@@ -2178,6 +2178,8 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   const [cloudSyncRetryNonce, setCloudSyncRetryNonce] = useState(0);
   const [cloudTrashDocuments, setCloudTrashDocuments] = useState([]);
   const [cloudTrashStatus, setCloudTrashStatus] = useState("idle");
+  const [trashNotice, setTrashNotice] = useState(null);
+  const trashNoticeTimerRef = useRef(null);
   const [cloudSaveStage, setCloudSaveStage] = useState("idle");
   const [cloudSaveProgress, setCloudSaveProgress] = useState(0);
   const [cloudSaveError, setCloudSaveError] = useState("");
@@ -2862,6 +2864,21 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     if (storageOwnerIdRef.current !== expectedOwnerId) return false;
     const nextDocuments = [document, ...persistedDocuments.filter((item) => item.id !== document.id)];
     return replaceDocuments(nextDocuments, { memoryFallbackDocumentId });
+  };
+
+  const dismissTrashNotice = () => {
+    if (trashNoticeTimerRef.current) window.clearTimeout(trashNoticeTimerRef.current);
+    trashNoticeTimerRef.current = null;
+    setTrashNotice(null);
+  };
+
+  const showTrashNotice = (documentRecord) => {
+    if (trashNoticeTimerRef.current) window.clearTimeout(trashNoticeTimerRef.current);
+    setTrashNotice({ documentRecord, message: `“${documentRecord.name}” moved to Trash.` });
+    trashNoticeTimerRef.current = window.setTimeout(() => {
+      trashNoticeTimerRef.current = null;
+      setTrashNotice(null);
+    }, 7000);
   };
 
   const markUnsaved = () => {
@@ -4425,29 +4442,10 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
 
   const deleteDocument = async (documentRecord) => {
     const deletesCloudCopy = Boolean(documentRecord.cloudDocumentId);
-    const deletesLegacyCopy = Boolean(documentRecord.legacyCloudDocumentId);
-    const confirmed = window.confirm(deletesCloudCopy || deletesLegacyCopy
-      ? `Delete the cloud copy of "${documentRecord.name}" and remove this browser copy?`
-      : `Delete "${documentRecord.name}" from this browser?`);
-    if (!confirmed) return;
     const operationOwnerId = storageOwnerIdRef.current;
     if (documentRecord.ownerId && documentRecord.ownerId !== operationOwnerId) {
       showToast("This document does not belong to the active browser workspace.");
       return;
-    }
-    if (deletesLegacyCopy) {
-      try {
-        await deleteLegacyCloudDocument({
-          db,
-          storage,
-          userId: operationOwnerId,
-          documentId: documentRecord.legacyCloudDocumentId,
-        });
-      } catch (error) {
-        logRedactedClientError("Older cloud document deletion failed", error);
-        showToast("The older cloud deletion was not confirmed, so the document was not removed.");
-        return;
-      }
     }
     if (deletesCloudCopy) {
       try {
@@ -4457,21 +4455,24 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
         if (storageOwnerIdRef.current !== operationOwnerId) return;
       } catch (error) {
         logRedactedClientError("Private cloud document deletion failed", error);
-        showToast("Cloud deletion was not confirmed, so the document was not removed.");
+        showToast("The private cloud document could not move to Trash.");
         return;
       }
     }
     if (storageOwnerIdRef.current !== operationOwnerId) return;
-    await clearEditorSession(documentRecord.id, operationOwnerId);
-    const localRemovalConfirmed = await replaceDocuments(
-      documentsRef.current.filter((item) => item.id !== documentRecord.id),
-    );
-    if (!localRemovalConfirmed) {
+    const trashedAt = nowIso();
+    const localMoveConfirmed = await replaceDocuments(documentsRef.current.map((item) => (
+      item.id === documentRecord.id ? {
+        ...item,
+        trashedAt,
+        trashPreviousStatus: item.status || "Ready",
+        status: "Trash",
+      } : item
+    )));
+    if (!localMoveConfirmed) {
       showToast(deletesCloudCopy
-        ? "The cloud copy moved to Trash, but the browser copy could not be removed."
-        : deletesLegacyCopy
-          ? "The older cloud copy was deleted, but the browser copy could not be removed."
-          : "The browser copy could not be removed.");
+        ? "The cloud copy moved to Trash, but this browser could not update its list."
+        : "This document could not move to Trash.");
       return;
     }
     if (activeDocumentId === documentRecord.id) {
@@ -4482,11 +4483,13 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       setPdfBytes(null);
       navigate(ROUTE_PATHS.documents);
     }
-    showToast(deletesCloudCopy
-      ? "Moved to private cloud Trash."
-      : deletesLegacyCopy
-        ? "Older cloud copy deleted."
-        : "Browser copy deleted.");
+    if (deletesCloudCopy) {
+      setCloudTrashDocuments((records) => [
+        { ...documentRecord, trashedAt, status: "Trash" },
+        ...records.filter((record) => record.cloudDocumentId !== documentRecord.cloudDocumentId),
+      ]);
+    }
+    showTrashNotice(documentRecord);
   };
 
   const toggleDocumentFavorite = async (documentRecord) => {
@@ -4930,38 +4933,53 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   };
 
   const restoreCloudDocument = async (documentRecord) => {
-    if (!documentRecord?.cloudDocumentId) return;
+    if (!documentRecord) return;
     const operationOwnerId = storageOwnerIdRef.current;
     if (!operationOwnerId || (documentRecord.ownerId && documentRecord.ownerId !== operationOwnerId)) return;
     try {
-      await restorePrivateCloudDocument(documentRecord.cloudDocumentId, {
-        expectedUserId: operationOwnerId,
+      if (documentRecord.cloudDocumentId) {
+        await restorePrivateCloudDocument(documentRecord.cloudDocumentId, {
+          expectedUserId: operationOwnerId,
+        });
+      }
+      if (storageOwnerIdRef.current !== operationOwnerId) return;
+      const localDocuments = await loadLocalDocuments(operationOwnerId).catch(() => documentsRef.current);
+      const restoredDocuments = localDocuments.map((record) => {
+        const matches = record.id === documentRecord.id
+          || (documentRecord.cloudDocumentId && record.cloudDocumentId === documentRecord.cloudDocumentId);
+        if (!matches) return record;
+        const { trashedAt: _trashedAt, trashPreviousStatus, ...restoredRecord } = record;
+        return { ...restoredRecord, status: trashPreviousStatus || "Ready" };
       });
+      await saveLocalDocuments(operationOwnerId, restoredDocuments.map(compactDocumentRecordForStorage));
       if (storageOwnerIdRef.current !== operationOwnerId) return;
-      const response = await listPrivateCloudDocuments({ expectedUserId: operationOwnerId });
-      if (storageOwnerIdRef.current !== operationOwnerId) return;
-      const localDocuments = await loadLocalDocuments(operationOwnerId).catch(() => []);
-      if (storageOwnerIdRef.current !== operationOwnerId) return;
-      setDocuments((records) => mergeLocalAndPrivateCloudDocuments(
-        operationOwnerId,
-        mergeLocalAndLegacyCloudDocuments(
-          localDocuments,
-          records.filter((record) => record.legacyCloudDocumentId),
-        ),
-        response?.documents || response || [],
-      ));
+      if (documentRecord.cloudDocumentId) {
+        const response = await listPrivateCloudDocuments({ expectedUserId: operationOwnerId });
+        if (storageOwnerIdRef.current !== operationOwnerId) return;
+        const merged = mergeLocalAndPrivateCloudDocuments(
+          operationOwnerId,
+          mergeLocalAndLegacyCloudDocuments(restoredDocuments, documentsRef.current.filter((record) => record.legacyCloudDocumentId)),
+          response?.documents || response || [],
+        );
+        documentsRef.current = merged;
+        setDocuments(merged);
+      } else {
+        documentsRef.current = restoredDocuments;
+        setDocuments(restoredDocuments);
+      }
       setCloudTrashDocuments((records) => records.filter((record) => (
         record.cloudDocumentId !== documentRecord.cloudDocumentId
       )));
-      showToast("Private cloud document restored.");
+      dismissTrashNotice();
+      showToast("Document restored.");
     } catch (error) {
-      logRedactedClientError("Private cloud restore failed", error);
-      showToast("The private cloud document could not be restored.");
+      logRedactedClientError("Document restore failed", error);
+      showToast("The document could not be restored.");
     }
   };
 
   const permanentlyDeleteCloudDocument = async (documentRecord) => {
-    if (!documentRecord?.cloudDocumentId) return;
+    if (!documentRecord) return;
     const operationOwnerId = storageOwnerIdRef.current;
     if (!operationOwnerId || (documentRecord.ownerId && documentRecord.ownerId !== operationOwnerId)) return;
     const confirmed = window.confirm(
@@ -4969,19 +4987,41 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     );
     if (!confirmed) return;
     try {
-      await removePrivateCloudDocument(documentRecord.cloudDocumentId, {
-        permanent: true,
-        expectedUserId: operationOwnerId,
-      });
+      if (documentRecord.cloudDocumentId) {
+        await removePrivateCloudDocument(documentRecord.cloudDocumentId, {
+          permanent: true,
+          expectedUserId: operationOwnerId,
+        });
+      }
+      if (documentRecord.legacyCloudDocumentId) {
+        await deleteLegacyCloudDocument({
+          db,
+          storage,
+          userId: operationOwnerId,
+          documentId: documentRecord.legacyCloudDocumentId,
+        });
+      }
       if (storageOwnerIdRef.current !== operationOwnerId) return;
+      await clearEditorSession(documentRecord.id, operationOwnerId);
+      await replaceDocuments(documentsRef.current.filter((record) => (
+        record.id !== documentRecord.id
+        && (!documentRecord.cloudDocumentId || record.cloudDocumentId !== documentRecord.cloudDocumentId)
+      )));
       setCloudTrashDocuments((records) => records.filter((record) => (
         record.cloudDocumentId !== documentRecord.cloudDocumentId
       )));
-      showToast("Every private cloud version was permanently deleted.");
+      dismissTrashNotice();
+      showToast("Document permanently deleted.");
     } catch (error) {
       logRedactedClientError("Private cloud permanent deletion failed", error);
       showToast("Permanent deletion was not confirmed. The document remains in Trash.");
     }
+  };
+
+  const undoDeleteDocument = async () => {
+    const documentRecord = trashNotice?.documentRecord;
+    if (!documentRecord) return;
+    await restoreCloudDocument(documentRecord);
   };
 
   const undo = () => {
@@ -6221,6 +6261,9 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
         cloudTrashStatus={cloudTrashStatus}
         onRestoreCloudDocument={restoreCloudDocument}
         onPermanentlyDeleteCloudDocument={permanentlyDeleteCloudDocument}
+        trashNotice={trashNotice}
+        onUndoDelete={undoDeleteDocument}
+        onDismissTrashNotice={dismissTrashNotice}
       />
     );
   }
@@ -8200,6 +8243,9 @@ export function UploadLanding({
   cloudTrashStatus = "idle",
   onRestoreCloudDocument,
   onPermanentlyDeleteCloudDocument,
+  trashNotice,
+  onUndoDelete,
+  onDismissTrashNotice,
 }) {
   const activeSection = section || "Home";
   const sectionPaths = {
@@ -8301,7 +8347,15 @@ export function UploadLanding({
   const userDocuments = currentUser?.uid
     ? documents.filter((documentRecord) => documentRecord.ownerId === currentUser.uid)
     : documents;
-  const filteredDocuments = userDocuments.filter((documentRecord) => (
+  const activeUserDocuments = userDocuments.filter((documentRecord) => !documentRecord.trashedAt);
+  const localTrashDocuments = userDocuments.filter((documentRecord) => Boolean(documentRecord.trashedAt));
+  const trashDocuments = [
+    ...localTrashDocuments,
+    ...cloudTrashDocuments.filter((cloudDocument) => !localTrashDocuments.some((localDocument) => (
+      localDocument.cloudDocumentId && localDocument.cloudDocumentId === cloudDocument.cloudDocumentId
+    ))),
+  ];
+  const filteredDocuments = activeUserDocuments.filter((documentRecord) => (
     matchesSearch(documentRecord.name)
   ));
   const filteredAgreementFlows = agreementFlows.filter(({ title, detail }) => matchesSearch(`${title} ${detail}`));
@@ -8319,8 +8373,8 @@ export function UploadLanding({
     .sort((a, b) => dashboardSort === "name"
       ? a.name.localeCompare(b.name)
       : new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0));
-  const storageUsed = userDocuments.reduce((total, documentRecord) => total + (documentRecord.size || 0), 0);
-  const privateCloudDocumentCount = userDocuments.filter((documentRecord) => documentRecord.cloudDocumentId).length;
+  const storageUsed = activeUserDocuments.reduce((total, documentRecord) => total + (documentRecord.size || 0), 0);
+  const privateCloudDocumentCount = activeUserDocuments.filter((documentRecord) => documentRecord.cloudDocumentId).length;
   const isUploading = uploadStage?.status && !["idle", "complete", "error"].includes(uploadStage.status);
   const quickActionDefinitions = [
     { id: "edit-pdf", label: "Edit PDF", detail: "Edit text, images, and pages", icon: PenLine, tone: "citron", action: onSelectFiles },
@@ -8819,34 +8873,29 @@ export function UploadLanding({
         <section className="dashboard-editorial-documents dashboard-cloud-trash" aria-labelledby="cloud-trash-title">
           <header className="dashboard-documents-toolbar">
             <div>
-              <strong id="cloud-trash-title">Private cloud Trash</strong>
-              <small>Restore a document during its recovery window, or permanently delete every saved version.</small>
+              <strong id="cloud-trash-title">Trash</strong>
+              <small>Restore a document, or permanently delete it when you no longer need it.</small>
             </div>
           </header>
-          {!cloudConfigured ? (
-            <div className="dashboard-premium-empty">
-              <span><Trash2 size={25} /></span>
-              <div><strong>Private cloud storage is not connected</strong><small>Browser-only documents are deleted locally and do not enter cloud Trash.</small></div>
-            </div>
-          ) : cloudTrashStatus === "loading" ? (
+          {cloudConfigured && cloudTrashStatus === "loading" && !trashDocuments.length ? (
             <div className="dashboard-premium-empty">
               <span><LoaderCircle className="is-spinning" size={25} /></span>
               <div><strong>Loading recoverable documents</strong><small>No document contents are sent to analytics.</small></div>
             </div>
-          ) : cloudTrashStatus === "error" ? (
+          ) : cloudConfigured && cloudTrashStatus === "error" && !trashDocuments.length ? (
             <div className="dashboard-premium-empty">
               <span><AlertTriangle size={25} /></span>
               <div><strong>Trash is temporarily unavailable</strong><small>No deletion or restore was attempted.</small></div>
             </div>
-          ) : cloudTrashDocuments.length ? (
+          ) : trashDocuments.length ? (
             <div className="dashboard-library-table">
               <div className="dashboard-library-row dashboard-library-head"><span>Name</span><span>Deleted</span><span>Status</span><span>Size</span><span>Actions</span></div>
-              {cloudTrashDocuments.map((documentRecord) => (
-                <article key={documentRecord.cloudDocumentId} className="dashboard-library-row">
+              {trashDocuments.map((documentRecord) => (
+                <article key={documentRecord.cloudDocumentId || documentRecord.id} className="dashboard-library-row">
                   <div className="dashboard-library-name"><span>{renderDocumentPreview(documentRecord, true)}</span><strong>{documentRecord.name}</strong></div>
-                  <span>{formatDashboardRelativeDate(documentRecord.updatedAt)}</span>
+                  <span>{formatDashboardRelativeDate(documentRecord.trashedAt || documentRecord.updatedAt)}</span>
                   <span><em>Recoverable</em></span>
-                  <span>{documentRecord.size ? formatBytes(documentRecord.size) : "Private PDF"}</span>
+                  <span>{documentRecord.size ? formatBytes(documentRecord.size) : documentRecord.cloudDocumentId ? "Private PDF" : "Browser copy"}</span>
                   <div className="dashboard-library-actions">
                     <button type="button" onClick={() => onRestoreCloudDocument?.(documentRecord)}>Restore</button>
                     <button type="button" className="is-danger" onClick={() => onPermanentlyDeleteCloudDocument?.(documentRecord)}>Delete forever</button>
@@ -8857,7 +8906,7 @@ export function UploadLanding({
           ) : (
             <div className="dashboard-premium-empty">
               <span><Trash2 size={25} /></span>
-              <div><strong>Trash is empty</strong><small>Deleted private cloud copies appear here during the configured recovery window.</small></div>
+              <div><strong>Trash is empty</strong><small>Documents you remove will appear here before permanent deletion.</small></div>
             </div>
           )}
         </section>
@@ -9063,6 +9112,13 @@ export function UploadLanding({
           {renderWorkspaceSection()}
         </div>
       </section>
+      {trashNotice && (
+        <div className="dashboard-trash-notice" role="status" aria-live="polite">
+          <span>{trashNotice.message}</span>
+          <button type="button" onClick={onUndoDelete}>Undo</button>
+          <button type="button" className="dashboard-trash-notice-close" aria-label="Dismiss" onClick={onDismissTrashNotice}><X size={16} /></button>
+        </div>
+      )}
     </main>
   );
 }

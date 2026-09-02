@@ -95,6 +95,7 @@ export function shouldSyncPrivateCloudDocument({
     && cloudConfigured
     && !offline
     && !documentRecord.cloudOnly
+    && !documentRecord.trashedAt
     && !documentRecord.cloudRefreshRequired
     && !documentRecord.cloudConflict
     && (documentRecord.cloudDirty || !documentRecord.cloudDocumentId),

@@ -125,6 +125,15 @@ describe("private cloud multi-device catalog", () => {
     expect(pending.cloudDirty).toBe(true);
   });
 
+  it("does not sync a document after it has moved to Trash", () => {
+    expect(shouldSyncPrivateCloudDocument({
+      documentRecord: localRecord({ cloudDirty: true, trashedAt: "2026-09-02T12:00:00.000Z" }),
+      userId: "account-a",
+      cloudConfigured: true,
+      offline: false,
+    })).toBe(false);
+  });
+
   it("keeps an authenticated cloud PDF open in memory when mobile storage rejects its cache", () => {
     const documents = [localRecord(), localRecord({ id: "other", cloudDocumentId: "" })];
     const retained = markPrivateCloudDocumentMemoryOnly(documents, "local-document");
