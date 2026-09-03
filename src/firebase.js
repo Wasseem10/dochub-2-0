@@ -50,11 +50,11 @@ export const appCheck = firebaseApp && appCheckSiteKey && typeof window !== "und
     })
   : null;
 export const auth = firebaseApp ? getAuth(firebaseApp) : null;
-if (auth) {
-  setPersistence(auth, browserLocalPersistence).catch(() => {
-    // Auth still works without this, but refresh persistence may depend on browser settings.
-  });
-}
+export const authPersistenceReady = auth
+  ? setPersistence(auth, browserLocalPersistence).catch(() => {
+      // Auth can still continue with the persistence selected by the SDK.
+    })
+  : Promise.resolve();
 export const googleProvider = firebaseApp ? new GoogleAuthProvider() : null;
 export const db = firebaseApp ? getFirestore(firebaseApp) : null;
 export const storage = firebaseApp ? getStorage(firebaseApp) : null;

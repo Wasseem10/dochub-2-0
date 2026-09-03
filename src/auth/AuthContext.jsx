@@ -2,6 +2,7 @@ import { createContext, useContext } from "react";
 
 export const DEFAULT_AUTH_VALUE = Object.freeze({
   authReady: true,
+  authError: "",
   currentUser: null,
   isFirebaseConfigured: false,
   authenticate: async () => ({ ok: false, error: "Authentication is not loaded on this public page." }),

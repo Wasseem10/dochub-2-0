@@ -102,6 +102,8 @@ Match authentication to the selected Editorial Monochrome dashboard: white and n
 
 The selected July 23, 2026 authentication reference is a minimal, borderless sign-in page: one narrow 400px column on white, a dark navy `Sign In` heading and primary button, one Google sign-in button, a compact `OR USE YOUR EMAIL` divider, icon-led email and password fields, an underlined forgot-password action, and a centered PDFEnrich sign-up prompt. Do not restore the split product-preview panel, card shell, extra provider buttons, security copy, or promotional authentication content.
 
+Google sign-in on the canonical production domain uses a same-page redirect on desktop and mobile, waits for browser-local Firebase persistence before starting, and explicitly recovers the redirect result before declaring authentication ready. Do not restore popup-first Google sign-in on `pdfenrich.com`.
+
 The homepage ending must stay clean, bright, and utility-led: remove the redundant final upload CTA, use a slim three-item reassurance row, then a crisp white multi-column footer with hairline dividers, compact PDFEnrich branding, and restrained blue accents. Never restore the dark footer, oversized wordmark billboard, or a pastel promotional container at the end of the page.
 
 The selected homepage workflow, privacy, and FAQ treatment is the illustrated Paper Trail restoration from July 30, 2026: preserve the three large document-action scenes, the warm privacy proof band, and the numbered guided FAQ with its document illustration. Do not revert these sections to plain bordered cards, a lilac privacy box, or native disclosure rows.

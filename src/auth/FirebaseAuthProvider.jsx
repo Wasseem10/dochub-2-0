@@ -5,6 +5,7 @@ import {
   EmailAuthProvider,
   getAdditionalUserInfo,
   getIdTokenResult,
+  getRedirectResult,
   onAuthStateChanged,
   reauthenticateWithCredential,
   reauthenticateWithPopup,
@@ -15,7 +16,7 @@ import {
   signOut,
   updateProfile,
 } from "firebase/auth";
-import { auth, googleProvider, isFirebaseConfigured } from "../firebase.js";
+import { auth, authPersistenceReady, googleProvider, isFirebaseConfigured } from "../firebase.js";
 import { trackProductEvent, trackProductEventAsync } from "../analytics/productAnalytics.js";
 import {
   clearCloudHistoryPreference,
@@ -27,6 +28,7 @@ import { clearEditorSession, clearEditorSessionsForOwner } from "../tools/editor
 import { deleteLocalDocuments, loadLocalDocuments } from "../tools/localDocumentStore.js";
 import { logRedactedClientError } from "../monitoring/productionMonitoring.js";
 import { AuthContext } from "./AuthContext.jsx";
+import { authenticateWithGoogleProvider } from "./googleAuthFlow.js";
 import { syncAuthUserProfile } from "./authUserProfile.js";
 
 const LOCAL_AUTH_STORAGE_KEY = "pdfenrich.local-auth-user.v1";
@@ -114,7 +116,12 @@ export function formatAuthError(error) {
   if (code.includes("auth/user-not-found")) return "No account exists for that email.";
   if (code.includes("auth/weak-password")) return "Use a password with at least 6 characters.";
   if (code.includes("auth/popup-closed-by-user")) return "Google sign-in was closed before it finished.";
-  if (code.includes("auth/popup-blocked")) return "Your browser blocked the Google sign-in window. Allow pop-ups for PDFEnrich and try again.";
+  if (code.includes("auth/popup-blocked")) return "Your browser blocked Google sign-in. Open PDFEnrich directly in Safari, Chrome, or Edge and try again.";
+  if (code.includes("auth/cancelled-popup-request")) return "Another Google sign-in window is already open.";
+  if (code.includes("auth/operation-not-supported-in-this-environment") || code.includes("auth/web-storage-unsupported")) return "Google sign-in is blocked in this browser window. Open PDFEnrich directly in Safari, Chrome, or Edge and try again.";
+  if (code.includes("auth/embedded-browser")) return "Open PDFEnrich directly in Safari, Chrome, or Edge to sign in with Google. Sign-in does not work reliably inside social-media or search-app browsers.";
+  if (code.includes("auth/redirect-cancelled-by-user") || code.includes("auth/redirect-operation-pending")) return "Google sign-in did not finish. Close any extra sign-in tabs, return to PDFEnrich, and try again once.";
+  if (code.includes("auth/internal-error") || code.includes("auth/argument-error")) return "Google sign-in could not finish its secure browser handoff. Open PDFEnrich directly in Safari, Chrome, or Edge and try again.";
   if (code.includes("auth/network-request-failed")) return "Google sign-in could not reach the authentication service. Check your connection and try again.";
   if (code.includes("auth/unauthorized-domain")) return "This domain is not authorized in Firebase Authentication settings.";
   if (code.includes("auth/requires-recent-login")) return "For security, sign out and sign in again before deleting your account.";
@@ -129,6 +136,7 @@ export function formatAuthError(error) {
 
 export default function FirebaseAuthProvider({ children }) {
   const [currentUser, setCurrentUser] = useState(null);
+  const [authError, setAuthError] = useState("");
   const [authReady, setAuthReady] = useState(!isFirebaseConfigured);
 
   useEffect(() => {
@@ -138,23 +146,65 @@ export default function FirebaseAuthProvider({ children }) {
       return undefined;
     }
 
-    return onAuthStateChanged(auth, async (user) => {
-      const mappedUser = user ? await mapFirebaseUserWithClaims(user) : null;
-      if (auth.currentUser?.uid === user?.uid || !user) setCurrentUser(mappedUser);
-      setAuthReady(true);
-      if (user) {
-        syncAuthUserProfile(user).catch((error) => {
-          logRedactedClientError("Could not update the owner sign-in ledger", error);
-        });
+    let active = true;
+    let authStateResolved = false;
+    let redirectResolved = false;
+    let unsubscribe = () => {};
+    const markReady = () => {
+      if (active && authStateResolved && redirectResolved) setAuthReady(true);
+    };
+
+    const initializeAuthRecovery = async () => {
+      await authPersistenceReady;
+      if (!active) return;
+
+      unsubscribe = onAuthStateChanged(auth, async (user) => {
+        const mappedUser = user ? await mapFirebaseUserWithClaims(user) : null;
+        if (active && (auth.currentUser?.uid === user?.uid || !user)) {
+          setCurrentUser(mappedUser);
+          if (user) setAuthError("");
+        }
+        authStateResolved = true;
+        markReady();
+        if (user) {
+          syncAuthUserProfile(user).catch((error) => {
+            logRedactedClientError("Could not update the owner sign-in ledger", error);
+          });
+        }
+      });
+
+      try {
+        const credential = await getRedirectResult(auth);
+        if (!active || !credential?.user) return;
+        const user = await mapFirebaseUserWithClaims(credential.user);
+        if (!active) return;
+        const additionalUserInfo = getAdditionalUserInfo(credential);
+        trackProductEvent(additionalUserInfo?.isNewUser ? "signup_completed" : "login_completed", { authMethod: "google" });
+        setAuthError("");
+        setCurrentUser(user);
+      } catch (error) {
+        if (active) setAuthError(formatAuthError(error));
+      } finally {
+        redirectResolved = true;
+        markReady();
       }
-    });
+    };
+
+    initializeAuthRecovery();
+
+    return () => {
+      active = false;
+      unsubscribe();
+    };
   }, []);
 
   const value = useMemo(() => ({
     authReady,
+    authError,
     currentUser,
     isFirebaseConfigured,
     async authenticate({ mode, email, password, name, provider }) {
+      setAuthError("");
       if (mode === "signup") trackProductEvent("signup_started", { authMethod: provider === "google" ? "google" : "email" });
       if (!auth) {
         if (provider === "google") return { ok: false, error: "Google sign-in requires cloud authentication. Use email sign-in for this local workspace." };
@@ -169,15 +219,19 @@ export default function FirebaseAuthProvider({ children }) {
         return { ok: true, user };
       }
       try {
+        await authPersistenceReady;
         let credential;
         if (provider === "google") {
-          try {
-            credential = await signInWithPopup(auth, googleProvider);
-          } catch (error) {
-            if (error?.code !== "auth/popup-blocked") throw error;
-            await signInWithRedirect(auth, googleProvider);
-            return { ok: true, redirecting: true };
-          }
+          const googleResult = await authenticateWithGoogleProvider({
+            auth,
+            provider: googleProvider,
+            popup: signInWithPopup,
+            redirect: signInWithRedirect,
+            environment: window,
+          });
+          if (googleResult.errorCode) return { ok: false, error: formatAuthError({ code: googleResult.errorCode }) };
+          if (googleResult.redirecting) return { ok: false, redirecting: true };
+          credential = googleResult.credential;
         } else {
           credential = mode === "signup"
             ? await createUserWithEmailAndPassword(auth, email, password)
@@ -259,7 +313,7 @@ export default function FirebaseAuthProvider({ children }) {
       }
       setCurrentUser(null);
     },
-  }), [authReady, currentUser]);
+  }), [authError, authReady, currentUser]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

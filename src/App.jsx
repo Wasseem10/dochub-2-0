@@ -2103,6 +2103,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   const location = useLocation();
   const {
     authReady,
+    authError,
     currentUser,
     isFirebaseConfigured,
     authenticate,
@@ -6229,6 +6230,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
         onComplete={completeAuth}
         onPasswordReset={sendAuthPasswordReset}
         authReady={authReady}
+        authError={authError}
         isFirebaseConfigured={isFirebaseConfigured}
         routeNotice={location.state?.notice}
       />
@@ -7565,7 +7567,7 @@ function LandingPage({ fileInputRef, onUpload, onSelectFiles, onLogin }) {
   );
 }
 
-function AuthPage({ mode, setMode, onBack, onComplete, onPasswordReset, authReady, routeNotice = "" }) {
+function AuthPage({ mode, setMode, onBack, onComplete, onPasswordReset, authReady, authError = "", routeNotice = "" }) {
   const isSignup = mode === "signup";
   const isPasswordReset = mode === "forgot-password";
   const authMetadata = isSignup
@@ -7611,6 +7613,10 @@ function AuthPage({ mode, setMode, onBack, onComplete, onPasswordReset, authRead
     return () => timers.forEach((timer) => window.clearTimeout(timer));
   }, [mode]);
 
+  useEffect(() => {
+    if (authError) setError(authError);
+  }, [authError]);
+
   const submitAuth = async (event) => {
     event.preventDefault();
     setNotice("");
@@ -7644,7 +7650,7 @@ function AuthPage({ mode, setMode, onBack, onComplete, onPasswordReset, authRead
     setIsSubmitting(true);
     const result = await onComplete({ provider: "google" });
     setIsSubmitting(false);
-    if (!result?.ok) setError(result?.error || "Google sign-in failed.");
+    if (!result?.ok && !result?.redirecting) setError(result?.error || "Google sign-in failed.");
   };
 
   const switchMode = () => {
