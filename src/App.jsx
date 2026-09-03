@@ -8555,10 +8555,11 @@ export function UploadLanding({
 
   const renderDashboardContinueShelf = () => continueDashboardRows.length ? (
     <div className="dashboard-selected-shelf-grid">
-      {continueDashboardRows.map((documentRecord) => (
-        <article key={documentRecord.id} className="dashboard-selected-shelf-item">
+      {continueDashboardRows.map((documentRecord, index) => (
+        <article key={documentRecord.id} className="dashboard-selected-shelf-item" data-accent={index % 4}>
           <button type="button" className="dashboard-selected-shelf-preview" onClick={() => onOpenDocument(documentRecord)}>
             {renderDocumentPreview(documentRecord)}
+            <span className="dashboard-selected-shelf-filemark" aria-hidden="true"><FileText size={15} /></span>
           </button>
           <button type="button" className="dashboard-selected-shelf-name" onClick={() => onOpenDocument(documentRecord)}>
             <strong>{documentRecord.name}</strong>
@@ -8569,9 +8570,12 @@ export function UploadLanding({
     </div>
   ) : (
     <div className="dashboard-selected-empty-shelf">
-      <FileText size={22} />
-      <span><strong>No documents yet</strong><small>Upload a PDF and it will appear here.</small></span>
-      <button type="button" onClick={onSelectFiles}>Upload PDF</button>
+      <span className="dashboard-selected-empty-mark" aria-hidden="true"><FileText size={24} /></span>
+      <span><strong>Your next PDF starts here</strong><small>Upload a file or open a clean page. It will stay in this workspace for quick access.</small></span>
+      <div className="dashboard-selected-empty-actions">
+        <button type="button" onClick={onSelectFiles}>Upload PDF</button>
+        <button type="button" onClick={onBlankPage}>Blank PDF</button>
+      </div>
     </div>
   );
 
@@ -8972,13 +8976,13 @@ export function UploadLanding({
           </div>
           <div className="dashboard-selected-tool-strip" aria-label="PDF tools">
             {quickActionDefinitions.map(({ id, label, icon: Icon, action }) => (
-              <button type="button" key={id} onClick={action}>
-                <Icon size={22} strokeWidth={1.55} aria-hidden="true" />
+              <button type="button" key={id} data-tool={id} onClick={action}>
+                <span className="dashboard-selected-tool-icon"><Icon size={25} strokeWidth={1.65} aria-hidden="true" /></span>
                 <span>{label}</span>
               </button>
             ))}
-            <button type="button" onClick={() => setActiveSection("Features")}>
-              <Grid2X2 size={21} strokeWidth={1.55} aria-hidden="true" />
+            <button type="button" data-tool="all-tools" onClick={() => setActiveSection("Features")}>
+              <span className="dashboard-selected-tool-icon"><Grid2X2 size={24} strokeWidth={1.65} aria-hidden="true" /></span>
               <span>All tools</span>
             </button>
           </div>
