@@ -1,2 +1,10 @@
 design-evidence/
 tmp/
+work/
+.pnpm-store/
+node_modules/
+dist/
+test-results/
+playwright-report/
+scripts/__pycache__/
+UserswasseOneDriveDesktoppdf-editorworkdesign-qaeditor-audit-01-current.png
