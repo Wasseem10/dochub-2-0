@@ -128,3 +128,33 @@ final result: passed
 - The combined reference-versus-implementation image was reviewed at original resolution.
 
 final result: passed
+
+# Dashboard design QA
+
+## Visual source
+
+- Selected reference: `work/design-references/dashboard-quiet-workspace-selected-2026-09-03.png`
+- Implemented route: `http://localhost:4173/app/dashboard`
+- Verified in the Codex in-app browser at a 919 × 912 viewport against the selected reference.
+
+## Comparison
+
+- **Composition — pass:** white application shell, narrow left navigation, compact search/upload header, split workspace-and-tools introduction, document shelf, and dense ledger follow the selected hierarchy.
+- **Color — pass:** the interface is neutral white/gray with blue restricted to the PDFEnrich logo, upload action, active rail marker, and active tab underline.
+- **Typography — pass:** IBM Plex Sans at weight 400 is applied throughout the dashboard chrome; hierarchy comes from size, spacing, and contrast rather than heavy weights.
+- **Density — pass:** navigation and rows are compact, document previews remain the largest content element, and the ledger fits without horizontal page overflow.
+- **Responsive behavior — pass:** the desktop rail becomes a compact top identity bar, the tool strip scrolls safely, the shelf changes to two columns, and ledger rows recompose into touch-friendly cards at narrow widths.
+- **Content fidelity — pass:** the implementation uses real local/cloud document records and real thumbnails when source bytes exist; it does not introduce fake files or metrics to fill the four-card reference shelf.
+
+## Interaction checks
+
+- Search filters the shelf and ledger and exposes a useful empty state.
+- Recent/Favorites switches views without affecting the Continue working shelf.
+- Tool shortcuts navigate to their real PDFEnrich workflows.
+- Notification popover opens and closes.
+- Document action menus expose the existing open, rename, download, favorite, and remove workflows.
+- Upload PDF remains the primary action and signed-in sync disclosure remains visible.
+
+## Result
+
+**Passed.** No blocking visual or functional mismatches remain for the selected dashboard direction.

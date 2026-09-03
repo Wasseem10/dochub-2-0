@@ -21,7 +21,6 @@ import CheckCircle2 from "lucide-react/dist/esm/icons/check-circle-2.mjs";
 import ChevronDown from "lucide-react/dist/esm/icons/chevron-down.mjs";
 import ChevronUp from "lucide-react/dist/esm/icons/chevron-up.mjs";
 import CircleHelp from "lucide-react/dist/esm/icons/circle-help.mjs";
-import Clock3 from "lucide-react/dist/esm/icons/clock-3.mjs";
 import Copy from "lucide-react/dist/esm/icons/copy.mjs";
 import Download from "lucide-react/dist/esm/icons/download.mjs";
 import EllipsisVertical from "lucide-react/dist/esm/icons/ellipsis-vertical.mjs";
@@ -205,6 +204,7 @@ import "./dashboard-editorial.css";
 import "./editor-editorial.css";
 import "./auth-reference.css";
 import "./dashboard-bright.css";
+import "./dashboard-selected.css";
 import "./components/editor/finish-export-modal.css";
 import "./editor-premium-color.css";
 import "./site-typography.css";
@@ -8282,24 +8282,13 @@ export function UploadLanding({
     .slice(0, 2)
     .map((part) => part[0]?.toUpperCase())
     .join("") || "U";
-  const dashboardFirstName = currentUser?.name?.trim().split(/\s+/)[0]
-    || currentUser?.email?.split("@")[0]
-    || "";
   const dashboardAccountName = currentUser?.name?.trim()
     || currentUser?.email?.split("@")[0]
     || "Local";
-  const dashboardHour = new Date().getHours();
-  const dashboardGreeting = dashboardHour < 12
-    ? "Good morning"
-    : dashboardHour < 18
-      ? "Good afternoon"
-      : "Good evening";
 
   const primaryNav = [
     { label: "Home", section: "Home", icon: Home },
     { label: "Documents", icon: FileText },
-    { label: "Recent", section: "Home", icon: Clock3, anchor: "dashboard-recent" },
-    { label: "Signatures", icon: PenLine },
     { label: "All tools", section: "Features", icon: AllToolsNavIcon },
   ];
 
@@ -8366,6 +8355,9 @@ export function UploadLanding({
     : suggestionView === "shared"
       ? filteredDocuments.filter((documentRecord) => /shared/i.test(documentRecord.location || ""))
       : filteredDocuments;
+  const continueDashboardRows = [...filteredDocuments]
+    .sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0))
+    .slice(0, 4);
   const recentDashboardRows = [...dashboardDocumentPool]
     .sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0))
     .slice(0, 5);
@@ -8561,36 +8553,67 @@ export function UploadLanding({
     <DashboardDocumentThumbnail documentRecord={documentRecord} compact={compact} />
   );
 
-  const renderRecentDashboardCards = () => recentDashboardRows.length ? (
-    <div className="dashboard-recent-ledger">
-      {recentDashboardRows.map((documentRecord) => (
-        <article key={documentRecord.id} className="dashboard-recent-ledger-row">
-          <button type="button" className="dashboard-recent-ledger-file" onClick={() => onOpenDocument(documentRecord)}>
-            <span className="dashboard-recent-ledger-preview">{renderDocumentPreview(documentRecord, true)}</span>
-            <span>
-              <strong>{documentRecord.name}</strong>
-              <small>{documentRecord.size ? formatBytes(documentRecord.size) : "Local PDF"} · {documentRecord.status || "Ready to edit"}</small>
-            </span>
+  const renderDashboardContinueShelf = () => continueDashboardRows.length ? (
+    <div className="dashboard-selected-shelf-grid">
+      {continueDashboardRows.map((documentRecord) => (
+        <article key={documentRecord.id} className="dashboard-selected-shelf-item">
+          <button type="button" className="dashboard-selected-shelf-preview" onClick={() => onOpenDocument(documentRecord)}>
+            {renderDocumentPreview(documentRecord)}
           </button>
-          <time dateTime={documentRecord.updatedAt || undefined}>{formatDashboardRelativeDate(documentRecord.updatedAt)}</time>
-          <button
-            type="button"
-            className={`dashboard-favorite-button ${documentRecord.favorite ? "is-favorite" : ""}`}
-            aria-label={documentRecord.favorite ? `Remove ${documentRecord.name} from favorites` : `Add ${documentRecord.name} to favorites`}
-            aria-pressed={!!documentRecord.favorite}
-            onClick={() => onToggleFavorite(documentRecord)}
-          >
-            <Star size={16} fill={documentRecord.favorite ? "currentColor" : "none"} />
+          <button type="button" className="dashboard-selected-shelf-name" onClick={() => onOpenDocument(documentRecord)}>
+            <strong>{documentRecord.name}</strong>
+            <small>{formatDashboardRelativeDate(documentRecord.updatedAt)}</small>
           </button>
-          {renderDashboardDocumentMenu(documentRecord)}
         </article>
       ))}
     </div>
   ) : (
-    <div className="dashboard-premium-empty">
-      <span><FileText size={25} /></span>
-      <div><strong>{normalizedQuery ? "No matching recent documents" : "Your recent work will appear here"}</strong><small>{normalizedQuery ? "Try a different search." : "Upload a PDF to start editing."}</small></div>
-      {!normalizedQuery && <button type="button" onClick={onSelectFiles}>Upload PDF</button>}
+    <div className="dashboard-selected-empty-shelf">
+      <FileText size={22} />
+      <span><strong>No documents yet</strong><small>Upload a PDF and it will appear here.</small></span>
+      <button type="button" onClick={onSelectFiles}>Upload PDF</button>
+    </div>
+  );
+
+  const renderDashboardRecentLedger = () => dashboardDocumentPool.length ? (
+    <div className="dashboard-selected-ledger">
+      <div className="dashboard-selected-ledger-row dashboard-selected-ledger-head" aria-hidden="true">
+        <span>Name</span>
+        <span>Type / Status</span>
+        <span>Modified <ArrowDownToLine size={12} /></span>
+        <span>Pages</span>
+        <span><Star size={13} /></span>
+        <span>Actions</span>
+      </div>
+      {[...dashboardDocumentPool]
+        .sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0))
+        .slice(0, 8)
+        .map((documentRecord) => (
+          <article key={documentRecord.id} className="dashboard-selected-ledger-row">
+            <button type="button" className="dashboard-selected-ledger-name" onClick={() => onOpenDocument(documentRecord)}>
+              <FileText size={15} aria-hidden="true" />
+              <strong>{documentRecord.name}</strong>
+            </button>
+            <span>PDF · {documentRecord.cloudDocumentId ? "Synced" : "Local"}</span>
+            <time dateTime={documentRecord.updatedAt || undefined}>{formatDateTime(documentRecord.updatedAt)}</time>
+            <span>{documentRecord.pageCount || documentRecord.pages?.length || 1}</span>
+            <button
+              type="button"
+              className={`dashboard-favorite-button ${documentRecord.favorite ? "is-favorite" : ""}`}
+              aria-label={documentRecord.favorite ? `Remove ${documentRecord.name} from favorites` : `Add ${documentRecord.name} to favorites`}
+              aria-pressed={!!documentRecord.favorite}
+              onClick={() => onToggleFavorite(documentRecord)}
+            >
+              <Star size={15} fill={documentRecord.favorite ? "currentColor" : "none"} />
+            </button>
+            {renderDashboardDocumentMenu(documentRecord, 17)}
+          </article>
+        ))}
+    </div>
+  ) : (
+    <div className="dashboard-selected-empty-ledger">
+      <span>{normalizedQuery || suggestionView === "starred" ? "No documents match this view." : "Your recent documents will appear here."}</span>
+      {(normalizedQuery || suggestionView === "starred") && <button type="button" onClick={() => { setSearchQuery(""); setSuggestionView("recent"); }}>Show recent documents</button>}
     </div>
   );
 
@@ -8936,55 +8959,55 @@ export function UploadLanding({
 
     return (
       <div
-        className={`dashboard-premium-home dashboard-editorial-home dashboard-bright-home ${isDraggingFile ? "is-dragging" : ""}`}
+        className={`dashboard-premium-home dashboard-editorial-home dashboard-bright-home dashboard-selected-home ${isDraggingFile ? "is-dragging" : ""}`}
         onDragEnter={(event) => { event.preventDefault(); setIsDraggingFile(true); }}
         onDragOver={(event) => { event.preventDefault(); setIsDraggingFile(true); }}
         onDragLeave={(event) => { if (event.currentTarget === event.target) setIsDraggingFile(false); }}
         onDrop={onDropFile}
       >
-        <header className="dashboard-bright-welcome">
-          <div className="dashboard-bright-welcome-copy">
-            <h1>{dashboardFirstName ? <>Welcome back, {dashboardFirstName}! <span aria-hidden="true">👋</span></> : "Your PDF workspace"}</h1>
-            <p>Upload, edit, and reopen anywhere. Signed-in PDFs sync privately to your account.</p>
+        <header className="dashboard-selected-intro">
+          <div className="dashboard-selected-intro-copy">
+            <h1>Your PDF workspace</h1>
+            <p>Upload, edit, and reopen anywhere.<br />Signed-in PDFs sync privately to your account.</p>
           </div>
-          <img className="dashboard-bright-welcome-art" src="/dashboard-workspace-hero-2026-07-29.png" alt="" />
+          <div className="dashboard-selected-tool-strip" aria-label="PDF tools">
+            {quickActionDefinitions.map(({ id, label, icon: Icon, action }) => (
+              <button type="button" key={id} onClick={action}>
+                <Icon size={22} strokeWidth={1.55} aria-hidden="true" />
+                <span>{label}</span>
+              </button>
+            ))}
+            <button type="button" onClick={() => setActiveSection("Features")}>
+              <Grid2X2 size={21} strokeWidth={1.55} aria-hidden="true" />
+              <span>All tools</span>
+            </button>
+          </div>
           {(isUploading || uploadError) && (
-            <div className="dashboard-bright-upload-status" role="status">
+            <div className="dashboard-selected-upload-status" role="status">
               {isUploading && <span>{uploadStage.status}: {uploadStage.fileName}</span>}
               {uploadError && <span className="upload-error">{uploadError}</span>}
             </div>
           )}
         </header>
 
-        <section className="dashboard-bright-actions" aria-labelledby="dashboard-quick-actions-title">
+        <section className="dashboard-selected-continue" aria-labelledby="dashboard-continue-title">
           <header>
-            <h2 id="dashboard-quick-actions-title"><Zap size={15} aria-hidden="true" /> Quick actions</h2>
+            <h2 id="dashboard-continue-title">Continue working</h2>
+            <button type="button" onClick={() => setActiveSection("Documents")}>View all <ChevronRight size={14} /></button>
           </header>
-          <div className="dashboard-bright-action-grid">
-            {quickActionDefinitions.map(({ id, label, detail, icon: Icon, tone, action }) => (
-              <button type="button" className={`dashboard-bright-action is-${tone}`} key={id} onClick={action}>
-                <span><Icon size={27} strokeWidth={1.75} /></span>
-                <span className="dashboard-bright-action-copy"><strong>{label}</strong><small>{detail}</small></span>
-              </button>
-            ))}
-            <button type="button" className="dashboard-bright-action dashboard-bright-all-tools" onClick={() => setActiveSection("Features")}>
-              <span><Grid2X2 size={25} strokeWidth={1.75} /></span>
-              <span className="dashboard-bright-action-copy"><strong>All tools</strong><small>Explore every PDF tool</small></span>
-              <ChevronRight size={17} aria-hidden="true" />
-            </button>
-          </div>
-          <span className="sr-only">Edit a PDF. Sign a PDF. Organize pages. Blank PDF.</span>
+          {renderDashboardContinueShelf()}
         </section>
 
-        <section id="dashboard-recent" className="dashboard-bright-recent" aria-labelledby="dashboard-recent-title">
+        <section id="dashboard-recent" className="dashboard-selected-recent" aria-labelledby="dashboard-recent-title">
           <header>
+            <h2>All recent documents</h2>
             <div>
-              <button type="button" className={suggestionView === "recent" ? "is-active" : ""} onClick={() => setSuggestionView("recent")} id="dashboard-recent-title">Recent documents</button>
+              <button type="button" className={suggestionView === "recent" ? "is-active" : ""} onClick={() => setSuggestionView("recent")} id="dashboard-recent-title">Recent</button>
               <button type="button" className={suggestionView === "starred" ? "is-active" : ""} onClick={() => setSuggestionView("starred")}>Favorites</button>
             </div>
-            <button type="button" onClick={() => setActiveSection("Documents")}>View all <ChevronRight size={16} /></button>
           </header>
-          {renderRecentDashboardCards()}
+          {renderDashboardRecentLedger()}
+          <span className="sr-only">Edit a PDF. Sign a PDF. Organize pages. Blank PDF.</span>
         </section>
       </div>
     );
