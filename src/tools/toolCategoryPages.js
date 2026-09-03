@@ -68,10 +68,10 @@ const categorySeoContent = Object.freeze({
   },
   ai: {
     slug: "document-analysis-tools",
-    seoTitle: "PDF Analysis and Question Tools | PDFEnrich",
-    metaDescription: "Search, summarize, extract, and review PDF content with source-grounded browser tools and page references.",
-    headline: "Find important PDF content with its source pages attached.",
-    intro: "Search for matching passages, create extractive summaries, identify structured fields, and surface review questions without pretending the tool knows more than the document shows.",
+    seoTitle: "Analyze PDF Online Free — Search, Summarize, Extract | PDFEnrich",
+    metaDescription: "Analyze PDFs online for free: search passages, create extractive summaries, extract fields, and review source-page references in your browser.",
+    headline: "Analyze a PDF and trace every result back to its page.",
+    intro: "Search matching passages, create extractive summaries, identify structured fields, and surface review questions with source-page references instead of unsupported answers.",
     guidance: ["Use specific names, dates, phrases, and numbers in questions.", "Open the cited page before relying on an extracted passage.", "Treat contract and resume analysis as review support, not professional or hiring advice."],
   },
   "compare-review": {

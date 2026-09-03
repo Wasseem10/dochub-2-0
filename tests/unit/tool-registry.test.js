@@ -63,7 +63,7 @@ describe("PDFEnrich tool registry", () => {
   });
 
   it("provides substantial, unique guidance for every researched high-intent tool", () => {
-    expect(HIGH_INTENT_TOOL_IDS).toHaveLength(14);
+    expect(HIGH_INTENT_TOOL_IDS).toHaveLength(18);
     for (const toolId of HIGH_INTENT_TOOL_IDS) {
       const tool = TOOL_REGISTRY.find(({ id }) => id === toolId);
       expect(tool, toolId).toBeTruthy();
@@ -85,12 +85,12 @@ describe("PDFEnrich tool registry", () => {
     expect(translate.faqEntries.some(({ answer }) => answer.includes("English as the target"))).toBe(true);
   });
 
-  it("marks the ten primary search pages and gives them curated tool journeys", () => {
-    expect(PRIMARY_SEARCH_TOOL_IDS).toHaveLength(10);
-    expect(new Set(PRIMARY_SEARCH_TOOL_IDS).size).toBe(10);
+  it("marks the fourteen primary search pages and gives them curated tool journeys", () => {
+    expect(PRIMARY_SEARCH_TOOL_IDS).toHaveLength(14);
+    expect(new Set(PRIMARY_SEARCH_TOOL_IDS).size).toBe(14);
     const priorityTools = TOOL_REGISTRY.filter(({ searchPriority }) => searchPriority);
     expect(priorityTools.map(({ id }) => id)).toEqual(expect.arrayContaining(PRIMARY_SEARCH_TOOL_IDS));
-    expect(priorityTools).toHaveLength(10);
+    expect(priorityTools).toHaveLength(14);
     expect(priorityTools.every(({ searchRelatedTools, relatedTools }) => searchRelatedTools.length === 3 && relatedTools.join("|") === searchRelatedTools.join("|"))).toBe(true);
   });
 
@@ -106,7 +106,7 @@ describe("PDFEnrich tool registry", () => {
     });
   });
 
-  it("adds truthful free WebApplication markup only to the ten primary search pages", () => {
+  it("adds truthful free WebApplication markup only to the fourteen primary search pages", () => {
     const prioritySchemas = toolSeoSchemas(TOOL_REGISTRY.find(({ id }) => id === "pdf-to-word"));
     expect(prioritySchemas.map((schema) => schema["@type"])).toEqual(["BreadcrumbList", "WebApplication"]);
     expect(prioritySchemas[1]).toMatchObject({

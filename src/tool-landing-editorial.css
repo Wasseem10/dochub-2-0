@@ -1056,6 +1056,56 @@
   text-underline-offset: 3px;
 }
 
+.tool-export-account-prompt {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  padding: 12px;
+  border: 1px solid #dce3f2;
+  border-radius: 10px;
+  background: #fff;
+  color: #34405c;
+}
+
+.tool-export-account-prompt > svg {
+  color: var(--tool-blue);
+}
+
+.tool-export-account-prompt strong,
+.tool-export-account-prompt small {
+  display: block;
+}
+
+.tool-export-account-prompt strong {
+  color: var(--tool-ink);
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.tool-export-account-prompt small {
+  margin-top: 2px;
+  color: #70798d;
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+.tool-export-account-prompt > a {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--tool-blue);
+  font-size: 11px;
+  font-weight: 400;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.tool-export-account-prompt > a:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
 .tool-export-success > footer {
   display: flex;
   align-items: center;
@@ -1668,6 +1718,14 @@
   .tool-export-success > footer {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .tool-export-account-prompt {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .tool-export-account-prompt > a {
+    grid-column: 2;
   }
 
   .workflow-error-state {

@@ -19,6 +19,18 @@ describe("production response headers", () => {
     expect(salesRedirect).toMatchObject({ destination: "/support", permanent: true });
   });
 
+  it("permanently retires out-of-scope template and analyzer URLs", async () => {
+    const configuration = await vercelConfiguration();
+    const redirects = Object.fromEntries(configuration.redirects.map(({ source, destination, permanent }) => [source, { destination, permanent }]));
+
+    expect(redirects).toMatchObject({
+      "/offer-letter-templates": { destination: "/tools", permanent: true },
+      "/contract-templates": { destination: "/tools", permanent: true },
+      "/contract-analyzer": { destination: "/tools/document-analysis-tools", permanent: true },
+      "/resume-analyzer": { destination: "/tools/document-analysis-tools", permanent: true },
+    });
+  });
+
   it("enforces a restrictive CSP and browser security boundaries", async () => {
     const configuration = await vercelConfiguration();
     const globalHeaders = configuration.headers.find(({ source }) => source === "/:path((?!__/auth/).*)")?.headers || [];

@@ -9,6 +9,7 @@ export const ANALYTICS_EVENT_NAMES = Object.freeze([
   "pdf_saved",
   "pdf_downloaded",
   "signup_started",
+  "signup_prompt_clicked",
   "signup_completed",
   "login_completed",
   "logout_completed",

@@ -30,7 +30,9 @@ const requireMatch = (condition, message) => {
 };
 
 requireMatch(sitemapUrls.length >= 80, `Sitemap exposes only ${sitemapUrls.length} public URLs.`);
+requireMatch(sitemapUrls.every(({ origin }) => origin === "https://pdfenrich.com"), "Sitemap contains a non-canonical host or protocol.");
 requireMatch(!sitemapUrls.some(({ pathname }) => /^\/(app|login|signup|forgot-password|share|sign)(\/|$)/.test(pathname)), "Sitemap includes a private, auth, or token route.");
+requireMatch(!sitemapUrls.some(({ pathname }) => /(?:template|contract-analyzer|resume-analyzer)/i.test(pathname)), "Sitemap includes a retired template or analyzer route.");
 requireMatch(sitemapLastModified.length === sitemapUrls.length, "Sitemap is missing a lastmod freshness signal for one or more canonical URLs.");
 requireMatch(sitemapLastModified.every(([, , value]) => /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(Date.parse(value))), "Sitemap contains an invalid lastmod date.");
 
