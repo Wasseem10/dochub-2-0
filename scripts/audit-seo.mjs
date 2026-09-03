@@ -117,6 +117,8 @@ const indexNowKey = await read(`dist/${INDEXNOW_KEY_FILE}`);
 requireMatch(home.includes('rel="icon" href="/icon.svg"'), "Homepage is missing the stable search favicon.");
 requireMatch(home.includes(`<title>${HOMEPAGE_TITLE}</title>`), "Homepage title is not aligned with the shared search-intent metadata.");
 requireMatch(home.includes(`<meta name="description" content="${HOMEPAGE_DESCRIPTION}"`), "Homepage description is not aligned with the shared search-intent metadata.");
+requireMatch(home.includes('<script src="/boot.js"></script>'), "Homepage is missing the early browser boot guard.");
+requireMatch(home.includes('.pdfenrich-js .prerender-shell{display:none}'), "Homepage can expose the prerender shell before the interactive landing page starts.");
 requireMatch(indexNowKey.trim() === INDEXNOW_KEY, "The deployed IndexNow ownership key is missing or invalid.");
 requireMatch(toolsDirectory.includes(`<title>${expectedDirectoryMetadata.title}</title>`), "/tools: prerendered title does not match the interactive directory title.");
 requireMatch(toolsDirectory.includes(`<meta name="description" content="${expectedDirectoryMetadata.description}"`), "/tools: prerendered description does not match the interactive directory description.");
