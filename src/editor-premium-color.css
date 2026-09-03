@@ -162,6 +162,7 @@
   main.editor-shell .reference-toolbar-button svg {
     width: 21px !important;
     height: 21px !important;
+    color: #3f4652 !important;
   }
 
   main.editor-shell .reference-toolbar-button:hover {
@@ -210,26 +211,7 @@
   main.editor-shell .reference-markup-tools::after,
   main.editor-shell .reference-annotation-tools::after,
   main.editor-shell .reference-secondary-tools::after {
-    position: absolute;
-    right: 10px;
-    bottom: -1px;
-    left: 6px;
-    height: 2px;
-    border-radius: 999px;
-    content: "";
-    pointer-events: none;
-  }
-
-  main.editor-shell .reference-content-tools::after {
-    background: linear-gradient(90deg, rgba(255, 100, 115, 0.85), rgba(255, 149, 105, 0.55));
-  }
-
-  main.editor-shell .reference-markup-tools::after {
-    background: linear-gradient(90deg, rgba(125, 99, 242, 0.78), rgba(255, 100, 115, 0.48));
-  }
-
-  main.editor-shell .reference-annotation-tools::after {
-    background: linear-gradient(90deg, rgba(235, 180, 33, 0.78), rgba(47, 131, 232, 0.62));
+    display: none !important;
   }
 
   main.editor-shell .reference-secondary-tools {
@@ -237,28 +219,6 @@
     margin-left: 0 !important;
     padding-left: 8px !important;
     border-left: 0 !important;
-  }
-
-  main.editor-shell .reference-secondary-tools::after {
-    background: rgba(47, 131, 232, 0.72);
-  }
-
-  main.editor-shell .reference-content-tools .reference-toolbar-button:not(.reference-select-tool) svg {
-    color: #e45667 !important;
-  }
-
-  main.editor-shell .reference-content-tools .reference-toolbar-button:nth-last-child(1) svg,
-  main.editor-shell .reference-markup-tools .reference-toolbar-button svg {
-    color: #6252d7 !important;
-  }
-
-  main.editor-shell .reference-annotation-tools .reference-toolbar-button:nth-child(-n + 2) svg {
-    color: #b37b00 !important;
-  }
-
-  main.editor-shell .reference-annotation-tools .reference-toolbar-button:nth-child(n + 3) svg,
-  main.editor-shell .reference-secondary-tools .reference-toolbar-button svg {
-    color: #246fca !important;
   }
 
   main.editor-shell .reference-toolbar-button.is-active svg,
@@ -327,7 +287,7 @@
   main.editor-shell .thumbnail-list,
   main.editor-shell .thumbnail-list.grid {
     gap: 20px !important;
-    padding: 22px 32px 20px !important;
+    padding: 8px 32px 20px !important;
     background: transparent !important;
   }
 
@@ -347,7 +307,7 @@
   }
 
   main.editor-shell .thumbnail.is-selected::before {
-    background: var(--studio-coral) !important;
+    background: var(--studio-blue) !important;
   }
 
   main.editor-shell .thumbnail-preview {
