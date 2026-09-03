@@ -49,6 +49,46 @@
 
 final result: passed
 
+# Dashboard Two-Tone Tool Icons Design QA
+
+## Comparison target
+
+- Source visual truth: `C:\Users\wasse\OneDrive\Desktop\pdf-editor\work\design-references\dashboard-tool-icons-two-tone-selected-2026-09-03.png` (1829 × 860 pixels).
+- Desktop implementation: `C:\Users\wasse\OneDrive\Desktop\pdf-editor\work\design-qa\dashboard-tool-icons-2026-09-03\implementation-desktop.png` (1265 × 712 pixels from a 1280 × 720 CSS viewport).
+- Focused icon-row implementation: `C:\Users\wasse\OneDrive\Desktop\pdf-editor\work\design-qa\dashboard-tool-icons-2026-09-03\implementation-icons.png` (960 × 232 normalized crop).
+- Normalized source crop: `C:\Users\wasse\OneDrive\Desktop\pdf-editor\work\design-qa\dashboard-tool-icons-2026-09-03\source-icons-normalized.png` (960 × 207 pixels).
+- Same-input comparison evidence: `C:\Users\wasse\OneDrive\Desktop\pdf-editor\work\design-qa\dashboard-tool-icons-2026-09-03\comparison.png`.
+- Mobile implementation: `C:\Users\wasse\OneDrive\Desktop\pdf-editor\work\design-qa\dashboard-tool-icons-2026-09-03\implementation-mobile.png` (375 × 812 pixels from a 390 × 844 CSS viewport).
+- State: anonymous dashboard at rest with the real empty document state. Device scale factor was 1; source and implementation icon regions were normalized to the same 960-pixel width without stretching individual icons.
+
+## Findings
+
+- No actionable P0, P1, or P2 differences remain in the selected icon-row scope.
+- **Fonts and typography:** the exact labels and compact IBM Plex Sans weight-400 treatment are preserved. Labels remain centered on desktop and pair cleanly with their icons in the two-column mobile layout.
+- **Spacing and layout rhythm:** the eight-command desktop row, consistent 56px tiles, even optical spacing, 15px radii, and direct label relationship reproduce the selected direction without changing the dashboard composition.
+- **Colors and visual tokens:** violet, cobalt, teal, orange, coral, and charcoal remain restrained per-tool identifiers on white tiles over the existing blue-violet atmosphere.
+- **Icon and asset fidelity:** generic thin dashboard glyphs were replaced with the closest coherent Phosphor duotone icon family. Larger literal metaphors distinguish edit, stacked-file merge, scissors split, inward-arrow compression, circular conversion, pen-nib signing, scan-frame OCR, and the four-module tool catalog. The icons remain code-native vectors from the installed library, sharp at all densities, with no bitmap substitution, handcrafted SVG, emoji, or placeholder art.
+- **Copy and content:** labels, routes, and real PDFEnrich tool behavior are unchanged.
+- **Responsive behavior:** all eight actions remain visible in an intentional two-column phone layout with 38px icon tiles and 23px symbols; no horizontal clipping or hidden commands remain.
+
+## Comparison history
+
+- Pass 1 used the selected concept and the production implementation in one normalized comparison. The installed library cannot reproduce the concept's bespoke document-plus-arrow compounds exactly, but the Phosphor duotone set matches the selected optical weight, two-tone treatment, tile anatomy, palette, and recognition goal without an actionable usability or fidelity regression.
+- Desktop and mobile production captures were taken after the final build. Browser console checks returned no warnings or errors.
+
+## Interaction and build verification
+
+- Dashboard quick actions retain their existing upload and routed tool workflows.
+- The focused dashboard integration test passed (4 tests).
+- TypeScript no-emit validation passed.
+- The full production build passed, including public prerendering and the mobile-loading budget.
+
+## Follow-up polish
+
+- P3: a future custom icon package could reproduce the concept's compound Merge and Split document metaphors more literally; the current installed-library implementation is intentionally favored for accessibility, consistency, and rendering quality.
+
+final result: passed
+
 # Context-Inspired Privacy, FAQ, and Footer Design QA
 
 ## Comparison target

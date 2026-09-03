@@ -73,6 +73,7 @@ import Users from "lucide-react/dist/esm/icons/users.mjs";
 import X from "lucide-react/dist/esm/icons/x.mjs";
 import Zap from "lucide-react/dist/esm/icons/zap.mjs";
 import {
+  ArrowsInSimple as PhCompress,
   ArrowCounterClockwise as PhUndo,
   ArrowClockwise as PhRedo,
   ArrowUpRight as PhArrow,
@@ -88,10 +89,13 @@ import {
   NotePencil as PhNote,
   PaintBrush as PhDraw,
   PenNib as PhSign,
+  Scan as PhOcr,
+  Scissors as PhSplit,
   PlusSquare as PhAddPage,
   Printer as PhPrinter,
   SidebarSimple as PhThumbnails,
   Stamp as PhStamp,
+  SquaresFour as PhAllTools,
   TextAa as PhTextHighlight,
   Textbox as PhEditText,
   TextT as PhAddText,
@@ -8370,13 +8374,13 @@ export function UploadLanding({
   const privateCloudDocumentCount = activeUserDocuments.filter((documentRecord) => documentRecord.cloudDocumentId).length;
   const isUploading = uploadStage?.status && !["idle", "complete", "error"].includes(uploadStage.status);
   const quickActionDefinitions = [
-    { id: "edit-pdf", label: "Edit PDF", detail: "Edit text, images, and pages", icon: PenLine, tone: "citron", action: onSelectFiles },
-    { id: "merge-pdf", label: "Merge", detail: "Combine multiple files", icon: Copy, tone: "pink" },
-    { id: "split-pdf", label: "Split", detail: "Extract pages or split files", icon: PanelsTopLeft, tone: "lilac" },
-    { id: "compress-pdf", label: "Compress", detail: "Reduce file size", icon: ArrowDownToLine, tone: "aqua" },
-    { id: "pdf-to-word", label: "Convert", detail: "Convert to or from PDF", icon: RotateCw, tone: "orange" },
-    { id: "sign-pdf", label: "Sign", detail: "Add signatures to PDFs", icon: PenLine, tone: "pink" },
-    { id: "ocr-pdf", label: "OCR", detail: "Recognize text from scans", icon: ScanText, tone: "lilac" },
+    { id: "edit-pdf", label: "Edit PDF", detail: "Edit text, images, and pages", icon: PhNote, tone: "citron", action: onSelectFiles },
+    { id: "merge-pdf", label: "Merge", detail: "Combine multiple files", icon: PhFiles, tone: "pink" },
+    { id: "split-pdf", label: "Split", detail: "Extract pages or split files", icon: PhSplit, tone: "lilac" },
+    { id: "compress-pdf", label: "Compress", detail: "Reduce file size", icon: PhCompress, tone: "aqua" },
+    { id: "pdf-to-word", label: "Convert", detail: "Convert to or from PDF", icon: PhRotate, tone: "orange" },
+    { id: "sign-pdf", label: "Sign", detail: "Add signatures to PDFs", icon: PhSign, tone: "pink" },
+    { id: "ocr-pdf", label: "OCR", detail: "Recognize text from scans", icon: PhOcr, tone: "lilac" },
   ].map((action) => ({
     ...action,
     action: action.action || (() => {
@@ -8977,12 +8981,12 @@ export function UploadLanding({
           <div className="dashboard-selected-tool-strip" aria-label="PDF tools">
             {quickActionDefinitions.map(({ id, label, icon: Icon, action }) => (
               <button type="button" key={id} data-tool={id} onClick={action}>
-                <span className="dashboard-selected-tool-icon"><Icon size={25} strokeWidth={1.65} aria-hidden="true" /></span>
+                <span className="dashboard-selected-tool-icon"><Icon size={32} weight="duotone" aria-hidden="true" /></span>
                 <span>{label}</span>
               </button>
             ))}
             <button type="button" data-tool="all-tools" onClick={() => setActiveSection("Features")}>
-              <span className="dashboard-selected-tool-icon"><Grid2X2 size={24} strokeWidth={1.65} aria-hidden="true" /></span>
+              <span className="dashboard-selected-tool-icon"><PhAllTools size={31} weight="duotone" aria-hidden="true" /></span>
               <span>All tools</span>
             </button>
           </div>
