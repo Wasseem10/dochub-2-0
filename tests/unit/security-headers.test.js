@@ -19,16 +19,16 @@ describe("production response headers", () => {
     expect(salesRedirect).toMatchObject({ destination: "/support", permanent: true });
   });
 
-  it("permanently retires out-of-scope template and analyzer URLs", async () => {
+  it("does not route out-of-scope template and analyzer URLs into the product", async () => {
     const configuration = await vercelConfiguration();
-    const redirects = Object.fromEntries(configuration.redirects.map(({ source, destination, permanent }) => [source, { destination, permanent }]));
+    const redirectSources = configuration.redirects.map(({ source }) => source);
 
-    expect(redirects).toMatchObject({
-      "/offer-letter-templates": { destination: "/tools", permanent: true },
-      "/contract-templates": { destination: "/tools", permanent: true },
-      "/contract-analyzer": { destination: "/tools/document-analysis-tools", permanent: true },
-      "/resume-analyzer": { destination: "/tools/document-analysis-tools", permanent: true },
-    });
+    expect(redirectSources).not.toEqual(expect.arrayContaining([
+      "/offer-letter-templates",
+      "/contract-templates",
+      "/contract-analyzer",
+      "/resume-analyzer",
+    ]));
   });
 
   it("enforces a restrictive CSP and browser security boundaries", async () => {

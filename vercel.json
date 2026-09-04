@@ -15,26 +15,6 @@
       "source": "/contact-sales",
       "destination": "/support",
       "permanent": true
-    },
-    {
-      "source": "/offer-letter-templates",
-      "destination": "/tools",
-      "permanent": true
-    },
-    {
-      "source": "/contract-templates",
-      "destination": "/tools",
-      "permanent": true
-    },
-    {
-      "source": "/contract-analyzer",
-      "destination": "/tools/document-analysis-tools",
-      "permanent": true
-    },
-    {
-      "source": "/resume-analyzer",
-      "destination": "/tools/document-analysis-tools",
-      "permanent": true
     }
   ],
   "headers": [
