@@ -99,7 +99,8 @@ describe("public PDF tool platform", () => {
     expect(textOf(editor.root).includes("Why use Sign PDF in PDFEnrich?")).toBe(true);
     expect(textOf(editor.root).includes("Choose a PDF")).toBe(true);
     expect(textOf(editor.root).includes("No account required")).toBe(true);
-    expect(textOf(editor.root).includes("No file uploads to our servers")).toBe(true);
+    expect(textOf(editor.root).includes("Guest files stay in this browser")).toBe(true);
+    expect(textOf(editor.root).includes("Signed-in PDFs sync privately")).toBe(true);
     expect(textOf(editor.root).includes("How to use Sign PDF")).toBe(true);
     expect(textOf(editor.root).includes("Is this a digital certificate signature?")).toBe(true);
     expect(editor.root.findAllByType("button")).toHaveLength(1);

@@ -219,10 +219,11 @@ describe("safe error routes", () => {
     expect(retryCount).toBe(1);
   });
 
-  it("renders a helpful 404 with authenticated dashboard navigation", async () => {
+  it("renders the editorial recovery experience for an unknown route", async () => {
     const { renderer } = await renderRoutes([{ path: "*", element: <NotFoundPage /> }], ["/missing"], authValue({ currentUser: { uid: "user-1" } }));
-    expect(renderedText(renderer)).toContain("Page not found");
-    expect(renderer.root.findAllByType("a").some((link) => link.props.href === "/app/dashboard")).toBe(true);
+    expect(renderedText(renderer)).toContain("The page paused.");
+    expect(renderer.root.findAllByType("a").some((link) => link.props.href === "/tools")).toBe(true);
+    expect(renderer.root.findAllByType("a").some((link) => link.props.href === "/")).toBe(true);
   });
 
   it("never exposes a document for invalid share or sign tokens", async () => {

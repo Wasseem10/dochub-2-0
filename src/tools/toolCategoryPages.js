@@ -72,7 +72,7 @@ const categorySeoContent = Object.freeze({
     metaDescription: "Analyze PDFs online for free: search passages, create extractive summaries, extract fields, and review source-page references in your browser.",
     headline: "Analyze a PDF and trace every result back to its page.",
     intro: "Search matching passages, create extractive summaries, identify structured fields, and surface review questions with source-page references instead of unsupported answers.",
-    guidance: ["Use specific names, dates, phrases, and numbers in questions.", "Open the cited page before relying on an extracted passage.", "Treat contract and resume analysis as review support, not professional or hiring advice."],
+    guidance: ["Use specific names, dates, phrases, and numbers in questions.", "Open the cited page before relying on an extracted passage.", "Treat extracted results as review support, not legal or professional advice."],
   },
   "compare-review": {
     slug: "compare-pdf-tools",
