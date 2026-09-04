@@ -164,6 +164,8 @@ The homepage hero upload console should use the larger September 1 sizing and ac
 
 The homepage hero reassurance items use a slim square-edged technical rail with restrained blue-violet linework and monochrome icons. Do not restore the oversized rounded white card, multicolor icon tiles, or heavy shadow treatment.
 
+The homepage hero reassurance rail uses original detailed micro-illustrations for browser processing, guest access, connected devices, and the free document promise. Do not replace them with generic stock shield, lightning, globe, or rocket glyphs.
+
 Use IBM Plex Sans at weight 400 throughout the public landing page, including navigation, buttons, trust copy, and the hero; do not reintroduce semibold or bold landing-page text.
 
 Use IBM Plex Sans at weight 400 for interface text throughout the entire PDFEnrich site, including the dashboard, authentication, public pages, navigation, buttons, forms, dialogs, and editor chrome. Preserve the fonts embedded in PDF page content and the user-selected handwriting style of signature specimens.

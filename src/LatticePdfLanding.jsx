@@ -12,14 +12,12 @@ import Minus from "lucide-react/dist/esm/icons/minus.mjs";
 import PencilLine from "lucide-react/dist/esm/icons/pencil-line.mjs";
 import Plus from "lucide-react/dist/esm/icons/plus.mjs";
 import RefreshCw from "lucide-react/dist/esm/icons/refresh-cw.mjs";
-import Rocket from "lucide-react/dist/esm/icons/rocket.mjs";
 import Scale from "lucide-react/dist/esm/icons/scale.mjs";
 import ShieldCheck from "lucide-react/dist/esm/icons/shield-check.mjs";
 import Signature from "lucide-react/dist/esm/icons/signature.mjs";
 import UserRound from "lucide-react/dist/esm/icons/user-round.mjs";
 import Upload from "lucide-react/dist/esm/icons/upload.mjs";
 import X from "lucide-react/dist/esm/icons/x.mjs";
-import Zap from "lucide-react/dist/esm/icons/zap.mjs";
 import { BrandWordmark } from "./components/public/BrandWordmark.jsx";
 import { PageMetadata } from "./components/public/PageMetadata.jsx";
 import { HOMEPAGE_DESCRIPTION, HOMEPAGE_TITLE } from "./seo/homepageMetadata.js";
@@ -79,6 +77,63 @@ const heroTasks = [
   { label: "Organize", route: "/organize-pdf", icon: Grid3X3, tone: "yellow" },
   { label: "Convert", route: "/pdf-to-jpg", icon: RefreshCw, tone: "blue" },
 ];
+
+function HeroTrustIllustration({ kind }) {
+  const shared = {
+    className: "freepdf-trust-illustration",
+    viewBox: "0 0 48 48",
+    fill: "none",
+    xmlns: "http://www.w3.org/2000/svg",
+    "aria-hidden": "true",
+  };
+
+  if (kind === "browser") return (
+    <svg {...shared}>
+      <rect x="4.75" y="7.75" width="38.5" height="31.5" rx="4.25" className="trust-surface" />
+      <path d="M5 14.5h38" className="trust-line trust-line--soft" />
+      <circle cx="9.5" cy="11.25" r="1" className="trust-dot" />
+      <circle cx="13" cy="11.25" r="1" className="trust-dot trust-dot--soft" />
+      <path d="M14.5 19.25h11.25l4 4v10.5H14.5z" className="trust-paper" />
+      <path d="M25.75 19.75v4h3.75M18 27h8.25M18 30.5h6" className="trust-line" />
+      <path d="M33.25 24.25l5 2v4.4c0 3.2-2.1 5.85-5 7.1-2.9-1.25-5-3.9-5-7.1v-4.4z" className="trust-badge" />
+      <path d="m30.8 30.7 1.55 1.55 3.3-3.45" className="trust-line trust-line--inverse" />
+    </svg>
+  );
+
+  if (kind === "guest") return (
+    <svg {...shared}>
+      <rect x="6.75" y="6.75" width="25.5" height="34.5" rx="4.25" className="trust-surface" />
+      <circle cx="19.5" cy="17" r="4.25" className="trust-paper" />
+      <path d="M12.5 28.25c1.8-3.35 4.15-5 7-5s5.2 1.65 7 5" className="trust-line" />
+      <path d="M12 33h10.5M12 36.5h7" className="trust-line trust-line--soft" />
+      <path d="M33.5 14h7.75v22H33.5" className="trust-line" />
+      <path d="M27 25h11M34.5 21.5 38 25l-3.5 3.5" className="trust-line trust-line--accent" />
+      <circle cx="41.25" cy="25" r="2.25" className="trust-badge" />
+    </svg>
+  );
+
+  if (kind === "devices") return (
+    <svg {...shared}>
+      <rect x="4.75" y="10.75" width="27.5" height="21.5" rx="3.25" className="trust-surface" />
+      <path d="M3.75 36h29.5l-3-3.75H6.75z" className="trust-paper" />
+      <rect x="32.75" y="16.75" width="10.5" height="23.5" rx="3.25" className="trust-surface" />
+      <path d="M36.5 36.5h3M13 21.5h11M13 25h7" className="trust-line trust-line--soft" />
+      <path d="M27 15.25c4.15.2 6.5 2 7.6 5.15M29.25 13.1l-2.5 2.15 2.75 2" className="trust-line trust-line--accent" />
+      <circle cx="18.5" cy="18" r="2.25" className="trust-badge" />
+    </svg>
+  );
+
+  return (
+    <svg {...shared}>
+      <path d="M8.75 5.75h22l8.5 8.5v28H8.75z" className="trust-surface" />
+      <path d="M30.75 6.25v8.5h8" className="trust-paper" />
+      <path d="M14.25 16.5h10M14.25 20h7" className="trust-line trust-line--soft" />
+      <circle cx="24" cy="30" r="9.25" className="trust-badge" />
+      <path d="M24 24.5c-2.15 0-3.5 2.1-3.5 5.5s1.35 5.5 3.5 5.5 3.5-2.1 3.5-5.5-1.35-5.5-3.5-5.5Z" className="trust-line trust-line--inverse" />
+      <path d="M17.5 30h-3M33.5 30h-3" className="trust-line trust-line--accent" />
+    </svg>
+  );
+}
 
 const workflowSteps = [
   {
@@ -372,10 +427,10 @@ export function LatticePdfLanding({ fileInputRef, onUpload, onSelectFiles, onDro
         </div>
 
         <section className="freepdf-trust-strip" aria-label="PDFEnrich promises">
-          <div><span className="freepdf-trust-icon is-lilac"><ShieldCheck size={23} /></span><span><strong>Browser processing</strong><small>Supported tools keep files in this tab</small></span></div>
-          <div><span className="freepdf-trust-icon is-yellow"><Zap size={23} /></span><span><strong>No signup needed</strong><small>Start working right away</small></span></div>
-          <div><span className="freepdf-trust-icon is-blue"><Globe2 size={23} /></span><span><strong>Works anywhere</strong><small>On any modern browser</small></span></div>
-          <div><span className="freepdf-trust-icon is-pink"><Rocket size={23} /></span><span><strong>Completely free</strong><small>No subscriptions or paid plans</small></span></div>
+          <div><span className="freepdf-trust-icon is-browser"><HeroTrustIllustration kind="browser" /></span><span><strong>Browser processing</strong><small>Supported tools keep files in this tab</small></span></div>
+          <div><span className="freepdf-trust-icon is-guest"><HeroTrustIllustration kind="guest" /></span><span><strong>No signup needed</strong><small>Start working right away</small></span></div>
+          <div><span className="freepdf-trust-icon is-devices"><HeroTrustIllustration kind="devices" /></span><span><strong>Works anywhere</strong><small>On any modern browser</small></span></div>
+          <div><span className="freepdf-trust-icon is-free"><HeroTrustIllustration kind="free" /></span><span><strong>Completely free</strong><small>No subscriptions or paid plans</small></span></div>
         </section>
       </div>
     </section>
