@@ -86,7 +86,7 @@ The dashboard All tools action stays inside the PDFEnrich app shell at `/app/too
 
 On the Bright Editorial Desk dashboard, recent-document cards must render a real first-page thumbnail from the saved PDF whenever source bytes are available, including after a reload. Empty blank documents should still read as real white pages rather than generic placeholder tiles. Use clean DM Sans for the welcome greeting and keep document-type markers neutral; do not restore the red PDF file badge.
 
-Documents and owner Analytics use the same Editorial Monochrome app shell as Home and All tools. Documents uses a flat compact library with neutral rows and oxblood actions; Analytics uses a dense neutral metric ledger and square divided report sections. Do not restore blue upload buttons, colorful metric tiles, rounded SaaS cards, or shadow-heavy panels on either route.
+Documents must match the current selected Home dashboard rather than the older Editorial Monochrome treatment: reuse the clean white shell, centered search, PDFEnrich-blue Upload PDF action, restrained blue-to-violet workspace atmosphere, compact filters, dense real-document ledger, and deliberate mobile stacking. Keep real thumbnails and working favorites, sorting, search, list/grid views, open, and row actions; do not restore oxblood actions, oversized rows, or the sparse legacy table. Owner Analytics keeps its dedicated Outcome Snapshot direction.
 
 Authentication and lazy-loading transitions use PDFEnrich’s DM Sans and Funnel Display typography, the blue document mark, concise status copy, a compact centered white card, and reduced-motion-safe progress. Do not use condensed display fonts, tiny all-caps brand pills, or vague filler copy on loading screens.
 

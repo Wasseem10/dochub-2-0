@@ -8637,7 +8637,7 @@ export function UploadLanding({
     <div className="dashboard-library-table">
       <div className="dashboard-library-row dashboard-library-head"><span>Name</span><span>Modified</span><span>Status</span><span>Size</span><span>Actions</span></div>
       {dashboardLibraryRows.map((documentRecord) => {
-        const status = documentRecord.status || "Viewed";
+        const status = documentRecord.status || (documentRecord.cloudDocumentId ? "Synced" : "Ready");
         return <article key={documentRecord.id} className="dashboard-library-row">
           <button type="button" className="dashboard-library-name" onClick={() => onOpenDocument(documentRecord)}><span>{renderDocumentPreview(documentRecord, true)}</span><strong>{documentRecord.name}</strong></button>
           <span>{formatDashboardRelativeDate(documentRecord.updatedAt)}</span>
@@ -8663,13 +8663,22 @@ export function UploadLanding({
   const renderWorkspaceSection = () => {
     if (activeSection === "Documents") {
       return (
-        <section className="dashboard-editorial-documents" aria-label="Document library">
-          <header className="dashboard-documents-toolbar">
+        <section className={`dashboard-selected-documents-view is-${dashboardView}`} aria-labelledby="dashboard-documents-heading">
+          <header className="dashboard-selected-documents-summary">
             <div>
-              <strong>{dashboardLibraryRows.length} document{dashboardLibraryRows.length === 1 ? "" : "s"}</strong>
-              <small>Files saved to this workspace, ordered for quick access.</small>
+              <span>Document library</span>
+              <h2 id="dashboard-documents-heading">All your PDFs in one place</h2>
+              <p>Open, organize, and return to every PDF saved in this workspace.</p>
             </div>
-            <div>
+            <div className="dashboard-selected-documents-count" aria-label={`${activeUserDocuments.length} saved documents`}>
+              <FileText size={21} aria-hidden="true" />
+              <strong>{activeUserDocuments.length}</strong>
+              <span>{` document${activeUserDocuments.length === 1 ? "" : "s"}`}</span>
+            </div>
+          </header>
+
+          <div className="dashboard-selected-library-controls">
+            <div className="dashboard-selected-library-filters">
               <button
                 type="button"
                 className={dashboardFilter === "favorites" ? "is-active" : ""}
@@ -8686,11 +8695,19 @@ export function UploadLanding({
                 </select>
                 <ChevronDown size={14} aria-hidden="true" />
               </label>
-              <button type="button" className="is-primary" onClick={onSelectFiles}><Upload size={16} /> Upload PDF</button>
             </div>
-          </header>
-          <div className="dashboard-documents-table">
-            {renderDashboardLibraryList(false)}
+
+            <div className="dashboard-selected-library-view">
+              <span>{dashboardLibraryRows.length} result{dashboardLibraryRows.length === 1 ? "" : "s"}</span>
+              <div role="group" aria-label="Document view">
+                <button type="button" className={dashboardView === "list" ? "is-active" : ""} aria-label="List view" aria-pressed={dashboardView === "list"} onClick={() => setDashboardView("list")}><List size={17} /></button>
+                <button type="button" className={dashboardView === "grid" ? "is-active" : ""} aria-label="Grid view" aria-pressed={dashboardView === "grid"} onClick={() => setDashboardView("grid")}><Grid2X2 size={16} /></button>
+              </div>
+            </div>
+          </div>
+
+          <div className="dashboard-selected-documents-content">
+            {dashboardView === "grid" ? renderDashboardLibraryGrid() : renderDashboardLibraryList(false)}
           </div>
         </section>
       );
@@ -9076,7 +9093,7 @@ export function UploadLanding({
             <kbd>⌘ K</kbd>
           </label>
           <div className="upload-top-actions">
-            {(activeSection === "Home" || !["Documents", "Features", "Analytics"].includes(activeSection)) && <button type="button" className="dashboard-top-upload" onClick={onSelectFiles}><Upload size={18} /> Upload PDF</button>}
+            {(activeSection === "Home" || activeSection === "Documents" || !["Features", "Analytics"].includes(activeSection)) && <button type="button" className="dashboard-top-upload" onClick={onSelectFiles}><Upload size={18} /> Upload PDF</button>}
             <button
               type="button"
               className={`dashboard-notification-button ${openPanel === "notifications" ? "is-active" : ""}`}

@@ -165,6 +165,7 @@ describe("simplified dashboard navigation", () => {
 
     const text = textOf(renderer.root);
     expect(text).toContain("Documents");
+    expect(text).toContain("All your PDFs in one place");
     expect(text).toContain("0 documents");
     expect(text).toContain("Favorites");
     expect(text).toContain("Recently opened");
@@ -174,6 +175,13 @@ describe("simplified dashboard navigation", () => {
     expect(favoritesButton.props["aria-pressed"]).toBe(false);
     await act(async () => favoritesButton.props.onClick());
     expect(renderer.root.findAllByType("button").find((button) => textOf(button).includes("Favorites")).props["aria-pressed"]).toBe(true);
+
+    const listViewButton = renderer.root.findByProps({ "aria-label": "List view" });
+    const gridViewButton = renderer.root.findByProps({ "aria-label": "Grid view" });
+    expect(listViewButton.props["aria-pressed"]).toBe(true);
+    expect(gridViewButton.props["aria-pressed"]).toBe(false);
+    await act(async () => gridViewButton.props.onClick());
+    expect(renderer.root.findByProps({ "aria-label": "Grid view" }).props["aria-pressed"]).toBe(true);
 
     const uploadButton = renderer.root.findAllByType("button").find((button) => textOf(button).includes("Upload PDF"));
     await act(async () => uploadButton.props.onClick());
