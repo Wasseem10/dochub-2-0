@@ -312,51 +312,6 @@
   line-height: 1.6;
 }
 
-.freepdf-context-faq .freepdf-closing-assurances {
-  width: 100%;
-  margin-top: 96px;
-  border-top: 1px solid #e3e8f0;
-  border-bottom: 0;
-  background: transparent;
-}
-
-.freepdf-context-faq .freepdf-closing-assurances > div {
-  width: 100%;
-  min-height: 126px;
-}
-
-.freepdf-context-faq .freepdf-closing-assurances article {
-  gap: 15px;
-  padding: 26px 30px;
-}
-
-.freepdf-context-faq .freepdf-closing-assurances article:first-child { padding-left: 0; }
-
-.freepdf-context-faq .freepdf-closing-assurances article > span {
-  width: 46px;
-  height: 46px;
-  border: 1px solid #d8e2fb;
-  border-radius: 13px;
-  background: #eef3ff;
-  color: #2851eb;
-}
-
-.freepdf-context-faq .freepdf-closing-assurances article:nth-child(2) > span,
-.freepdf-context-faq .freepdf-closing-assurances article:nth-child(3) > span {
-  background: #f1edff;
-  color: #6d42eb;
-}
-
-.freepdf-context-faq .freepdf-closing-assurances strong {
-  color: #111622;
-  font-size: 14px;
-}
-
-.freepdf-context-faq .freepdf-closing-assurances p {
-  color: #657087;
-  font-size: 12px;
-}
-
 .freepdf-page .freepdf-site-footer {
   margin-top: 0;
   overflow: visible;
@@ -503,15 +458,6 @@
     min-height: 68px;
     padding-left: 16px;
     font-size: 13px;
-  }
-
-  .freepdf-context-faq .freepdf-closing-assurances { margin-top: 74px; }
-  .freepdf-context-faq .freepdf-closing-assurances > div { min-height: 0; padding: 12px 0; }
-
-  .freepdf-context-faq .freepdf-closing-assurances article,
-  .freepdf-context-faq .freepdf-closing-assurances article:first-child {
-    gap: 14px;
-    padding: 18px 0;
   }
 
   .freepdf-page .freepdf-footer-surface {

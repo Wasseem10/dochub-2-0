@@ -110,7 +110,7 @@ The selected July 23, 2026 authentication reference is a minimal, borderless sig
 
 Google sign-in on the canonical production domain uses a same-page redirect on desktop and mobile, waits for browser-local Firebase persistence before starting, and explicitly recovers the redirect result before declaring authentication ready. Do not restore popup-first Google sign-in on `pdfenrich.com`.
 
-The homepage ending must stay clean, bright, and utility-led: remove the redundant final upload CTA, use a slim three-item reassurance row, then a crisp white multi-column footer with hairline dividers, compact PDFEnrich branding, and restrained blue accents. Never restore the dark footer, oversized wordmark billboard, or a pastel promotional container at the end of the page.
+The homepage ending must stay clean, bright, and utility-led: remove the redundant final upload CTA and the closing three-item reassurance row, then transition directly from the FAQ into a crisp white multi-column footer with hairline dividers, compact PDFEnrich branding, and restrained blue accents. Never restore the dark footer, oversized wordmark billboard, or a pastel promotional container at the end of the page.
 
 The selected homepage workflow, privacy, and FAQ treatment is the illustrated Paper Trail restoration from July 30, 2026: preserve the three large document-action scenes, the warm privacy proof band, and the numbered guided FAQ with its document illustration. Do not revert these sections to plain bordered cards, a lilac privacy box, or native disclosure rows.
 
@@ -176,7 +176,9 @@ Make the homepage hero document drop zone unmistakably prominent: use a large, t
 
 The September 1, 2026 homepage “How it works” redesign supersedes only the Paper Trail workflow section: use Context.dev-inspired technical framing, centered blue-to-violet headline emphasis, fine dashed page guides, and one large two-part workflow board with a white start panel and blue/violet finish panel. Keep the real three-step PDFEnrich flow, IBM Plex Sans 400, and responsive mobile stack. Do not use red, coral, orange, yellow, or generated imagery in this section.
 
-The September 1, 2026 homepage ending extends that Context.dev-inspired technical system through the privacy proof, FAQ, reassurance row, and footer. Use white, charcoal, PDFEnrich blue, and violet; fine guide lines; compact two-part privacy framing; a functional two-column FAQ grid; and a crisp bright footer. Do not use warm red/orange/yellow accents, generated illustrations, a dark footer, or a redundant final upload CTA in these sections.
+The September 1, 2026 homepage ending extends that Context.dev-inspired technical system through the privacy proof, FAQ, and footer. Use white, charcoal, PDFEnrich blue, and violet; fine guide lines; compact two-part privacy framing; a functional two-column FAQ grid; and a crisp bright footer. Do not use warm red/orange/yellow accents, generated illustrations, a dark footer, a closing reassurance row, or a redundant final upload CTA in these sections.
+
+Prerendered public-route content must never flash its legacy plain tool-directory UI while the interactive app initializes. Keep the crawlable fallback hidden during normal JavaScript startup and show only the compact PDFEnrich mark with a thin progress line until React is ready; reveal the text fallback only when JavaScript is disabled.
 
 The selected September 1, 2026 homepage task-lane imagery uses the high-resolution editorial 3D document scenes for Edit & Sign, Organize, and Convert. Keep the task-lane layout unchanged, preserve sharp document geometry and the PDFEnrich blue, violet, and teal palette, and do not restore hazy, low-contrast, or warm-accent artwork.
 

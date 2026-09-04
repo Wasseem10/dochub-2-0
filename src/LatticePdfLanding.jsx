@@ -360,15 +360,6 @@ function ComparisonTeaser() {
   </footer>;
 */
 
-function ClosingAssurances() {
-  const assurances = [
-    { icon: ShieldCheck, title: "Private by design", copy: "Supported tools process files in your browser." },
-    { icon: Check, title: "No account needed", copy: "Edit, convert, and sign right away." },
-    { icon: Globe2, title: "Works in your browser", copy: "No downloads or installations." },
-  ];
-  return <section className="freepdf-closing-assurances" aria-label="PDFEnrich benefits"><div>{assurances.map(({ icon: Icon, title, copy }) => <article key={title}><span><Icon size={26} aria-hidden="true" /></span><div><strong>{title}</strong><p>{copy}</p></div></article>)}</div></section>;
-}
-
 function SiteFooter() {
   return <footer className="freepdf-site-footer">
     <div className="freepdf-footer-surface">
@@ -530,7 +521,6 @@ export function LatticePdfLanding({ fileInputRef, onUpload, onSelectFiles, onDro
             </article>;
           })}
       </div>
-      <ClosingAssurances />
     </section>
 
     <SiteFooter />
