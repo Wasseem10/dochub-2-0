@@ -6926,12 +6926,6 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
               onPointerLeave={() => setSignaturePreviewPoint(null)}
             >
               {currentPage.image ? <img className="pdf-image" src={currentPage.image} alt={`PDF page ${pageIndex + 1}`} onError={() => retryPdfPage(pageIndex)} /> : currentPage.source === "pdf" ? currentPage.renderStatus === "error" ? <PdfPageUnavailable pageNumber={pageIndex + 1} onRetry={() => retryPdfPage(pageIndex)} /> : <PdfPageLoading pageNumber={pageIndex + 1} recovering={currentPage.renderStatus === "recovering"} /> : currentPage.source === "blank" ? <BlankDocument /> : <SampleDocument pageIndex={pageIndex} />}
-              {currentPage.source === "pdf" && currentPage.isHydrated !== false && !pageDetectedTextItems.length && !currentPage.text?.trim() && (
-                <div className="ocr-state">
-                  <ScanText size={16} />
-                  Scanned page detected. OCR is not enabled in this browser build yet.
-                </div>
-              )}
               {tool === "editText" && pageDetectedTextItems.length > 0 && (
                 <div className="smart-text-page-hint">
                   <ScanText size={15} />

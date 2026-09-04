@@ -6354,24 +6354,6 @@ button {
   pointer-events: none;
 }
 
-.ocr-state {
-  position: absolute;
-  left: 18px;
-  top: 18px;
-  z-index: 6;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 9px 12px;
-  border: 1px solid #d7dde7;
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.94);
-  color: #475569;
-  font-size: 12px;
-  font-weight: 750;
-  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.12);
-}
-
 .smart-text-page-hint {
   position: absolute;
   left: 18px;
