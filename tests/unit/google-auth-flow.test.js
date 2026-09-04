@@ -5,7 +5,7 @@ import {
   prefersGoogleRedirect,
   shouldFallbackFromGooglePopup,
 } from "../../src/auth/googleAuthFlow.js";
-import { formatAuthError } from "../../src/auth/FirebaseAuthProvider.jsx";
+import { formatAuthError, passwordResetActionSettings } from "../../src/auth/FirebaseAuthProvider.jsx";
 import { resolveFirebaseAuthDomain } from "../../src/firebase.js";
 
 function environment({ hostname = "localhost", userAgent = "Desktop", mobile = false, coarse = false, width = 1440 } = {}) {
@@ -72,5 +72,18 @@ describe("Google authentication flow", () => {
     expect(formatAuthError({ code: "auth/operation-not-supported-in-this-environment" })).toMatch(/Safari, Chrome, or Edge/);
     expect(formatAuthError({ code: "auth/redirect-cancelled-by-user" })).toMatch(/try again once/);
     expect(formatAuthError({ code: "auth/network-request-failed" })).toMatch(/connection/);
+    expect(formatAuthError({ code: "auth/too-many-requests" })).toMatch(/Wait a few minutes/);
+  });
+
+  it("returns password-reset users to the canonical sign-in page", () => {
+    expect(passwordResetActionSettings({ location: { origin: "https://www.pdfenrich.com" } })).toEqual({
+      url: "https://pdfenrich.com/login?passwordReset=complete",
+      handleCodeInApp: false,
+    });
+    expect(passwordResetActionSettings({ location: { origin: "http://127.0.0.1:5173" } })).toEqual({
+      url: "http://127.0.0.1:5173/login?passwordReset=complete",
+      handleCodeInApp: false,
+    });
+    expect(passwordResetActionSettings({ location: { origin: "not a url" } })).toBeUndefined();
   });
 });

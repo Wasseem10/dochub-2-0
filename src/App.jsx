@@ -6221,6 +6221,8 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     const returnLocation = location.state?.from;
     const canReturnToEditor = returnLocation?.pathname === ROUTE_PATHS.editPdf
       || returnLocation?.pathname?.startsWith("/app/editor/");
+    const passwordResetComplete = authMode === "login"
+      && new URLSearchParams(location.search).get("passwordReset") === "complete";
     return (
       <AuthPage
         mode={authMode}
@@ -6232,7 +6234,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
         authReady={authReady}
         authError={authError}
         isFirebaseConfigured={isFirebaseConfigured}
-        routeNotice={location.state?.notice}
+        routeNotice={location.state?.notice || (passwordResetComplete ? "Password updated. Sign in with your new password." : "")}
       />
     );
   }
@@ -7668,7 +7670,7 @@ function AuthPage({ mode, setMode, onBack, onComplete, onPasswordReset, authRead
             <BrandWordmark logo />
           </button>
           <h2>{isSignup ? "Create Account" : isPasswordReset ? "Reset Password" : "Sign In"}</h2>
-          {routeNotice && <div className="auth-notice">{routeNotice}</div>}
+          {routeNotice && <div className="auth-notice" role="status" aria-live="polite">{routeNotice}</div>}
           {!isPasswordReset && (
             <>
               <button type="button" className="sso-button google-button" onClick={submitGoogleAuth} disabled={!authReady || isSubmitting}>
@@ -7729,10 +7731,10 @@ function AuthPage({ mode, setMode, onBack, onComplete, onPasswordReset, authRead
                 {!isSignup && <button type="button" className="auth-forgot" onClick={() => setMode("forgot-password")}>Forgot Password?</button>}
               </>
             )}
-            {error && <div className="auth-error">{error}</div>}
-            {notice && <div className="auth-notice">{notice}</div>}
+            {error && <div className="auth-error" role="alert">{error}</div>}
+            {notice && <div className="auth-notice" role="status" aria-live="polite">{notice}</div>}
             <button type="submit" className="auth-submit" disabled={!authReady || isSubmitting}>
-              {isSubmitting ? "Connecting..." : isSignup ? "Create Account" : isPasswordReset ? "Send Reset Email" : "Sign In"}
+              {isSubmitting ? (isPasswordReset ? "Sending..." : "Connecting...") : isSignup ? "Create Account" : isPasswordReset ? "Send Reset Email" : "Sign In"}
             </button>
           </form>
           <div className="auth-switch">

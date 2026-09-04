@@ -27,11 +27,28 @@ import { clearEditorSignatureLibrary } from "../tools/editorSignature.js";
 import { clearEditorSession, clearEditorSessionsForOwner } from "../tools/editorSessionStore.js";
 import { deleteLocalDocuments, loadLocalDocuments } from "../tools/localDocumentStore.js";
 import { logRedactedClientError } from "../monitoring/productionMonitoring.js";
+import { ROUTE_PATHS } from "../router/routePaths.js";
 import { AuthContext } from "./AuthContext.jsx";
 import { authenticateWithGoogleProvider } from "./googleAuthFlow.js";
 import { syncAuthUserProfile } from "./authUserProfile.js";
 
 const LOCAL_AUTH_STORAGE_KEY = "pdfenrich.local-auth-user.v1";
+const PASSWORD_RESET_NOTICE = "If an account exists for that email, we sent a reset link. Check your inbox and spam folder.";
+
+export function passwordResetActionSettings(environment = globalThis) {
+  const rawOrigin = environment?.location?.origin || "";
+  let origin;
+  try {
+    origin = new URL(rawOrigin).origin;
+  } catch {
+    return undefined;
+  }
+  if (/^https:\/\/(?:www\.)?pdfenrich\.com$/i.test(origin)) origin = "https://pdfenrich.com";
+  return {
+    url: `${origin}${ROUTE_PATHS.login}?passwordReset=complete`,
+    handleCodeInApp: false,
+  };
+}
 
 function readLocalAuthUser() {
   try {
@@ -124,6 +141,9 @@ export function formatAuthError(error) {
   if (code.includes("auth/internal-error") || code.includes("auth/argument-error")) return "Google sign-in could not finish its secure browser handoff. Open PDFEnrich directly in Safari, Chrome, or Edge and try again.";
   if (code.includes("auth/network-request-failed")) return "Google sign-in could not reach the authentication service. Check your connection and try again.";
   if (code.includes("auth/unauthorized-domain")) return "This domain is not authorized in Firebase Authentication settings.";
+  if (code.includes("auth/too-many-requests")) return "Too many attempts were made. Wait a few minutes, then try again.";
+  if (code.includes("auth/invalid-email")) return "Enter a valid email address.";
+  if (code.includes("auth/operation-not-allowed")) return "Email sign-in is temporarily unavailable. Try again later.";
   if (code.includes("auth/requires-recent-login")) return "For security, sign out and sign in again before deleting your account.";
   if (error?.message === "browser_cleanup_failed") {
     return "Cloud data was removed, but this browser could not clear every local copy. Clear PDFEnrich site data, then try account deletion again.";
@@ -253,12 +273,15 @@ export default function FirebaseAuthProvider({ children }) {
       }
     },
     async resetPassword(email) {
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) return { ok: false, error: "Enter a valid email address first." };
+      const normalizedEmail = email.trim().toLowerCase();
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) return { ok: false, error: "Enter a valid email address first." };
       if (!auth) return { ok: true, notice: "Local browser workspaces do not require password recovery. Return to sign in to continue." };
       try {
-        await sendPasswordResetEmail(auth, email.trim());
-        return { ok: true };
+        auth.useDeviceLanguage();
+        await sendPasswordResetEmail(auth, normalizedEmail, passwordResetActionSettings(window));
+        return { ok: true, notice: PASSWORD_RESET_NOTICE };
       } catch (error) {
+        if (error?.code?.includes("auth/user-not-found")) return { ok: true, notice: PASSWORD_RESET_NOTICE };
         return { ok: false, error: formatAuthError(error) };
       }
     },
