@@ -162,6 +162,8 @@ Keep the hero’s “{free and simple.}” typing loop brisk: the phrase should 
 
 The homepage hero upload console should use the larger September 1 sizing and accept every document format PDFEnrich can genuinely process. PDFs open directly in the editor; supported Word, spreadsheet, presentation, text, OpenDocument, HTML, archive, and image files must route into their matching browser conversion workflow with the selected file already loaded. Never imply arbitrary file support for formats that are not implemented.
 
+The homepage hero reassurance items use a slim square-edged technical rail with restrained blue-violet linework and monochrome icons. Do not restore the oversized rounded white card, multicolor icon tiles, or heavy shadow treatment.
+
 Use IBM Plex Sans at weight 400 throughout the public landing page, including navigation, buttons, trust copy, and the hero; do not reintroduce semibold or bold landing-page text.
 
 Use IBM Plex Sans at weight 400 for interface text throughout the entire PDFEnrich site, including the dashboard, authentication, public pages, navigation, buttons, forms, dialogs, and editor chrome. Preserve the fonts embedded in PDF page content and the user-selected handwriting style of signature specimens.
