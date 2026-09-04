@@ -234,7 +234,7 @@ for (const record of routeRecords) {
 const notFoundRecord = { path: "/404", title: "Page Not Found | PDFEnrich", description: "The requested PDFEnrich page could not be found.", noIndex: true };
 const notFoundHtml = template
   .replace(/<title>[\s\S]*?<\/title>[\s\S]*?<link rel="canonical"[^>]*>/, `${metadataFor(notFoundRecord)}${structuredDataFor(notFoundRecord)}${staticStyle}`)
-  .replace('<div id="root"></div>', '<div id="root"><main class="prerender-shell"><p class="prerender-brand">PDFEnrich · 404</p><h1>Page not found</h1><p class="prerender-lead">The page may have moved, or the address may be incomplete.</p><a class="prerender-action" href="/">Go to the homepage</a><p><a href="/tools">Browse every PDF tool</a></p></main></div>');
+  .replace('<div id="root"></div>', '<div id="root"><main class="prerender-shell"><p class="prerender-brand">PDFEnrich · Page unavailable</p><h1>The page paused.<br>Your PDF didn\'t.</h1><p class="prerender-lead">Nothing changed in your document. Reload this page to continue.</p><a class="prerender-action" href="">Reload page</a><p><a href="/tools">PDF tools</a> · <a href="/">Home</a></p></main></div>');
 await writeFile("dist/404.html", notFoundHtml, "utf8");
 
 console.log(`Prerendered ${routeRecords.length} public routes plus a real noindex 404 page with readable HTML and structured data.`);
