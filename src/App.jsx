@@ -169,7 +169,7 @@ import { EDITOR_TOOL_MODES, getDefaultToolForMode, getToolsForMode, resolveModeF
 import { annotationPatchFromFrame, framesEqual, getAnnotationFrame, moveFrame, normalizeRotation, nudgeFrame, resizeFrame, rotationFromPointer } from "./tools/editorObjectTransforms.js";
 import { circleFrameFromDrag, directedLineFrameFromPoints, directedLineSvgGeometry, ensureDirectedLineLength, getDirectedLineEndpoints, normalizeCircleFrame, resizeCircleFrame } from "./tools/editorShapeGeometry.js";
 import { normalizedPointerInRect } from "./tools/editorPointerCoordinates.js";
-import { createTextAnnotation, estimateTextAnnotationSize, normalizeEditorText, shouldDiscardTextAnnotation } from "./tools/editorTextObjects.js";
+import { createTextAnnotation, EDITOR_TEXT_MIN_HEIGHT, EDITOR_TEXT_MIN_WIDTH, estimateTextAnnotationSize, normalizeEditorText, shouldDiscardTextAnnotation } from "./tools/editorTextObjects.js";
 import { canMergeDetectedTextRuns, detectedTextBaseline, detectedTextRotation, detectedTextSourceFrame, layoutDetectedText, resolveDetectedTextStyle, sampleDetectedTextBackground, splitDetectedTextRun, standardPdfFontVariant } from "./tools/editorDetectedText.js";
 import { recoverPdfPageRender, withPdfPageDeadline } from "./tools/editorPageRecovery.js";
 import {
@@ -1765,7 +1765,7 @@ function ProfessionalAnnotation({
       const nextFrame = kind === "resize"
         ? annotation.type === "circle"
           ? resizeCircleFrame(originFrame, handle, deltaX, deltaY, pageRect.width, pageRect.height)
-          : resizeFrame(originFrame, handle, deltaX, deltaY, annotation.type === "text" ? { minWidth: 0.12, minHeight: 0.04 } : undefined)
+          : resizeFrame(originFrame, handle, deltaX, deltaY, annotation.type === "text" ? { minWidth: EDITOR_TEXT_MIN_WIDTH, minHeight: EDITOR_TEXT_MIN_HEIGHT } : undefined)
         : kind === "rotate"
           ? { ...originFrame, rotation: rotationFromPointer(originFrame, pageRect, moveEvent.clientX, moveEvent.clientY, rotationOffset) }
           : moveFrame(originFrame, deltaX, deltaY);
@@ -1903,8 +1903,8 @@ function ProfessionalAnnotation({
       lineHeight: annotation.lineHeight || 1.25,
       pageWidth: pageRect.width,
       pageHeight: pageRect.height,
-      maxWidth: clamp(0.98 - currentFrame.x, 0.12, 0.78),
-      maxHeight: clamp(0.98 - currentFrame.y, 0.04, 0.42),
+      maxWidth: clamp(0.98 - currentFrame.x, EDITOR_TEXT_MIN_WIDTH, 0.78),
+      maxHeight: clamp(0.98 - currentFrame.y, EDITOR_TEXT_MIN_HEIGHT, 0.42),
       measureLine: context ? (line) => context.measureText(line || " ").width : undefined,
     });
     const nextFrame = {
@@ -7877,7 +7877,7 @@ export function ToolSettingsPanel({
 
   if (effectiveTool === "text" || effectiveTool === "field") {
     return (
-      <div className={`tool-settings ${effectiveTool === "text" ? "text-format-settings" : "field-format-settings"}`}>
+      <div className={`tool-settings ${effectiveTool === "text" ? "text-format-settings" : "field-format-settings"}`} role="toolbar" aria-label={effectiveTool === "text" ? "Text formatting" : "Field formatting"}>
         {effectiveTool === "text" && <span className="settings-title text-settings-title">Text</span>}
         {effectiveTool === "text" && (
           <div className="font-menu-wrap">
@@ -7910,15 +7910,21 @@ export function ToolSettingsPanel({
             )}
           </div>
         )}
-        <select className="text-size-select" aria-label="Font size" value={activeSettings.textSize} onChange={(event) => update({ textSize: Number(event.target.value) })}>
-          {[8, 9, 10, 11, 12, 14, 16, 18, 24, 32, 48, 64].map((size) => <option key={size}>{size}</option>)}
-        </select>
+        <label className="text-setting-control text-size-control">
+          <span aria-hidden="true">Size</span>
+          <select className="text-size-select" aria-label="Font size" value={activeSettings.textSize} onChange={(event) => update({ textSize: Number(event.target.value) })}>
+            {[8, 9, 10, 11, 12, 14, 16, 18, 24, 32, 48, 64].map((size) => <option key={size} value={size}>{size} pt</option>)}
+          </select>
+        </label>
         <ColorControl value={activeSettings.textColor} onChange={(color) => update({ textColor: color })} />
         {effectiveTool === "text" && (
           <>
-            <select className="line-height-select" aria-label="Line height" value={activeSettings.lineHeight} onChange={(event) => update({ lineHeight: Number(event.target.value) })}>
-              {[1, 1.15, 1.25, 1.5, 2].map((size) => <option key={size} value={size}>{size}×</option>)}
-            </select>
+            <label className="text-setting-control line-height-control">
+              <span aria-hidden="true">Spacing</span>
+              <select className="line-height-select" aria-label="Line spacing" value={activeSettings.lineHeight} onChange={(event) => update({ lineHeight: Number(event.target.value) })}>
+                {[1, 1.15, 1.25, 1.5, 2].map((size) => <option key={size} value={size}>{size}×</option>)}
+              </select>
+            </label>
             <div className="align-group" aria-label="Text alignment">
               <button type="button" title="Align left" aria-label="Align left" aria-pressed={activeSettings.textAlign === "left"} className={activeSettings.textAlign === "left" ? "is-active" : ""} onClick={() => update({ textAlign: "left" })}><AlignLeft size={20} /></button>
               <button type="button" title="Align center" aria-label="Align center" aria-pressed={activeSettings.textAlign === "center"} className={activeSettings.textAlign === "center" ? "is-active" : ""} onClick={() => update({ textAlign: "center" })}><AlignCenter size={20} /></button>

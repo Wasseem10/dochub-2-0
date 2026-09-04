@@ -31,6 +31,36 @@ function HighlightSettingsHarness({ tool = "textHighlight", hasSelectableTextLay
   );
 }
 
+function TextSettingsHarness() {
+  const [settings, setSettings] = useState({
+    textColor: "#111827",
+    textSize: 16,
+    fontFamily: "Arial",
+    textAlign: "left",
+    lineHeight: 1.25,
+    textBold: false,
+    textItalic: false,
+    textUnderline: false,
+  });
+  return <ToolSettingsPanel tool="text" settings={settings} setSettings={setSettings} />;
+}
+
+describe("text tool settings", () => {
+  it("shows fully labeled font size and line spacing values", async () => {
+    let renderer;
+    await act(async () => {
+      renderer = TestRenderer.create(<TextSettingsHarness />);
+    });
+
+    const toolbar = renderer.root.findByProps({ role: "toolbar", "aria-label": "Text formatting" });
+    expect(toolbar.findByProps({ className: "text-setting-control text-size-control" }).findByType("span").children.join("")).toBe("Size");
+    expect(toolbar.findByProps({ "aria-label": "Font size" }).props.value).toBe(16);
+    expect(toolbar.findByProps({ className: "text-setting-control line-height-control" }).findByType("span").children.join("")).toBe("Spacing");
+    expect(toolbar.findByProps({ "aria-label": "Line spacing" }).props.value).toBe(1.25);
+    await act(async () => renderer.unmount());
+  });
+});
+
 describe("draw tool settings", () => {
   it("exposes working preset colors, custom color choice, and pen sizes", async () => {
     let renderer;

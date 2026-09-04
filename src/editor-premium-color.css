@@ -544,3 +544,74 @@ main.editor-shell .zoom-corner-control button:focus-visible {
     bottom: max(8px, env(safe-area-inset-bottom)) !important;
   }
 }
+
+/* Text formatting controls stay self-explanatory and never surrender their value
+   space when the contextual strip is crowded. */
+main.editor-shell .text-setting-control {
+  display: inline-flex !important;
+  flex: 0 0 auto !important;
+  height: 38px !important;
+  min-height: 38px !important;
+  align-items: center !important;
+  overflow: hidden !important;
+  border: 1px solid #d8e0eb !important;
+  border-radius: 8px !important;
+  background: #ffffff !important;
+  color: #697386 !important;
+  white-space: nowrap !important;
+}
+
+main.editor-shell .text-setting-control > span {
+  flex: 0 0 auto !important;
+  padding-left: 10px !important;
+  color: #697386 !important;
+  font-size: 11px !important;
+  font-weight: 400 !important;
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+}
+
+main.editor-shell .text-setting-control > select {
+  flex: 0 0 auto !important;
+  height: 36px !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background-color: transparent !important;
+  color: #182033 !important;
+  font-size: 13px !important;
+  font-weight: 400 !important;
+  font-variant-numeric: tabular-nums !important;
+}
+
+main.editor-shell .text-format-settings .text-size-control > .text-size-select {
+  width: 88px !important;
+  min-width: 88px !important;
+  padding: 0 24px 0 7px !important;
+}
+
+main.editor-shell .text-format-settings .line-height-control > .line-height-select {
+  width: 92px !important;
+  min-width: 92px !important;
+  padding: 0 24px 0 7px !important;
+}
+
+@media (min-width: 901px) {
+  main.editor-shell > .text-format-settings {
+    width: max-content !important;
+    max-width: calc(100vw - 48px) !important;
+    gap: 8px !important;
+    padding: 0 10px !important;
+    overflow: visible !important;
+  }
+
+  main.editor-shell > .text-format-settings > * {
+    flex: 0 0 auto !important;
+  }
+
+  main.editor-shell .text-format-settings .align-group button.is-active,
+  main.editor-shell .text-format-settings .format-toggle-group button.is-active {
+    background: #e8e9ed !important;
+    color: #1d1d1f !important;
+    box-shadow: inset 0 0 0 1px rgba(60, 60, 67, 0.06) !important;
+  }
+}
