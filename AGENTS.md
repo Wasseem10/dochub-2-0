@@ -70,6 +70,8 @@ The selected July 26, 2026 signature-dialog redesign is Signature Proof (ideatio
 
 Every released PDF tool must have its own simple landing page using the current landing page as its visual source of truth: DM Sans hero typography, blue `#2851eb` actions, white and powder-blue surfaces, and compact type. Keep one centered upload card as the dominant action. Do not use green, mint, or cream on tool landing pages. Secondary settings and explanatory content must not compete with the upload action before a file is chosen.
 
+Tool landing-page “How to use” sections are text-led instruction lists. Do not place editor screenshots, product screenshots, or decorative screenshot frames in these sections.
+
 The selected July 24, 2026 tool-page redesign is Airy Editorial Glow (ideation option 1): keep the large centered upload card unmistakably dominant, then use a white canvas with restrained powder-blue and blush light, strong compact sans-serif headings, a three-step strip, a real PDFEnrich workspace tutorial, a flat related-tools row, and a spacious split FAQ. Apply the system responsively to each released tool without shrinking the desktop composition into mobile.
 
 The editor’s PDFEnrich wordmark is a labeled button that returns to `/app/dashboard`. The dashboard remains available to anonymous local users; account-only sections may still request sign-in. Keep the dashboard deliberately simple: blue PDFEnrich branding, a short upload-or-blank hero, three essential task choices, recent documents, restrained navigation, and no promotional side rail, statistics wall, fake folder creation, or competing AI/template/activity cards on the home screen.

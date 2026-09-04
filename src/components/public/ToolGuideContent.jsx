@@ -98,9 +98,6 @@ export function ToolGuideContent({ tool }) {
       <section className="tool-guide-workflow" aria-labelledby={`${tool.id}-guide-heading`}>
         <h2 id={`${tool.id}-guide-heading}`}>How to use {tool.name}</h2>
         <div className="tool-guide-workflow-grid">
-          <figure>
-            <img src="/product-assets/pdfenrich-editor-workspace.png" alt="PDFEnrich editor workspace showing a PDF and its editing toolbar" />
-          </figure>
           <div className="tool-guide-workflow-copy">
             <ol>
               {guideSteps.map((step, index) => <li key={`${step}-${index}`}><span>{index + 1}</span><p>{step}</p></li>)}

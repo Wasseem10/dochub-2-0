@@ -102,6 +102,7 @@ describe("public PDF tool platform", () => {
     expect(textOf(editor.root).includes("Guest files stay in this browser")).toBe(true);
     expect(textOf(editor.root).includes("Signed-in PDFs sync privately")).toBe(true);
     expect(textOf(editor.root).includes("How to use Sign PDF")).toBe(true);
+    expect(editor.root.findAllByType("img").some((image) => image.props.src === "/product-assets/pdfenrich-editor-workspace.png")).toBe(false);
     expect(textOf(editor.root).includes("Is this a digital certificate signature?")).toBe(true);
     expect(editor.root.findAllByType("button")).toHaveLength(1);
     await unmount(editor);
