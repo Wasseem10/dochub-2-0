@@ -1,6 +1,6 @@
 .brand-wordmark {
   display: inline-flex;
-  align-items: baseline;
+  align-items: center;
   font-size: inherit;
   font-weight: 800;
   letter-spacing: -.055em;
@@ -16,16 +16,30 @@
 }
 
 .brand-wordmark--logo {
-  display: inline-block;
+  display: inline-flex;
   width: 6.2em;
   height: 1.55em;
+  align-items: center;
+  gap: .28em;
   vertical-align: middle;
 }
 
 .brand-wordmark--logo .brand-wordmark-logo {
   display: block;
-  width: 100%;
+  width: 1.55em;
+  min-width: 1.55em;
   height: 100%;
-  object-fit: cover;
+  flex: 0 0 1.55em;
+  object-fit: contain;
   object-position: center;
+}
+
+.brand-wordmark--logo .brand-wordmark-name {
+  color: #0b1328;
+  text-transform: lowercase;
+  white-space: nowrap;
+}
+
+.brand-wordmark--logo .brand-wordmark-enrich {
+  color: inherit;
 }

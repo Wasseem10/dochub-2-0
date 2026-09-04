@@ -4,7 +4,9 @@ The product name is PDFEnrich and its canonical production domain is `https://pd
 
 PDFEnrich is completely free. There are no subscriptions, paid tiers, checkout flows, or paid plans planned. Make this a primary conversion message on public entry points, upload actions, and free-plan information pages. Prefer direct phrases such as “free and simple” over decorative “beautifully” language, and do not use unsupported security, privacy, compliance, certification, or availability claims.
 
-Use `runtime-public/pdfenrich-logo.png` as the primary logo on the landing page. It has intentional white margins, so display it through the `.brand-wordmark--logo` crop container rather than as an uncropped square image. All visible product naming, page metadata, exports, and user-facing copy must use PDFEnrich rather than any prior brand.
+Use `runtime-public/pdfenrich-logo.png` as the primary transparent document mark and display it through `.brand-wordmark--logo` directly beside the PDFEnrich name. All visible product naming, page metadata, exports, and user-facing copy must use PDFEnrich rather than any prior brand.
+
+The PDFEnrich wordmark uses the soft blue layered-document mark supplied September 4, 2026 beside the product name. Do not restore the earlier arrow-through-document symbol.
 
 Run the local server yourself and open the preview in the in-app browser. Do not give the user server-start instructions when you can run it.
 
