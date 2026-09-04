@@ -23,7 +23,7 @@ async function waitForPreview() {
 }
 
 before(async () => {
-  preview = spawn("npm", ["run", "preview", "--", "--port", String(port), "--strictPort"], {
+  preview = spawn(process.execPath, ["./node_modules/vite/bin/vite.js", "preview", "--host", "127.0.0.1", "--port", String(port), "--strictPort"], {
     cwd: process.cwd(),
     stdio: "ignore",
   });
@@ -156,8 +156,8 @@ for (const [path, expectedHeading, expectedDetail] of [
   ["/guides/compress-pdf-to-1mb", "compress a PDF to 1 MB", "1,048,576 bytes"],
   ["/guides/compress-pdf-for-email", "compress a PDF for email", "Base64"],
   ["/guides/combine-pdf-files-on-mac", "combine PDF files on a Mac", "Finder"],
-  ["/guides/sign-pdf-on-android", "sign a PDF on Android", "touch screen"],
-  ["/guides/fill-pdf-without-adobe", "fill out a PDF without Adobe", "interactive PDF form"],
+  ["/guides/sign-pdf-on-android", "sign a PDF on Android", "touch placement"],
+  ["/guides/fill-pdf-without-adobe", "fill out a PDF without Adobe", "interactive AcroForm field"],
   ["/guides/convert-pdf-to-word-without-losing-formatting", "convert PDF to Word without losing formatting", "visual-fidelity"],
   ["/guides/remove-pages-from-pdf", "remove pages from a PDF", "page count"],
   ["/guides/rotate-pdf-and-save", "rotate a PDF", "permanent fix"],

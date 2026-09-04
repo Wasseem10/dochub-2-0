@@ -93,6 +93,27 @@ test("the mobile corner zoom control stays compact and functional", async ({ pag
   expect(customLayout.pageLeft).toBeGreaterThanOrEqual(0);
 });
 
+test("tablet editor uses the touch dock and keeps every text control visible", async ({ page }) => {
+  await page.setViewportSize({ width: 700, height: 900 });
+  await page.goto(appPath("/edit-pdf"));
+  await page.getByRole("button", { name: "Start with a blank page" }).click();
+
+  const ribbon = page.locator(".reference-tool-ribbon");
+  const ribbonBox = await ribbon.boundingBox();
+  expect(ribbonBox.y + ribbonBox.height).toBeLessThanOrEqual(900);
+  expect(ribbonBox.y).toBeGreaterThan(700);
+  await page.getByRole("button", { name: "Add Text", exact: true }).click();
+  await expect(page.getByLabel("Font size")).toBeVisible();
+  await expect(page.getByLabel("Line spacing")).toBeVisible();
+  const textControls = await page.locator(".text-format-settings").evaluate((bar) => {
+    const rect = bar.getBoundingClientRect();
+    return { left: rect.left, right: rect.right, viewport: window.innerWidth };
+  });
+  expect(textControls.left).toBeGreaterThanOrEqual(0);
+  expect(textControls.right).toBeLessThanOrEqual(textControls.viewport);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
+});
+
 test("mobile text survives blur, returns to selection mode, and remains exportable", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto(appPath("/edit-pdf"));
@@ -141,4 +162,22 @@ test("the homepage keeps one hero upload target and the desktop CTA in view", as
   const mobileToolColumns = await page.locator(".freepdf-tool-grid").evaluate((grid) =>
     getComputedStyle(grid).gridTemplateColumns.split(" ").filter(Boolean).length);
   expect(mobileToolColumns).toBe(2);
+});
+
+test("narrow dashboard keeps every navigation destination reachable", async ({ page }) => {
+  await page.setViewportSize({ width: 700, height: 900 });
+  await page.goto(appPath("/app/dashboard"));
+  const trigger = page.getByRole("button", { name: "Open dashboard navigation" });
+  await expect(trigger).toBeVisible();
+  const triggerBox = await trigger.boundingBox();
+  expect(triggerBox.x + triggerBox.width).toBeLessThanOrEqual(700);
+  await trigger.click();
+  const menu = page.getByRole("dialog", { name: "Dashboard navigation" });
+  await expect(menu).toBeVisible();
+  await expect(menu.getByRole("button", { name: "Home" })).toBeVisible();
+  await expect(menu.getByRole("button", { name: "Documents" })).toBeVisible();
+  await expect(menu.getByRole("button", { name: "All tools" })).toBeVisible();
+  await expect(menu.getByRole("button", { name: "Trash" })).toBeVisible();
+  await menu.getByRole("button", { name: "Documents" }).click();
+  await expect(page).toHaveURL(/\/app\/documents$/);
 });

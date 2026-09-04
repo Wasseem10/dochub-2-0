@@ -1,4 +1,3 @@
-import React from "react";
 import TestRenderer, { act } from "react-test-renderer";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it } from "vitest";

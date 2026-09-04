@@ -17,7 +17,7 @@ export default defineConfig({
     video: "retain-on-failure",
   },
   webServer: {
-    command: "npm run preview -- --port 4194 --strictPort",
+    command: "node ./node_modules/vite/bin/vite.js preview --host 127.0.0.1 --port 4194 --strictPort",
     url: "http://127.0.0.1:4194",
     reuseExistingServer: !process.env.CI,
     timeout: 30_000,

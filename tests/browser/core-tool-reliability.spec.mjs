@@ -265,7 +265,9 @@ test("signing places a signature and exports it in the PDF", async ({ page }, te
   await signatureDialog.getByRole("tab", { name: "Type" }).click();
   await signatureDialog.getByLabel("Name for typed signature").fill("Wasseem Dabbas");
   await signatureDialog.getByRole("button", { name: "Save signature" }).click();
-  await expect(page.getByText("Signature ready. Click the page to place it.")).toBeVisible();
+  const signaturePlacement = page.getByRole("toolbar", { name: "Signature placement" });
+  await expect(signaturePlacement).toContainText("Ready to place");
+  await expect(signaturePlacement).toContainText("Move over the page, then click.");
   const surface = page.locator(".page-surface");
   await expect(surface).toBeVisible();
   await surface.click({ position: { x: 160, y: 420 } });

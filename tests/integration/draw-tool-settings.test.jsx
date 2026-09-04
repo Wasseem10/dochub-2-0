@@ -1,4 +1,4 @@
-import React, { act, useState } from "react";
+import { act, useState } from "react";
 import TestRenderer from "react-test-renderer";
 import { describe, expect, it, vi } from "vitest";
 import { ToolSettingsPanel } from "../../src/App.jsx";

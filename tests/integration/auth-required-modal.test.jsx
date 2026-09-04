@@ -1,4 +1,4 @@
-import React, { act } from "react";
+import { act } from "react";
 import TestRenderer from "react-test-renderer";
 import { describe, expect, it, vi } from "vitest";
 import { AuthRequiredModal } from "../../src/components/editor/AuthRequiredModal.jsx";

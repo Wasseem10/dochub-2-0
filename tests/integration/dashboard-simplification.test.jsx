@@ -1,4 +1,3 @@
-import React from "react";
 import TestRenderer, { act } from "react-test-renderer";
 import { describe, expect, it, vi } from "vitest";
 import { EditorBrandButton, UploadLanding } from "../../src/App.jsx";
@@ -85,6 +84,14 @@ describe("simplified dashboard navigation", () => {
     const allToolsButton = renderer.root.findAllByType("button").find((button) => textOf(button) === "All tools");
     await act(async () => allToolsButton.props.onClick());
     expect(onNavigate).toHaveBeenCalledWith(ROUTE_PATHS.appTools);
+
+    const mobileMenuButton = renderer.root.findByProps({ "aria-label": "Open dashboard navigation" });
+    await act(async () => mobileMenuButton.props.onClick());
+    const mobileDialog = renderer.root.findByProps({ "aria-label": "Dashboard navigation" });
+    const mobileDocumentsButton = mobileDialog.findAllByType("button").find((button) => textOf(button) === "Documents");
+    await act(async () => mobileDocumentsButton.props.onClick());
+    expect(onNavigate).toHaveBeenCalledWith(ROUTE_PATHS.documents);
+    expect(renderer.root.findAllByProps({ "aria-label": "Dashboard navigation" })).toHaveLength(0);
     await act(async () => renderer.unmount());
   });
 

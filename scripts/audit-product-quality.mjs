@@ -41,7 +41,7 @@ for (const scenario of priorityOneScenarioCoverage) {
 
 const report = {
   generatedAt: new Date().toISOString(),
-  status: problems.length ? "failed" : process.argv.includes("--record-passed") ? "passed" : "coverage_ready",
+  status: problems.length ? "failed" : process.argv.includes("--record-passed") ? "passed" : "coverage_manifest_valid",
   toolCount: priorityOneToolIds.length,
   tools: priorityOneToolCoverage.map(({ toolId, tests }) => ({ toolId, tests })),
   scenarios: priorityOneScenarioCoverage.map(({ scenario, tests }) => ({ scenario, tests })),
@@ -57,6 +57,6 @@ if (problems.length) {
   problems.forEach((problem) => console.error(`- ${problem}`));
   process.exitCode = 1;
 } else {
-  console.log(`Priority 1 quality coverage ready: ${report.toolCount} tools, ${report.scenarios.length} risk scenarios, ${report.browserProjects.length} browser classes.`);
+  console.log(`Priority 1 quality coverage manifest valid: ${report.toolCount} tools, ${report.scenarios.length} risk scenarios, ${report.browserProjects.length} browser classes. This command validates declared assertions; test:quality executes them.`);
   console.log("Report: test-results/priority-one-quality.json");
 }

@@ -28,6 +28,12 @@ describe("private document intelligence", () => {
     expect(passages[0].sentence).toContain("30 days");
   });
 
+  it("matches inflected and non-Latin query terms without discarding them", () => {
+    expect(findRelevantPassages(pages, "When is the agreement terminated?", 1)[0].pageNumber).toBe(2);
+    const multilingual = [{ pageNumber: 4, text: "支払い期限は2026年9月30日です。契約条件を確認してください。" }];
+    expect(findRelevantPassages(multilingual, "支払い期限", 1)[0].pageNumber).toBe(4);
+  });
+
   it("extracts structured values and emits CSV", () => {
     const data = extractDocumentData(pages);
     expect(data.emails[0]).toEqual({ value: "owner@example.com", pageNumber: 1 });

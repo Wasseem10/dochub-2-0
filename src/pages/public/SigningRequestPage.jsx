@@ -170,7 +170,7 @@ export function SigningRequestPage() {
   const location = useLocation();
   const capability = useMemo(
     () => signingRequestCapabilityFromLocation(location),
-    [location.hash, location.pathname],
+    [location],
   );
   const token = capability.token;
   const [state, setState] = useState({ status: "loading" });

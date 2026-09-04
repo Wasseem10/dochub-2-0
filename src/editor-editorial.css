@@ -901,7 +901,7 @@ main.editor-shell .annotation-controls button:hover {
 
 /* Dedicated touch layout: the document owns the viewport and editing actions
    live in a stable bottom dock instead of overlapping flex groups. */
-@media (max-width: 600px) {
+@media (max-width: 900px) {
   main.editor-shell.editor-shell,
   main.editor-shell.editor-shell.has-tool-settings,
   main.editor-shell.editor-shell.has-tool-settings.is-highlight-settings-mode {
@@ -918,6 +918,25 @@ main.editor-shell .annotation-controls button:hover {
   main.editor-shell .workspace.is-managing-pages {
     grid-row: 2 !important;
     min-height: 0 !important;
+  }
+
+  main.editor-shell .canvas-column {
+    min-width: 0 !important;
+  }
+
+  main.editor-shell .document-stage {
+    box-sizing: border-box !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    padding: 16px 8px 150px !important;
+  }
+
+  main.editor-shell.is-fit-zoom .document-stage {
+    overflow-x: hidden !important;
+  }
+
+  main.editor-shell.is-fit-zoom .canvas-column {
+    overflow-x: hidden !important;
   }
 
   main.editor-shell .reference-tool-ribbon {
@@ -1136,10 +1155,6 @@ main.editor-shell .annotation-controls button:hover {
   .reference-compact-tools-backdrop .reference-compact-tools-footer button:disabled {
     cursor: not-allowed !important;
     opacity: 0.45 !important;
-  }
-
-  main.editor-shell .document-stage {
-    padding-bottom: 150px !important;
   }
 
   main.editor-shell .status-bar {

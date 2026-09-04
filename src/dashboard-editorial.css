@@ -859,7 +859,7 @@
 .dashboard-tool-card {
   display: grid;
   min-height: 74px;
-  grid-template-columns: 32px minmax(0, 1fr) 16px;
+  grid-template-columns: 32px minmax(0, 1fr) auto 16px;
   align-items: center;
   gap: 10px;
   padding: 12px 15px;
@@ -888,6 +888,7 @@
   color: #fff;
 }
 .dashboard-tool-card > strong { overflow: hidden; font-size: 13px; font-weight: 760; text-overflow: ellipsis; white-space: nowrap; }
+.dashboard-tool-status { padding: 3px 6px; border-radius: 999px; background: #f1f3f7; color: #5e6675; font-size: 9px; line-height: 1; letter-spacing: .04em; text-transform: uppercase; }
 .dashboard-tool-card > svg { color: #9aa7c2; opacity: 0; transition: opacity .16s ease, transform .16s ease; }
 .dashboard-tool-card:hover > svg { opacity: 1; transform: translateX(2px); }
 .dashboard-tool-card.is-tone-0 > span { background: #7656ed; }

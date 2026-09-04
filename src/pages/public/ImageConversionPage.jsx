@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import ArrowDown from "lucide-react/dist/esm/icons/arrow-down.mjs";
 import ArrowUp from "lucide-react/dist/esm/icons/arrow-up.mjs";

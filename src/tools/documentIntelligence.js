@@ -4,8 +4,19 @@ function clean(value) {
   return String(value || "").replace(/\s+/g, " ").trim();
 }
 
+function normalizeToken(value) {
+  const token = value.normalize("NFKC").toLocaleLowerCase().replace(/[’]/g, "'");
+  if (token.length <= 5) return token;
+  return token
+    .replace(/ations?$/u, "at")
+    .replace(/ments?$/u, "")
+    .replace(/(?:ingly|edly|ing|ed|es|s)$/u, "");
+}
+
 function tokens(value) {
-  return (String(value || "").toLowerCase().match(/[a-z0-9][a-z0-9'-]*/g) || []).filter((word) => word.length > 1 && !STOP_WORDS.has(word));
+  return (String(value || "").normalize("NFKC").match(/[\p{L}\p{N}][\p{L}\p{N}'’-]*/gu) || [])
+    .map(normalizeToken)
+    .filter((word) => word.length > 1 && !STOP_WORDS.has(word));
 }
 
 export function sentenceRecords(pages) {
@@ -55,7 +66,10 @@ export function findRelevantPassages(pages, question, limit = 4) {
     const sentenceWords = new Set(tokens(record.sentence));
     const matched = [...query].filter((word) => sentenceWords.has(word));
     const exactNumberMatches = (String(question).match(/\b\d[\d,.%/-]*\b/g) || []).filter((value) => record.sentence.includes(value)).length;
-    const score = matched.length * 3 + matched.length / query.size * 4 + exactNumberMatches * 4;
+    const normalizedQuestion = clean(question).normalize("NFKC").toLocaleLowerCase();
+    const normalizedSentence = clean(record.sentence).normalize("NFKC").toLocaleLowerCase();
+    const phraseBonus = normalizedQuestion.length >= 2 && normalizedSentence.includes(normalizedQuestion) ? 8 : 0;
+    const score = matched.length * 3 + matched.length / query.size * 4 + exactNumberMatches * 4 + phraseBonus;
     return { ...record, matched, score };
   }).filter((record) => record.score > 0).sort((a, b) => b.score - a.score || a.pageNumber - b.pageNumber).slice(0, limit);
 }

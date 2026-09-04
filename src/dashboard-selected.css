@@ -20,6 +20,11 @@
   background: #ffffff !important;
 }
 
+.dashboard-mobile-nav-trigger,
+.dashboard-mobile-nav-backdrop {
+  display: none;
+}
+
 .dashboard-editorial-theme .dashboard-brand {
   height: 62px !important;
   margin: 0 22px 10px !important;
@@ -698,6 +703,100 @@
     width: 138px !important;
     height: 64px !important;
     margin: 0 !important;
+  }
+
+  .dashboard-editorial-theme .dashboard-mobile-nav-trigger {
+    display: inline-grid !important;
+    width: 44px !important;
+    height: 44px !important;
+    margin-left: auto !important;
+    padding: 0 !important;
+    place-items: center !important;
+    border: 1px solid #dfe3e8 !important;
+    border-radius: 10px !important;
+    background: #fff !important;
+    color: #25282d !important;
+  }
+
+  .dashboard-mobile-nav-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 1500;
+    display: flex;
+    justify-content: flex-end;
+    background: rgba(18, 21, 27, 0.38);
+  }
+
+  .dashboard-mobile-nav-sheet {
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    width: min(340px, calc(100vw - 36px));
+    min-height: 100dvh;
+    padding: 16px;
+    background: #fff;
+    box-shadow: -18px 0 48px rgba(24, 28, 35, 0.18);
+  }
+
+  .dashboard-mobile-nav-sheet header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid #e7e9ed;
+  }
+
+  .dashboard-mobile-nav-sheet header .brand-wordmark--logo {
+    width: 136px;
+  }
+
+  .dashboard-mobile-nav-sheet header button,
+  .dashboard-mobile-nav-sheet nav button,
+  .dashboard-mobile-help {
+    border: 0;
+    background: transparent;
+    color: #25282d;
+    font: inherit;
+    cursor: pointer;
+  }
+
+  .dashboard-mobile-nav-sheet header button {
+    display: grid;
+    width: 44px;
+    height: 44px;
+    place-items: center;
+    border: 1px solid #dfe3e8;
+    border-radius: 10px;
+  }
+
+  .dashboard-mobile-nav-sheet nav {
+    display: grid;
+    align-content: start;
+    gap: 4px;
+    padding: 18px 0;
+    overflow-y: auto;
+  }
+
+  .dashboard-mobile-nav-sheet nav button,
+  .dashboard-mobile-help {
+    display: grid;
+    grid-template-columns: 24px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 10px;
+    min-height: 48px;
+    padding: 0 12px;
+    border-radius: 8px;
+    text-align: left;
+  }
+
+  .dashboard-mobile-nav-sheet nav button.is-active {
+    background: #f1f2f4;
+    box-shadow: inset 3px 0 #7d1f2d;
+  }
+
+  .dashboard-mobile-help {
+    border-top: 1px solid #e7e9ed;
+    border-radius: 0;
   }
 
   .dashboard-editorial-theme .lumin-home-rail .upload-nav,

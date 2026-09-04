@@ -45,16 +45,21 @@ export async function extractPlainTextFromPdf(pdfDocument) {
   return text;
 }
 
-function toPdfSafeText(text) {
+export function toPdfSafeText(text) {
   const normalized = String(text || "")
     .replace(/[\u2018\u2019]/g, "'")
     .replace(/[\u201C\u201D]/g, '"')
     .replace(/[\u2013\u2014]/g, "-")
     .replace(/\u2026/g, "...");
-  return Array.from(normalized, (character) => {
-    const code = character.charCodeAt(0);
-    return code === 9 || code === 10 || code === 13 || (code >= 32 && code <= 126) || (code >= 160 && code <= 255) ? character : "?";
-  }).join("");
+  const unsupported = Array.from(normalized).filter((character) => {
+    const code = character.codePointAt(0);
+    return !(code === 9 || code === 10 || code === 13 || (code >= 32 && code <= 126) || (code >= 160 && code <= 255));
+  });
+  if (unsupported.length) {
+    const examples = [...new Set(unsupported)].slice(0, 4).map((character) => `${character} (U+${character.codePointAt(0).toString(16).toUpperCase().padStart(4, "0")})`).join(", ");
+    throw new Error(`This text contains characters the current PDF font cannot preserve: ${examples}. Conversion stopped so the downloaded PDF is not corrupted.`);
+  }
+  return normalized;
 }
 
 export function wrapPlainText(text, font, fontSize, maxWidth) {

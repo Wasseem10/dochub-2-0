@@ -15,8 +15,8 @@ import { TOOL_CATEGORIES, TOOL_REGISTRY } from "../../tools/toolRegistry.js";
 const releasedTools = TOOL_REGISTRY.filter((tool) => tool.status !== "coming-soon");
 const popularToolIds = [
   "edit-pdf", "merge-pdf", "compress-pdf", "annotate-pdf",
-  "fill-pdf", "split-pdf", "pdf-to-word", "summarize-pdf",
-  "pdf-to-jpg", "translate-pdf", "ocr-pdf", "sign-pdf",
+  "fill-pdf", "split-pdf", "pdf-to-word", "organize-pdf",
+  "pdf-to-jpg", "rotate-pdf", "ocr-pdf", "sign-pdf",
 ];
 const directoryMetadata = toolDirectoryMetadata(releasedTools.length);
 
@@ -91,6 +91,7 @@ export function ToolDirectoryPage() {
                 <Link key={tool.id} className={`tools-catalog-card is-tone-${index % 8}`} to={tool.route} {...preloadProps(tool)}>
                   <span><ToolIcon name={tool.icon} size={22} /></span>
                   <strong>{tool.name}</strong>
+                  {tool.status !== "available" && <small className="tools-catalog-status">{tool.status === "beta" ? "Beta" : "Limited"}</small>}
                   <ChevronRight size={16} />
                 </Link>
               ))}
@@ -115,6 +116,7 @@ export function ToolDirectoryPage() {
                       <Link key={tool.id} className={`tools-catalog-card is-tone-${(index + 3) % 8}`} to={tool.route} {...preloadProps(tool)}>
                         <span><ToolIcon name={tool.icon} size={22} /></span>
                         <strong>{tool.name}</strong>
+                        {tool.status !== "available" && <small className="tools-catalog-status">{tool.status === "beta" ? "Beta" : "Limited"}</small>}
                         <ChevronRight size={16} />
                       </Link>
                     ))}

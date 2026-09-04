@@ -8,7 +8,7 @@
     "build": "node scripts/audit-priority-two-editorial.mjs && node scripts/generate-tool-sitemap.mjs && vite build && node scripts/prerender-public-routes.mjs && node scripts/prepare-sites-build.mjs && node scripts/audit-public-performance.mjs",
     "generate:editorial": "python3 scripts/generate-editorial-artifacts.py",
     "audit:editorial": "node scripts/audit-priority-two-editorial.mjs",
-    "audit:seo": "npm run build && node scripts/audit-seo.mjs",
+    "audit:seo": "pnpm run build && node scripts/audit-seo.mjs",
     "indexnow:submit": "node scripts/submit-indexnow.mjs",
     "audit:quality": "node scripts/audit-product-quality.mjs",
     "preview": "vite preview --host 127.0.0.1",
@@ -16,9 +16,9 @@
     "typecheck": "tsc --project jsconfig.json --noEmit",
     "test": "vitest run",
     "test:security": "vitest run tests/security tests/unit/private-cloud-documents.test.js tests/unit/privacy-safe-route.test.js tests/unit/security-headers.test.js",
-    "test:e2e": "npm run build && node --test tests/e2e/*.test.mjs",
-    "test:browser": "npm run build && playwright test",
-    "test:quality": "npm run build && npm run audit:quality && node scripts/run-priority-one-quality.mjs && node scripts/audit-product-quality.mjs --record-passed"
+    "test:e2e": "pnpm run build && node --test tests/e2e/*.test.mjs",
+    "test:browser": "pnpm run build && playwright test",
+    "test:quality": "pnpm run build && pnpm run audit:quality && node scripts/run-priority-one-quality.mjs && node scripts/audit-product-quality.mjs --record-passed"
   },
   "dependencies": {
     "@phosphor-icons/react": "^2.1.10",

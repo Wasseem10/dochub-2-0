@@ -1,6 +1,6 @@
 import { PDFDocument } from "pdf-lib";
 import { describe, expect, it } from "vitest";
-import { createPdfFromPlainText, textContentToPlainText, validateTextConversionFile } from "../../src/tools/textConversion.js";
+import { createPdfFromPlainText, textContentToPlainText, toPdfSafeText, validateTextConversionFile } from "../../src/tools/textConversion.js";
 
 function mockFile(name, type, size = 100) {
   return { name, type, size };
@@ -22,5 +22,10 @@ describe("text conversion", () => {
     const pdf = await PDFDocument.load(bytes);
     expect(pdf.getTitle()).toBe("Notes");
     expect(pdf.getPageCount()).toBeGreaterThan(1);
+  });
+
+  it("normalizes smart punctuation and refuses unsupported text instead of corrupting it", async () => {
+    expect(toPdfSafeText("“Clear”—and safe…")).toBe('"Clear"-and safe...');
+    await expect(createPdfFromPlainText("重要な契約条件")).rejects.toThrow(/Conversion stopped/);
   });
 });

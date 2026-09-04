@@ -5,7 +5,6 @@ import LogOut from "lucide-react/dist/esm/icons/log-out.mjs";
 import ChevronRight from "lucide-react/dist/esm/icons/chevron-right.mjs";
 import ChevronLeft from "lucide-react/dist/esm/icons/chevron-left.mjs";
 import Plug from "lucide-react/dist/esm/icons/plug.mjs";
-import CreditCard from "lucide-react/dist/esm/icons/credit-card.mjs";
 import ArrowDownToLine from "lucide-react/dist/esm/icons/arrow-down-to-line.mjs";
 import AlignCenter from "lucide-react/dist/esm/icons/align-center.mjs";
 import AlignLeft from "lucide-react/dist/esm/icons/align-left.mjs";
@@ -13,7 +12,6 @@ import AlignRight from "lucide-react/dist/esm/icons/align-right.mjs";
 import AlertTriangle from "lucide-react/dist/esm/icons/alert-triangle.mjs";
 import Bell from "lucide-react/dist/esm/icons/bell.mjs";
 import Box from "lucide-react/dist/esm/icons/box.mjs";
-import Building2 from "lucide-react/dist/esm/icons/building-2.mjs";
 import CalendarDays from "lucide-react/dist/esm/icons/calendar-days.mjs";
 import ChartNoAxesColumnIncreasing from "lucide-react/dist/esm/icons/chart-no-axes-column-increasing.mjs";
 import Check from "lucide-react/dist/esm/icons/check.mjs";
@@ -25,7 +23,6 @@ import Copy from "lucide-react/dist/esm/icons/copy.mjs";
 import Download from "lucide-react/dist/esm/icons/download.mjs";
 import EllipsisVertical from "lucide-react/dist/esm/icons/ellipsis-vertical.mjs";
 import Eraser from "lucide-react/dist/esm/icons/eraser.mjs";
-import Filter from "lucide-react/dist/esm/icons/filter.mjs";
 import FilePlus2 from "lucide-react/dist/esm/icons/file-plus-2.mjs";
 import FileText from "lucide-react/dist/esm/icons/file-text.mjs";
 import Grid2X2 from "lucide-react/dist/esm/icons/grid-2x2.mjs";
@@ -33,11 +30,11 @@ import GripVertical from "lucide-react/dist/esm/icons/grip-vertical.mjs";
 import Highlighter from "lucide-react/dist/esm/icons/highlighter.mjs";
 import Home from "lucide-react/dist/esm/icons/home.mjs";
 import ImageIcon from "lucide-react/dist/esm/icons/image.mjs";
-import Inbox from "lucide-react/dist/esm/icons/inbox.mjs";
 import Info from "lucide-react/dist/esm/icons/info.mjs";
 import List from "lucide-react/dist/esm/icons/list.mjs";
 import LoaderCircle from "lucide-react/dist/esm/icons/loader-circle.mjs";
 import MessageSquare from "lucide-react/dist/esm/icons/message-square.mjs";
+import Menu from "lucide-react/dist/esm/icons/menu.mjs";
 import MousePointer2 from "lucide-react/dist/esm/icons/mouse-pointer-2.mjs";
 import Paintbrush from "lucide-react/dist/esm/icons/paintbrush.mjs";
 import Palette from "lucide-react/dist/esm/icons/palette.mjs";
@@ -61,7 +58,6 @@ import Lock from "lucide-react/dist/esm/icons/lock.mjs";
 import Circle from "lucide-react/dist/esm/icons/circle.mjs";
 import Minus from "lucide-react/dist/esm/icons/minus.mjs";
 import Move from "lucide-react/dist/esm/icons/move.mjs";
-import PanelLeftClose from "lucide-react/dist/esm/icons/panel-left-close.mjs";
 import PanelLeftOpen from "lucide-react/dist/esm/icons/panel-left-open.mjs";
 import RectangleHorizontal from "lucide-react/dist/esm/icons/rectangle-horizontal.mjs";
 import Star from "lucide-react/dist/esm/icons/star.mjs";
@@ -101,7 +97,7 @@ import {
   TextT as PhAddText,
   Trash as PhTrash,
 } from "@phosphor-icons/react";
-import { NavLink, useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { db, storage } from "./firebase";
 import { useAuth } from "./auth/AuthContext.jsx";
 import { beginToolOperation, clientEnvironment, fileSizeBucket, pageCountBucket, trackProductEvent, trackToolUpload, trackUploadValidationFailure } from "./analytics/productAnalytics.js";
@@ -222,6 +218,11 @@ const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 const MIN_EDITOR_ZOOM = 40;
 const ZOOM_PRESETS = [40, 50, 60, 80, 90, 100, 120, 140, 160];
 const DASHBOARD_THUMBNAIL_RENDER_LIMIT = 2;
+const POPULAR_DASHBOARD_TOOL_IDS = Object.freeze([
+  "edit-pdf", "merge-pdf", "compress-pdf", "annotate-pdf",
+  "fill-pdf", "split-pdf", "pdf-to-word", "organize-pdf",
+  "pdf-to-jpg", "rotate-pdf", "ocr-pdf", "sign-pdf",
+]);
 let activeDashboardThumbnailRenders = 0;
 const dashboardThumbnailRenderQueue = [];
 
@@ -1093,7 +1094,7 @@ async function renderPdfPageForReplacement(documentProxy, sourcePageIndex, edite
   }
 }
 
-function samplePages() {
+function _samplePages() {
   return [
     { id: "sample-1", number: 1, width: BASE_PAGE_WIDTH, height: BASE_PAGE_HEIGHT, source: "sample" },
     { id: "sample-2", number: 2, width: BASE_PAGE_WIDTH, height: BASE_PAGE_HEIGHT, source: "sample" },
@@ -1101,7 +1102,7 @@ function samplePages() {
   ];
 }
 
-function initialAnnotations() {
+function _initialAnnotations() {
   return [
     {
       id: makeId("text"),
@@ -1363,7 +1364,7 @@ const EditableTextContent = forwardRef(function EditableTextContent({
   );
 });
 
-function Annotation({ annotation, selected, zoom, onSelect, onDrag, onResize, onUpdate, onDelete }) {
+function LegacyAnnotation({ annotation, selected, zoom, onSelect, onDrag, onResize, onUpdate, onDelete }) {
   const textContentRef = useRef(null);
   const textWasFocusedRef = useRef(false);
   const displayScale = (zoom / 100) * EDITOR_PAGE_SCALE;
@@ -3204,12 +3205,16 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
 
     window.addEventListener("paste", onPaste);
     return () => window.removeEventListener("paste", onPaste);
+  // The listener is intentionally refreshed by the state values consumed by addTextAnnotation.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [annotations, pageIndex, pages.length, toolSettings]);
 
   useEffect(() => {
     if (!activeDocumentId || !pages.length || saveState !== "unsaved") return undefined;
     const timer = window.setTimeout(() => saveActiveDocument(false), 900);
     return () => window.clearTimeout(timer);
+  // The debounced save is intentionally restarted only when persisted document state changes.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [annotations, detectedTextItems, fileName, pages, activeDocumentId, saveState]);
 
   useEffect(() => {
@@ -3239,7 +3244,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       });
     }, 700);
     return () => window.clearTimeout(timer);
-  }, [activeDocumentId, activeSignature, fileName, lastSavedAt, pageIndex, pages.length, pendingImage, publicTool, redoStack, saveState, saved, selectedDetectedTextId, selectedId, tool, toolSettings, undoStack, zoom, zoomMode]);
+  }, [activeDocumentId, activeSignature, fileName, lastSavedAt, pageIndex, pages.length, pendingImage, publicTool, redoStack, saveState, saved, selectedDetectedTextId, selectedId, storageOwnerId, tool, toolSettings, undoStack, zoom, zoomMode]);
 
   useEffect(() => {
     if (!pages.length || saveState !== "unsaved") return undefined;
@@ -4314,7 +4319,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       sourceFileRef.current = new File([sourceBytes], documentRecord.name, { type: "application/pdf" });
     }
     setEditorRouteState("ready");
-  }, []);
+  }, [storageOwnerId]);
 
   const openDocument = async (documentRecord) => {
     if (documentRecord.ownerId && documentRecord.ownerId !== storageOwnerIdRef.current) {
@@ -5371,6 +5376,8 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
+  // Command handlers are refreshed by the editor state they read; action functions are render-local wrappers.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pages, pageIndex, selectedId, selectedDetectedTextId, selected, selectedDetectedText, annotations, detectedTextItems, undoStack, redoStack, saveState]);
 
   const exportPdf = async (options = {}) => {
@@ -6036,6 +6043,8 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       return;
     }
     hydrateDocument(resolved.document).catch(() => setEditorRouteState("error"));
+  // openDocument is intentionally excluded so this route resolver does not reopen the document on every render.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeDocumentId, cloudCatalogStatus, currentUser?.uid, documentCatalogReady, documentId, documents, editorRouteRetryKey, hydrateDocument, pages.length, storageOwnerId, view]);
 
   useEffect(() => {
@@ -7310,7 +7319,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   );
 }
 
-function LandingPage({ fileInputRef, onUpload, onSelectFiles, onLogin }) {
+function LegacyLandingPage({ fileInputRef, onUpload, onSelectFiles, onLogin }) {
   const [activeCategory, setActiveCategory] = useState("All");
   const [openFaq, setOpenFaq] = useState(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -7460,7 +7469,7 @@ function LandingPage({ fileInputRef, onUpload, onSelectFiles, onLogin }) {
           ))}
         </div>
         <div className="cosmic-tool-grid">
-          {visibleTools.map(([name, format, category, badge, Icon]) => (
+          {visibleTools.map(([name, format, , badge]) => (
             <button key={name} type="button" className="cosmic-tool-card" onClick={uploadClick}>
               <span className="cosmic-chip-row">
                 {format.split(" -> ").map((chip) => (
@@ -8287,6 +8296,7 @@ export function UploadLanding({
   const [dashboardFilter, setDashboardFilter] = useState("all");
   const [dashboardSort, setDashboardSort] = useState("recent");
   const [dashboardView, setDashboardView] = useState("list");
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const userName = currentUser?.name || currentUser?.email || "Local workspace";
   const userInitials = userName
     .split(/\s|@/)
@@ -8312,6 +8322,20 @@ export function UploadLanding({
     { label: "Trash", icon: Trash2 },
   ];
 
+  useEffect(() => {
+    if (!mobileNavOpen || typeof window === "undefined") return undefined;
+    const closeOnEscape = (event) => {
+      if (event.key === "Escape") setMobileNavOpen(false);
+    };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [mobileNavOpen]);
+
+  const navigateFromMobileMenu = (nextSection) => {
+    setMobileNavOpen(false);
+    setActiveSection(nextSection);
+  };
+
   const agreementFlows = [
     { title: "Create agreement", detail: "Start a clean agreement page and add fields.", icon: FilePlus2, action: onBlankPage },
     { title: "Upload for review", detail: "Import a PDF and edit text, comments, or highlights.", icon: Upload, action: onSelectFiles },
@@ -8332,12 +8356,7 @@ export function UploadLanding({
     )),
   })).filter((category) => category.tools.length), [normalizedQuery, releasedDashboardTools, toolCategoryFilter]);
   const visibleDashboardToolCount = dashboardToolGroups.reduce((total, group) => total + group.tools.length, 0);
-  const popularDashboardToolIds = [
-    "edit-pdf", "merge-pdf", "compress-pdf", "annotate-pdf",
-    "fill-pdf", "split-pdf", "pdf-to-word", "summarize-pdf",
-    "pdf-to-jpg", "translate-pdf", "ocr-pdf", "sign-pdf",
-  ];
-  const popularDashboardTools = useMemo(() => popularDashboardToolIds
+  const popularDashboardTools = useMemo(() => POPULAR_DASHBOARD_TOOL_IDS
     .map((id) => releasedDashboardTools.find((tool) => tool.id === id))
     .filter(Boolean), [releasedDashboardTools]);
   const popularDashboardToolIdSet = useMemo(
@@ -8370,7 +8389,7 @@ export function UploadLanding({
   const continueDashboardRows = [...filteredDocuments]
     .sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0))
     .slice(0, 4);
-  const recentDashboardRows = [...dashboardDocumentPool]
+  const _recentDashboardRows = [...dashboardDocumentPool]
     .sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0))
     .slice(0, 5);
   const dashboardLibraryRows = [...filteredDocuments]
@@ -8447,7 +8466,7 @@ export function UploadLanding({
     return formatDashboardDate(date);
   };
 
-  const renderDocumentTable = (records, mode = "documents") => (
+  const _renderDocumentTable = (records, mode = "documents") => (
     records.length ? (
       <div className="lumin-document-table">
         <div className="lumin-doc-row lumin-doc-head">
@@ -8765,6 +8784,7 @@ export function UploadLanding({
                       <button type="button" className={`dashboard-tool-card is-tone-${index % 8}`} key={tool.id} onClick={() => onNavigate(tool.route)}>
                         <span><ToolIcon name={tool.icon} size={22} /></span>
                         <strong>{tool.name}</strong>
+                        {tool.status !== "available" && <small className="dashboard-tool-status">{tool.status === "beta" ? "Beta" : "Limited"}</small>}
                         <ChevronRight size={16} />
                       </button>
                     ))}
@@ -8789,6 +8809,7 @@ export function UploadLanding({
                           <button type="button" className={`dashboard-tool-card is-tone-${(index + 3) % 8}`} key={tool.id} onClick={() => onNavigate(tool.route)}>
                             <span><ToolIcon name={tool.icon} size={22} /></span>
                             <strong>{tool.name}</strong>
+                            {tool.status !== "available" && <small className="dashboard-tool-status">{tool.status === "beta" ? "Beta" : "Limited"}</small>}
                             <ChevronRight size={16} />
                           </button>
                         ))}
@@ -9051,6 +9072,7 @@ export function UploadLanding({
       <input ref={fileInputRef} className="hidden-input" type="file" accept="application/pdf" onChange={onUpload} />
       <aside className="lumin-home-rail">
         <button type="button" className="dashboard-brand" aria-label="PDFEnrich dashboard" onClick={() => setActiveSection("Home")}><BrandWordmark logo /></button>
+        <button type="button" className="dashboard-mobile-nav-trigger" aria-label="Open dashboard navigation" aria-expanded={mobileNavOpen} aria-controls="dashboard-mobile-navigation" onClick={() => setMobileNavOpen(true)}><Menu size={22} /></button>
         <nav className="upload-nav" aria-label="Primary">
           {primaryNav.map(({ label, section: navSection = label, icon: Icon, badge, anchor }) => (
             <button key={label} type="button" className={!anchor && navSection === activeSection ? "is-active" : ""} onClick={() => {
@@ -9083,6 +9105,18 @@ export function UploadLanding({
           <span><strong>{currentUser?.uid ? "Account sync on" : "Private by design"}</strong><small>{currentUser?.uid ? "Signed-in PDFs sync privately." : "Guest files stay in this browser."}</small></span>
         </div>
       </aside>
+
+      {mobileNavOpen && <div className="dashboard-mobile-nav-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setMobileNavOpen(false); }}>
+        <section id="dashboard-mobile-navigation" className="dashboard-mobile-nav-sheet" role="dialog" aria-modal="true" aria-label="Dashboard navigation">
+          <header><BrandWordmark logo /><button type="button" aria-label="Close dashboard navigation" onClick={() => setMobileNavOpen(false)}><X size={20} /></button></header>
+          <nav aria-label="Mobile primary navigation">
+            {[...primaryNav, ...adminNav, ...utilityNav].map(({ label, section: navSection = label, icon: Icon }) => (
+              <button key={label} type="button" className={navSection === activeSection ? "is-active" : ""} onClick={() => navigateFromMobileMenu(navSection)}><Icon size={19} /><span>{label}</span><ChevronRight size={16} /></button>
+            ))}
+          </nav>
+          <button type="button" className="dashboard-mobile-help" onClick={() => { setMobileNavOpen(false); onNavigate(ROUTE_PATHS.help); }}><CircleHelp size={19} /><span>Help</span><ChevronRight size={16} /></button>
+        </section>
+      </div>}
 
       <section className="upload-main">
         <header className={`upload-topbar is-${activeSection.toLowerCase().replaceAll(" ", "-")}`}>
@@ -9216,7 +9250,7 @@ function Inspector({
     setCustomColorDraft(selected?.color || colors.black);
     setIsCustomColorOpen(false);
     setCommentReplyDraft("");
-  }, [selected?.id]);
+  }, [selected?.color, selected?.id]);
 
   return (
     <aside className="inspector">
@@ -9589,10 +9623,11 @@ function LinkModal({ initialUrl = "https://", isEditing = false, onClose, onSave
         first.focus();
       }
     };
+    const returnFocusTarget = returnFocusRef.current;
     window.addEventListener("keydown", onKeyDown);
     return () => {
       window.removeEventListener("keydown", onKeyDown);
-      returnFocusRef.current?.focus?.({ preventScroll: true });
+      returnFocusTarget?.focus?.({ preventScroll: true });
     };
   }, []);
 

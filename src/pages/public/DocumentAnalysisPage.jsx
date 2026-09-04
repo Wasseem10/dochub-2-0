@@ -32,11 +32,11 @@ import { createPdfFromPlainText } from "../../tools/textConversion.js";
 
 const QUESTION_TOOLS = new Set(["ai-pdf", "chat-with-pdf", "ask-pdf"]);
 const MODES = Object.freeze({
-  "ai-pdf": { icon: Bot, heading: "Ask for source-grounded help", detail: "PDFEnrich retrieves the strongest matching passages from the PDF and cites their pages. It does not invent an answer beyond the source text.", action: "Find cited passages" },
-  "chat-with-pdf": { icon: MessageSquareText, heading: "Keep a private document conversation", detail: "Ask multiple questions in this tab. Every response is a set of exact, page-cited source passages; conversation text is not uploaded or saved.", action: "Ask document" },
+  "ai-pdf": { icon: Bot, heading: "Find source passages", detail: "PDFEnrich matches the terms and figures in your question to exact passages and cites their pages. It does not generate an answer beyond the source text.", action: "Find cited passages" },
+  "chat-with-pdf": { icon: MessageSquareText, heading: "Run multiple passage searches", detail: "Search several questions in this tab. Every result is a set of exact, page-cited source passages; search text is not uploaded or saved.", action: "Search document" },
   "summarize-pdf": { icon: Sparkles, heading: "Create an extractive page-cited summary", detail: "Important source sentences are ranked by document terms, reduced for repetition, and kept in document order. No model-generated facts are added.", action: "Create cited summary" },
   "translate-pdf": { icon: Languages, heading: "Translate with your browser's local language model", detail: "Compatible Chrome browsers can download and run an on-device Translator model. The source PDF is never sent to PDFEnrich or a translation server.", action: "Translate document" },
-  "extract-data-from-pdf": { icon: Database, heading: "Extract structured fields with page references", detail: "Detect email addresses, phone numbers, dates, money, percentages, and label-value lines, then download JSON or CSV for review.", action: "Extract document data" },
+  "extract-data-from-pdf": { icon: Database, heading: "Detect common field patterns with page references", detail: "Detect email addresses, phone numbers, dates, money, percentages, and label-value lines, then download JSON or CSV for review. Tables are not reconstructed.", action: "Detect field patterns" },
   "ask-pdf": { icon: MessageSquareText, heading: "Find where the PDF answers your question", detail: "Question terms are matched against document sentences and numbers. The result shows exact passages with page citations instead of a generated answer.", action: "Find answer sources" },
   "ai-question-generator": { icon: Sparkles, heading: "Generate review questions from real sentences", detail: "Important document terms and figures become questions with exact source-sentence answer keys and page citations.", action: "Generate questions" },
 });
@@ -138,8 +138,12 @@ export function DocumentAnalysisPage({ tool }) {
   const baseName = file?.name.replace(/\.pdf$/i, "") || "document";
 
   const downloadTranslatedPdf = async () => {
-    const pdf = await createPdfFromPlainText(result, { title: `${baseName} translated` });
-    download(pdf, "application/pdf", `${baseName}-translated.pdf`, tool.id, true);
+    try {
+      const pdf = await createPdfFromPlainText(result, { title: `${baseName} translated` });
+      download(pdf, "application/pdf", `${baseName}-translated.pdf`, tool.id, true);
+    } catch (pdfError) {
+      setError(pdfError?.message || "The translated PDF could not be created. Download the TXT copy instead.");
+    }
   };
 
   return <main className="document-analysis-page">
@@ -170,7 +174,7 @@ export function DocumentAnalysisPage({ tool }) {
         {(result || conversation.length > 0) && <div className="analysis-downloads">{tool.id === "translate-pdf" ? <><button type="button" onClick={downloadTranslatedPdf}><Download size={16} /> Download translated PDF</button><button type="button" onClick={() => download(result, "text/plain", `${baseName}-translated.txt`, tool.id)}><Download size={16} /> Download TXT</button></> : tool.id === "extract-data-from-pdf" ? <><button type="button" onClick={() => download(JSON.stringify(result, null, 2), "application/json", `${baseName}-data.json`, tool.id)}><Download size={16} /> Download JSON</button><button type="button" onClick={() => download(documentDataCsv(result), "text/csv", `${baseName}-data.csv`, tool.id)}><Download size={16} /> Download CSV</button></> : <button type="button" onClick={() => download(reportText, "text/plain", `${baseName}-${tool.id}.txt`, tool.id)}><Download size={16} /> Download report</button>}</div>}
       </section></div>}
     {upload.phase === "detecting" && <div className="analysis-reading"><LoaderCircle className="is-spinning" size={18} /> {upload.message} {upload.progress}%</div>}{(error || upload.error) && !file && upload.phase !== "prompting" && <div className="conversion-error" role="alert">{error || upload.error}</div>}
-    <section className="analysis-disclosure"><h2>What “AI” means in this private workflow</h2><p>PDFEnrich uses deterministic local document intelligence for retrieval, extractive summaries, field detection, questions, contract organization, and resume structure. It returns source text and page citations instead of sending your PDF to a generative model. Translation is separate and uses a compatible browser's on-device Translator model. Always review results against the PDF.</p></section>
+    <section className="analysis-disclosure"><h2>How this private analysis works</h2><p>Passage search, extractive summaries, field detection, and question building use deterministic matching in this tab. They return source text and page citations; they are not generative answers and can miss context. Translation is separate and requires a compatible browser's on-device Translator model. Always review results against the PDF.</p></section>
     <ToolGuideContent tool={tool} />
   </main>;
 }

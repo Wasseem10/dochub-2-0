@@ -29,13 +29,14 @@ describe("PDFEnrich tool registry", () => {
 
   it("truthfully exposes released editor and conversion workflows", () => {
     const counts = Object.groupBy(TOOL_REGISTRY, (tool) => tool.status);
-    expect(counts.partial || []).toHaveLength(0);
-    expect(counts.available).toHaveLength(60);
+    expect(counts.partial || []).toHaveLength(12);
+    expect(counts.available).toHaveLength(48);
     expect(counts.beta || []).toHaveLength(1);
     expect(counts["coming-soon"] || []).toHaveLength(0);
     expect(TOOL_REGISTRY.find((tool) => tool.id === "redact-pdf")).toMatchObject({ status: "available", workflowType: "page-tool", opensEditor: false });
-    expect(TOOL_REGISTRY.filter((tool) => tool.workflowType === "converter").every((tool) => tool.uploadEnabled && !tool.opensEditor && ["available", "beta"].includes(tool.status))).toBe(true);
-    expect(TOOL_REGISTRY.filter((tool) => tool.workflowType === "page-tool").every((tool) => tool.uploadEnabled && !tool.opensEditor && tool.status === "available")).toBe(true);
+    expect(TOOL_REGISTRY.filter((tool) => tool.workflowType === "converter").every((tool) => tool.uploadEnabled && !tool.opensEditor && ["available", "beta", "partial"].includes(tool.status))).toBe(true);
+    expect(TOOL_REGISTRY.filter((tool) => tool.workflowType === "page-tool").every((tool) => tool.uploadEnabled && !tool.opensEditor && ["available", "partial"].includes(tool.status))).toBe(true);
+    expect(TOOL_REGISTRY.find((tool) => tool.id === "flatten-pdf")).toMatchObject({ status: "partial" });
     expect(TOOL_REGISTRY.filter((tool) => tool.workflowType === "editor").every((tool) => tool.opensEditor && tool.status === "available")).toBe(true);
     expect(TOOL_REGISTRY.filter((tool) => tool.status === "coming-soon").every((tool) => !tool.uploadEnabled && !tool.opensEditor)).toBe(true);
   });
