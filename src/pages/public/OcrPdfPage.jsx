@@ -172,7 +172,7 @@ export function OcrPdfPage({ tool }) {
 
   const choose = (files) => loadFile(Array.from(files || [])[0]);
   return <main className="image-conversion-page office-conversion-page ocr-pdf-page">
-    <PageMetadata title={tool.seoTitle} description={tool.metaDescription} canonicalUrl={tool.canonicalUrl} schemas={toolSeoSchemas(tool)} />
+    <PageMetadata title={tool.seoTitle} description={tool.metaDescription} canonicalUrl={tool.canonicalUrl} schemas={toolSeoSchemas(tool)} toolStatus={tool.status} />
     <nav className="tool-breadcrumbs" aria-label="Breadcrumb"><Link to={ROUTE_PATHS.tools}>PDF tools</Link><span>/</span><span aria-current="page">{tool.name}</span></nav>
     <section className="conversion-hero"><div><small>Available · runs in your browser</small><h1>Make scanned PDFs searchable.</h1><p>Clean up scans, correct page orientation, recognize six languages, and download searchable PDF and text files.</p></div></section>
     <div className="conversion-workspace-grid"><section>

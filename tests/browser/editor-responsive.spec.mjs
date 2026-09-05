@@ -165,12 +165,16 @@ test("the homepage keeps one hero upload target and the desktop CTA in view", as
 });
 
 test("narrow dashboard keeps every navigation destination reachable", async ({ page }) => {
-  await page.setViewportSize({ width: 700, height: 900 });
+  await page.setViewportSize({ width: 402, height: 698 });
   await page.goto(appPath("/app/dashboard"));
   const trigger = page.getByRole("button", { name: "Open dashboard navigation" });
   await expect(trigger).toBeVisible();
   const triggerBox = await trigger.boundingBox();
-  expect(triggerBox.x + triggerBox.width).toBeLessThanOrEqual(700);
+  const uploadBox = await page.locator(".dashboard-top-upload").boundingBox();
+  expect(triggerBox.x + triggerBox.width).toBeLessThanOrEqual(402);
+  expect(triggerBox.y).toBeLessThan(20);
+  expect(triggerBox.height).toBeGreaterThanOrEqual(44);
+  expect(triggerBox.y + triggerBox.height).toBeLessThanOrEqual(uploadBox.y);
   await trigger.click();
   const menu = page.getByRole("dialog", { name: "Dashboard navigation" });
   await expect(menu).toBeVisible();
@@ -178,6 +182,7 @@ test("narrow dashboard keeps every navigation destination reachable", async ({ p
   await expect(menu.getByRole("button", { name: "Documents" })).toBeVisible();
   await expect(menu.getByRole("button", { name: "All tools" })).toBeVisible();
   await expect(menu.getByRole("button", { name: "Trash" })).toBeVisible();
-  await menu.getByRole("button", { name: "Documents" }).click();
-  await expect(page).toHaveURL(/\/app\/documents$/);
+  await expect(menu.getByRole("button", { name: "Create free account" })).toBeVisible();
+  await menu.getByRole("button", { name: "All tools" }).click();
+  await expect(page).toHaveURL(/\/app\/tools$/);
 });

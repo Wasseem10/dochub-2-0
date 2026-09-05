@@ -162,7 +162,7 @@ export function RedactPdfPage({ tool }) {
   const draftRect = draft ? normalizeRedactionRect(draft.start, draft.end) : null;
 
   return <main className="redact-page">
-    <PageMetadata title={tool.seoTitle} description={tool.metaDescription} canonicalUrl={tool.canonicalUrl} schemas={toolSeoSchemas(tool)} />
+    <PageMetadata title={tool.seoTitle} description={tool.metaDescription} canonicalUrl={tool.canonicalUrl} schemas={toolSeoSchemas(tool)} toolStatus={tool.status} />
     <nav className="tool-breadcrumbs" aria-label="Breadcrumb"><Link to={ROUTE_PATHS.tools}>PDF tools</Link><span>/</span><span aria-current="page">Redact PDF</span></nav>
     <section className="redact-hero"><div><span><ShieldCheck size={16} /> Permanent browser redaction</span><h1>Remove sensitive PDF content for good.</h1><p>Draw over private information, review every mark, then download a flattened copy with the original page content removed.</p></div><aside><LockKeyhole size={22} /><strong>Your PDF stays on this device</strong><small>No document text or file name enters analytics.</small></aside></section>
 

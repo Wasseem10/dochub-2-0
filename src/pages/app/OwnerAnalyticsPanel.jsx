@@ -14,6 +14,7 @@ import Users from "lucide-react/dist/esm/icons/users.mjs";
 import { useCallback, useEffect, useId, useMemo, useState } from "react";
 import {
   canonicalAnalyticsEventName,
+  createAcquisitionBreakdown,
   createAuthenticationBreakdown,
   createFeatureUsage,
   createOutcomeOverview,
@@ -149,6 +150,7 @@ export function OwnerAnalyticsPanel({ searchQuery = "" }) {
   const [message, setMessage] = useState("");
   const [truncated, setTruncated] = useState(false);
   const [featureSort, setFeatureSort] = useState("uses");
+  const [acquisitionDimension, setAcquisitionDimension] = useState("landingPage");
   const [signInProfiles, setSignInProfiles] = useState([]);
   const [identityMessage, setIdentityMessage] = useState("");
 
@@ -187,6 +189,7 @@ export function OwnerAnalyticsPanel({ searchQuery = "" }) {
   }, []);
 
   const overview = useMemo(() => createOutcomeOverview(events), [events]);
+  const acquisition = useMemo(() => createAcquisitionBreakdown(events, acquisitionDimension), [acquisitionDimension, events]);
   const topTools = useMemo(() => createToolUsage(events), [events]);
   const featureUsage = useMemo(() => createFeatureUsage(events, featureSort), [events, featureSort]);
   const authentication = useMemo(() => createAuthenticationBreakdown(events), [events]);
@@ -244,6 +247,23 @@ export function OwnerAnalyticsPanel({ searchQuery = "" }) {
         <summary><strong>More details</strong><span>View accounts, devices, traffic sources, and event history.</span><ChevronDown size={18} /></summary>
         <div className="owner-detail-content">
           <section className="owner-detail-section owner-traffic-controls"><div className="owner-detail-heading"><div><h2>Analytics controls</h2><p>Internal traffic is excluded by default.</p></div><ShieldCheck size={19} /></div><div className="owner-control-row"><div><strong>{internalDevice ? "This device is excluded" : "This device is counted"}</strong><small>Only the internal flag is stored with eligible events.</small></div><button type="button" onClick={() => setDeviceExclusion(!internalDevice)}>{internalDevice ? "Count this device" : "Exclude this device"}</button><label><input type="checkbox" checked={includeInternal} onChange={(event) => setIncludeInternal(event.target.checked)} /> Include internal traffic</label></div></section>
+
+          <section className="owner-detail-section owner-acquisition-panel">
+            <div className="owner-detail-heading">
+              <div><h2>Acquisition to finished PDF</h2><p>Find which entry points bring people who upload and finish real work.</p></div>
+              <label className="owner-acquisition-select"><span className="sr-only">Break down acquisition by</span><select aria-label="Break down acquisition by" value={acquisitionDimension} onChange={(event) => setAcquisitionDimension(event.target.value)}><option value="landingPage">Landing page</option><option value="tool">Tool</option><option value="source">Traffic source</option><option value="device">Device</option></select><ChevronDown size={15} aria-hidden="true" /></label>
+            </div>
+            {acquisition.rows.length ? (
+              <div className="owner-acquisition-table" role="table" aria-label="Acquisition conversion breakdown">
+                <div className="is-head" role="row"><span>Entry</span><span>People</span><span>Uploads</span><span>Finished</span><span>Finish rate</span></div>
+                {acquisition.rows.map((row) => <div role="row" key={row.label}><strong>{acquisitionDimension === "tool" ? (TOOL_BY_ID.get(row.label)?.name || row.label.replaceAll("-", " ")) : row.label}</strong><span>{row.people.toLocaleString()}</span><span>{row.uploads.toLocaleString()} <small>{row.visitToUploadRate}%</small></span><span>{row.finished.toLocaleString()}</span><em>{row.uploadToFinishRate}%</em></div>)}
+              </div>
+            ) : <div className="owner-detail-empty"><Activity size={22} /><strong>No acquisition journeys in this period</strong></div>}
+            <div className="owner-acquisition-signals">
+              <div><h3>Failure categories</h3>{acquisition.failureCategories.length ? <ol>{acquisition.failureCategories.map((item) => <li key={item.label}><span>{item.label}</span><strong>{item.value.toLocaleString()}</strong></li>)}</ol> : <p>No failures recorded.</p>}</div>
+              <div><h3>Successful export duration</h3>{acquisition.durationBuckets.length ? <ol>{acquisition.durationBuckets.map((item) => <li key={item.label}><span>{item.label.replaceAll("_", " ")}</span><strong>{item.value.toLocaleString()}</strong></li>)}</ol> : <p>No successful export durations recorded.</p>}</div>
+            </div>
+          </section>
 
           <div className="owner-detail-grid">
             <section className="owner-detail-section"><div className="owner-detail-heading"><div><h2>Traffic sources</h2><p>Safe source categories from page views</p></div></div><div className="owner-compact-list">{trafficSources.length ? trafficSources.map((item) => <div key={item.label}><span>{item.label}</span><strong>{item.value.toLocaleString()}</strong></div>) : <p>No source data in this period.</p>}</div></section>

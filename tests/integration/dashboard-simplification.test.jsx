@@ -139,6 +139,48 @@ describe("simplified dashboard navigation", () => {
     await act(async () => renderer.unmount());
   });
 
+  it("offers optional account sync without blocking the anonymous dashboard", async () => {
+    const onNavigate = vi.fn();
+    let renderer;
+    await act(async () => {
+      renderer = TestRenderer.create(
+        <UploadLanding
+          section="Home"
+          onNavigate={onNavigate}
+          fileInputRef={{ current: null }}
+          onUpload={() => {}}
+          onSelectFiles={() => {}}
+          onDropFile={() => {}}
+          onBlankPage={() => {}}
+          uploadError=""
+          uploadStage={{ status: "idle", fileName: "" }}
+          isDraggingFile={false}
+          setIsDraggingFile={() => {}}
+          documents={[]}
+          onOpenDocument={() => {}}
+          onRenameDocument={() => {}}
+          onDeleteDocument={() => {}}
+          onDuplicateDocument={() => {}}
+          onDownloadDocument={() => {}}
+          onToggleFavorite={() => {}}
+          onMoveDocument={() => {}}
+          currentUser={null}
+          onLogout={() => {}}
+        />,
+      );
+    });
+
+    const createAccountButton = renderer.root.findAllByType("button").find((button) => textOf(button) === "Create free account");
+    expect(createAccountButton).toBeTruthy();
+    await act(async () => createAccountButton.props.onClick());
+    expect(onNavigate).toHaveBeenCalledWith(ROUTE_PATHS.signup);
+
+    const mobileMenuButton = renderer.root.findByProps({ "aria-label": "Open dashboard navigation" });
+    await act(async () => mobileMenuButton.props.onClick());
+    expect(textOf(renderer.root.findByProps({ "aria-label": "Dashboard navigation" }))).toContain("Keep finished PDFs across devices");
+    await act(async () => renderer.unmount());
+  });
+
   it("renders documents as a compact editorial library", async () => {
     const onSelectFiles = vi.fn();
     let renderer;

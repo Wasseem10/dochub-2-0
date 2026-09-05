@@ -18,8 +18,9 @@ const titles = new Map();
 const descriptions = new Map();
 const routeHtml = new Map();
 const sitemapPaths = new Set(sitemapUrls.map(({ pathname }) => pathname));
-const releasedToolPaths = TOOL_REGISTRY.filter(({ status }) => status !== "coming-soon").map(({ route }) => route);
-const expectedDirectoryMetadata = toolDirectoryMetadata(releasedToolPaths.length);
+const releasedToolPaths = TOOL_REGISTRY.filter(({ status }) => status === "available").map(({ route }) => route);
+const nonIndexToolPaths = new Set(TOOL_REGISTRY.filter(({ status }) => status !== "available").map(({ route }) => route));
+const expectedDirectoryMetadata = toolDirectoryMetadata(TOOL_REGISTRY.filter(({ status }) => status !== "coming-soon").length);
 const productPaths = [...new Set([...releasedToolPaths, ...COMPARISON_PATHS])];
 const productPathSet = new Set(productPaths);
 const prioritySearchToolPaths = new Set(TOOL_REGISTRY.filter(({ searchPriority }) => searchPriority).map(({ route }) => route));
@@ -68,6 +69,13 @@ for (const url of sitemapUrls) {
   else descriptions.set(description, url.pathname);
 }
 
+for (const toolPath of nonIndexToolPaths) {
+  const html = await read(`dist${toolPath}/index.html`);
+  const robots = html.match(/<meta name="robots" content="([^"]+)"/i)?.[1] || "";
+  requireMatch(!sitemapPaths.has(toolPath), `${toolPath}: limited or unreleased tool is present in the sitemap.`);
+  requireMatch(robots.includes("noindex"), `${toolPath}: limited or unreleased tool is missing noindex.`);
+}
+
 for (const productPath of productPaths) {
   requireMatch(sitemapPaths.has(productPath), `${productPath}: released tool or comparison route is missing from the sitemap.`);
   requireMatch(routeHtml.has(productPath), `${productPath}: released tool or comparison route is missing prerendered HTML.`);
@@ -86,7 +94,7 @@ for (const [sourcePath, html] of routeHtml) {
 
   for (const targetPath of uniqueTargets) {
     if (targetPath !== sourcePath) inboundLinks.get(targetPath)?.add(sourcePath);
-    if (!assetPath.test(targetPath) && !authOrPrivatePath.test(targetPath)) {
+    if (!assetPath.test(targetPath) && !authOrPrivatePath.test(targetPath) && !nonIndexToolPaths.has(targetPath)) {
       requireMatch(sitemapPaths.has(targetPath), `${sourcePath}: internal link points to non-indexable or missing public route ${targetPath}.`);
     }
   }

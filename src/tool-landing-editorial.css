@@ -543,14 +543,16 @@
 
   .editor-tool-upload-hero {
     width: calc(100% - 28px);
-    padding: 36px 0 28px;
+    padding: 22px 0 24px;
   }
 
-  .editor-tool-heading h1 { font-size: clamp(38px, 11.5vw, 50px); line-height: 1.02; }
-  .editor-tool-heading p { max-width: 34ch; font-size: 15px; }
-  .editor-tool-upload-frame { margin-top: 30px; padding: 9px; border-radius: 18px; }
-  .editor-tool-dropzone { min-height: 330px; padding: 36px 17px; border-radius: 12px; }
-  .editor-tool-dropzone h2 { font-size: 22px; }
+  .editor-tool-heading h1 { font-size: clamp(32px, 9.5vw, 42px); line-height: 1.03; }
+  .editor-tool-heading p { max-width: 34ch; margin-top: 11px; font-size: 14px; line-height: 1.45; }
+  .editor-tool-upload-frame { margin-top: 20px; padding: 8px; border-radius: 17px; }
+  .editor-tool-dropzone { min-height: 244px; gap: 9px; padding: 23px 15px; border-radius: 11px; }
+  .editor-tool-upload-icon { width: 52px; height: 52px; border-radius: 14px; }
+  .editor-tool-dropzone h2 { margin-top: 3px; font-size: 20px; }
+  .editor-tool-picker-label { min-height: 48px; }
   .editor-tool-dropzone button { width: 100%; min-width: 0; }
   .editor-tool-trust-row { display: grid; width: fit-content; justify-content: start; margin: 23px auto 0; }
 
@@ -1597,14 +1599,20 @@
   .analysis-hero,
   .redact-hero{
     width: calc(100% - 28px);
-    padding: 36px 0 28px;
+    padding: 22px 0 20px;
   }
 
   .conversion-hero h1,
   .analysis-hero h1,
   .redact-hero h1 {
-    font-size: clamp(38px, 11.5vw, 50px);
+    margin-top: 11px;
+    font-size: clamp(32px, 9.5vw, 42px);
+    line-height: 1.03;
   }
+
+  .conversion-hero p,
+  .analysis-hero p,
+  .redact-hero p { margin-top: 11px; font-size: 14px; line-height: 1.45; }
 
   .image-conversion-page > .conversion-workspace-grid,
   .image-conversion-page > .conversion-privacy-note,
@@ -1620,11 +1628,25 @@
   .conversion-dropzone,
   .analysis-upload,
   .redact-upload {
-    min-height: 330px;
-    padding: 36px 17px;
-    border-radius: 18px;
+    min-height: 244px;
+    gap: 9px;
+    padding: 23px 16px;
+    border-radius: 16px;
     outline-offset: -10px;
   }
+
+  .conversion-dropzone > span,
+  .analysis-upload > span,
+  .redact-upload > span { width: 52px; height: 52px; border-radius: 14px; }
+
+  .conversion-dropzone h2,
+  .conversion-dropzone > strong,
+  .analysis-upload h2,
+  .redact-upload h2 { margin-top: 3px; font-size: 20px; }
+
+  .conversion-dropzone button,
+  .analysis-upload button,
+  .redact-upload button { min-height: 48px; }
 
   .conversion-dropzone button,
   .analysis-upload button,

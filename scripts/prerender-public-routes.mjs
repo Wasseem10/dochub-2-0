@@ -46,7 +46,7 @@ const routeRecords = [
   ...TOOL_CATEGORY_PAGES.map((category) => ({ path: category.route, title: category.seoTitle, description: category.metaDescription, noIndex: false, category })),
   ...PUBLIC_PLACEHOLDER_ROUTES.filter(({ path }) => path !== ROUTE_PATHS.features && !isEditorialResourcePath(path)).map((route) => ({ ...route, title: `${route.title} | PDFEnrich`, description: legalDescriptions[route.path] || route.description, noIndex: !Object.hasOwn(legalDescriptions, route.path) })),
   ...EDITORIAL_RESOURCE_PAGES.map((resource) => ({ path: resource.path, title: resource.seoTitle, description: resource.metaDescription, noIndex: false, resource })),
-  ...TOOL_REGISTRY.map((tool) => ({ path: tool.route, title: tool.seoTitle, description: tool.metaDescription, noIndex: tool.status === "coming-soon", tool })),
+  ...TOOL_REGISTRY.map((tool) => ({ path: tool.route, title: tool.seoTitle, description: tool.metaDescription, noIndex: tool.status !== "available", tool })),
 ];
 
 /** @param {RouteRecord} record */

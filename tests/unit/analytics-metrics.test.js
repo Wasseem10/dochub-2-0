@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { priorityOneToolCoverage } from "../../config/priority-one-quality.mjs";
-import { analyticsRangeStart, createDailyAnalyticsSeries, createGoogleSearchConversionFunnel, createOutcomeOverview, createToolQualityScorecard, createToolUsage, filterAnalyticsEvents, groupAnalyticsProperty, PRIORITY_ONE_TOOL_IDS, summarizeAnalyticsEvents } from "../../src/analytics/analyticsMetrics.js";
+import { analyticsRangeStart, createAcquisitionBreakdown, createDailyAnalyticsSeries, createGoogleSearchConversionFunnel, createOutcomeOverview, createToolQualityScorecard, createToolUsage, filterAnalyticsEvents, groupAnalyticsProperty, PRIORITY_ONE_TOOL_IDS, summarizeAnalyticsEvents } from "../../src/analytics/analyticsMetrics.js";
 
 const now = new Date("2026-07-20T12:00:00.000Z");
 
@@ -127,6 +127,33 @@ describe("owner analytics metrics", () => {
         { key: "finish", label: "Finish", value: 1, rate: 25 },
       ],
     });
+  });
+
+  it("breaks acquisition into privacy-safe upload and finish journeys", () => {
+    const acquisitionEvents = [
+      { name: "page_view", visitorId: "organic-finish", clientOccurredAt: "2026-07-20T08:00:00.000Z", path: "/compress-pdf", trafficSource: "organic", deviceCategory: "mobile", properties: {} },
+      { name: "pdf_upload_completed", visitorId: "organic-finish", clientOccurredAt: "2026-07-20T08:01:00.000Z", properties: { toolId: "compress-pdf" } },
+      { name: "export_succeeded", visitorId: "organic-finish", clientOccurredAt: "2026-07-20T08:01:02.000Z", properties: { toolId: "compress-pdf", durationMs: 2_000 } },
+      { name: "page_view", visitorId: "organic-visit", clientOccurredAt: "2026-07-20T09:00:00.000Z", path: "/compress-pdf", trafficSource: "organic", deviceCategory: "desktop", properties: {} },
+      { name: "pdf_upload_failed", visitorId: "organic-visit", clientOccurredAt: "2026-07-20T09:01:00.000Z", properties: { toolId: "compress-pdf", errorCategory: "encrypted_pdf" } },
+      { name: "page_view", visitorId: "direct-upload", clientOccurredAt: "2026-07-20T10:00:00.000Z", path: "/merge-pdf", trafficSource: "direct", deviceCategory: "desktop", properties: {} },
+      { name: "pdf_upload_completed", visitorId: "direct-upload", clientOccurredAt: "2026-07-20T10:01:00.000Z", properties: { toolId: "merge-pdf" } },
+    ];
+
+    expect(createAcquisitionBreakdown(acquisitionEvents, "landingPage")).toEqual({
+      dimension: "landingPage",
+      rows: [
+        { label: "/compress-pdf", people: 2, uploads: 1, finished: 1, visitToUploadRate: 50, uploadToFinishRate: 100 },
+        { label: "/merge-pdf", people: 1, uploads: 1, finished: 0, visitToUploadRate: 100, uploadToFinishRate: 0 },
+      ],
+      failureCategories: [{ label: "encrypted_pdf", value: 1 }],
+      durationBuckets: [{ label: "1–3 seconds", value: 1 }],
+    });
+
+    expect(createAcquisitionBreakdown(acquisitionEvents, "tool").rows).toEqual([
+      { label: "compress-pdf", people: 2, uploads: 1, finished: 1, visitToUploadRate: 50, uploadToFinishRate: 100 },
+      { label: "merge-pdf", people: 1, uploads: 1, finished: 0, visitToUploadRate: 100, uploadToFinishRate: 0 },
+    ]);
   });
 
   it("ranks tools by real unique users and ignores events without a tool", () => {

@@ -5,6 +5,7 @@ import { editorialShareImagePath, hasToolShareImage } from "../../editorial/tool
 import { isEditorialResourcePath } from "../../editorial/editorialRoutePaths.js";
 import { PRIVACY_CHOICE_EVENT } from "../../privacy/privacyChoices.js";
 import { publicPageLastModified } from "../../seo/publicFreshness.js";
+import { TOOL_BY_ROUTE } from "../../tools/toolRegistry.js";
 
 function setMeta(name, content, attribute = "name") {
   let element = document.head.querySelector(`meta[${attribute}="${name}"]`);
@@ -16,7 +17,10 @@ function setMeta(name, content, attribute = "name") {
   element.setAttribute("content", content);
 }
 
-export function PageMetadata({ title, description, canonicalUrl, schemas = [], noIndex = false, socialImage, socialImageAlt }) {
+export function PageMetadata({ title, description, canonicalUrl, schemas = [], noIndex = false, toolStatus, socialImage, socialImageAlt }) {
+  const registeredToolStatus = TOOL_BY_ROUTE.get(canonicalUrl)?.status;
+  const resolvedToolStatus = toolStatus || registeredToolStatus;
+  const shouldNoIndex = noIndex || (resolvedToolStatus && resolvedToolStatus !== "available");
   useEffect(() => {
     if (typeof document === "undefined") return undefined;
     const absoluteCanonical = absoluteSiteUrl(canonicalUrl);
@@ -40,7 +44,7 @@ export function PageMetadata({ title, description, canonicalUrl, schemas = [], n
     setMeta("twitter:description", description);
     setMeta("twitter:image", resolvedSocialImage);
     setMeta("twitter:image:alt", resolvedSocialAlt);
-    setMeta("robots", noIndex ? "noindex, follow" : "index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1");
+    setMeta("robots", shouldNoIndex ? "noindex, follow" : "index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1");
 
     let canonical = document.head.querySelector('link[rel="canonical"]');
     if (!canonical) {
@@ -81,6 +85,6 @@ export function PageMetadata({ title, description, canonicalUrl, schemas = [], n
       window.removeEventListener(PRIVACY_CHOICE_EVENT, trackAcceptedPageView);
       document.getElementById(scriptId)?.remove();
     };
-  }, [canonicalUrl, description, noIndex, schemas, socialImage, socialImageAlt, title]);
+  }, [canonicalUrl, description, schemas, shouldNoIndex, socialImage, socialImageAlt, title]);
   return null;
 }

@@ -148,6 +148,128 @@ export function createOutcomeOverview(events) {
   };
 }
 
+const ACQUISITION_DIMENSIONS = Object.freeze({
+  landingPage: {
+    fallback: "Unknown landing page",
+    value(event) {
+      return event.path || event.properties?.landingPath;
+    },
+  },
+  source: {
+    fallback: "Unknown source",
+    value(event) {
+      return event.trafficSource || event.properties?.trafficSource;
+    },
+  },
+  device: {
+    fallback: "Unknown device",
+    value(event) {
+      return event.deviceCategory || event.properties?.deviceCategory || event.properties?.deviceClass;
+    },
+  },
+  tool: {
+    fallback: "Unknown tool",
+    value(event) {
+      return event.properties?.toolId;
+    },
+  },
+});
+
+function safeBreakdownLabel(value, fallback) {
+  const normalized = String(value || "").trim().slice(0, 120);
+  return normalized || fallback;
+}
+
+function durationBucket(event) {
+  const recorded = event.properties?.durationBucket;
+  if (recorded) return String(recorded).slice(0, 40);
+  const durationMs = Number(event.properties?.durationMs);
+  if (!Number.isFinite(durationMs) || durationMs < 0) return "Unknown duration";
+  if (durationMs < 1_000) return "Under 1 second";
+  if (durationMs < 3_000) return "1–3 seconds";
+  if (durationMs < 10_000) return "3–10 seconds";
+  return "10+ seconds";
+}
+
+function rankedCounts(values, limit = 6) {
+  const counts = new Map();
+  for (const value of values) counts.set(value, (counts.get(value) || 0) + 1);
+  return [...counts.entries()]
+    .map(([label, value]) => ({ label, value }))
+    .sort((left, right) => right.value - left.value || left.label.localeCompare(right.label))
+    .slice(0, limit);
+}
+
+export function createAcquisitionBreakdown(events, dimension = "landingPage", limit = 8) {
+  const definition = ACQUISITION_DIMENSIONS[dimension] || ACQUISITION_DIMENSIONS.landingPage;
+  const orderedEvents = [...events].sort((left, right) => eventDate(left) - eventDate(right));
+  const journeys = new Map();
+
+  for (const event of orderedEvents) {
+    const visitor = analyticsVisitorKey(event);
+    if (!visitor) continue;
+    const journey = journeys.get(visitor) || { dimensions: {}, uploaded: false, finished: false, tools: new Map() };
+    const eventName = canonicalAnalyticsEventName(event.name);
+
+    for (const [key, candidate] of Object.entries(ACQUISITION_DIMENSIONS)) {
+      if (key === "tool" || journey.dimensions[key]) continue;
+      const value = candidate.value(event);
+      if (value) journey.dimensions[key] = safeBreakdownLabel(value, candidate.fallback);
+    }
+
+    if (eventName === "pdf_upload_completed") journey.uploaded = true;
+    if (journey.uploaded && FINISHED_PDF_EVENTS.has(eventName)) journey.finished = true;
+
+    const toolId = ACQUISITION_DIMENSIONS.tool.value(event);
+    if (toolId) {
+      const toolKey = safeBreakdownLabel(toolId, ACQUISITION_DIMENSIONS.tool.fallback);
+      const toolJourney = journey.tools.get(toolKey) || { uploaded: false, finished: false };
+      if (eventName === "pdf_upload_completed") toolJourney.uploaded = true;
+      if (toolJourney.uploaded && FINISHED_PDF_EVENTS.has(eventName)) toolJourney.finished = true;
+      journey.tools.set(toolKey, toolJourney);
+    }
+    journeys.set(visitor, journey);
+  }
+
+  const groups = new Map();
+  const addJourney = (label, visitor, journey) => {
+    const current = groups.get(label) || { label, people: new Set(), uploads: new Set(), finished: new Set() };
+    current.people.add(visitor);
+    if (journey.uploaded) current.uploads.add(visitor);
+    if (journey.finished) current.finished.add(visitor);
+    groups.set(label, current);
+  };
+
+  for (const [visitor, journey] of journeys) {
+    if (dimension === "tool") {
+      for (const [toolId, toolJourney] of journey.tools) addJourney(toolId, visitor, toolJourney);
+    } else {
+      addJourney(journey.dimensions[dimension] || definition.fallback, visitor, journey);
+    }
+  }
+
+  const rows = [...groups.values()]
+    .map(({ label, people, uploads, finished }) => ({
+      label,
+      people: people.size,
+      uploads: uploads.size,
+      finished: finished.size,
+      visitToUploadRate: percent(uploads.size, people.size),
+      uploadToFinishRate: percent(finished.size, uploads.size),
+    }))
+    .sort((left, right) => right.people - left.people || right.finished - left.finished || left.label.localeCompare(right.label))
+    .slice(0, limit);
+
+  const failureCategories = rankedCounts(orderedEvents
+    .filter((event) => ["pdf_upload_failed", "export_failed", "client_error"].includes(canonicalAnalyticsEventName(event.name)))
+    .map((event) => safeBreakdownLabel(event.properties?.errorCategory || event.properties?.failureCategory, "Uncategorized failure")));
+  const durationBuckets = rankedCounts(orderedEvents
+    .filter((event) => canonicalAnalyticsEventName(event.name) === "export_succeeded")
+    .map(durationBucket));
+
+  return { dimension, rows, failureCategories, durationBuckets };
+}
+
 export function createToolUsage(events, limit = 5) {
   const tools = new Map();
   for (const event of events) {

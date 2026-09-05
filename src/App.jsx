@@ -1,6 +1,7 @@
 import { forwardRef, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import Mail from "lucide-react/dist/esm/icons/mail.mjs";
+import LogIn from "lucide-react/dist/esm/icons/log-in.mjs";
 import LogOut from "lucide-react/dist/esm/icons/log-out.mjs";
 import ChevronRight from "lucide-react/dist/esm/icons/chevron-right.mjs";
 import ChevronLeft from "lucide-react/dist/esm/icons/chevron-left.mjs";
@@ -66,6 +67,7 @@ import Type from "lucide-react/dist/esm/icons/type.mjs";
 import Undo2 from "lucide-react/dist/esm/icons/undo-2.mjs";
 import Upload from "lucide-react/dist/esm/icons/upload.mjs";
 import Users from "lucide-react/dist/esm/icons/users.mjs";
+import UserPlus from "lucide-react/dist/esm/icons/user-plus.mjs";
 import X from "lucide-react/dist/esm/icons/x.mjs";
 import Zap from "lucide-react/dist/esm/icons/zap.mjs";
 import {
@@ -8336,6 +8338,13 @@ export function UploadLanding({
     setActiveSection(nextSection);
   };
 
+  const navigateToDashboardAuth = (mode) => {
+    setMobileNavOpen(false);
+    setOpenPanel(null);
+    if (mode === "signup") trackProductEvent("signup_prompt_clicked", { toolId: "dashboard" });
+    onNavigate(mode === "signup" ? ROUTE_PATHS.signup : ROUTE_PATHS.login);
+  };
+
   const agreementFlows = [
     { title: "Create agreement", detail: "Start a clean agreement page and add fields.", icon: FilePlus2, action: onBlankPage },
     { title: "Upload for review", detail: "Import a PDF and edit text, comments, or highlights.", icon: Upload, action: onSelectFiles },
@@ -9023,6 +9032,7 @@ export function UploadLanding({
           <div className="dashboard-selected-intro-copy">
             <h1>Your PDF workspace</h1>
             <p>Upload, edit, and reopen anywhere.<br />Signed-in PDFs sync privately to your account.</p>
+            {!currentUser?.uid && <div className="dashboard-selected-account-prompt"><button type="button" onClick={() => navigateToDashboardAuth("signup")}>Create free account</button><button type="button" onClick={() => navigateToDashboardAuth("login")}>Sign in</button></div>}
           </div>
           <div className="dashboard-selected-tool-strip" aria-label="PDF tools">
             {quickActionDefinitions.map(({ id, label, icon: Icon, action }) => (
@@ -9114,6 +9124,7 @@ export function UploadLanding({
               <button key={label} type="button" className={navSection === activeSection ? "is-active" : ""} onClick={() => navigateFromMobileMenu(navSection)}><Icon size={19} /><span>{label}</span><ChevronRight size={16} /></button>
             ))}
           </nav>
+          {!currentUser?.uid && <div className="dashboard-mobile-account"><strong>Keep finished PDFs across devices</strong><p>Create a free account only when you want private sync.</p><button type="button" onClick={() => navigateToDashboardAuth("signup")}><UserPlus size={18} /><span>Create free account</span><ChevronRight size={16} /></button><button type="button" onClick={() => navigateToDashboardAuth("login")}><LogIn size={18} /><span>Sign in</span><ChevronRight size={16} /></button></div>}
           <button type="button" className="dashboard-mobile-help" onClick={() => { setMobileNavOpen(false); onNavigate(ROUTE_PATHS.help); }}><CircleHelp size={19} /><span>Help</span><ChevronRight size={16} /></button>
         </section>
       </div>}
@@ -9188,7 +9199,7 @@ export function UploadLanding({
                       {currentUser?.uid ? (
                         <button type="button" className="account-menu-signout" onClick={onLogout}><LogOut size={18} /><span>Sign out</span></button>
                       ) : (
-                        <button type="button" className="account-menu-signout" onClick={() => onNavigate(ROUTE_PATHS.login)}><LogOut size={18} /><span>Sign in</span></button>
+                        <button type="button" className="account-menu-signout" onClick={() => navigateToDashboardAuth("login")}><LogIn size={18} /><span>Sign in</span></button>
                       )}
                     </div>
                   </>

@@ -29,7 +29,7 @@ const paths = [
   ...COMPARISON_PATHS,
   ...EDITORIAL_RESOURCE_PATHS,
   ...TOOL_CATEGORY_PAGES.map(({ route }) => route),
-  ...TOOL_REGISTRY.filter(({ status }) => status !== "coming-soon").map(({ route }) => route),
+  ...TOOL_REGISTRY.filter(({ status }) => status === "available").map(({ route }) => route),
 ];
 
 const uniquePaths = [...new Set(paths)].sort();

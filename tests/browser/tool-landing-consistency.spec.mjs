@@ -55,3 +55,13 @@ test("representative tool landings remain upload-first without horizontal overfl
     expect(widths.content, `${path} should not overflow horizontally`).toBeLessThanOrEqual(widths.viewport + 1);
   }
 });
+
+test("mobile compression puts its file action in the first viewport", async ({ page }) => {
+  await page.setViewportSize({ width: 402, height: 698 });
+  await page.goto(appPath("/compress-pdf"));
+  const chooseFiles = page.getByRole("button", { name: /choose pdf/i }).first();
+  await expect(chooseFiles).toBeVisible();
+  const actionBox = await chooseFiles.boundingBox();
+  expect(actionBox.y + actionBox.height).toBeLessThanOrEqual(698);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
+});

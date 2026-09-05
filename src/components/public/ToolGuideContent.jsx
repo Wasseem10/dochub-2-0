@@ -23,6 +23,14 @@ const FAQ_TOPICS = Object.freeze({
 });
 
 const GUIDE_STEP_OVERRIDES = Object.freeze({
+  "compress-pdf": [
+    "Choose one or more unencrypted PDFs and review each measured original size.",
+    "Select Lossless, Balanced, or Maximum reduction based on how much visual change you can accept.",
+    "Run compression and wait for PDFEnrich to validate the page count of every result.",
+    "Compare the first page and the measured before-and-after sizes before downloading.",
+    "If an attempted result is larger, keep the original; PDFEnrich will not present that file as compressed.",
+    "Download one retained result or the completed batch ZIP without recompressing the files.",
+  ],
   "translate-pdf": [
     "Choose a text-based, unencrypted PDF and select its current language.",
     "Choose a different target language and run the browser's on-device translation.",

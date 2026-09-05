@@ -60,7 +60,7 @@ export function EditorToolUploadPage({ toolId, fileInputRef, onUpload, onDropFil
 
   return (
     <main className={`editor-tool-upload-page editor-tool-upload-page--${tool.id}`}>
-      <PageMetadata title={tool.seoTitle} description={tool.metaDescription} canonicalUrl={tool.canonicalUrl} schemas={toolSeoSchemas(tool)} />
+      <PageMetadata title={tool.seoTitle} description={tool.metaDescription} canonicalUrl={tool.canonicalUrl} schemas={toolSeoSchemas(tool)} toolStatus={tool.status} />
       <input ref={fileInputRef} className="sr-only" type="file" accept="application/pdf,.pdf" onChange={onUpload} tabIndex={-1} aria-hidden="true" />
       <nav className="editor-tool-breadcrumbs" aria-label="Breadcrumb">
         <Link to="/"><Home size={14} />Home</Link>

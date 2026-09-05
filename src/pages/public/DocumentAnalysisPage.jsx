@@ -147,7 +147,7 @@ export function DocumentAnalysisPage({ tool }) {
   };
 
   return <main className="document-analysis-page">
-    <PageMetadata title={tool.seoTitle} description={tool.metaDescription} canonicalUrl={tool.canonicalUrl} schemas={toolSeoSchemas(tool)} />
+    <PageMetadata title={tool.seoTitle} description={tool.metaDescription} canonicalUrl={tool.canonicalUrl} schemas={toolSeoSchemas(tool)} toolStatus={tool.status} />
     <nav className="tool-breadcrumbs" aria-label="Breadcrumb"><Link to={ROUTE_PATHS.tools}>PDF tools</Link><span>/</span><span aria-current="page">{tool.name}</span></nav>
     <section className="analysis-hero"><div><span><Sparkles size={15} /> {tool.id === "translate-pdf" ? "Beta · browser model required" : "Available · private browser analysis"}</span><h1>{tool.searchPriority ? tool.heroHeadline : `${tool.name}, grounded in your document`}.</h1><p>{tool.searchPriority ? `${tool.heroSubheadline} Review every result against the source pages.` : `${tool.shortDescription} Every extracted result stays tied to source pages for review.`}</p></div><aside><ShieldCheck size={22} /><strong>No document text enters analytics</strong><small>Analysis runs in this tab and is not saved.</small></aside></section>
     {!file ? upload.phase === "prompting" || upload.phase === "processing" ? <ScannedPdfPrompt
