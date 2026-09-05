@@ -27,6 +27,7 @@ import { RouteErrorBoundary, RouteErrorView } from "./RouteErrorBoundary.jsx";
 import { APP_ROUTE_SECTIONS, PUBLIC_PLACEHOLDER_ROUTES } from "./routes.js";
 import { ROUTE_PATHS } from "./routePaths.js";
 import { PUBLIC_TOOL_MODULE_LOADERS } from "./publicToolModules.js";
+import { installVercelAnalytics } from "../analytics/vercelAnalytics.js";
 
 const lazyNamed = (loader, exportName) => lazy(() => loader().then((module) => ({ default: module[exportName] })));
 const LazyComparePdfPage = lazyNamed(PUBLIC_TOOL_MODULE_LOADERS.comparePdf, "ComparePdfPage");
@@ -238,6 +239,8 @@ export function createRealPdfRouter() {
 }
 
 const browserRouter = createRealPdfRouter();
+const stopVercelAnalytics = installVercelAnalytics(browserRouter);
+if (import.meta.hot) import.meta.hot.dispose(stopVercelAnalytics);
 
 export function AppRouter() {
   return <RouterProvider router={browserRouter} />;

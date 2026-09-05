@@ -80,6 +80,14 @@ const dataRows = [
     retention: `Assigned a deletion date ${OPTIONAL_ANALYTICS_RETENTION_DAYS} days after collection.`,
   },
   {
+    category: "Optional website analytics",
+    examples: "Page views using route templates, with document IDs, query strings, and link fragments removed. No document content or account identifiers are sent by this integration.",
+    source: "Your browser after you allow optional analytics.",
+    purpose: "Understand which public entry points people visit.",
+    disclosed: "Vercel Web Analytics.",
+    retention: "According to Vercel's applicable analytics retention settings and provider policy.",
+  },
+  {
     category: "Security and hosting data",
     examples: "IP address, user agent, request timestamps, authentication events, and App Check or reCAPTCHA signals.",
     source: "Your device and service providers.",
@@ -232,7 +240,7 @@ export function PrivacyPolicyPage() {
             <ul>
               <li>Browser memory is released when the page closes. Browser-local saved work remains until you delete it or clear site data.</li>
               <li>Private cloud documents remain active until moved to trash or permanently deleted. The trash recovery period and provider lifecycle must be verified in the deployed environment.</li>
-              <li>Optional analytics receive a deletion date of {OPTIONAL_ANALYTICS_RETENTION_DAYS} days.</li>
+              <li>PDFEnrich product analytics receive a deletion date of {OPTIONAL_ANALYTICS_RETENTION_DAYS} days. Vercel website analytics follow the provider's applicable retention settings.</li>
               <li>Support requests receive a deletion date of {SUPPORT_REQUEST_RETENTION_DAYS} days unless a longer period is reasonably necessary for security, legal, or dispute handling.</li>
               <li>Share links stop working after 1, 7, or 30 days. Expiration prevents access; physical deletion may follow through revocation, account deletion, or provider retention cleanup.</li>
             </ul>
