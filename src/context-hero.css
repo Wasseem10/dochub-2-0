@@ -21,6 +21,26 @@ textarea {
   font-weight: 400 !important;
 }
 
+.freepdf-workflow-shortcuts {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px 28px;
+  padding: 16px 8px 7px;
+  font-size: 13px;
+}
+
+.freepdf-workflow-shortcuts a {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #2851eb;
+  text-underline-offset: 4px;
+}
+
+.freepdf-workflow-shortcuts a:hover { text-decoration: underline; }
+.freepdf-workflow-shortcuts a:focus-visible { outline: 2px solid #2851eb; outline-offset: 4px; }
+
 .freepdf-context-hero {
   min-height: 780px;
   border-bottom: 1px solid #dfe5f1;

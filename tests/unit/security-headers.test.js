@@ -8,7 +8,7 @@ async function vercelConfiguration() {
 describe("production response headers", () => {
   it("consolidates public URLs on the apex domain and retires the sales route", async () => {
     const configuration = await vercelConfiguration();
-    const wwwRedirect = configuration.redirects.find(({ has }) => has?.some(({ type, value }) => type === "host" && value === "www.pdfenrich.com"));
+    const wwwRedirect = configuration.redirects.find(({ source, has }) => source === "/:path*" && has?.some(({ type, value }) => type === "host" && value === "www.pdfenrich.com"));
     const salesRedirect = configuration.redirects.find(({ source }) => source === "/contact-sales");
 
     expect(wwwRedirect).toMatchObject({
@@ -17,6 +17,11 @@ describe("production response headers", () => {
       permanent: true,
     });
     expect(salesRedirect).toMatchObject({ destination: "/support", permanent: true });
+    expect(configuration.redirects.find(({ source }) => source === "/")).toMatchObject({
+      has: [{ type: "host", value: "www.pdfenrich.com" }],
+      destination: "https://pdfenrich.com/",
+      permanent: true,
+    });
   });
 
   it("does not route out-of-scope template and analyzer URLs into the product", async () => {

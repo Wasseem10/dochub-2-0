@@ -1,7 +1,8 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { hasStoredPdfSource, storedPdfToArrayBuffer } from "../../src/tools/storedPdfSource.js";
 
 describe("stored PDF sources", () => {
+  afterEach(() => vi.restoreAllMocks());
   it("reads a native Blob without converting the account PDF to a data URL", async () => {
     const pdfBlob = new Blob(["%PDF-1.7\n%%EOF\n"], { type: "application/pdf" });
     const record = { pdfBlob, pdfDataUrl: "" };
@@ -12,14 +13,12 @@ describe("stored PDF sources", () => {
 
   it("keeps legacy data-URL browser documents readable", async () => {
     const bytes = new TextEncoder().encode("%PDF-1.7\n%%EOF\n");
-    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue({
-      arrayBuffer: async () => bytes.buffer,
-    });
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockRejectedValue(new TypeError("Blocked by CSP"));
     const record = { pdfDataUrl: "data:application/pdf;base64,JVBERi0xLjcKJSVFT0YK" };
 
     expect(hasStoredPdfSource(record)).toBe(true);
     await expect(storedPdfToArrayBuffer(record)).resolves.toEqual(bytes.buffer);
-    expect(fetchSpy).toHaveBeenCalledWith(record.pdfDataUrl);
+    expect(fetchSpy).not.toHaveBeenCalled();
   });
 
   it("returns no bytes for a blank document", async () => {

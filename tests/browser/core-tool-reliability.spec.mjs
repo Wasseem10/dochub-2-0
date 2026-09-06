@@ -65,6 +65,15 @@ test("merge and split preserve valid native PDF pages", async ({ page }, testInf
   const merged = await downloadBytes(page, "Download merged PDF");
   expect(merged.download.suggestedFilename()).toBe("merged-pdfenrich.pdf");
   expect((await PDFDocument.load(merged.bytes)).getPageCount()).toBe(3);
+  const mergedTask = pdfjsLib.getDocument({ data: merged.bytes.slice(), verbosity: 0 });
+  const mergedDocument = await mergedTask.promise;
+  const mergedText = [];
+  for (let number = 1; number <= mergedDocument.numPages; number += 1) {
+    const content = await (await mergedDocument.getPage(number)).getTextContent();
+    mergedText.push(content.items.map((item) => item.str).join(" "));
+  }
+  expect(mergedText).toEqual(["FIRST DOCUMENT", "SECOND PAGE", "THIRD PAGE"]);
+  await mergedTask.destroy();
 
   await page.goto(appPath("/split-pdf"));
   await page.locator('input[type="file"]').setInputFiles({ name: "packet.pdf", mimeType: "application/pdf", buffer: await textPdf("PAGE ONE", "PAGE TWO", "PAGE THREE") });

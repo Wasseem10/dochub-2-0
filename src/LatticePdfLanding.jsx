@@ -415,6 +415,10 @@ export function LatticePdfLanding({ fileInputRef, onUpload, onSelectFiles, onDro
             {heroTasks.map(({ label, route, icon: Icon, tone }) => <Link className={`freepdf-hero-task-tab is-${tone}`} key={label} to={route}><Icon size={18} aria-hidden="true" /><span>{label}</span></Link>)}
           </nav>
           <Dropzone choose={choose} dragging={dragging} setDragging={setDragging} isUploading={isUploading} uploadError={uploadError} uploadStage={uploadStage} onDropFiles={onDropFiles} onUpload={onUpload} />
+          <nav className="freepdf-workflow-shortcuts" aria-label="Everyday PDF workflows">
+            <Link to="/compress-pdf">Shrink a PDF attachment <ArrowRight size={14} aria-hidden="true" /></Link>
+            <Link to="/merge-pdf">Combine PDFs into one file <ArrowRight size={14} aria-hidden="true" /></Link>
+          </nav>
         </div>
 
         <section className="freepdf-trust-strip" aria-label="PDFEnrich promises">

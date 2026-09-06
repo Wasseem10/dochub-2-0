@@ -188,6 +188,7 @@ import { verifySignedPdfExport } from "./tools/pdfExportVerification.js";
 import { sanitizeReplacedPdfBytes } from "./tools/pdfExportSanitizer.js";
 import { closePdfPrintTarget, createPdfPrintTarget, renderPdfDocumentForPrint } from "./tools/pdfPrint.js";
 import { loadPdfJsRuntime } from "./tools/pdfJsRuntime.js";
+import { localDataUrlToArrayBuffer } from "./tools/localDataUrl.js";
 import {
   calculatePdfReviewRenderMetrics,
   clampPdfReviewPage,
@@ -462,8 +463,7 @@ function arrayBufferToDataUrl(buffer) {
 }
 
 async function dataUrlToArrayBuffer(dataUrl) {
-  const response = await fetch(dataUrl);
-  return response.arrayBuffer();
+  return localDataUrlToArrayBuffer(dataUrl);
 }
 
 function compactDocumentRecordForStorage(documentRecord) {
@@ -3871,7 +3871,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
         ? `Found ${detectedFormFields.length} fillable field${detectedFormFields.length === 1 ? "" : "s"}.`
         : detectedItems.length
           ? `Found ${detectedItems.length} editable text item${detectedItems.length === 1 ? "" : "s"}. Choose Edit Text when you need them.`
-          : "This looks scanned. OCR is not enabled in this browser build yet.");
+          : "PDF opened.");
       navigate(isPublicEditor ? publicEditorDocumentPath(publicTool, documentRecord.id) : editorPath(documentRecord.id), { state: { publicTool } });
       window.setTimeout(() => setUploadStage({ status: "idle", percent: 0, fileName: "" }), 900);
       return true;

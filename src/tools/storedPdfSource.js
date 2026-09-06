@@ -1,3 +1,5 @@
+import { localDataUrlToArrayBuffer } from "./localDataUrl.js";
+
 export function hasStoredPdfSource(documentRecord) {
   return Boolean(documentRecord?.pdfBlob instanceof Blob || documentRecord?.pdfDataUrl);
 }
@@ -7,8 +9,7 @@ export async function storedPdfToArrayBuffer(documentRecord) {
     return documentRecord.pdfBlob.arrayBuffer();
   }
   if (documentRecord?.pdfDataUrl) {
-    const response = await fetch(documentRecord.pdfDataUrl);
-    return response.arrayBuffer();
+    return localDataUrlToArrayBuffer(documentRecord.pdfDataUrl);
   }
   return null;
 }

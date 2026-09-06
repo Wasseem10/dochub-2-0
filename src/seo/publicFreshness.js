@@ -1,9 +1,9 @@
 export const PUBLIC_SITE_LAST_MODIFIED_ISO = "2026-07-26";
 
 const PAGE_LAST_MODIFIED_OVERRIDES = new Map([
-  ["/", "2026-08-13"],
+  ["/", "2026-09-05"],
   ["/pricing", "2026-08-25"],
-  ["/edit-pdf", "2026-07-29"],
+  ["/edit-pdf", "2026-09-05"],
   ["/compress-pdf", "2026-07-29"],
   ["/merge-pdf", "2026-07-29"],
   ["/split-pdf", "2026-07-29"],
