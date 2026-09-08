@@ -20,8 +20,8 @@ export const PRIMARY_SEARCH_TOOL_IDS = Object.freeze([
 export const HIGH_INTENT_TOOL_CONTENT = Object.freeze({
   "edit-pdf": {
     seoTitle: "Edit PDF Online Free — Text, Images, Shapes | PDFEnrich",
-    metaDescription: "Edit a PDF online for free. Change text overlays, add text, images, shapes, highlights, signatures, and download the finished PDF privately.",
-    heroHeadline: "Edit a PDF directly in your browser",
+    metaDescription: "Edit PDFs online for free. Add text, images, highlights, and signatures, then download your PDF. No signup, subscription, or watermark.",
+    heroHeadline: "Edit a PDF online for free",
     heroSubheadline: "Change supported text, add content, mark up pages, and download a finished copy without installing software or creating an account.",
     supportGuide: { label: "How to edit a PDF without breaking the layout", path: "/guides/how-to-edit-a-pdf" },
     searchRelatedTools: ["fill-pdf", "sign-pdf", "ocr-pdf"],
@@ -45,10 +45,10 @@ export const HIGH_INTENT_TOOL_CONTENT = Object.freeze({
     ],
   },
   "merge-pdf": {
-    seoTitle: "Merge PDF Files Online Free and Privately | PDFEnrich",
-    metaDescription: "Merge up to 20 PDF files in your chosen order. Combine native PDF pages privately in your browser without signup or a watermark.",
-    heroHeadline: "Merge PDF files in the exact order you choose",
-    heroSubheadline: "Combine native PDF pages without turning them into screenshots, then download one high-fidelity document.",
+    seoTitle: "Merge PDF Files Online Free — Combine PDFs | PDFEnrich",
+    metaDescription: "Combine up to 20 PDFs into one file for free. Arrange files in your chosen order and keep text and images sharp. No signup or watermark.",
+    heroHeadline: "Combine PDF files into one document",
+    heroSubheadline: "Choose up to 20 PDFs, arrange them in order, and download one merged file. Free, with no signup or watermark.",
     supportGuide: { label: "How to combine PDF files in the right order", path: "/guides/how-to-combine-pdf-files" },
     searchRelatedTools: ["split-pdf", "compress-pdf", "organize-pdf"],
     longDescription: "The merge workflow copies complete pages from each source PDF into one output file. Page dimensions, rotation, vector artwork, selectable text, and embedded page content are retained instead of rasterizing every page.",
@@ -197,9 +197,9 @@ export const HIGH_INTENT_TOOL_CONTENT = Object.freeze({
   },
   "compress-pdf": {
     seoTitle: "Compress PDF Online Free — Reduce PDF Size | PDFEnrich",
-    metaDescription: "Batch compress PDFs online with measured savings, side-by-side previews, structure-preserving modes, and optional maximum visual compression.",
-    heroHeadline: "Compress a PDF without flattening its features",
-    heroSubheadline: "Reduce one PDF or a batch locally, compare the first page, and see measured savings before using the result.",
+    metaDescription: "Reduce PDF file size for email and uploads for free. Compare quality and measured savings before downloading. No signup or watermark.",
+    heroHeadline: "Compress PDFs for email and uploads",
+    heroSubheadline: "Choose a compression mode, compare the preview, and download only smaller results. Free, with no signup or watermark; savings depend on your PDF.",
     supportGuide: { label: "How to compress a PDF without losing quality", path: "/guides/compress-pdf-without-losing-quality" },
     searchRelatedTools: ["merge-pdf", "split-pdf", "edit-pdf"],
     longDescription: "Balanced and Lossless cleanup rewrite PDF streams and objects without rendering pages, keeping selectable text, links, forms, vectors, and page structure. Maximum reduction is an explicit fallback that flattens pages to lower-quality JPEG images. Batch results are measured individually and downloaded together.",
