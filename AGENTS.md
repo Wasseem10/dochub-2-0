@@ -62,7 +62,7 @@ The editor document canvas must scroll continuously through every PDF page, in d
 
 Editing detected text from an existing PDF must preserve that item’s box while typing and must never cover, reflow, or erase neighboring page content. Keep immutable source bounds for removing the original glyphs during preview and export; moving or resizing the replacement must not move or enlarge the source cleanup area. Clicking and leaving an unchanged detected text item must not mark it edited.
 
-While a text box has keyboard focus, hide its transform controls so the writing area stays unobstructed; restore them only after focus leaves the text.
+Text-box selection handles must remain available outside the writing area while typing so users can resize immediately. Keep a compact Edit text / Done toggle, single-click selection, double-click text editing, and side-handle resizing that wraps text without changing font size. A manually resized frame keeps its width during later typing and must not disappear when moving between its controls. This September 8, 2026 feedback supersedes hiding all transform controls during text focus.
 
 Manage Pages expands the persistent thumbnail rail into a labeled organizer with insert, duplicate, rotate, delete, drag reorder, keyboard reorder, and per-page quick actions. Signature and initials dialogs must disable empty saves and expose labeled controls and a typed keyboard-accessible alternative to drawing.
 

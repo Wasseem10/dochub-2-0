@@ -51,6 +51,7 @@ test("new text stays readable while the cursor is active", async ({ page }) => {
   await page.mouse.click(pageBox.x + 90, pageBox.y + 110);
 
   await expect(page.getByRole("textbox", { name: "Edit text box", exact: true })).toBeFocused();
-  await expect(page.locator(".text-box.is-selected .annotation-controls")).toHaveCount(0);
-  await expect(page.locator(".text-box.is-selected .resize-control")).toHaveCount(0);
+  await expect(page.locator(".text-box.is-selected .annotation-controls")).toBeVisible();
+  await expect(page.locator(".text-box.is-selected .resize-control")).toHaveCount(8);
+  await expect(page.getByRole("button", { name: "Done typing", exact: true })).toBeVisible();
 });

@@ -1,0 +1,52 @@
+/* Keep frame controls outside the writing area, even while the caret is active. */
+main.editor-shell .text-box.is-selected::after {
+  display: none !important;
+}
+
+main.editor-shell .text-box .annotation-controls .text-edit-control {
+  width: auto !important;
+  min-width: 56px !important;
+  padding: 0 9px !important;
+  white-space: nowrap;
+  font: 400 12px/1 "IBM Plex Sans", Arial, sans-serif !important;
+}
+
+main.editor-shell .text-box .resize-control {
+  touch-action: none;
+}
+
+main.editor-shell .text-box .resize-w,
+main.editor-shell .text-box .resize-nw,
+main.editor-shell .text-box .resize-sw { left: -14px !important; }
+main.editor-shell .text-box .resize-e,
+main.editor-shell .text-box .resize-ne,
+main.editor-shell .text-box .resize-se { right: -14px !important; }
+main.editor-shell .text-box .resize-n,
+main.editor-shell .text-box .resize-nw,
+main.editor-shell .text-box .resize-ne { top: -14px !important; }
+main.editor-shell .text-box .resize-s,
+main.editor-shell .text-box .resize-sw,
+main.editor-shell .text-box .resize-se { bottom: -14px !important; }
+
+@media (max-width: 900px) {
+  main.editor-shell .text-box .resize-w,
+  main.editor-shell .text-box .resize-nw,
+  main.editor-shell .text-box .resize-sw { left: -30px !important; }
+  main.editor-shell .text-box .resize-e,
+  main.editor-shell .text-box .resize-ne,
+  main.editor-shell .text-box .resize-se { right: -30px !important; }
+  main.editor-shell .text-box .resize-n,
+  main.editor-shell .text-box .resize-nw,
+  main.editor-shell .text-box .resize-ne { top: -30px !important; }
+  main.editor-shell .text-box .resize-s,
+  main.editor-shell .text-box .resize-sw,
+  main.editor-shell .text-box .resize-se { bottom: -30px !important; }
+}
+
+main.editor-shell .text-box .text-content {
+  cursor: move;
+}
+
+main.editor-shell .text-box.is-editing .text-content {
+  cursor: text;
+}

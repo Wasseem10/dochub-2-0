@@ -9,6 +9,29 @@ export function normalizeEditorText(value) {
   return String(value ?? "").replace(/\r\n?/g, "\n");
 }
 
+/** Word wrapping shared by frame measurement and PDF export; never scales fonts. */
+export function wrapEditorText(content, maxWidth, measureLine) {
+  const result = [];
+  for (const paragraph of normalizeEditorText(content).split("\n")) {
+    let line = "";
+    for (const token of paragraph.match(/\S+\s*|\s+/g) || []) {
+      if (line && measureLine(line + token.trimEnd()) > maxWidth) {
+        result.push(line.trimEnd());
+        line = "";
+      }
+      for (const character of token) {
+        if (line && !/\s/.test(character) && measureLine(line + character) > maxWidth) {
+          result.push(line.trimEnd());
+          line = "";
+        }
+        line += character;
+      }
+    }
+    result.push(line.trimEnd());
+  }
+  return result;
+}
+
 export function estimateTextAnnotationSize({
   content = "",
   fontSize = 16,
@@ -40,15 +63,8 @@ export function estimateTextAnnotationSize({
   const naturalWidth = Math.max(0, ...lineWidths) + horizontalPadding;
   const width = clamp(naturalWidth / safePageWidth, safeMinWidth, safeMaxWidth);
   const usableLineWidth = Math.max(safeFontSize, width * safePageWidth - horizontalPadding);
-  const visualLineCount = lineWidths.reduce((count, lineWidth) => {
-    // A line that fits exactly can differ from the calculated usable width by a
-    // fraction of a pixel. Give that boundary a tiny tolerance so it does not
-    // create a phantom wrapped line and double the text box height.
-    const wrappedLines = lineWidth <= usableLineWidth + 0.5
-      ? 1
-      : Math.ceil(lineWidth / usableLineWidth);
-    return count + Math.max(1, wrappedLines);
-  }, 0);
+  const measure = typeof measureLine === "function" ? measureLine : (line) => line.length * safeFontSize * 0.61;
+  const visualLineCount = wrapEditorText(normalizedContent, usableLineWidth + 0.5, measure).length;
   const naturalHeight = visualLineCount * safeFontSize * safeLineHeight + verticalPadding;
 
   return {

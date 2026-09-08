@@ -2,6 +2,7 @@ import { forwardRef, useCallback, useEffect, useLayoutEffect, useMemo, useRef, u
 import { createPortal } from "react-dom";
 import { useContinuousEditorPages } from "./editor/useContinuousEditorPages.js";
 import "./editor/continuous-pages.css";
+import "./editor/text-frame.css";
 import Mail from "lucide-react/dist/esm/icons/mail.mjs";
 import LogIn from "lucide-react/dist/esm/icons/log-in.mjs";
 import LogOut from "lucide-react/dist/esm/icons/log-out.mjs";
@@ -1658,10 +1659,11 @@ function LegacyAnnotation({ annotation, selected, zoom, onSelect, onDrag, onResi
   );
 }
 
-function EditorSelectionControls({ onDelete, onMoveStart, onResizeStart, onRotate, onRotateStart, showResizeHandles = true }) {
+function EditorSelectionControls({ onDelete, onMoveStart, onResizeStart, onRotate, onRotateStart, showResizeHandles = true, onEditText, isTextEditing = false }) {
   return (
     <>
       <div className="annotation-mini-menu annotation-controls" onPointerDown={(event) => event.stopPropagation()}>
+        {onEditText && <button type="button" className="text-edit-control" aria-label={isTextEditing ? "Done typing" : "Edit text"} onPointerDown={(event) => event.preventDefault()} onClick={onEditText}>{isTextEditing ? "Done" : "Edit text"}</button>}
         <button type="button" className="mini-grip move-control" title="Move" aria-label="Move object" onPointerDown={onMoveStart}><GripVertical size={15} /></button>
         <button type="button" title="Rotate 15 degrees" aria-label="Rotate object 15 degrees" onClick={onRotate}><RotateCw size={15} /></button>
         <button type="button" title="Delete" aria-label="Delete object" onClick={onDelete}><Trash2 size={15} /></button>
@@ -1692,6 +1694,9 @@ function ProfessionalAnnotation({
   const textMeasureCanvasRef = useRef(null);
   const textWasFocusedRef = useRef(false);
   const textDraftRef = useRef(annotation.content || "");
+  const autoEditPendingRef = useRef(annotation.type === "text" && shouldDiscardTextAnnotation(annotation.content));
+  const textGestureRef = useRef(false);
+  const fixedTextWidthRef = useRef(annotation.textFrameMode === "fixed");
   const lineGestureRef = useRef(null);
   const [liveLineAnnotation, setLiveLineAnnotation] = useState(null);
   const [isTextEditing, setIsTextEditing] = useState(false);
@@ -1707,9 +1712,11 @@ function ProfessionalAnnotation({
     const nextFrame = annotation.type === "circle"
       ? normalizeCircleFrame(getAnnotationFrame(annotation), pageWidth, pageHeight)
       : getAnnotationFrame(annotation);
+    if (annotation.type === "text" && (document.activeElement === textContentRef.current || textGestureRef.current)) return;
     gestureFrameRef.current = nextFrame;
     setLiveFrame(nextFrame);
     textDraftRef.current = annotation.content || "";
+    fixedTextWidthRef.current = annotation.textFrameMode === "fixed";
     lineGestureRef.current = null;
     setLiveLineAnnotation(null);
   }, [annotation, pageHeight, pageWidth]);
@@ -1721,7 +1728,8 @@ function ProfessionalAnnotation({
       setIsTextEditing(false);
       return;
     }
-    if (!isTextEditing && shouldDiscardTextAnnotation(annotation.content)) {
+    if (autoEditPendingRef.current) {
+      autoEditPendingRef.current = false;
       setIsTextEditing(true);
     }
   }, [annotation.content, annotation.type, isTextEditing, selected]);
@@ -1745,7 +1753,7 @@ function ProfessionalAnnotation({
   }, [annotation.id, annotation.type, isTextEditing, selected]);
 
   const beginFrameGesture = (event, kind, handle = "") => {
-    if (kind === "move" && event.target.closest?.("input, [contenteditable='true']") && !event.target.closest?.(".move-control")) {
+    if (kind === "move" && event.target.closest?.("input, [contenteditable='true'], [contenteditable='plaintext-only']") && !event.target.closest?.(".move-control")) {
       event.stopPropagation();
       onSelect(annotation.id);
       return;
@@ -1757,7 +1765,15 @@ function ProfessionalAnnotation({
     if (!pageRect?.width || !pageRect?.height) return;
     const originFrame = annotation.type === "circle"
       ? normalizeCircleFrame(getAnnotationFrame(annotation), pageRect.width, pageRect.height)
-      : getAnnotationFrame(annotation);
+      : annotation.type === "text" ? { ...gestureFrameRef.current } : getAnnotationFrame(annotation);
+    if (annotation.type === "text") {
+      textGestureRef.current = true;
+      if (textContentRef.current) textDraftRef.current = normalizeEditorText(textContentRef.current.innerText);
+      textContentRef.current?.blur();
+      setIsTextEditing(false);
+      textWasFocusedRef.current = false;
+      if (kind === "resize") fixedTextWidthRef.current = true;
+    }
     const origin = { clientX: event.clientX, clientY: event.clientY };
     const initialPointerRotation = rotationFromPointer(originFrame, pageRect, event.clientX, event.clientY);
     const rotationOffset = normalizeRotation(originFrame.rotation - initialPointerRotation);
@@ -1774,6 +1790,10 @@ function ProfessionalAnnotation({
         : kind === "rotate"
           ? { ...originFrame, rotation: rotationFromPointer(originFrame, pageRect, moveEvent.clientX, moveEvent.clientY, rotationOffset) }
           : moveFrame(originFrame, deltaX, deltaY);
+      if (kind === "resize" && annotation.type === "text") {
+        const fitted = measureTextFrame(textContentRef.current, nextFrame, true);
+        nextFrame.h = Math.max(nextFrame.h, fitted.h);
+      }
       gestureFrameRef.current = nextFrame;
       setLiveFrame(nextFrame);
     };
@@ -1782,7 +1802,14 @@ function ProfessionalAnnotation({
       window.removeEventListener("pointerup", up);
       window.removeEventListener("pointercancel", up);
       const nextFrame = gestureFrameRef.current;
-      if (!framesEqual(originFrame, nextFrame)) onCommit(annotation.id, annotationPatchFromFrame(annotation, nextFrame, originFrame));
+      textGestureRef.current = false;
+      if (annotation.type === "text") {
+        onCommit(annotation.id, {
+          ...annotationPatchFromFrame(annotation, nextFrame, originFrame),
+          content: textDraftRef.current,
+          textFrameMode: fixedTextWidthRef.current ? "fixed" : "auto",
+        });
+      } else if (!framesEqual(originFrame, nextFrame)) onCommit(annotation.id, annotationPatchFromFrame(annotation, nextFrame, originFrame));
     };
     window.addEventListener("pointermove", move);
     window.addEventListener("pointerup", up);
@@ -1878,23 +1905,30 @@ function ProfessionalAnnotation({
     transformOrigin: "center",
     "--annotation-counter-rotation": `${-(liveFrame.rotation || 0)}deg`,
   };
-  const controls = selected && !(annotation.type === "text" && isTextEditing) ? (
+  const controls = selected ? (
     <EditorSelectionControls
       onDelete={() => onDelete(annotation.id)}
       onMoveStart={dragStart}
       onResizeStart={resizeStart}
       onRotate={rotateStep}
       onRotateStart={rotateStart}
+      isTextEditing={isTextEditing}
+      onEditText={annotation.type === "text" ? () => {
+        if (isTextEditing) textContentRef.current?.blur();
+        else {
+          textWasFocusedRef.current = false;
+          setIsTextEditing(true);
+        }
+      } : undefined}
     />
   ) : null;
 
-  const updateTextContent = (element) => {
+  const measureTextFrame = (element, currentFrame, fixedWidth = fixedTextWidthRef.current) => {
+    if (!element) return currentFrame;
     const pageRect = element.closest(".page-surface")?.getBoundingClientRect();
-    const content = normalizeEditorText(element.innerText);
-    textDraftRef.current = content;
-    if (!pageRect?.width || !pageRect?.height) return;
+    if (!pageRect?.width || !pageRect?.height) return currentFrame;
+    const content = textDraftRef.current;
     const fontPx = Math.max(8, (annotation.fontSize || 16) * textDisplayScale);
-    const currentFrame = gestureFrameRef.current;
     const canvas = textMeasureCanvasRef.current || document.createElement("canvas");
     textMeasureCanvasRef.current = canvas;
     const context = canvas.getContext("2d");
@@ -1908,28 +1942,36 @@ function ProfessionalAnnotation({
       lineHeight: annotation.lineHeight || 1.25,
       pageWidth: pageRect.width,
       pageHeight: pageRect.height,
-      maxWidth: clamp(0.98 - currentFrame.x, EDITOR_TEXT_MIN_WIDTH, 0.78),
-      maxHeight: clamp(0.98 - currentFrame.y, EDITOR_TEXT_MIN_HEIGHT, 0.42),
+      minWidth: fixedWidth ? currentFrame.w : EDITOR_TEXT_MIN_WIDTH,
+      maxWidth: fixedWidth ? currentFrame.w : clamp(0.98 - currentFrame.x, EDITOR_TEXT_MIN_WIDTH, 0.78),
+      maxHeight: clamp(0.98 - currentFrame.y, EDITOR_TEXT_MIN_HEIGHT, 0.98),
       measureLine: context ? (line) => context.measureText(line || " ").width : undefined,
     });
-    const nextFrame = {
+    return {
       ...currentFrame,
-      w: estimated.w,
-      h: estimated.h,
+      w: fixedWidth ? currentFrame.w : estimated.w,
+      h: fixedWidth ? Math.max(currentFrame.h, estimated.h) : estimated.h,
     };
+  };
+
+  const updateTextContent = (element) => {
+    textDraftRef.current = normalizeEditorText(element.innerText);
+    if (textGestureRef.current) return;
+    const nextFrame = measureTextFrame(element, gestureFrameRef.current);
     gestureFrameRef.current = nextFrame;
     setLiveFrame(nextFrame);
   };
 
   const commitTextContent = () => {
     const content = textDraftRef.current;
-    if (shouldDiscardTextAnnotation(content)) {
+    if (shouldDiscardTextAnnotation(content) && !fixedTextWidthRef.current) {
       onDelete(annotation.id);
       return;
     }
     onCommit(annotation.id, {
       ...annotationPatchFromFrame(annotation, gestureFrameRef.current, getAnnotationFrame(annotation)),
       content,
+      textFrameMode: fixedTextWidthRef.current ? "fixed" : "auto",
       updatedAt: nowIso(),
     });
   };
@@ -2082,7 +2124,7 @@ function ProfessionalAnnotation({
         onBlur={() => {
           textWasFocusedRef.current = false;
           setIsTextEditing(false);
-          commitTextContent();
+          if (!textGestureRef.current) commitTextContent();
         }}
       />
     </div>
@@ -2172,6 +2214,8 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   const [activeToolMode, setActiveToolMode] = useState("view");
   const [pageIndex, setActivePageIndex] = useState(0);
   const [annotations, setAnnotations] = useState([]);
+  const annotationsRef = useRef(annotations);
+  annotationsRef.current = annotations;
   const [detectedTextItems, setDetectedTextItems] = useState([]);
   const detectedTextItemsRef = useRef([]);
   detectedTextItemsRef.current = detectedTextItems;
@@ -3040,7 +3084,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
 
   const getHistorySnapshot = () => ({
     pages,
-    annotations,
+    annotations: annotationsRef.current,
     detectedTextItems,
     pageIndex,
   });
@@ -3064,6 +3108,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   const commitAnnotations = (next) => {
     pushHistorySnapshot();
     setRedoStack([]);
+    annotationsRef.current = next;
     setAnnotations(next);
     markUnsaved();
   };
@@ -3096,11 +3141,12 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   };
 
   const updateAnnotation = (id, patch) => {
-    const current = annotations.find((item) => item.id === id);
+    const currentAnnotations = annotationsRef.current;
+    const current = currentAnnotations.find((item) => item.id === id);
     if (!current) return;
     const changed = Object.entries(patch).some(([key, value]) => current[key] !== value);
     if (!changed) return;
-    commitAnnotations(annotations.map((item) => {
+    commitAnnotations(currentAnnotations.map((item) => {
       if (current.type === "radio" && patch.selected && item.type === "radio" && item.fieldName === current.fieldName) {
         return item.id === id ? { ...item, ...patch } : { ...item, selected: false };
       }
@@ -3166,8 +3212,8 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   };
 
   const addAnnotation = (annotation) => {
-    const retainedAnnotations = annotations.filter((item) => (
-      item.type !== "text" || !shouldDiscardTextAnnotation(item.content)
+    const retainedAnnotations = annotationsRef.current.filter((item) => (
+      item.type !== "text" || item.textFrameMode === "fixed" || !shouldDiscardTextAnnotation(item.content)
     ));
     commitAnnotations([...retainedAnnotations, annotation]);
     trackEditorAnnotationFeature(annotation.type);
@@ -7091,7 +7137,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
                       });
                     }}
                     onDelete={(id) => {
-                      commitAnnotations(annotations.filter((item) => item.id !== id));
+                      commitAnnotations(annotationsRef.current.filter((item) => item.id !== id));
                       setSelectedId(null);
                     }}
                   />

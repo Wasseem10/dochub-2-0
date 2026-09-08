@@ -1,5 +1,6 @@
 import { degrees, rgb } from "pdf-lib";
 import { drawPdfSignatureAnnotation } from "./pdfSignatureExport.js";
+import { wrapEditorText } from "./editorTextObjects.js";
 
 function colorFromHex(hex = "#0f172a") {
   const normalized = String(hex).replace("#", "");
@@ -82,7 +83,10 @@ export async function drawFlattenedInputAnnotation({
 
   if (annotation.type === "text") {
     const font = pickPdfFont(annotation.fontFamily, annotation.bold, annotation.italic);
-    String(annotation.content || "").split("\n").forEach((line, index) => {
+    const lines = annotation.textFrameMode === "fixed"
+      ? wrapEditorText(annotation.content || "", Math.max(1, annotation.w * width - 8), (line) => font.widthOfTextAtSize(line, annotation.fontSize))
+      : String(annotation.content || "").split("\n");
+    lines.forEach((line, index) => {
       const textWidth = font.widthOfTextAtSize(line, annotation.fontSize);
       const boxWidth = annotation.w * width;
       const alignOffset = annotation.textAlign === "center" ? Math.max(0, (boxWidth - textWidth) / 2) : annotation.textAlign === "right" ? Math.max(0, boxWidth - textWidth - 8) : 0;
