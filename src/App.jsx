@@ -1,5 +1,7 @@
 import { forwardRef, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { useContinuousEditorPages } from "./editor/useContinuousEditorPages.js";
+import "./editor/continuous-pages.css";
 import Mail from "lucide-react/dist/esm/icons/mail.mjs";
 import LogIn from "lucide-react/dist/esm/icons/log-in.mjs";
 import LogOut from "lucide-react/dist/esm/icons/log-out.mjs";
@@ -2168,7 +2170,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   const [fileName, setFileName] = useState("New Document");
   const [tool, setTool] = useState("select");
   const [activeToolMode, setActiveToolMode] = useState("view");
-  const [pageIndex, setPageIndex] = useState(0);
+  const [pageIndex, setActivePageIndex] = useState(0);
   const [annotations, setAnnotations] = useState([]);
   const [detectedTextItems, setDetectedTextItems] = useState([]);
   const detectedTextItemsRef = useRef([]);
@@ -2367,17 +2369,24 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     && activeDocumentIdRef.current === documentId
   );
   const currentPage = pages[pageIndex] || pages[0];
+  // Keep one stable scale for the continuous document, including mixed sizes.
+  const fitPageWidth = pages.length ? Math.max(...pages.map((page) => page.width)) : BASE_PAGE_WIDTH;
+  const fitPageHeight = pages.length ? Math.max(...pages.map((page) => page.height)) : BASE_PAGE_HEIGHT;
+  const activePageIndex = pageIndex;
+  const { pageElements, navigateToPage: setPageIndex } = useContinuousEditorPages({
+    containerRef: canvasColumnRef,
+    pageIndex,
+    setActivePageIndex,
+    documentId: activeDocumentId,
+    pageOrder: pages.map((page) => page.id).join("|"),
+    ready: editorRouteState === "ready",
+    hydratePage: hydratePdfPageAt,
+  });
   const hasVisibleToolSettings = publicTool !== "request-signatures"
     && (selected?.type === "text"
       || ["text", "editText", "field", "draw", "highlight", "textHighlight", "whiteout", "rectangle", "circle", "line", "arrow", "signature"].includes(tool)
       || Object.hasOwn(TOOL_PERSISTENT_INSTRUCTIONS, tool));
-  const pageAnnotations = annotations.filter((annotation) => annotation.page === pageIndex);
   const pageDetectedTextItems = detectedTextItems.filter((item) => item.pageNumber === pageIndex && !item.isDeleted);
-  const pageSourceReplacementItems = detectedTextItems.filter((item) => (
-    item.pageNumber === pageIndex
-    && (item.isEdited || item.isDeleted)
-    && detectedTextSourceFrame(item)
-  ));
   const detectedTextCount = useMemo(() => detectedTextItems.filter((item) => !item.isDeleted).length, [detectedTextItems]);
   const contextualToolConfig = useMemo(() => {
     const tools = new Set(getToolsForMode(activeToolMode));
@@ -2485,7 +2494,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   }, []);
 
   useLayoutEffect(() => {
-    if (!currentPage || editorRouteState !== "ready" || zoomMode === EDITOR_ZOOM_MODE.CUSTOM) return undefined;
+    if (editorRouteState !== "ready" || zoomMode === EDITOR_ZOOM_MODE.CUSTOM) return undefined;
     const canvasColumn = canvasColumnRef.current;
     if (!canvasColumn) return undefined;
 
@@ -2495,8 +2504,8 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       animationFrame = window.requestAnimationFrame(() => {
         const fittedZoom = calculateEditorFitZoom({
           mode: zoomMode,
-          pageWidth: currentPage.width,
-          pageHeight: currentPage.height,
+          pageWidth: fitPageWidth,
+          pageHeight: fitPageHeight,
           containerWidth: canvasColumn.clientWidth || window.innerWidth,
           containerHeight: canvasColumn.clientHeight || window.innerHeight,
           pageScale: EDITOR_PAGE_SCALE,
@@ -2520,7 +2529,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       window.removeEventListener("orientationchange", updateFittedZoom);
       window.removeEventListener("resize", updateFittedZoom);
     };
-  }, [currentPage, editorRouteState, zoomMode]);
+  }, [fitPageWidth, fitPageHeight, editorRouteState, zoomMode]);
 
   useEffect(() => {
     if (!activeDocumentId || editorRouteState !== "ready" || !pages.length) return;
@@ -3186,9 +3195,9 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     setTool("select");
   };
 
-  const addTextAnnotation = (content, point) => {
+  const addTextAnnotation = (content, point, targetPageIndex = pageIndex) => {
     const stamp = nowIso();
-    addAnnotation(createTextAnnotation({ id: makeId("text"), page: pageIndex, point, content, settings: toolSettings, createdAt: stamp }));
+    addAnnotation(createTextAnnotation({ id: makeId("text"), page: targetPageIndex, point, content, settings: toolSettings, createdAt: stamp }));
   };
 
   useEffect(() => {
@@ -4608,7 +4617,8 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     downloadBlob(new Blob([bytes], { type: "application/pdf" }), documentRecord.name);
   };
 
-  const onPagePointerDown = (event) => {
+  const onPagePointerDown = (event, pageIndex) => {
+    const currentPage = pages[pageIndex];
     event.currentTarget.focus({ preventScroll: true });
     if (currentPage?.source === "pdf" && !currentPage.image) {
       showToast(currentPage.renderStatus === "error"
@@ -4660,7 +4670,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     }
 
     if (tool === "text") {
-      addTextAnnotation("", point);
+      addTextAnnotation("", point, pageIndex);
       return;
     }
 
@@ -4681,7 +4691,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     }
 
     if (tool === "date") {
-      addTextAnnotation(new Intl.DateTimeFormat("en", { month: "2-digit", day: "2-digit", year: "numeric" }).format(new Date()), point);
+      addTextAnnotation(new Intl.DateTimeFormat("en", { month: "2-digit", day: "2-digit", year: "numeric" }).format(new Date()), point, pageIndex);
       return;
     }
 
@@ -4854,12 +4864,12 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     });
   };
 
-  const onPagePointerMove = (event) => {
+  const onPagePointerMove = (event, targetPageIndex) => {
     lastPagePointRef.current = pointerToNormalized(event, event.currentTarget);
     if (tool === "signature" && (activeSignature.content || activeSignature.imageDataUrl)) {
-      setSignaturePreviewPoint(lastPagePointRef.current);
+      setSignaturePreviewPoint({ ...lastPagePointRef.current, page: targetPageIndex });
     }
-    if (!draft) return;
+    if (!draft || draft.page !== targetPageIndex) return;
     const point = lastPagePointRef.current;
 
     if (draft.type === "draw") {
@@ -4912,11 +4922,11 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       };
     }
     const finalized = shapeDraft.type === "draw"
-      ? { id: shapeDraft.id, type: "draw", page: pageIndex, points: shapeDraft.points, color: shapeDraft.color, strokeWidth: shapeDraft.strokeWidth, opacity: shapeDraft.opacity }
+      ? { id: shapeDraft.id, type: "draw", page: shapeDraft.page, points: shapeDraft.points, color: shapeDraft.color, strokeWidth: shapeDraft.strokeWidth, opacity: shapeDraft.opacity }
       : {
         id: shapeDraft.id,
         type: shapeDraft.type,
-        page: pageIndex,
+        page: shapeDraft.page,
         x: shapeDraft.x,
         y: shapeDraft.y,
         w: Math.max(shapeDraft.w, shapeDraft.type === "rectangle" ? 0.035 : 0.001),
@@ -6925,13 +6935,30 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
         </aside>
 
         <div className="canvas-column" ref={canvasColumnRef}>
-          <div className="document-stage">
+          <div className="document-stage document-stage--continuous">
+            {pages.map((currentPage, pageIndex) => {
+              const pageAnnotations = annotations.filter((annotation) => annotation.page === pageIndex);
+              const pageDetectedTextItems = detectedTextItems.filter((item) => item.pageNumber === pageIndex && !item.isDeleted);
+              const pageSourceReplacementItems = detectedTextItems.filter((item) => (
+                item.pageNumber === pageIndex && (item.isEdited || item.isDeleted) && detectedTextSourceFrame(item)
+              ));
+              return (
             <div
+              key={currentPage.id}
+              ref={(element) => {
+                if (element) pageElements.current.set(pageIndex, element);
+                else pageElements.current.delete(pageIndex);
+              }}
+              data-page-index={pageIndex}
+              data-active-page={pageIndex === activePageIndex ? "true" : "false"}
+              aria-label={`Document page ${pageIndex + 1}`}
               className={`page-surface${tool === "signature" && (activeSignature.content || activeSignature.imageDataUrl) ? " is-placing-signature" : ""}`}
               tabIndex={0}
               style={{ width: currentPage.width * (zoom / 100) * EDITOR_PAGE_SCALE, height: currentPage.height * (zoom / 100) * EDITOR_PAGE_SCALE }}
-              onPointerDown={onPagePointerDown}
-              onPointerMove={onPagePointerMove}
+              onPointerDownCapture={() => setActivePageIndex(pageIndex)}
+              onFocusCapture={() => setActivePageIndex(pageIndex)}
+              onPointerDown={(event) => onPagePointerDown(event, pageIndex)}
+              onPointerMove={(event) => onPagePointerMove(event, pageIndex)}
               onPointerUp={onPagePointerUp}
               onPointerCancel={onPagePointerUp}
               onPointerLeave={() => setSignaturePreviewPoint(null)}
@@ -6944,7 +6971,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
                 </div>
               )}
               <div className="annotation-layer">
-                {tool === "signature" && signaturePreviewPoint && (activeSignature.content || activeSignature.imageDataUrl) && (
+                {tool === "signature" && signaturePreviewPoint?.page === pageIndex && (activeSignature.content || activeSignature.imageDataUrl) && (
                   <div
                     className="signature-placement-ghost"
                     style={{
@@ -7097,6 +7124,8 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
                 )}
               </div>
             </div>
+              );
+            })}
           </div>
         </div>
 

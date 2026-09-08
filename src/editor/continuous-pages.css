@@ -1,0 +1,21 @@
+/* One uninterrupted document, with independent page-sized editing surfaces. */
+main.editor-shell .canvas-column > .document-stage.document-stage--continuous {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  height: auto !important;
+  overflow: visible !important;
+  flex: 0 0 auto !important;
+  gap: 28px;
+}
+
+main.editor-shell .document-stage--continuous > .page-surface {
+  flex: 0 0 auto !important;
+}
+
+@media (max-width: 900px) {
+  main.editor-shell .canvas-column > .document-stage.document-stage--continuous {
+    gap: 18px;
+  }
+}

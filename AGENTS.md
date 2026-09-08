@@ -58,6 +58,8 @@ New text boxes must open at a readable minimum size, auto-grow while typing, use
 
 The contextual text bar must always show the complete font-size and line-spacing values; its controls may scroll on small screens but must never clip, collapse, or hide their current values. Keep a new Add Text frame compact around the first line instead of opening as a large empty rectangle.
 
+The editor document canvas must scroll continuously through every PDF page, in document order, without requiring thumbnail clicks. Thumbnails jump within that same scrollable stack and track the visible page. Keep editing coordinates page-local, render nearby pages progressively, and retain a stable fit scale when scrolling between mixed page sizes.
+
 Editing detected text from an existing PDF must preserve that item’s box while typing and must never cover, reflow, or erase neighboring page content. Keep immutable source bounds for removing the original glyphs during preview and export; moving or resizing the replacement must not move or enlarge the source cleanup area. Clicking and leaving an unchanged detected text item must not mark it edited.
 
 While a text box has keyboard focus, hide its transform controls so the writing area stays unobstructed; restore them only after focus leaves the text.
