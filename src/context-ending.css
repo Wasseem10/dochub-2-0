@@ -13,7 +13,8 @@
 }
 
 .freepdf-context-faq {
-  padding: 112px 44px 0;
+  padding: 72px 44px 88px;
+  scroll-margin-top: 80px;
 }
 
 .freepdf-context-ending-heading {
@@ -230,14 +231,34 @@
 .freepdf-context-privacy-sync > a:hover { text-decoration: underline; text-underline-offset: 4px; }
 
 .freepdf-context-faq .freepdf-context-ending-heading {
-  margin-bottom: 48px;
+  max-width: 760px;
+  margin-bottom: 32px;
+}
+
+.freepdf-context-faq .freepdf-context-ending-heading > span {
+  font-size: .75rem;
+}
+
+.freepdf-context-faq .freepdf-context-ending-heading h2 {
+  margin-top: 18px;
+  font-size: clamp(2rem, 3.4vw, 3rem);
+  line-height: 1.15;
+  letter-spacing: -.04em;
+  text-wrap: balance;
+  scroll-margin-top: 100px;
+}
+
+.freepdf-context-faq .freepdf-context-ending-heading p {
+  max-width: 580px;
+  margin-top: 16px;
+  font-size: 1rem;
 }
 
 .freepdf-context-faq-grid {
   display: grid;
   max-width: 980px;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
+  gap: 12px;
   margin: 0 auto;
   padding: 0;
 }
@@ -245,12 +266,13 @@
 .freepdf-context-faq-grid::before { display: none; }
 
 .freepdf-context-faq-grid .freepdf-faq-item {
+  min-width: 0;
   align-self: start;
   overflow: hidden;
   border: 1px solid #dfe4ed;
   border-radius: 14px;
   background: #fff;
-  box-shadow: 0 4px 12px rgba(27, 47, 91, .05);
+  box-shadow: none;
 }
 
 .freepdf-context-faq-grid .freepdf-faq-item.is-open {
@@ -261,13 +283,14 @@
 
 .freepdf-context-faq-grid .freepdf-faq-item > button,
 .freepdf-context-faq-grid .freepdf-faq-item.is-open > button {
-  min-height: 70px;
+  min-height: 76px;
   grid-template-columns: minmax(0, 1fr) 34px;
   gap: 16px;
   padding: 14px 14px 14px 20px;
   color: #111622;
-  font-size: 14px;
-  line-height: 1.35;
+  font-size: 1rem;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
 }
 
 .freepdf-context-faq-grid .freepdf-faq-item > button:hover { color: #2851eb; }
@@ -302,13 +325,13 @@
 .freepdf-context-faq-grid .freepdf-faq-answer > span {
   margin-bottom: 8px;
   color: #6d42eb;
-  font-size: 9px;
+  font-size: .75rem;
   letter-spacing: .1em;
 }
 
 .freepdf-context-faq-grid .freepdf-faq-answer p {
   color: #596377;
-  font-size: 13px;
+  font-size: 1rem;
   line-height: 1.6;
 }
 
@@ -316,7 +339,7 @@
   margin-top: 0;
   overflow: visible;
   border-top: 1px solid #e3e8f0;
-  background: #f8f9fc;
+  background: #fff;
   color: #111622;
 }
 
@@ -429,7 +452,8 @@
   }
 
   .freepdf-context-privacy { padding-top: 78px; padding-bottom: 84px; }
-  .freepdf-context-faq { padding-top: 78px; }
+  .freepdf-context-faq { padding-top: 48px; padding-bottom: 56px; }
+  .freepdf-context-faq .freepdf-context-ending-heading { margin-bottom: 24px; }
 
   .freepdf-context-ending-heading { margin-bottom: 36px; }
 
@@ -457,7 +481,7 @@
   .freepdf-context-faq-grid .freepdf-faq-item.is-open > button {
     min-height: 68px;
     padding-left: 16px;
-    font-size: 13px;
+    font-size: 1rem;
   }
 
   .freepdf-page .freepdf-footer-surface {
