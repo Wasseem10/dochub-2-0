@@ -8,7 +8,7 @@ export function AuthLoadingScreen({ label = "Opening PDFEnrich" }) {
         aria-label={label}
       >
         <span className="auth-loading-mark" aria-hidden="true">
-          <img src="/icon.svg" alt="" width={30} height={30} />
+          <img src="/pdfenrich-logo.png" alt="" width={30} height={30} />
         </span>
         <span className="auth-loading-progress" aria-hidden="true">
           <span />

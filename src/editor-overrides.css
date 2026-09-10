@@ -1643,6 +1643,7 @@ body:has(.auth-loading-shell) .privacy-consent {
   display: block;
   width: 30px;
   height: 30px;
+  object-fit: contain;
 }
 
 .auth-loading-indicator .auth-loading-progress {

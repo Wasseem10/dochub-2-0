@@ -55,7 +55,7 @@ describe("route guards", () => {
     expect(status.props["aria-live"]).toBe("polite");
     const loadingMark = renderer.root.findByProps({ className: "auth-loading-mark" });
     expect(loadingMark).toBeTruthy();
-    expect(loadingMark.findByType("img").props).toMatchObject({ src: "/icon.svg", width: 30, height: 30 });
+    expect(loadingMark.findByType("img").props).toMatchObject({ src: "/pdfenrich-logo.png", width: 30, height: 30 });
     expect(renderer.root.findByProps({ className: "auth-loading-progress" })).toBeTruthy();
     expect(router.state.location.pathname).toBe("/app/dashboard");
   });
@@ -197,6 +197,20 @@ describe("document navigation contract", () => {
 });
 
 describe("safe error routes", () => {
+  it.each(["idle", "loading"])("uses the minimal branded transition while a document is %s", async (state) => {
+    const { renderer } = await renderRoutes([{
+      path: "/app/editor/:documentId",
+      element: <EditorRouteStatePage state={state} />,
+    }], ["/app/editor/sample-document"], authValue());
+    expect(renderer.root.findByProps({ role: "status" }).props["aria-label"]).toBe("Opening your document");
+    expect(renderer.root.findByProps({ className: "auth-loading-progress" })).toBeTruthy();
+    expect(renderer.root.findByType("img").props.src).toBe("/pdfenrich-logo.png");
+    expect(renderer.root.findAllByType("h1")).toHaveLength(0);
+    expect(renderer.root.findAllByType("button")).toHaveLength(0);
+    expect(renderedText(renderer)).not.toContain("editor-recovery-visual");
+    await act(async () => renderer.unmount());
+  });
+
   it("renders a public route page", async () => {
     const { renderer } = await renderRoutes([{
       path: "/features",
