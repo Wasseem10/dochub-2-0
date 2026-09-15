@@ -3852,6 +3852,19 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
         return;
       }
 
+      // Checked here (after pdf.js has decompressed the real object model)
+      // rather than as a raw byte scan pre-parse: object streams hide real
+      // JavaScript actions from a text search, and a text search over
+      // compressed data also produces false positives on harmless PDFs.
+      const jsActions = await documentProxy.getJSActions?.().catch(() => null);
+      if (jsActions && Object.keys(jsActions).length) {
+        await documentProxy.destroy?.().catch(() => {});
+        trackUploadValidationFailure(publicTool || "edit-pdf", "invalid_pdf");
+        setUploadError("PDFs with embedded scripts are not supported.");
+        setUploadStage({ status: "error", percent: 0, fileName: displayFileName });
+        return;
+      }
+
       try { await pdfDocumentRef.current?.destroy?.(); } catch { /* Replace the active PDF even if cleanup fails. */ }
       pdfHydrationTokenRef.current += 1;
       pdfDocumentRef.current = documentProxy;

@@ -52,8 +52,16 @@ export async function validatePdfFileContent(file) {
     const securitySample = asciiPreview(new Uint8Array(
       await file.slice(0, securitySampleSize).arrayBuffer(),
     ));
-    if (/\/(?:JavaScript|JS|Launch|EmbeddedFiles?|RichMedia)\b/.test(securitySample)) {
-      return "PDFs with scripts, launch actions, or embedded files are not supported.";
+    // /JavaScript and /JS are deliberately excluded here: they are short enough
+    // (2-11 bytes) that a raw byte scan of a compressed PDF's object streams
+    // turns up coincidental matches in ordinary, harmless documents. Real
+    // script actions are checked precisely post-parse via pdf.js's
+    // getJSActions(), which decompresses the object model instead of
+    // pattern-matching raw bytes. Launch/EmbeddedFile/RichMedia stay here:
+    // they are long enough that an accidental match in compressed noise is
+    // effectively impossible.
+    if (/\/(?:Launch|EmbeddedFiles?|RichMedia)\b/.test(securitySample)) {
+      return "PDFs with launch actions or embedded files are not supported.";
     }
     return "";
   } catch {
