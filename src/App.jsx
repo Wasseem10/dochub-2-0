@@ -3946,13 +3946,17 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
 
   useEffect(() => {
     if (view !== "tool-upload" || !location.state?.pendingLandingFile || pendingLandingFileConsumedRef.current) return;
+    // Wait for auth to resolve first: starting the load against a guest
+    // ownerId that then flips to a signed-in uid mid-flight makes every
+    // owner-guard check silently abort, leaving the upload stuck forever.
+    if (!authReady) return;
     const pendingFile = takePendingPdfFile();
     if (!pendingFile) return;
     pendingLandingFileConsumedRef.current = true;
     void loadPdfFile(pendingFile);
     // The pending file is an in-memory, one-time handoff from the lightweight homepage.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [location.key, location.state?.pendingLandingFile, view]);
+  }, [location.key, location.state?.pendingLandingFile, view, authReady]);
 
   const mergeAndAppendPdfFile = async (file) => {
     if (!file) return;
