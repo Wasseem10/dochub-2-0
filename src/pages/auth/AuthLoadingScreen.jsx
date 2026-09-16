@@ -1,3 +1,5 @@
+import "./AuthLoadingScreen.css";
+
 export function AuthLoadingScreen({ label = "Opening PDFEnrich" }) {
   return (
     <main className="auth-loading-shell" data-testid="auth-loading-screen">
