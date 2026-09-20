@@ -547,21 +547,24 @@ main.editor-shell .zoom-corner-control button:focus-visible {
 
 /* Text formatting controls stay self-explanatory and never surrender their value
    space when the contextual strip is crowded. */
-main.editor-shell .text-setting-control {
+main.editor-shell .tool-settings.text-format-settings .text-setting-control {
   display: inline-flex !important;
   flex: 0 0 auto !important;
   height: 38px !important;
   min-height: 38px !important;
   align-items: center !important;
+  gap: 0 !important;
+  padding: 0 !important;
   overflow: hidden !important;
   border: 1px solid #d8e0eb !important;
   border-radius: 8px !important;
   background: #ffffff !important;
   color: #697386 !important;
+  font-size: 13px !important;
   white-space: nowrap !important;
 }
 
-main.editor-shell .text-setting-control > span {
+main.editor-shell .tool-settings.text-format-settings .text-setting-control > span {
   flex: 0 0 auto !important;
   padding-left: 10px !important;
   color: #697386 !important;
@@ -571,7 +574,7 @@ main.editor-shell .text-setting-control > span {
   text-transform: none !important;
 }
 
-main.editor-shell .text-setting-control > select {
+main.editor-shell .tool-settings.text-format-settings .text-setting-control > select {
   flex: 0 0 auto !important;
   height: 36px !important;
   border: 0 !important;

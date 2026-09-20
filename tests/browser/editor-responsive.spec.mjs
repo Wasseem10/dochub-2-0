@@ -114,6 +114,36 @@ test("tablet editor uses the touch dock and keeps every text control visible", a
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
 });
 
+test("desktop text size and spacing controls stay inside the contextual bar", async ({ page }) => {
+  await page.setViewportSize({ width: 1628, height: 900 });
+  await page.goto(appPath("/edit-pdf"));
+  await page.getByRole("button", { name: "Start with a blank page" }).click();
+  await page.getByRole("button", { name: "Add Text", exact: true }).click();
+
+  await expect(page.getByLabel("Font size")).toHaveValue("16");
+  await expect(page.getByLabel("Line spacing")).toHaveValue("1.25");
+
+  const layout = await page.locator(".text-format-settings").evaluate((bar) => {
+    const bounds = (element) => {
+      const rect = element.getBoundingClientRect();
+      return { top: rect.top, right: rect.right, bottom: rect.bottom, left: rect.left, height: rect.height };
+    };
+    return {
+      bar: bounds(bar),
+      size: bounds(bar.querySelector(".text-size-control")),
+      spacing: bounds(bar.querySelector(".line-height-control")),
+    };
+  });
+
+  for (const control of [layout.size, layout.spacing]) {
+    expect(control.top).toBeGreaterThanOrEqual(layout.bar.top);
+    expect(control.bottom).toBeLessThanOrEqual(layout.bar.bottom);
+    expect(control.height).toBeLessThanOrEqual(40);
+  }
+  expect(layout.size.right - layout.size.left).toBeLessThan(150);
+  expect(layout.spacing.right - layout.spacing.left).toBeLessThan(170);
+});
+
 test("mobile text survives blur, returns to selection mode, and remains exportable", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto(appPath("/edit-pdf"));
