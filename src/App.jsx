@@ -214,6 +214,7 @@ import "./dashboard-selected.css";
 import "./components/editor/finish-export-modal.css";
 import "./editor-premium-color.css";
 import "./site-typography.css";
+import "./text-format-precision.css";
 
 const BASE_PAGE_WIDTH = 760;
 const BASE_PAGE_HEIGHT = 984;
@@ -7976,36 +7977,38 @@ export function ToolSettingsPanel({
   if (effectiveTool === "text" || effectiveTool === "field") {
     return (
       <div className={`tool-settings ${effectiveTool === "text" ? "text-format-settings" : "field-format-settings"}`} role="toolbar" aria-label={effectiveTool === "text" ? "Text formatting" : "Field formatting"}>
-        {effectiveTool === "text" && <span className="settings-title text-settings-title">Text</span>}
         {effectiveTool === "text" && (
-          <div className="font-menu-wrap">
-            <button
-              type="button"
-              className="font-menu-trigger"
-              aria-label="Font family"
-              aria-haspopup="menu"
-              aria-expanded={isFontMenuOpen}
-              onClick={() => setIsFontMenuOpen((value) => !value)}
-            >
-              <span style={{ fontFamily: activeSettings.fontFamily }}>{activeSettings.fontFamily}</span>
-              <ChevronDown size={15} />
-            </button>
-            {isFontMenuOpen && (
-              <div className="editor-font-menu" role="menu" aria-label="Fonts">
-                <input
-                  type="search"
-                  value={fontSearch}
-                  onChange={(event) => setFontSearch(event.target.value)}
-                  placeholder="Search fonts..."
-                />
-                <strong>STANDARD FONTS</strong>
-                {visibleStandardFonts.map((font) => (
-                  <button key={font} type="button" role="menuitemradio" aria-checked={activeSettings.fontFamily === font} onClick={() => selectFont(font)} style={{ fontFamily: font }}>
-                    {font}
-                  </button>
-                ))}
-              </div>
-            )}
+          <div className="text-font-control">
+            <span className="text-setting-label" aria-hidden="true">Font</span>
+            <div className="font-menu-wrap">
+              <button
+                type="button"
+                className="font-menu-trigger"
+                aria-label="Font family"
+                aria-haspopup="menu"
+                aria-expanded={isFontMenuOpen}
+                onClick={() => setIsFontMenuOpen((value) => !value)}
+              >
+                <span style={{ fontFamily: activeSettings.fontFamily }}>{activeSettings.fontFamily}</span>
+                <ChevronDown size={15} />
+              </button>
+              {isFontMenuOpen && (
+                <div className="editor-font-menu" role="menu" aria-label="Fonts">
+                  <input
+                    type="search"
+                    value={fontSearch}
+                    onChange={(event) => setFontSearch(event.target.value)}
+                    placeholder="Search fonts..."
+                  />
+                  <strong>STANDARD FONTS</strong>
+                  {visibleStandardFonts.map((font) => (
+                    <button key={font} type="button" role="menuitemradio" aria-checked={activeSettings.fontFamily === font} onClick={() => selectFont(font)} style={{ fontFamily: font }}>
+                      {font}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         )}
         <label className="text-setting-control text-size-control">

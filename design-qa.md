@@ -1,54 +1,46 @@
-# Documents Dashboard Design QA
+**Comparison Target**
 
-## Comparison target
+- Source visual truth: `C:\Users\wasse\OneDrive\Desktop\pdf-editor\work\design-qa\text-format-option-1\source-option-1.png`
+- Browser-rendered implementation: `C:\Users\wasse\OneDrive\Desktop\pdf-editor\work\design-qa\text-format-option-1\implementation-desktop-1384x768.png`
+- Full-view comparison: `C:\Users\wasse\OneDrive\Desktop\pdf-editor\work\design-qa\text-format-option-1\comparison-full.png`
+- Focused toolbar comparison: `C:\Users\wasse\OneDrive\Desktop\pdf-editor\work\design-qa\text-format-option-1\comparison-focused.png`
+- Viewport: 1384 × 768 CSS pixels at device scale factor 1.
+- Source pixels: 2171 × 724. The ImageGen source contains black letterboxing outside the designed editor crop, so the text-toolbar region was isolated for the detailed comparison.
+- Implementation pixels: 1384 × 768.
+- Density normalization: the focused source and implementation crops were each scaled to 1400px wide with aspect ratio preserved, then placed together in one comparison image.
+- State: desktop editor, blank one-page document, Add Text selected, contextual text controls visible.
 
-- Source visual truth path: `C:\Users\wasse\OneDrive\Desktop\pdf-editor\work\design-references\documents-dashboard-selected-2026-09-04.png`.
-- Rendered implementation: isolated production-component render of `UploadLanding` with `section="Documents"` in the Codex in-app browser.
-- Implementation screenshot path: Codex browser captures `qaTab` (desktop 1536 × 1024 and mobile 390 × 844), emitted in this task's visual QA record. The in-app browser screenshot API does not expose a filesystem path.
-- Combined comparison evidence: Codex browser capture `compareTab`, which displayed the source sheet and the browser-rendered implementation side by side in one frame.
-- Source pixels: 1536 × 1024.
-- Implementation desktop pixels and CSS viewport: 1536 × 1024 at device scale factor 1.
-- Implementation mobile pixels and CSS viewport: 390 × 844 at device scale factor 1.
-- Combined comparison viewport: 1536 × 700, with both 1536 × 1024 surfaces proportionally scaled to equal-width panels.
-- State: signed-in Documents library with seven representative records, list view selected, one favorite, and the default recent sort. The same production component and CSS are used by `/app/documents`; the isolated render avoids changing or fabricating a user authentication session for QA.
+**Findings**
 
-## Findings
+- No actionable P0, P1, or P2 differences remain for the selected text-toolbar scope.
+- Fonts and typography: the implementation uses the existing PDFEnrich DM Sans interface typography with compact 12px labels and legible 14px values. The visible values `Arial`, `16 pt`, and `1.25×` match the source hierarchy and remain untruncated.
+- Spacing and layout rhythm: the contextual strip is a single 48px row with 36–38px controls, centered under the primary toolbar. Every direct child is fully contained by the strip; measured horizontal and vertical overflow are both false. The implementation intentionally tightens the source's generous horizontal spacing to keep the selected compact direction usable at the requested 1384px viewport.
+- Colors and visual tokens: the white surface, powder-blue workspace, charcoal text and icons, hairline borders, neutral-gray selected state, and restrained shadow match the selected direction and the existing PDFEnrich editor tokens.
+- Image quality and asset fidelity: the selected design contains no custom raster assets. Existing product icons and the PDFEnrich logo remain unchanged and render sharply.
+- Copy and content: `Font:`, `Size:`, `Spacing:`, `Arial`, `16 pt`, `1.25×`, alignment, and B/I/U controls are all present. The oversized `TEXT` chip from the previous implementation is removed.
+- Interaction evidence: font size changed to 18 and restored to 16; line spacing changed to 1.5 and restored to 1.25; center alignment and Bold toggled on and restored; all controls updated their selected values/states correctly.
+- Accessibility evidence: the bar retains `role="toolbar"` with `aria-label="Text formatting"`; each control keeps its existing accessible label and pressed/expanded state.
+- Console check: no browser console errors were reported during the verified interaction state.
 
-- No actionable P0, P1, or P2 differences remain within the requested Documents-route scope.
-- Fonts and typography: IBM Plex Sans at regular weight is preserved across navigation, headings, filters, table labels, rows, and actions. The title hierarchy, compact labels, line heights, and truncation match the current dashboard system.
-- Spacing and layout rhythm: the page now uses the dashboard's 20–28px content inset, 18px summary radius, compact 68px controls row, 67px document rows, fine dividers, and low neutral elevation. The old oversized 142px rows and large empty bands are gone.
-- Colors and visual tokens: white and soft-gray surfaces, PDFEnrich blue controls, and the restrained blue/violet workspace atmosphere match Home. The former oxblood upload and selected-control treatment no longer appears on Documents.
-- Image quality and asset fidelity: the official cropped PDFEnrich wordmark, existing dashboard atmosphere asset, existing Lucide controls, and real `DashboardDocumentThumbnail` renderer are reused. Page previews remain uncropped and use `object-fit: contain`; no placeholder illustration or custom icon drawing was introduced.
-- Copy and content: the route uses concise library copy and honest live counts. Filenames, modified dates, statuses, sizes, favorites, and action menus continue to come from the existing document records.
-- Affordances and accessibility: Favorites, sort, list/grid view, search, upload, document open, and row actions remain real controls. View toggles expose labels and pressed states, the summary count has an accessible label, and existing focus treatment is preserved.
-- Responsive behavior: the mobile layout uses a stacked summary, full-width filters, compact view toggle, and a two-column document row that keeps filenames and actions readable without a clipped desktop table.
+**Open Questions**
 
-## Comparison history
+- None for the selected desktop text-toolbar scope.
 
-- Pass 1 found one P2 mobile density issue: the hidden status and size columns still left the modified-date column in the small-screen grid, shortening filenames and crowding row actions.
-- Fix: simplified mobile document rows to two columns and hid the separate modified-date cell below 560px.
-- Pass 2 evidence: the 390 × 844 browser capture shows readable filename width, visible favorite/menu actions, no horizontal page gutter, and no clipped persistent controls.
-- Final desktop comparison: the side-by-side browser frame shows the same white shell, navigation, centered search, blue upload action, calm blue/violet summary, compact filters, and dense document ledger as the selected sheet. Differences are intentional: unsupported extra filters and pagination from the concept were not added, and the live implementation keeps only existing working controls.
+**Implementation Checklist**
 
-## Interaction and technical verification
+- [x] Remove the oversized TEXT chip.
+- [x] Add an explicit compact Font label and preserve the working font menu.
+- [x] Normalize size, spacing, color, alignment, and format controls into one contained row.
+- [x] Preserve full values without clipping.
+- [x] Keep neutral toolbar interaction states and existing PDFEnrich styling.
+- [x] Verify the original 1384px desktop width and core interactions.
 
-- Favorites filtering changed the result count from seven to one and restored correctly.
-- List and grid view toggles changed the rendered layout and their pressed states.
-- Search narrowed the ledger to the matching document.
-- Sorting by document name returned all seven filenames in alphabetical order.
-- Browser console returned no warnings or errors.
-- Focused dashboard integration tests passed.
-- TypeScript checking passed.
-- The production Vite build passed.
+**Comparison History**
 
-## Implementation checklist
+- Initial implementation comparison: no P0/P1/P2 mismatch found. The selected compact direction was reproduced with a deliberately tighter horizontal footprint, and no visual fix iteration was required.
 
-- [x] Match the current dashboard shell and visual tokens.
-- [x] Replace the oversized legacy list with a compact document ledger.
-- [x] Keep real thumbnails, favorites, sorting, search, upload, and row actions.
-- [x] Add a functional list/grid view switch.
-- [x] Preserve an intentionally composed mobile layout.
-- [x] Verify desktop and mobile browser renders.
-- [x] Verify interactions and console output.
+**Follow-up Polish**
+
+- P3: the generated concept uses slightly more horizontal breathing room than the implementation. The tighter production spacing is acceptable because it preserves the user's requested compactness while keeping every value fully visible.
 
 final result: passed
