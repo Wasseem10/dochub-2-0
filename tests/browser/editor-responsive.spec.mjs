@@ -216,3 +216,34 @@ test("narrow dashboard keeps every navigation destination reachable", async ({ p
   await menu.getByRole("button", { name: "All tools" }).click();
   await expect(page).toHaveURL(/\/app\/tools$/);
 });
+
+test("dashboard document actions stay anchored to their three-dot trigger", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto(appPath("/edit-pdf"));
+  await page.getByRole("button", { name: "Start with a blank page" }).click();
+  await page.getByRole("button", { name: "Back to PDFEnrich dashboard" }).click();
+
+  const actions = page.getByRole("button", { name: /Untitled blank document\.pdf actions/ }).first();
+  await expect(actions).toBeVisible();
+  await actions.click();
+
+  const menu = page.getByRole("menu", { name: /Untitled blank document\.pdf actions/ });
+  await expect(menu.getByRole("menuitem", { name: "Remove" })).toBeVisible();
+  const placement = await menu.evaluate((menuElement) => {
+    const menuRect = menuElement.getBoundingClientRect();
+    const triggerRect = menuElement.parentElement.querySelector(".doc-menu-trigger").getBoundingClientRect();
+    return {
+      menu: { top: menuRect.top, right: menuRect.right, bottom: menuRect.bottom, left: menuRect.left },
+      trigger: { top: triggerRect.top, right: triggerRect.right, bottom: triggerRect.bottom, left: triggerRect.left },
+      viewport: { width: window.innerWidth, height: window.innerHeight },
+    };
+  });
+  const verticalGap = Math.min(
+    Math.abs(placement.menu.top - placement.trigger.bottom),
+    Math.abs(placement.trigger.top - placement.menu.bottom),
+  );
+  expect(verticalGap).toBeLessThanOrEqual(12);
+  expect(placement.menu.right).toBeLessThanOrEqual(placement.viewport.width);
+  expect(placement.menu.left).toBeGreaterThanOrEqual(0);
+  expect(placement.menu.bottom).toBeLessThanOrEqual(placement.viewport.height);
+});

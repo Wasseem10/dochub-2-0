@@ -628,7 +628,15 @@
 }
 
 .dashboard-selected-ledger-row .doc-menu-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
   justify-self: start;
+}
+
+.dashboard-selected-ledger-row:nth-last-child(-n + 3) .doc-row-menu {
+  top: auto !important;
+  bottom: calc(100% + 6px) !important;
 }
 
 .dashboard-selected-empty-ledger {
