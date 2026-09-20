@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Bot from "lucide-react/dist/esm/icons/bot.mjs";
 import Check from "lucide-react/dist/esm/icons/check.mjs";
 import Database from "lucide-react/dist/esm/icons/database.mjs";
@@ -24,6 +24,7 @@ import {
   documentDataCsv,
   extractDocumentData,
   findRelevantPassages,
+  getBrowserTranslationAvailability,
   generateDocumentQuestions,
   summarizePages,
   translateDocumentText,
@@ -84,8 +85,19 @@ export function DocumentAnalysisPage({ tool }) {
   const [status, setStatus] = useState("idle");
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState("");
+  const [translationAvailability, setTranslationAvailability] = useState(tool.id === "translate-pdf" ? "checking" : "available");
   const ModeIcon = mode.icon;
   const fullText = useMemo(() => pages.map((page) => `Page ${page.pageNumber}\n${page.text}`).join("\n\n"), [pages]);
+
+  useEffect(() => {
+    if (tool.id !== "translate-pdf") return undefined;
+    let active = true;
+    setTranslationAvailability("checking");
+    getBrowserTranslationAvailability(sourceLanguage, targetLanguage)
+      .then((availability) => { if (active) setTranslationAvailability(availability); })
+      .catch(() => { if (active) setTranslationAvailability("unsupported"); });
+    return () => { active = false; };
+  }, [sourceLanguage, targetLanguage, tool.id]);
 
   const beginFilePreparation = useCallback(() => {
     setFile(null); setPages([]); setResult(null); setConversation([]); setStatus("idle"); setProgress(0); setError("");
@@ -149,7 +161,7 @@ export function DocumentAnalysisPage({ tool }) {
   return <main className="document-analysis-page">
     <PageMetadata title={tool.seoTitle} description={tool.metaDescription} canonicalUrl={tool.canonicalUrl} schemas={toolSeoSchemas(tool)} toolStatus={tool.status} />
     <nav className="tool-breadcrumbs" aria-label="Breadcrumb"><Link to={ROUTE_PATHS.tools}>PDF tools</Link><span>/</span><span aria-current="page">{tool.name}</span></nav>
-    <section className="analysis-hero"><div><span><Sparkles size={15} /> {tool.id === "translate-pdf" ? "Beta · browser model required" : "Available · private browser analysis"}</span><h1>{tool.searchPriority ? tool.heroHeadline : `${tool.name}, grounded in your document`}.</h1><p>{tool.searchPriority ? `${tool.heroSubheadline} Review every result against the source pages.` : `${tool.shortDescription} Every extracted result stays tied to source pages for review.`}</p></div><aside><ShieldCheck size={22} /><strong>No document text enters analytics</strong><small>Analysis runs in this tab and is not saved.</small></aside></section>
+    <section className="analysis-hero"><div><span><Sparkles size={15} /> Available · private browser analysis</span><h1>{tool.searchPriority ? tool.heroHeadline : `${tool.name}, grounded in your document`}.</h1><p>{tool.searchPriority ? `${tool.heroSubheadline} Review every result against the source pages.` : `${tool.shortDescription} Every extracted result stays tied to source pages for review.`}</p></div><aside><ShieldCheck size={22} /><strong>No document text enters analytics</strong><small>Analysis runs in this tab and is not saved.</small></aside></section>
     {!file ? upload.phase === "prompting" || upload.phase === "processing" ? <ScannedPdfPrompt
       file={upload.pendingFile}
       language={ocrLanguage}
@@ -167,8 +179,8 @@ export function DocumentAnalysisPage({ tool }) {
           const nextSource = event.target.value;
           setSourceLanguage(nextSource);
           if (nextSource === targetLanguage) setTargetLanguage(nextSource === "en" ? "es" : "en");
-        }}>{LANGUAGES.map(([code, label]) => <option key={code} value={code}>{label}</option>)}</select></label><label><span>Translate to</span><select aria-label="Translate to" value={targetLanguage} onChange={(event) => setTargetLanguage(event.target.value)}>{LANGUAGES.map(([code, label]) => <option key={code} value={code} disabled={code === sourceLanguage}>{label}</option>)}</select></label></div><small>Choose the PDF's current language and a different target language. Translation works only when that language pair is available through the browser's on-device Translator API.</small></div>}
-        {!QUESTION_TOOLS.has(tool.id) && <button className="analysis-primary" type="button" disabled={status === "analyzing"} onClick={run}>{status === "analyzing" ? <><LoaderCircle className="is-spinning" size={18} /> Working… {progress}%</> : <><Sparkles size={18} /> {mode.action}</>}</button>}
+        }}>{LANGUAGES.map(([code, label]) => <option key={code} value={code}>{label}</option>)}</select></label><label><span>Translate to</span><select aria-label="Translate to" value={targetLanguage} onChange={(event) => setTargetLanguage(event.target.value)}>{LANGUAGES.map(([code, label]) => <option key={code} value={code} disabled={code === sourceLanguage}>{label}</option>)}</select></label></div><small role="status">{translationAvailability === "checking" ? "Checking this language pair…" : translationAvailability === "available" ? "This language pair is ready on this device." : translationAvailability === "downloadable" ? "This language pair is supported. The browser will download its on-device model when translation starts." : translationAvailability === "unavailable" ? "This language pair is not available in this browser. Choose another pair." : "On-device translation is unavailable in this browser. Use a current compatible Chrome browser."}</small></div>}
+        {!QUESTION_TOOLS.has(tool.id) && <button className="analysis-primary" type="button" disabled={status === "analyzing" || (tool.id === "translate-pdf" && !["available", "downloadable"].includes(translationAvailability))} onClick={run}>{status === "analyzing" ? <><LoaderCircle className="is-spinning" size={18} /> Working… {progress}%</> : <><Sparkles size={18} /> {mode.action}</>}</button>}
         {status === "analyzing" && <div className="analysis-progress"><i style={{ width: `${progress}%` }} /></div>}{error && <div className="conversion-error" role="alert">{error}</div>}
         <AnalysisResult toolId={tool.id} result={result} conversation={conversation} />
         {(result || conversation.length > 0) && <div className="analysis-downloads">{tool.id === "translate-pdf" ? <><button type="button" onClick={downloadTranslatedPdf}><Download size={16} /> Download translated PDF</button><button type="button" onClick={() => download(result, "text/plain", `${baseName}-translated.txt`, tool.id)}><Download size={16} /> Download TXT</button></> : tool.id === "extract-data-from-pdf" ? <><button type="button" onClick={() => download(JSON.stringify(result, null, 2), "application/json", `${baseName}-data.json`, tool.id)}><Download size={16} /> Download JSON</button><button type="button" onClick={() => download(documentDataCsv(result), "text/csv", `${baseName}-data.csv`, tool.id)}><Download size={16} /> Download CSV</button></> : <button type="button" onClick={() => download(reportText, "text/plain", `${baseName}-${tool.id}.txt`, tool.id)}><Download size={16} /> Download report</button>}</div>}

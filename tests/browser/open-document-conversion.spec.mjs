@@ -27,3 +27,38 @@ test("ZIP combines supported documents into one PDF", async ({ page }) => {
   expect(result.download.suggestedFilename()).toBe("packet.pdf");
   expect(result.pdf.getPageCount()).toBe(2);
 });
+
+test("ODT, ODS, ODP, and EPUB each complete their released browser workflow", async ({ page }) => {
+  const fixtures = [
+    {
+      route: "/odt-to-pdf",
+      file: { name: "contract.odt", mimeType: "application/vnd.oasis.opendocument.text", buffer: Buffer.from(zipSync({ "content.xml": strToU8(`<office:document><text:h>Service agreement</text:h><text:p>Payment due in 30 days.</text:p></office:document>`) })) },
+      pages: 1,
+    },
+    {
+      route: "/ods-to-pdf",
+      file: { name: "revenue.ods", mimeType: "application/vnd.oasis.opendocument.spreadsheet", buffer: Buffer.from(zipSync({ "content.xml": strToU8(`<office:document><table:table table:name="Revenue"><table:table-row><table:table-cell><text:p>Quarter</text:p></table:table-cell><table:table-cell><text:p>Total</text:p></table:table-cell></table:table-row><table:table-row><table:table-cell><text:p>Q1</text:p></table:table-cell><table:table-cell office:value="42000"/></table:table-row></table:table></office:document>`) })) },
+      pages: 1,
+    },
+    {
+      route: "/odp-to-pdf",
+      file: { name: "launch.odp", mimeType: "application/vnd.oasis.opendocument.presentation", buffer: Buffer.from(zipSync({ "content.xml": strToU8(`<office:document><draw:page draw:name="Opening"><text:p>Launch plan</text:p></draw:page><draw:page draw:name="Results"><text:p>Production ready</text:p></draw:page></office:document>`) })) },
+      pages: 2,
+    },
+    {
+      route: "/epub-to-pdf",
+      file: { name: "guide.epub", mimeType: "application/epub+zip", buffer: Buffer.from(zipSync({
+        "META-INF/container.xml": strToU8(`<container><rootfile full-path="OEBPS/package.opf"/></container>`),
+        "OEBPS/package.opf": strToU8(`<package><manifest><item id="one" href="one.xhtml"/></manifest><spine><itemref idref="one"/></spine></package>`),
+        "OEBPS/one.xhtml": strToU8(`<html><body><h1>Browser guide</h1><p>Private conversion.</p></body></html>`),
+      })) },
+      pages: 1,
+    },
+  ];
+
+  for (const fixture of fixtures) {
+    const result = await convert(page, fixture.route, fixture.file);
+    expect(result.download.suggestedFilename()).toBe(fixture.file.name.replace(/\.[^.]+$/, ".pdf"));
+    expect(result.pdf.getPageCount()).toBe(fixture.pages);
+  }
+});

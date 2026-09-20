@@ -62,11 +62,13 @@ describe("structured PDF converters", () => {
   });
 
   it("creates standalone responsive HTML with escaped selectable text", () => {
-    const html = createStandaloneHtmlFromPdfPages([{ width: 612, height: 792, items: [{ text: "Revenue < Costs", x: 40, y: 80, fontSize: 12 }] }], { title: "Quarterly & Report" });
+    const html = createStandaloneHtmlFromPdfPages([{ width: 612, height: 792, dataUrl: "data:image/jpeg;base64,cGFnZQ==", items: [{ text: "Revenue < Costs", x: 40, y: 80, fontSize: 12 }] }], { title: "Quarterly & Report" });
     expect(html).toContain("<!doctype html>");
     expect(html).toContain("Revenue &lt; Costs");
     expect(html).toContain("Quarterly &amp; Report");
     expect(html).toContain('viewBox="0 0 612 792"');
+    expect(html).toContain('<image href="data:image/jpeg;base64,cGFnZQ=="');
+    expect(html).toContain('class="selectable-text"');
   });
 
   it("creates a valid PPTX package with one image slide per page", async () => {

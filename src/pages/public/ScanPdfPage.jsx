@@ -18,6 +18,7 @@ import { ToolGuideContent } from "../../components/public/ToolGuideContent.jsx";
 import { WorkflowErrorState } from "../../components/public/WorkflowErrorState.jsx";
 import { ROUTE_PATHS } from "../../router/routePaths.js";
 import { toolSeoSchemas } from "../../tools/toolSeoSchemas.js";
+import { createOpenCvWorkerPreprocessor } from "../../tools/browserOcrPipeline.js";
 import { createPdfFromImages } from "../../tools/imageConversion.js";
 import { createSearchablePdfFromOcrPages, flattenOcrWords } from "../../tools/ocrPdf.js";
 import { moveScanPage, nextScanRotation, SCAN_PDF_LIMITS, validateScanFiles } from "../../tools/scanPdf.js";
@@ -42,7 +43,7 @@ async function loadImage(source) {
   }
 }
 
-async function renderPage(record, cleanup) {
+async function renderPage(record, cleanupPreprocessor) {
   const { image, width, height } = await loadImage(record.file);
   const swaps = record.rotation % 180 !== 0;
   const canvas = document.createElement("canvas");
@@ -54,10 +55,9 @@ async function renderPage(record, cleanup) {
   context.save();
   context.translate(canvas.width / 2, canvas.height / 2);
   context.rotate(record.rotation * Math.PI / 180);
-  if (cleanup) context.filter = "grayscale(1) contrast(1.14)";
   context.drawImage(image, -width / 2, -height / 2, width, height);
   context.restore();
-  return canvas;
+  return cleanupPreprocessor ? cleanupPreprocessor.process(canvas) : canvas;
 }
 
 function downloadPdf(bytes, name, toolId) {
@@ -163,7 +163,9 @@ export function ScanPdfPage({ tool }) {
     setProgress(1);
     setError("");
     let worker;
+    let cleanupPreprocessor;
     try {
+      if (cleanup) cleanupPreprocessor = createOpenCvWorkerPreprocessor({ initializationTimeoutMs: 8_000 });
       const rendered = [];
       if (isSearchable) {
         const { createWorker } = await import("tesseract.js");
@@ -173,7 +175,7 @@ export function ScanPdfPage({ tool }) {
         } });
         for (let index = 0; index < pages.length; index += 1) {
           activePage = index;
-          const canvas = await renderPage(pages[index], cleanup);
+          const canvas = await renderPage(pages[index], cleanupPreprocessor);
           const recognition = await worker.recognize(canvas, { rotateAuto: false }, { text: true, blocks: true });
           rendered.push({ imageBytes: await canvasToBytes(canvas, "image/png"), imageWidth: canvas.width, imageHeight: canvas.height, words: flattenOcrWords(recognition.data), text: recognition.data.text || "" });
         }
@@ -182,7 +184,7 @@ export function ScanPdfPage({ tool }) {
         downloadPdf(output, "searchable-scan.pdf", tool.id);
       } else {
         for (let index = 0; index < pages.length; index += 1) {
-          const canvas = await renderPage(pages[index], cleanup);
+          const canvas = await renderPage(pages[index], cleanupPreprocessor);
           rendered.push({ bytes: await canvasToBytes(canvas), mimeType: "image/jpeg", width: canvas.width, height: canvas.height });
           setProgress(Math.round((index + 1) / pages.length * 85));
         }
@@ -197,6 +199,7 @@ export function ScanPdfPage({ tool }) {
       setError(processingError?.message || "The scanned PDF could not be created.");
       trackProductEvent("export_failed", { toolId: tool.id, errorCategory: "scan_failed" });
     } finally {
+      cleanupPreprocessor?.dispose();
       await worker?.terminate();
     }
   };
@@ -210,7 +213,7 @@ export function ScanPdfPage({ tool }) {
       <div className="conversion-dropzone" onDragOver={(event) => event.preventDefault()} onDrop={(event) => { event.preventDefault(); addFiles(event.dataTransfer.files); }}><input ref={inputRef} type="file" multiple accept="image/jpeg,image/png,.jpg,.jpeg,.png" onChange={(event) => { addFiles(event.target.files); event.target.value = ""; }} /><span><Upload size={27} /></span><h2>Add scanned page images</h2><p>Up to {SCAN_PDF_LIMITS.maxImages} JPG or PNG pages, 20 MB each.</p><button type="button" onClick={() => inputRef.current?.click()}>Choose page images</button></div>
       <WorkflowErrorState message={error} onDismiss={() => setError("")} onRetry={pages.length && status === "idle" ? createPdf : undefined} />
       {pages.length > 0 && <ol className="scan-page-list">{pages.map((pageRecord, index) => <li key={pageRecord.id}><img src={pageRecord.preview} alt={`Scan page ${index + 1}`} style={{ transform: `rotate(${pageRecord.rotation}deg)` }} /><div><strong>Page {index + 1}</strong><small>{pageRecord.file.name}</small></div><span><button type="button" aria-label={`Move page ${index + 1} up`} disabled={index === 0} onClick={() => setPages((items) => moveScanPage(items, index, index - 1))}><ArrowUp size={15} /></button><button type="button" aria-label={`Move page ${index + 1} down`} disabled={index === pages.length - 1} onClick={() => setPages((items) => moveScanPage(items, index, index + 1))}><ArrowDown size={15} /></button><button type="button" aria-label={`Rotate page ${index + 1}`} onClick={() => setPages((items) => items.map((item, itemIndex) => itemIndex === index ? { ...item, rotation: nextScanRotation(item.rotation) } : item))}><RotateCw size={15} /></button><button type="button" aria-label={`Remove page ${index + 1}`} onClick={() => removePage(index)}><Trash2 size={15} /></button></span></li>)}</ol>}
-    </section><aside className="conversion-settings-card"><span>{isSearchable ? "OCR output" : "Scan settings"}</span>{isSearchable ? <FileSearch size={25} /> : <Images size={25} />}<h2>{isSearchable ? "Searchable English text" : "Ordered PDF pages"}</h2><label className="protection-authorization"><input type="checkbox" checked={cleanup} onChange={(event) => setCleanup(event.target.checked)} /><span>Apply grayscale and contrast cleanup to every page.</span></label>{!isSearchable && <p className="scan-quality-warning">Photograph pages square-on and crop them before upload. Automatic edge and perspective correction are not applied.</p>}<div className="conversion-summary"><Check size={18} /><span>{pages.length ? `${pages.length} page${pages.length === 1 ? "" : "s"} ready` : "Add page images to continue"}</span></div>
+    </section><aside className="conversion-settings-card"><span>{isSearchable ? "OCR output" : "Scan settings"}</span>{isSearchable ? <FileSearch size={25} /> : <Images size={25} />}<h2>{isSearchable ? "Searchable English text" : "Ordered PDF pages"}</h2><label className="protection-authorization"><input type="checkbox" checked={cleanup} onChange={(event) => setCleanup(event.target.checked)} /><span>Apply local OpenCV grayscale and contrast cleanup to every page.</span></label>{!isSearchable && <p className="scan-quality-warning">For the sharpest result, photograph the complete page square-on in even light. Cleanup runs locally and falls back safely if OpenCV is unavailable.</p>}<div className="conversion-summary"><Check size={18} /><span>{pages.length ? `${pages.length} page${pages.length === 1 ? "" : "s"} ready` : "Add page images to continue"}</span></div>
       {status === "working" && <><div className="conversion-progress-bar"><i style={{ width: `${progress}%` }} /></div><p className="ocr-status">{isSearchable ? "Recognizing and building…" : "Building your PDF…"} {progress}%</p></>}
       <button className="conversion-primary-action" type="button" disabled={!pages.length || status === "working"} onClick={createPdf}>{status === "working" ? <><LoaderCircle className="is-spinning" size={18} /> Processing…</> : <><Download size={18} /> {isSearchable ? "Run OCR and download PDF" : "Create and download PDF"}</>}</button>{status === "complete" && <p className="conversion-success">Your scanned PDF was downloaded.</p>}
     </aside></div>

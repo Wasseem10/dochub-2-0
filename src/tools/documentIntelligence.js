@@ -168,12 +168,24 @@ export function analysisReportText(toolId, result) {
   return String(result);
 }
 
-async function createBrowserTranslator(sourceLanguage, targetLanguage) {
+export async function getBrowserTranslationAvailability(sourceLanguage, targetLanguage) {
+  if (!sourceLanguage || !targetLanguage || sourceLanguage === targetLanguage) return "unavailable";
   if (globalThis.Translator?.create) {
-    const availability = await globalThis.Translator.availability?.({ sourceLanguage, targetLanguage });
-    if (availability === "unavailable" || availability === "no") throw new Error("This language pair is unavailable in the browser translator.");
-    return globalThis.Translator.create({ sourceLanguage, targetLanguage });
+    if (!globalThis.Translator.availability) return "available";
+    const availability = await globalThis.Translator.availability({ sourceLanguage, targetLanguage });
+    if (["unavailable", "no"].includes(availability)) return "unavailable";
+    if (["downloadable", "after-download", "downloadable-after-user-activation"].includes(availability)) return "downloadable";
+    return "available";
   }
+  if (globalThis.translation?.createTranslator) return "available";
+  return "unsupported";
+}
+
+async function createBrowserTranslator(sourceLanguage, targetLanguage) {
+  const availability = await getBrowserTranslationAvailability(sourceLanguage, targetLanguage);
+  if (availability === "unavailable") throw new Error("This language pair is unavailable in the browser translator.");
+  if (availability === "unsupported") throw new Error("This browser does not provide on-device translation yet. Use a current Chrome browser with the Translator API enabled.");
+  if (globalThis.Translator?.create) return globalThis.Translator.create({ sourceLanguage, targetLanguage });
   if (globalThis.translation?.createTranslator) return globalThis.translation.createTranslator({ sourceLanguage, targetLanguage });
   throw new Error("This browser does not provide on-device translation yet. Use a current Chrome browser with the Translator API enabled.");
 }

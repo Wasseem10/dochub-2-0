@@ -186,16 +186,25 @@ export function StructuredPdfConversionPage({ tool }) {
         for (let pageNumber = 1; pageNumber <= pdfDocument.numPages; pageNumber += 1) {
           const page = await pdfDocument.getPage(pageNumber);
           const viewport = page.getViewport({ scale: 1 });
+          const renderedViewport = page.getViewport({ scale: 1.35 });
+          if (renderedViewport.width * renderedViewport.height > STRUCTURED_CONVERSION_LIMITS.maxRenderedPixels) throw new Error(`Page ${pageNumber} is too large to render safely in this browser.`);
+          const canvas = document.createElement("canvas");
+          canvas.width = Math.ceil(renderedViewport.width);
+          canvas.height = Math.ceil(renderedViewport.height);
+          const context = canvas.getContext("2d", { alpha: false });
+          context.fillStyle = "#ffffff";
+          context.fillRect(0, 0, canvas.width, canvas.height);
+          await page.render({ canvasContext: context, viewport: renderedViewport }).promise;
           const textContent = await page.getTextContent();
           const items = textContent.items.filter((item) => String(item.str || "").trim()).map((item) => {
             const transform = pdfjsLib.Util.transform(viewport.transform, item.transform);
             const fontSize = Math.max(4, Math.hypot(transform[2], transform[3]) || Number(item.height || 10));
             return { text: item.str, x: transform[4], y: transform[5], fontSize, fontFamily: "Arial, sans-serif" };
           });
-          pages.push({ width: viewport.width, height: viewport.height, items });
+          pages.push({ width: viewport.width, height: viewport.height, items, dataUrl: canvasToJpegDataUrl(canvas) });
+          page.cleanup?.();
           setProgress(Math.round((pageNumber / pdfDocument.numPages) * 90));
         }
-        if (!pages.some((page) => page.items.length)) throw new Error("No embedded text was found. Scanned image PDFs need OCR before HTML conversion.");
         downloadOutput(createStandaloneHtmlFromPdfPages(pages, { title: baseName }), mode.mimeType, `${baseName}.html`, tool.id);
       } else {
         const renderedPages = [];

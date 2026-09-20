@@ -51,11 +51,13 @@ test("PDF to PowerPoint downloads a valid presentation with a slide", async ({ p
   expect(strFromU8(files["ppt/slides/_rels/slide1.xml.rels"])).toContain(mediaFiles[0].replace("ppt/", "../"));
 });
 
-test("PDF to HTML downloads standalone positioned selectable text", async ({ page }) => {
+test("PDF to HTML downloads a visually faithful page with positioned selectable text", async ({ page }) => {
   const { download, bytes } = await uploadAndDownload(page, "/pdf-to-html", "Download HTML");
   expect(download.suggestedFilename()).toBe("quarterly-revenue.html");
   const html = bytes.toString("utf8");
   expect(html).toContain("<!doctype html>");
   expect(html).toContain("Quarterly revenue");
   expect(html).toContain("<svg viewBox=");
+  expect(html).toContain("<image href=\"data:image/jpeg;base64,");
+  expect(html).toContain('class="selectable-text"');
 });

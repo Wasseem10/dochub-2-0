@@ -6,6 +6,7 @@ import {
   extractDocumentData,
   findRelevantPassages,
   generateDocumentQuestions,
+  getBrowserTranslationAvailability,
   summarizePages,
   translateDocumentText,
 } from "../../src/tools/documentIntelligence.js";
@@ -58,6 +59,14 @@ describe("private document intelligence", () => {
     const translated = await translateDocumentText("Payment due.\n\nTermination notice.", { targetLanguage: "es" });
     expect(translated).toContain("ES:Payment due.");
     expect(destroyed).toBe(true);
+  });
+
+  it("reports whether an on-device language pair is ready, downloadable, or unsupported", async () => {
+    globalThis.Translator = { availability: async () => "downloadable", create: async () => ({ translate: async (text) => text }) };
+    await expect(getBrowserTranslationAvailability("en", "fr")).resolves.toBe("downloadable");
+    delete globalThis.Translator;
+    await expect(getBrowserTranslationAvailability("en", "fr")).resolves.toBe("unsupported");
+    await expect(getBrowserTranslationAvailability("en", "en")).resolves.toBe("unavailable");
   });
 
   it("supports translating a non-English source document into English", async () => {
