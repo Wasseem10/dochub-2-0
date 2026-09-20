@@ -15,6 +15,23 @@ function normalizedRectangle(rect, viewport) {
   };
 }
 
+function looksLikeGeneratedFieldName(value) {
+  return /^(?:text|field|textbox|input)(?:[_-]\d+)?[_-][a-z0-9_-]{3,}$/i.test(String(value || "").trim());
+}
+
+export function normalizedPdfFormValue(fieldName, fieldValue) {
+  const value = fieldValue == null ? "" : String(fieldValue);
+  if (value === String(fieldName || "") && looksLikeGeneratedFieldName(fieldName)) return "";
+  return value;
+}
+
+export function pdfFormAnnotationValue(annotation) {
+  const value = annotation?.content == null ? "" : String(annotation.content);
+  return annotation?.source === "pdf-form"
+    ? normalizedPdfFormValue(annotation.fieldName, value)
+    : value;
+}
+
 export function extractPdfFormAnnotations(pdfAnnotations, viewport, pageNumber, makeId) {
   return (pdfAnnotations || []).flatMap((widget, index) => {
     if (widget?.subtype !== "Widget" || !widget.rect || widget.pushButton) return [];
@@ -24,7 +41,7 @@ export function extractPdfFormAnnotations(pdfAnnotations, viewport, pageNumber, 
     const isRadio = widget.fieldType === "Btn" && Boolean(widget.radioButton);
     const isCheckbox = widget.fieldType === "Btn" && !isRadio;
     const isChoice = widget.fieldType === "Ch";
-    const value = widget.fieldValue == null ? "" : String(widget.fieldValue);
+    const value = normalizedPdfFormValue(fieldName, widget.fieldValue);
     const options = (widget.options || []).map((option) => ({
       value: String(option?.exportValue ?? option?.displayValue ?? option ?? ""),
       label: String(option?.displayValue ?? option?.exportValue ?? option ?? ""),

@@ -96,6 +96,23 @@ describe("editor page export plan", () => {
     expect(reopened.getForm().getDropdown("customer.country").getSelected()).toEqual(["CA"]);
   });
 
+  it("clears a generated field identifier saved as a text-field value", async () => {
+    const source = await PDFDocument.create();
+    const page = source.addPage([612, 792]);
+    const field = source.getForm().createTextField("text_19lxvc");
+    field.setText("text_19lxvc");
+    field.addToPage(page, { x: 50, y: 700, width: 180, height: 24 });
+
+    expect(applyNativePdfFormAnnotation(source, {
+      source: "pdf-form",
+      type: "field",
+      fieldName: "text_19lxvc",
+      content: "text_19lxvc",
+    })).toBe(true);
+    const reopened = await PDFDocument.load(await source.save());
+    expect(reopened.getForm().getTextField("text_19lxvc").getText() || "").toBe("");
+  });
+
   it("exports reordered, duplicated, rotated, and inserted pages as an openable PDF", async () => {
     const source = await PDFDocument.create();
     source.addPage([612, 792]);

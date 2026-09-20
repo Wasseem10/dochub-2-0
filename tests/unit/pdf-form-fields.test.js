@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { PDFDocument } from "pdf-lib";
 import * as pdfjsLib from "pdfjs-dist/legacy/build/pdf.mjs";
-import { extractPdfFormAnnotations } from "../../src/tools/pdfFormFields.js";
+import { extractPdfFormAnnotations, normalizedPdfFormValue, pdfFormAnnotationValue } from "../../src/tools/pdfFormFields.js";
 
 const standardFontDataUrl = new URL("../../node_modules/pdfjs-dist/standard_fonts/", import.meta.url).href;
 
@@ -44,6 +44,18 @@ describe("PDF form field detection", () => {
 
     expect(annotations).toHaveLength(1);
     expect(annotations[0]).toMatchObject({ type: "checkbox", checked: false });
+  });
+
+  it("never imports a generated internal field name as the user's answer", () => {
+    expect(normalizedPdfFormValue("text_19lxvc", undefined)).toBe("");
+    expect(normalizedPdfFormValue("text_19lxvc", "text_19lxvc")).toBe("");
+    expect(normalizedPdfFormValue("Full name", "Full name")).toBe("Full name");
+    expect(pdfFormAnnotationValue({ source: "pdf-form", fieldName: "text_19lxvc", content: "text_19lxvc" })).toBe("");
+
+    const [annotation] = extractPdfFormAnnotations([
+      { subtype: "Widget", rect: [60, 680, 300, 720], fieldName: "text_19lxvc", fieldType: "Tx", fieldValue: "text_19lxvc" },
+    ], viewport, 0, () => "generated-field");
+    expect(annotation).toMatchObject({ fieldName: "text_19lxvc", content: "" });
   });
 
   it("maps radio buttons and choice widgets with their real options", () => {

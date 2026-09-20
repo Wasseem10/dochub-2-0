@@ -155,7 +155,7 @@ import {
   listLegacyCloudDocuments,
   loadLegacyCloudDocument,
 } from "./cloud/legacyCloudDocumentMigration.js";
-import { extractPdfFormAnnotations } from "./tools/pdfFormFields.js";
+import { extractPdfFormAnnotations, pdfFormAnnotationValue } from "./tools/pdfFormFields.js";
 import {
   getPdfLoadErrorMessage,
   MAX_PDF_EDITOR_PAGES,
@@ -563,7 +563,8 @@ function createBlankDocumentThumbnail(documentRecord) {
       context.ellipse(x + width / 2, y + height / 2, width / 2, height / 2, 0, 0, Math.PI * 2);
       context.stroke();
     } else if (["text", "signature", "initials", "stamp", "link", "field", "choice"].includes(annotation.type)) {
-      const text = String(annotation.content || annotation.fieldName || annotation.url || "").trim();
+      const fieldValue = ["field", "choice"].includes(annotation.type) ? pdfFormAnnotationValue(annotation) : annotation.content;
+      const text = String(fieldValue || (!["field", "choice"].includes(annotation.type) ? annotation.fieldName : "") || annotation.url || "").trim();
       if (text) {
         const fontSize = Math.max(8, Math.min(44, Number(annotation.fontSize || 18) * (canvas.width / BASE_PAGE_WIDTH)));
         context.fillStyle = color;
@@ -1601,13 +1602,13 @@ function LegacyAnnotation({ annotation, selected, zoom, onSelect, onDrag, onResi
       <div className={`annotation fillable-field ${selected ? "is-selected" : ""}`} style={{ ...commonStyle, "--field-color": annotation.color }} onPointerDown={dragStart}>
         {annotation.type === "choice" ? <select
           aria-label={annotation.fieldName || "PDF choice field"}
-          value={annotation.content || ""}
+          value={pdfFormAnnotationValue(annotation)}
           onPointerDown={(event) => { event.stopPropagation(); onSelect(annotation.id); }}
           onChange={(event) => onUpdate(annotation.id, { content: event.target.value })}
         ><option value="">Choose an option</option>{(annotation.options || []).map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select> : <input
           aria-label={annotation.fieldName || "PDF text field"}
-          value={annotation.content || ""}
-          placeholder={annotation.fieldName || "Enter text"}
+          value={pdfFormAnnotationValue(annotation)}
+          placeholder={annotation.source === "pdf-form" ? "" : annotation.fieldName || "Enter text"}
           onPointerDown={(event) => {
             event.stopPropagation();
             onSelect(annotation.id);
@@ -2089,7 +2090,7 @@ function ProfessionalAnnotation({
   if (annotation.type === "field" || annotation.type === "choice") {
     return (
       <div className={`annotation fillable-field ${selected ? "is-selected" : ""}`} style={{ ...commonStyle, "--field-color": annotation.color }} onPointerDown={dragStart}>
-        {annotation.type === "choice" ? <select aria-label={annotation.fieldName || "PDF choice field"} value={annotation.content || ""} onPointerDown={(event) => { event.stopPropagation(); onSelect(annotation.id); }} onChange={(event) => onUpdate(annotation.id, { content: event.target.value, updatedAt: nowIso() })}><option value="">Choose an option</option>{(annotation.options || []).map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select> : <input aria-label={annotation.fieldName || "PDF text field"} value={annotation.content || ""} placeholder={annotation.fieldName || "Enter text"} onPointerDown={(event) => { event.stopPropagation(); onSelect(annotation.id); }} onChange={(event) => onUpdate(annotation.id, { content: event.target.value, updatedAt: nowIso() })} />}
+        {annotation.type === "choice" ? <select aria-label={annotation.fieldName || "PDF choice field"} value={pdfFormAnnotationValue(annotation)} onPointerDown={(event) => { event.stopPropagation(); onSelect(annotation.id); }} onChange={(event) => onUpdate(annotation.id, { content: event.target.value, updatedAt: nowIso() })}><option value="">Choose an option</option>{(annotation.options || []).map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select> : <input aria-label={annotation.fieldName || "PDF text field"} value={pdfFormAnnotationValue(annotation)} placeholder={annotation.source === "pdf-form" ? "" : annotation.fieldName || "Enter text"} onPointerDown={(event) => { event.stopPropagation(); onSelect(annotation.id); }} onChange={(event) => onUpdate(annotation.id, { content: event.target.value, updatedAt: nowIso() })} />}
         {controls}
       </div>
     );
@@ -9367,12 +9368,12 @@ function Inspector({
           {((selected.type === "text") || selected.type === "field" || selected.type === "initials" || (selected.type === "signature" && !selected.imageDataUrl)) && (
             <label className="field">
               <span>{selected.type === "field" ? "Field value" : "Content"}</span>
-              <textarea value={selected.content} onChange={(event) => updateAnnotation(selected.id, { content: event.target.value })} />
+              <textarea value={selected.type === "field" ? pdfFormAnnotationValue(selected) : selected.content} onChange={(event) => updateAnnotation(selected.id, { content: event.target.value })} />
             </label>
           )}
 
           {selected.type === "choice" && (
-            <label className="field"><span>Selected option</span><select value={selected.content || ""} onChange={(event) => updateAnnotation(selected.id, { content: event.target.value })}><option value="">Choose an option</option>{(selected.options || []).map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>
+            <label className="field"><span>Selected option</span><select value={pdfFormAnnotationValue(selected)} onChange={(event) => updateAnnotation(selected.id, { content: event.target.value })}><option value="">Choose an option</option>{(selected.options || []).map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>
           )}
 
           {selected.type === "field" && selected.source !== "pdf-form" && (

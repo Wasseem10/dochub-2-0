@@ -1,5 +1,6 @@
 import { degrees, rgb } from "pdf-lib";
 import { drawPdfSignatureAnnotation } from "./pdfSignatureExport.js";
+import { pdfFormAnnotationValue } from "./pdfFormFields.js";
 import { wrapEditorText } from "./editorTextObjects.js";
 
 function colorFromHex(hex = "#0f172a") {
@@ -67,7 +68,8 @@ export async function drawFlattenedInputAnnotation({
     const x = annotation.x * width;
     const y = height - annotation.y * height - annotation.h * height;
     page.drawRectangle({ x, y, width: annotation.w * width, height: annotation.h * height, borderColor: color, borderWidth: 1.2, opacity: annotation.opacity });
-    if (String(annotation.content || "").trim()) page.drawText(String(annotation.content), { x: x + 7, y: y + Math.max(7, annotation.h * height * 0.32), size: annotation.fontSize || 11, font: helvetica, color, opacity: annotation.opacity });
+    const fieldValue = pdfFormAnnotationValue(annotation);
+    if (fieldValue.trim()) page.drawText(fieldValue, { x: x + 7, y: y + Math.max(7, annotation.h * height * 0.32), size: annotation.fontSize || 11, font: helvetica, color, opacity: annotation.opacity });
     return true;
   }
 
@@ -75,8 +77,9 @@ export async function drawFlattenedInputAnnotation({
     const x = annotation.x * width;
     const y = height - annotation.y * height - annotation.h * height;
     page.drawRectangle({ x, y, width: annotation.w * width, height: annotation.h * height, borderColor: color, borderWidth: 1.2, opacity: annotation.opacity, rotate: degrees(Number(annotation.rotation || 0)) });
-    if (String(annotation.content || "").trim()) {
-      page.drawText(annotation.content, { x: x + 8, y: y + Math.max(8, annotation.h * height * 0.32), size: annotation.fontSize || 11, font: helvetica, color, opacity: Math.min(0.82, annotation.opacity ?? 1) });
+    const fieldValue = pdfFormAnnotationValue(annotation);
+    if (fieldValue.trim()) {
+      page.drawText(fieldValue, { x: x + 8, y: y + Math.max(8, annotation.h * height * 0.32), size: annotation.fontSize || 11, font: helvetica, color, opacity: Math.min(0.82, annotation.opacity ?? 1) });
     }
     return true;
   }

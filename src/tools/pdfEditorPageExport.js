@@ -1,4 +1,5 @@
 import { degrees, PDFDocument } from "pdf-lib";
+import { pdfFormAnnotationValue } from "./pdfFormFields.js";
 
 function normalizedRotation(value) {
   return ((Number(value || 0) % 360) + 360) % 360;
@@ -98,11 +99,11 @@ export function applyNativePdfFormAnnotation(pdfDoc, annotation) {
     return true;
   }
   if (annotation.type === "choice" && typeof field.select === "function") {
-    field.select(String(annotation.content || ""));
+    field.select(pdfFormAnnotationValue(annotation));
     return true;
   }
   if (annotation.type === "field" && typeof field.setText === "function") {
-    field.setText(String(annotation.content || ""));
+    field.setText(pdfFormAnnotationValue(annotation));
     return true;
   }
   return false;
