@@ -7730,48 +7730,56 @@ export function ToolSettingsPanel({
 
   if (effectiveTool === "text" || effectiveTool === "field") {
     return (
-      <div className={`tool-settings ${effectiveTool === "text" ? "text-format-settings" : "field-format-settings"}`}>
-        {effectiveTool === "text" && <span className="settings-title text-settings-title">Text</span>}
+      <div className={`tool-settings ${effectiveTool === "text" ? "text-format-settings" : "field-format-settings"}`} role="toolbar" aria-label={effectiveTool === "text" ? "Text formatting" : "Field formatting"}>
         {effectiveTool === "text" && (
-          <div className="font-menu-wrap">
-            <button
-              type="button"
-              className="font-menu-trigger"
-              aria-label="Font family"
-              aria-haspopup="menu"
-              aria-expanded={isFontMenuOpen}
-              onClick={() => setIsFontMenuOpen((value) => !value)}
-            >
-              <span style={{ fontFamily: activeSettings.fontFamily }}>{activeSettings.fontFamily}</span>
-              <ChevronDown size={15} />
-            </button>
-            {isFontMenuOpen && (
-              <div className="editor-font-menu" role="menu" aria-label="Fonts">
-                <input
-                  type="search"
-                  value={fontSearch}
-                  onChange={(event) => setFontSearch(event.target.value)}
-                  placeholder="Search fonts..."
-                />
-                <strong>STANDARD FONTS</strong>
-                {visibleStandardFonts.map((font) => (
-                  <button key={font} type="button" role="menuitemradio" aria-checked={activeSettings.fontFamily === font} onClick={() => selectFont(font)} style={{ fontFamily: font }}>
-                    {font}
-                  </button>
-                ))}
-              </div>
-            )}
+          <div className="text-font-control">
+            <span className="text-setting-label" aria-hidden="true">Font</span>
+            <div className="font-menu-wrap">
+              <button
+                type="button"
+                className="font-menu-trigger"
+                aria-label="Font family"
+                aria-haspopup="menu"
+                aria-expanded={isFontMenuOpen}
+                onClick={() => setIsFontMenuOpen((value) => !value)}
+              >
+                <span style={{ fontFamily: activeSettings.fontFamily }}>{activeSettings.fontFamily}</span>
+                <ChevronDown size={15} />
+              </button>
+              {isFontMenuOpen && (
+                <div className="editor-font-menu" role="menu" aria-label="Fonts">
+                  <input
+                    type="search"
+                    value={fontSearch}
+                    onChange={(event) => setFontSearch(event.target.value)}
+                    placeholder="Search fonts..."
+                  />
+                  <strong>STANDARD FONTS</strong>
+                  {visibleStandardFonts.map((font) => (
+                    <button key={font} type="button" role="menuitemradio" aria-checked={activeSettings.fontFamily === font} onClick={() => selectFont(font)} style={{ fontFamily: font }}>
+                      {font}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         )}
-        <select className="text-size-select" aria-label="Font size" value={activeSettings.textSize} onChange={(event) => update({ textSize: Number(event.target.value) })}>
-          {[8, 9, 10, 11, 12, 14, 16, 18, 24, 32, 48, 64].map((size) => <option key={size}>{size}</option>)}
-        </select>
+        <label className="text-setting-control text-size-control">
+          <span aria-hidden="true">Size</span>
+          <select className="text-size-select" aria-label="Font size" value={activeSettings.textSize} onChange={(event) => update({ textSize: Number(event.target.value) })}>
+            {[8, 9, 10, 11, 12, 14, 16, 18, 24, 32, 48, 64].map((size) => <option key={size} value={size}>{size} pt</option>)}
+          </select>
+        </label>
         <ColorControl value={activeSettings.textColor} onChange={(color) => update({ textColor: color })} />
         {effectiveTool === "text" && (
           <>
-            <select className="line-height-select" aria-label="Line height" value={activeSettings.lineHeight} onChange={(event) => update({ lineHeight: Number(event.target.value) })}>
-              {[1, 1.15, 1.25, 1.5, 2].map((size) => <option key={size} value={size}>{size}×</option>)}
-            </select>
+            <label className="text-setting-control line-height-control">
+              <span aria-hidden="true">Spacing</span>
+              <select className="line-height-select" aria-label="Line spacing" value={activeSettings.lineHeight} onChange={(event) => update({ lineHeight: Number(event.target.value) })}>
+                {[1, 1.15, 1.25, 1.5, 2].map((size) => <option key={size} value={size}>{size}×</option>)}
+              </select>
+            </label>
             <div className="align-group" aria-label="Text alignment">
               <button type="button" title="Align left" aria-label="Align left" aria-pressed={activeSettings.textAlign === "left"} className={activeSettings.textAlign === "left" ? "is-active" : ""} onClick={() => update({ textAlign: "left" })}><AlignLeft size={20} /></button>
               <button type="button" title="Align center" aria-label="Align center" aria-pressed={activeSettings.textAlign === "center"} className={activeSettings.textAlign === "center" ? "is-active" : ""} onClick={() => update({ textAlign: "center" })}><AlignCenter size={20} /></button>
