@@ -13,6 +13,16 @@ const importMap = readFileSync(
 );
 
 describe("Supabase private-cloud PDF finalization", () => {
+  it("loads Firebase identifiers from runtime configuration and verifies App Check", () => {
+    expect(edgeFunction).not.toMatch(/AIza[0-9A-Za-z_-]{20,}/);
+    expect(edgeFunction).toContain('requiredRuntimeValue("FIREBASE_WEB_API_KEY")');
+    expect(edgeFunction).toContain('requiredRuntimeValue("FIREBASE_APP_CHECK_APP_IDS")');
+    expect(edgeFunction).toContain('"https://firebaseappcheck.googleapis.com/v1/jwks"');
+    expect(edgeFunction).toContain('audience: FIREBASE_APP_CHECK_AUDIENCE');
+    expect(edgeFunction).toContain('protectedHeader.typ !== "JWT"');
+    expect(edgeFunction).toContain("await verifyFirebaseAppCheck(request);");
+  });
+
   it("allows the deployed PDFEnrich Sites origin to list and open private PDFs", () => {
     expect(edgeFunction).toContain('"https://realpdf-workspace.wasseem10.chatgpt.site"');
     expect(edgeFunction).toContain('if (request.method === "OPTIONS")');

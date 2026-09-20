@@ -1,5 +1,18 @@
 # Private cloud deployment and operator checklist
 
+## Supabase Edge Function runtime configuration
+
+Configure these values with Supabase project secrets before deploying `private-cloud`; do not place their values in source control or a frontend `VITE_*` variable:
+
+- `SUPABASE_URL`
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `FIREBASE_PROJECT_ID`
+- `FIREBASE_PROJECT_NUMBER`
+- `FIREBASE_WEB_API_KEY`
+- `FIREBASE_APP_CHECK_APP_IDS` (comma-separated allowlist of the production Firebase web app IDs)
+
+The Firebase web API key is a public client identifier, not an authorization secret, but it is kept in runtime configuration so environments can rotate or separate it without a source change. The Supabase service-role key is a secret and must remain server-only. The Edge Function fails closed when any required value is missing, and every non-preflight request must pass origin, Firebase App Check, Firebase ID-token signature/audience/issuer, and account-revocation checks before document access.
+
 ## Current status
 
 The repository contains the private-cloud implementation, but the service is **not deployed or verified from this workspace**. PDFEnrich stays browser-local while `VITE_PRIVATE_CLOUD_API_BASE_URL` is blank. Do not enable the frontend variable until all applicable checklist items are complete in the matching environment.

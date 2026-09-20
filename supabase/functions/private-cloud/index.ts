@@ -3,11 +3,29 @@ import { createClient } from "@supabase/supabase-js";
 import { createRemoteJWKSet, jwtVerify } from "jose";
 import { EncryptedPDFError, PDFDocument } from "pdf-lib";
 
-const FIREBASE_PROJECT_ID = "pdf-editor-1137a";
-const FIREBASE_WEB_API_KEY = "AIzaSyDciB_bwz04gAkgGTWAbctTZ2IMhslCE54";
+function requiredRuntimeValue(name: string) {
+  const value = (Deno.env.get(name) || "").trim();
+  if (!value) throw new Error(`Missing required runtime configuration: ${name}`);
+  return value;
+}
+
+const FIREBASE_PROJECT_ID = requiredRuntimeValue("FIREBASE_PROJECT_ID");
+const FIREBASE_PROJECT_NUMBER = requiredRuntimeValue("FIREBASE_PROJECT_NUMBER");
+const FIREBASE_WEB_API_KEY = requiredRuntimeValue("FIREBASE_WEB_API_KEY");
+const FIREBASE_APP_CHECK_APP_IDS = new Set(
+  requiredRuntimeValue("FIREBASE_APP_CHECK_APP_IDS")
+    .split(",")
+    .map((value) => value.trim())
+    .filter(Boolean),
+);
 const FIREBASE_ISSUER = `https://securetoken.google.com/${FIREBASE_PROJECT_ID}`;
 const FIREBASE_JWKS = createRemoteJWKSet(new URL(
   "https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com",
+));
+const FIREBASE_APP_CHECK_ISSUER = `https://firebaseappcheck.googleapis.com/${FIREBASE_PROJECT_NUMBER}`;
+const FIREBASE_APP_CHECK_AUDIENCE = `projects/${FIREBASE_PROJECT_NUMBER}`;
+const FIREBASE_APP_CHECK_JWKS = createRemoteJWKSet(new URL(
+  "https://firebaseappcheck.googleapis.com/v1/jwks",
 ));
 const PRIVATE_BUCKET = "pdfenrich-private-documents";
 const MAX_FILE_BYTES = 50 * 1024 * 1024;
@@ -143,6 +161,28 @@ async function verifyFirebaseIdentity(request: Request): Promise<FirebaseIdentit
     throw new ApiError("invalid_authentication", "Sign in again before using private cloud storage.", 401);
   }
   return { uid, authTime };
+}
+
+async function verifyFirebaseAppCheck(request: Request) {
+  const token = (request.headers.get("x-firebase-appcheck") || "").trim();
+  if (!token) {
+    throw new ApiError("app_check_required", "A verified browser is required.", 401);
+  }
+  try {
+    const { payload, protectedHeader } = await jwtVerify(token, FIREBASE_APP_CHECK_JWKS, {
+      issuer: FIREBASE_APP_CHECK_ISSUER,
+      audience: FIREBASE_APP_CHECK_AUDIENCE,
+      algorithms: ["RS256"],
+      clockTolerance: 30,
+    });
+    const appId = String(payload.sub || "");
+    if (protectedHeader.typ !== "JWT" || !FIREBASE_APP_CHECK_APP_IDS.has(appId)) {
+      throw new Error("untrusted_app");
+    }
+    return appId;
+  } catch {
+    throw new ApiError("invalid_app_check", "The browser verification token is invalid.", 401);
+  }
 }
 
 function routePath(request: Request) {
@@ -671,6 +711,7 @@ Deno.serve(async (request: Request) => {
   try {
     const origin = requireAllowedOrigin(request);
     if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: securityHeaders(origin) });
+    await verifyFirebaseAppCheck(request);
     const identity = await verifyFirebaseIdentity(request);
     const path = routePath(request);
     const url = new URL(request.url);

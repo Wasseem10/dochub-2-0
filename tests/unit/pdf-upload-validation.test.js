@@ -30,11 +30,11 @@ describe("PDF upload validation", () => {
     await expect(validatePdfFileContent(trailing)).resolves.toContain("unexpected data");
   });
 
-  it("rejects active PDF content the browser editor does not execute", async () => {
-    const scripted = new File(["%PDF-1.7\n1 0 obj\n<</JavaScript 2 0 R>>\nendobj\n%%EOF"], "scripted.pdf", {
+  it("rejects active PDF content detectable before the post-parse JavaScript check", async () => {
+    const active = new File(["%PDF-1.7\n1 0 obj\n<</Launch 2 0 R>>\nendobj\n%%EOF"], "active.pdf", {
       type: "application/pdf",
     });
-    await expect(validatePdfFileContent(scripted)).resolves.toContain("scripts");
+    await expect(validatePdfFileContent(active)).resolves.toContain("launch actions");
   });
 
   it("returns actionable encrypted and corrupted PDF errors", () => {

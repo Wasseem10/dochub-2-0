@@ -1,6 +1,6 @@
 # PDFEnrich security and private document storage
 
-Last reviewed: 2026-07-29
+Last reviewed: 2026-09-20
 
 ## Deployment status
 
@@ -178,12 +178,20 @@ The repository contains a restore runbook, not evidence that a production restor
 
 ## Automated security evidence
 
-Verified locally on 2026-07-29:
+Verified locally on 2026-09-20:
 
 ```text
-node node_modules/vitest/vitest.mjs run tests/security
-7 test files passed; 76 tests passed
+pnpm run test:security
+12 test files passed; 113 tests passed
+
+pnpm test -- --run
+102 test files passed; 527 tests passed
+
+pnpm audit --prod
+No known vulnerabilities found
 ```
+
+The Git history scan found no private-key blocks, AWS access-key IDs, GitHub/Slack/Stripe secret-token signatures, or JWT-shaped service credentials. No non-example `.env` file or credential/key filename is tracked. Firebase web configuration remains public client configuration and is not authorization; service-role credentials remain server-only. Secret scanning is heuristic and does not replace provider-side key inventories and rotation.
 
 These are unit, handler-contract, source-policy, parser, and in-memory service tests. They are not Firebase Emulator tests, deployed IAM tests, live bucket tests, scanner tests, backup tests, or a restore drill.
 
