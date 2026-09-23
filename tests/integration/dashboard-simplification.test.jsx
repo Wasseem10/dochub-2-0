@@ -2,6 +2,7 @@ import TestRenderer, { act } from "react-test-renderer";
 import { describe, expect, it, vi } from "vitest";
 import { EditorBrandButton, UploadLanding } from "../../src/App.jsx";
 import { ROUTE_PATHS } from "../../src/router/routePaths.js";
+import { LANDING_DOCUMENT_ACCEPT } from "../../src/tools/landingDocumentUpload.js";
 
 vi.mock("pdfjs-dist", () => ({ GlobalWorkerOptions: {}, getDocument: vi.fn() }));
 vi.mock("pdfjs-dist/build/pdf.worker.mjs", () => ({}));
@@ -73,7 +74,9 @@ describe("simplified dashboard navigation", () => {
     expect(text).not.toContain("Total Documents");
     expect(text).not.toContain("Invite members");
 
-    const uploadButton = renderer.root.findAllByType("button").find((button) => textOf(button) === "Upload PDF");
+    const uploadButton = renderer.root.findByProps({ className: "dashboard-top-upload" });
+    expect(textOf(uploadButton)).toContain("Upload document");
+    expect(renderer.root.findAllByType("input").find((input) => input.props.type === "file")?.props.accept).toBe(LANDING_DOCUMENT_ACCEPT);
     await act(async () => uploadButton.props.onClick());
     expect(onSelectFiles).toHaveBeenCalledOnce();
 
@@ -232,7 +235,8 @@ describe("simplified dashboard navigation", () => {
     await act(async () => gridViewButton.props.onClick());
     expect(renderer.root.findByProps({ "aria-label": "Grid view" }).props["aria-pressed"]).toBe(true);
 
-    const uploadButton = renderer.root.findAllByType("button").find((button) => textOf(button).includes("Upload PDF"));
+    const uploadButton = renderer.root.findByProps({ className: "dashboard-top-upload" });
+    expect(textOf(uploadButton)).toContain("Upload document");
     await act(async () => uploadButton.props.onClick());
     expect(onSelectFiles).toHaveBeenCalledOnce();
     await act(async () => renderer.unmount());

@@ -163,6 +163,8 @@ import {
   validatePdfUpload,
 } from "./tools/pdfUploadValidation.js";
 import { takePendingPdfFile } from "./tools/pendingPdfFile.js";
+import { LANDING_DOCUMENT_ACCEPT } from "./tools/landingDocumentUpload.js";
+import { convertDocumentToPdfFile } from "./tools/convertDocumentToPdfFile.js";
 import { normalizeEditorLinkUrl } from "./editor/normalizeEditorLinkUrl.mjs";
 import { centeredAnnotationBounds } from "./editor/annotationPlacement.mjs";
 import { protectPdfBytes } from "./tools/protectPdf.js";
@@ -3954,8 +3956,21 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     }
   };
 
+  const importDocumentFile = async (file) => {
+    if (!file) return;
+    setUploadError("");
+    setUploadStage({ status: "Preparing document", percent: 5, fileName: file.name });
+    try {
+      const pdfFile = await convertDocumentToPdfFile(file);
+      await loadPdfFile(pdfFile);
+    } catch (error) {
+      setUploadError(error?.message || "This document could not be opened. Choose another supported file.");
+      setUploadStage({ status: "error", percent: 0, fileName: file.name });
+    }
+  };
+
   const onUpload = async (event) => {
-    await loadPdfFile(event.target.files?.[0]);
+    await importDocumentFile(event.target.files?.[0]);
     event.target.value = "";
   };
 
@@ -3966,9 +3981,12 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     // owner-guard check silently abort, leaving the upload stuck forever.
     if (!authReady) return;
     const pendingFile = takePendingPdfFile();
-    if (!pendingFile) return;
+    if (!pendingFile) {
+      navigate(publicEditorPath(publicTool), { replace: true });
+      return;
+    }
     pendingLandingFileConsumedRef.current = true;
-    void loadPdfFile(pendingFile);
+    void importDocumentFile(pendingFile);
     // The pending file is an in-memory, one-time handoff from the lightweight homepage.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.key, location.state?.pendingLandingFile, view, authReady]);
@@ -4085,7 +4103,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   const onDropFile = async (event) => {
     event.preventDefault();
     setIsDraggingFile(false);
-    await loadPdfFile(event.dataTransfer.files?.[0]);
+    await importDocumentFile(event.dataTransfer.files?.[0]);
   };
 
   const startBlankDocument = async () => {
@@ -6290,6 +6308,9 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   }
 
   if (view === "tool-upload") {
+    if (location.state?.pendingLandingFile && !uploadError) {
+      return <EditorRouteStatePage state="loading" />;
+    }
     return (
       <EditorToolUploadPage
         toolId={publicTool || "edit-pdf"}
@@ -8709,7 +8730,7 @@ export function UploadLanding({
       <span className="dashboard-selected-empty-mark" aria-hidden="true"><FileText size={24} /></span>
       <span><strong>Your next PDF starts here</strong><small>Upload a file or open a clean page. It will stay in this workspace for quick access.</small></span>
       <div className="dashboard-selected-empty-actions">
-        <button type="button" onClick={onSelectFiles}>Upload PDF</button>
+        <button type="button" onClick={onSelectFiles}>Upload document</button>
         <button type="button" onClick={onBlankPage}>Blank PDF</button>
       </div>
     </div>
@@ -8775,7 +8796,7 @@ export function UploadLanding({
       })}
     </div>
   ) : (
-    <div className="dashboard-premium-empty dashboard-library-empty"><span><FileText size={25} /></span><div><strong>{normalizedQuery || dashboardFilter === "favorites" ? "No documents match these filters" : "No documents yet"}</strong><small>{normalizedQuery || dashboardFilter === "favorites" ? "Clear the search or show all documents." : "Upload a PDF and it will appear here."}</small></div>{showEmptyAction && !normalizedQuery && dashboardFilter === "all" && <button type="button" onClick={onSelectFiles}>Upload PDF</button>}</div>
+    <div className="dashboard-premium-empty dashboard-library-empty"><span><FileText size={25} /></span><div><strong>{normalizedQuery || dashboardFilter === "favorites" ? "No documents match these filters" : "No documents yet"}</strong><small>{normalizedQuery || dashboardFilter === "favorites" ? "Clear the search or show all documents." : "Upload a document and it will appear here."}</small></div>{showEmptyAction && !normalizedQuery && dashboardFilter === "all" && <button type="button" onClick={onSelectFiles}>Upload document</button>}</div>
   );
 
   const renderDashboardLibraryGrid = () => dashboardLibraryRows.length ? (
@@ -8845,7 +8866,7 @@ export function UploadLanding({
               <p id="dashboard-tools-title">Every PDF task, one clear place.</p>
               <small>Choose a tool and get straight to work. Your supported files stay in your browser.</small>
             </div>
-            <button type="button" onClick={onSelectFiles}><Upload size={17} /> Upload PDF</button>
+            <button type="button" onClick={onSelectFiles}><Upload size={17} /> Upload document</button>
           </header>
 
           <div className="dashboard-tools-layout">
@@ -9143,7 +9164,7 @@ export function UploadLanding({
             </button>
           </div>
           {(isUploading || uploadError) && (
-            <div className="dashboard-selected-upload-status" role="status">
+            <div className="dashboard-selected-upload-status" role={uploadError ? "alert" : "status"}>
               {isUploading && <span>{uploadStage.status}: {uploadStage.fileName}</span>}
               {uploadError && <span className="upload-error">{uploadError}</span>}
             </div>
@@ -9175,7 +9196,7 @@ export function UploadLanding({
 
   return (
     <main className="upload-shell lumin-home dashboard-editorial-theme">
-      <input ref={fileInputRef} className="hidden-input" type="file" accept="application/pdf" onChange={onUpload} />
+      <input ref={fileInputRef} className="hidden-input" type="file" accept={LANDING_DOCUMENT_ACCEPT} onChange={onUpload} />
       <aside className="lumin-home-rail">
         <button type="button" className="dashboard-brand" aria-label="PDFEnrich dashboard" onClick={() => setActiveSection("Home")}><BrandWordmark logo /></button>
         <button type="button" className="dashboard-mobile-nav-trigger" aria-label="Open dashboard navigation" aria-expanded={mobileNavOpen} aria-controls="dashboard-mobile-navigation" onClick={() => setMobileNavOpen(true)}><Menu size={22} /></button>
@@ -9234,7 +9255,7 @@ export function UploadLanding({
             <kbd>⌘ K</kbd>
           </label>
           <div className="upload-top-actions">
-            {(activeSection === "Home" || activeSection === "Documents" || !["Features", "Analytics"].includes(activeSection)) && <button type="button" className="dashboard-top-upload" onClick={onSelectFiles}><Upload size={18} /> Upload PDF</button>}
+            {(activeSection === "Home" || activeSection === "Documents" || !["Features", "Analytics"].includes(activeSection)) && <button type="button" className="dashboard-top-upload" onClick={onSelectFiles}><Upload size={18} /> Upload document</button>}
             <button
               type="button"
               className={`dashboard-notification-button ${openPanel === "notifications" ? "is-active" : ""}`}
@@ -9306,6 +9327,11 @@ export function UploadLanding({
         </header>
 
         <div className="upload-content">
+          {activeSection !== "Home" && (isUploading || uploadError) && (
+            <div className="workspace-notice" role={uploadError ? "alert" : "status"}>
+              {uploadError || `${uploadStage.status}: ${uploadStage.fileName}`}
+            </div>
+          )}
           {workspaceNotice && <div className="workspace-notice">{workspaceNotice}</div>}
           {renderWorkspaceSection()}
         </div>

@@ -166,7 +166,7 @@ The hero’s “{free and simple.}” phrase uses a restrained repeating type-an
 
 Keep the hero’s “{free and simple.}” typing loop brisk: the phrase should finish typing in roughly one second, pause long enough to read, then delete smoothly without a noticeable empty-state delay.
 
-The homepage hero upload console should use the larger September 1 sizing and accept every document format PDFEnrich can genuinely process. PDFs open directly in the editor; supported Word, spreadsheet, presentation, text, OpenDocument, HTML, archive, and image files must route into their matching browser conversion workflow with the selected file already loaded. Never imply arbitrary file support for formats that are not implemented.
+The homepage hero upload console should use the larger September 1 sizing and accept every document format PDFEnrich can genuinely process. Homepage and dashboard document uploads open the selected document in the editor. Convert supported Word, spreadsheet, presentation, text, OpenDocument, HTML, archive, and image formats in the browser first, then open the resulting PDF in the editor without a download-page detour. The dashboard's primary upload action is labeled “Upload document.” Never imply arbitrary file support for formats that are not implemented; unsupported files need a clear error.
 
 The homepage hero reassurance items use a slim square-edged technical rail with restrained blue-violet linework and monochrome icons. Do not restore the oversized rounded white card, multicolor icon tiles, or heavy shadow treatment.
 

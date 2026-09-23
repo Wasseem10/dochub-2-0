@@ -13,21 +13,21 @@ import {
 describe("landing document upload routing", () => {
   it.each([
     ["report.pdf", "application/pdf", "edit-pdf", "/edit-pdf"],
-    ["proposal.DOCX", "", "word-to-pdf", "/word-to-pdf"],
-    ["budget.xlsx", "", "excel-to-pdf", "/excel-to-pdf"],
-    ["deck.pptx", "", "powerpoint-to-pdf", "/powerpoint-to-pdf"],
-    ["notes.txt", "", "txt-to-pdf", "/txt-to-pdf"],
-    ["draft.odt", "", "odt-to-pdf", "/odt-to-pdf"],
-    ["photo.jpeg", "", "jpg-to-pdf", "/jpg-to-pdf"],
-    ["scan.png", "", "png-to-pdf", "/png-to-pdf"],
-  ])("routes %s to its browser workflow", (name, type, toolId, route) => {
+    ["proposal.DOCX", "", "edit-pdf", "/edit-pdf"],
+    ["budget.xlsx", "", "edit-pdf", "/edit-pdf"],
+    ["deck.pptx", "", "edit-pdf", "/edit-pdf"],
+    ["notes.txt", "", "edit-pdf", "/edit-pdf"],
+    ["draft.odt", "", "edit-pdf", "/edit-pdf"],
+    ["photo.jpeg", "", "edit-pdf", "/edit-pdf"],
+    ["scan.png", "", "edit-pdf", "/edit-pdf"],
+  ])("routes %s into the editor", (name, type, toolId, route) => {
     expect(resolveLandingDocumentTool({ name, type })).toEqual({ toolId, route });
   });
 
   it("uses a known MIME type when the file name has no extension", () => {
     expect(resolveLandingDocumentTool({ name: "untitled", type: "text/html" })).toEqual({
-      toolId: "html-to-pdf",
-      route: "/html-to-pdf",
+      toolId: "edit-pdf",
+      route: "/edit-pdf",
     });
   });
 

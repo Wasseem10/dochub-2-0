@@ -59,13 +59,16 @@ const TOOL_BY_MIME_TYPE = Object.freeze({
 
 export const LANDING_DOCUMENT_FORMATS = "PDF, DOCX, XLSX, PPTX, TXT, RTF, OpenDocument, EPUB, HTML, JPG, PNG, or ZIP";
 
-export function resolveLandingDocumentTool(file) {
+export function resolveLandingDocumentSourceTool(file) {
   if (!file) return null;
   const extension = String(file.name || "").toLowerCase().match(/\.([a-z0-9]+)$/)?.[1] || "";
-  const toolId = TOOL_BY_EXTENSION[extension] || TOOL_BY_MIME_TYPE[String(file.type || "").toLowerCase()];
-  if (!toolId) return null;
+  return TOOL_BY_EXTENSION[extension] || TOOL_BY_MIME_TYPE[String(file.type || "").toLowerCase()] || null;
+}
+
+export function resolveLandingDocumentTool(file) {
+  if (!resolveLandingDocumentSourceTool(file)) return null;
   return {
-    toolId,
-    route: toolId === "edit-pdf" ? "/edit-pdf" : `/${toolId}`,
+    toolId: "edit-pdf",
+    route: "/edit-pdf",
   };
 }

@@ -147,7 +147,7 @@ function drawHtmlSnapshot(root, contentHeight, scale) {
   return { canvas, text };
 }
 
-async function renderHtmlPages(iframe, setProgress) {
+export async function renderHtmlPages(iframe, setProgress) {
   const documentNode = iframe?.contentDocument;
   const root = documentNode?.body;
   if (!root) throw new Error("The safe HTML preview is not ready yet.");
