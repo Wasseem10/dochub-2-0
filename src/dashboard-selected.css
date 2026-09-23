@@ -1114,6 +1114,35 @@
   font-size: 12.5px;
 }
 
+.dashboard-selected-blank-action {
+  display: inline-flex;
+  align-self: flex-start;
+  min-height: 34px;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  margin-top: 10px;
+  padding: 0 12px;
+  border: 1px solid #cfd8ee;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, .84);
+  box-shadow: 0 2px 6px rgba(46, 62, 112, .055);
+  color: #2851eb;
+  font: inherit;
+  font-size: 11.5px;
+  cursor: pointer;
+}
+
+.dashboard-selected-blank-action:hover {
+  border-color: #9baff5;
+  background: #f6f8ff;
+}
+
+.dashboard-selected-blank-action:focus-visible {
+  outline: 2px solid #2851eb;
+  outline-offset: 2px;
+}
+
 .dashboard-selected-tool-strip {
   gap: 4px;
   padding: 0 18px 0 24px;
@@ -1394,6 +1423,12 @@
 
   .dashboard-selected-intro-copy {
     padding: 24px 18px 18px;
+  }
+
+  .dashboard-selected-blank-action {
+    min-height: 42px;
+    margin-top: 12px;
+    font-size: 12px;
   }
 
   .dashboard-selected-tool-strip {

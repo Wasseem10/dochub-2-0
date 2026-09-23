@@ -9149,6 +9149,9 @@ export function UploadLanding({
           <div className="dashboard-selected-intro-copy">
             <h1>Your PDF workspace</h1>
             <p>Upload, edit, and reopen anywhere.<br />Signed-in PDFs sync privately to your account.</p>
+            <button type="button" className="dashboard-selected-blank-action" onClick={onBlankPage}>
+              <FilePlus2 size={16} aria-hidden="true" /> Start blank document
+            </button>
             {!currentUser?.uid && <div className="dashboard-selected-account-prompt"><button type="button" onClick={() => navigateToDashboardAuth("signup")}>Create free account</button><button type="button" onClick={() => navigateToDashboardAuth("login")}>Sign in</button></div>}
           </div>
           <div className="dashboard-selected-tool-strip" aria-label="PDF tools">

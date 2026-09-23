@@ -47,7 +47,16 @@ describe("simplified dashboard navigation", () => {
           uploadStage={{ status: "idle", fileName: "" }}
           isDraggingFile={false}
           setIsDraggingFile={() => {}}
-          documents={[]}
+          documents={[{
+            id: "recent-1",
+            ownerId: "user-1",
+            name: "Existing document.pdf",
+            source: "blank",
+            size: 0,
+            pageCount: 1,
+            pages: [{ id: "page-1", source: "blank", width: 612, height: 792, image: "data:image/png;base64,cG5n" }],
+            updatedAt: "2026-09-23T10:00:00.000Z",
+          }]}
           onOpenDocument={() => {}}
           onRenameDocument={() => {}}
           onDeleteDocument={() => {}}
@@ -64,6 +73,7 @@ describe("simplified dashboard navigation", () => {
     const text = textOf(renderer.root);
     expect(text).toContain("Documents");
     expect(text).toContain("Recent");
+    expect(text).toContain("Existing document.pdf");
     expect(text).toContain("Edit a PDF");
     expect(text).toContain("Sign a PDF");
     expect(text).toContain("Organize pages");
@@ -79,6 +89,11 @@ describe("simplified dashboard navigation", () => {
     expect(renderer.root.findAllByType("input").find((input) => input.props.type === "file")?.props.accept).toBe(LANDING_DOCUMENT_ACCEPT);
     await act(async () => uploadButton.props.onClick());
     expect(onSelectFiles).toHaveBeenCalledOnce();
+
+    const blankDocumentButton = renderer.root.findByProps({ className: "dashboard-selected-blank-action" });
+    expect(textOf(blankDocumentButton)).toContain("Start blank document");
+    await act(async () => blankDocumentButton.props.onClick());
+    expect(onBlankPage).toHaveBeenCalledOnce();
 
     const brand = renderer.root.findByProps({ "aria-label": "PDFEnrich dashboard" });
     await act(async () => brand.props.onClick());
