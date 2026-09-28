@@ -192,6 +192,8 @@ The September 3 dashboard must not feel sterile or unfinished. Keep its professi
 
 The dashboard Home introduction includes a persistent Start blank document action. Keep it visible even when recent documents exist, and open the existing blank-page editor workflow directly from it on desktop and mobile.
 
+The guest account menu uses a conventional Account heading with simple Sign in and Create free account actions. Do not present an anonymous visitor as “Local workspace,” invent avatar initials, show account-only Settings, or put browser-storage reassurance in this menu. Show the real name, email, and Settings only after sign-in; keep storage explanations where they inform an upload or settings decision.
+
 The selected lively September 3, 2026 dashboard refinement is `work/design-references/dashboard-lively-editorial-selected-2026-09-03.png`. Use its soft blue-violet workspace atmosphere, white icon tiles with purposeful violet/blue/teal/coral tool colors, gently tinted document-preview stages, slightly richer depth, and blue-to-violet Upload PDF treatment while preserving the compact ledger and professional white app shell.
 
 The selected September 3, 2026 dashboard tool-icon refinement is `work/design-references/dashboard-tool-icons-two-tone-selected-2026-09-03.png` (ideation option 1). Use a consistent Phosphor duotone family with larger, literal document-action metaphors, restrained per-tool color, crisp white tiles, and strong small-size recognition. Do not restore generic thin Lucide glyphs for the dashboard quick actions.

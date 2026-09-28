@@ -71,6 +71,7 @@ import Undo2 from "lucide-react/dist/esm/icons/undo-2.mjs";
 import Upload from "lucide-react/dist/esm/icons/upload.mjs";
 import Users from "lucide-react/dist/esm/icons/users.mjs";
 import UserPlus from "lucide-react/dist/esm/icons/user-plus.mjs";
+import UserRound from "lucide-react/dist/esm/icons/user-round.mjs";
 import X from "lucide-react/dist/esm/icons/x.mjs";
 import Zap from "lucide-react/dist/esm/icons/zap.mjs";
 import {
@@ -8416,7 +8417,7 @@ export function UploadLanding({
   const [dashboardSort, setDashboardSort] = useState("recent");
   const [dashboardView, setDashboardView] = useState("list");
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
-  const userName = currentUser?.name || currentUser?.email || "Local workspace";
+  const userName = currentUser?.name || currentUser?.email || "Account";
   const userInitials = userName
     .split(/\s|@/)
     .filter(Boolean)
@@ -8425,7 +8426,7 @@ export function UploadLanding({
     .join("") || "U";
   const dashboardAccountName = currentUser?.name?.trim()
     || currentUser?.email?.split("@")[0]
-    || "Local";
+    || "Account";
 
   const primaryNav = [
     { label: "Home", section: "Home", icon: Home },
@@ -9269,9 +9270,9 @@ export function UploadLanding({
             >
               <Bell size={18} />
             </button>
-            <button type="button" className="top-avatar" aria-haspopup="dialog" aria-expanded={openPanel === "account"} onClick={() => setOpenPanel(openPanel === "account" ? null : "account")}><span>{userInitials}</span><i /><strong>{dashboardAccountName}</strong><ChevronDown size={15} /></button>
+            <button type="button" className="top-avatar" aria-label="Account menu" aria-haspopup="dialog" aria-expanded={openPanel === "account"} onClick={() => setOpenPanel(openPanel === "account" ? null : "account")}><span>{currentUser?.uid ? userInitials : <UserRound size={18} aria-hidden="true" />}</span>{currentUser?.uid && <i />}<strong>{dashboardAccountName}</strong><ChevronDown size={15} /></button>
             {openPanel && (
-              <div className={`workspace-popover ${openPanel === "account" ? "account-menu-popover" : ""}`} role={openPanel === "account" ? "dialog" : undefined} aria-label={openPanel === "account" ? "Account menu" : undefined}>
+              <div className={`workspace-popover ${openPanel === "account" ? `account-menu-popover${currentUser?.uid ? "" : " is-guest"}` : ""}`} role={openPanel === "account" ? "dialog" : undefined} aria-label={openPanel === "account" ? "Account menu" : undefined}>
                 <button type="button" className="popover-close" aria-label="Close panel" onClick={closePanel}><X size={16} /></button>
                 {openPanel === "invite" && (
                   <>
@@ -9310,17 +9311,17 @@ export function UploadLanding({
                 )}
                 {openPanel === "account" && (
                   <>
-                    <div className="account-menu-identity">
-                      <span className="account-menu-avatar">{userInitials}</span>
-                      <div><h3>{userName}</h3><p><Mail size={15} /> {currentUser?.email || "Files stay in this browser"}</p></div>
-                    </div>
-                    <div className="account-menu-actions">
-                      <button type="button" className="account-menu-settings" onClick={() => { setActiveSection("Settings"); closePanel(); }}><Settings size={18} /><span><strong>Workspace settings</strong><small>Profile, storage, and preferences</small></span><ChevronRight size={17} /></button>
-                      {currentUser?.uid ? (
-                        <button type="button" className="account-menu-signout" onClick={onLogout}><LogOut size={18} /><span>Sign out</span></button>
-                      ) : (
-                        <button type="button" className="account-menu-signout" onClick={() => navigateToDashboardAuth("login")}><LogIn size={18} /><span>Sign in</span></button>
-                      )}
+                    {currentUser?.uid ? (
+                      <div className="account-menu-identity">
+                        <span className="account-menu-avatar">{userInitials}</span>
+                        <div><h3>{userName}</h3>{currentUser.email && <p><Mail size={15} /> {currentUser.email}</p>}</div>
+                      </div>
+                    ) : <h3 className="account-menu-guest-title">Account</h3>}
+                    <div className={`account-menu-actions${currentUser?.uid ? "" : " is-guest"}`}>
+                      {!currentUser?.uid && <button type="button" className="account-menu-signin" onClick={() => navigateToDashboardAuth("login")}><LogIn size={18} /><span>Sign in</span><ChevronRight size={17} /></button>}
+                      {!currentUser?.uid && <button type="button" className="account-menu-signup" onClick={() => navigateToDashboardAuth("signup")}><UserPlus size={18} /><span>Create free account</span><ChevronRight size={17} /></button>}
+                      {currentUser?.uid && <button type="button" className="account-menu-settings" onClick={() => { setActiveSection("Settings"); closePanel(); }}><Settings size={18} /><span>Settings</span><ChevronRight size={17} /></button>}
+                      {currentUser?.uid && <button type="button" className="account-menu-signout" onClick={onLogout}><LogOut size={18} /><span>Sign out</span></button>}
                     </div>
                   </>
                 )}

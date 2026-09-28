@@ -345,22 +345,20 @@
 
 .lumin-home .workspace-popover { top: 52px !important; right: 0 !important; z-index: 60 !important; width: 320px !important; }
 .lumin-home .account-menu-popover { gap: 0 !important; width: 360px !important; padding: 16px !important; border-color: #dce5ec !important; border-radius: 15px !important; box-shadow: 0 22px 56px rgba(15, 23, 42, .16) !important; }
+.lumin-home .account-menu-popover.is-guest { width: min(300px, calc(100vw - 24px)) !important; }
 .account-menu-popover .popover-close { top: 14px; right: 14px; width: 32px; height: 32px; border: 0; border-radius: 9px; background: #f3f6f8; color: #526174; }
+.lumin-home .account-menu-guest-title { margin: 0; padding: 3px 42px 14px 4px; color: #1d2939; font-family: "IBM Plex Sans", sans-serif; font-size: 15px; font-weight: 400; line-height: 1.4; }
 .account-menu-identity { display: grid; grid-template-columns: 48px minmax(0, 1fr); align-items: center; gap: 12px; min-width: 0; padding: 2px 42px 16px 0; }
-.account-menu-avatar { display: grid; width: 48px; height: 48px; place-items: center; border-radius: 50%; background: #dff2fb; color: var(--dash-red-dark); font-size: 13px; font-weight: 800; }
+.account-menu-avatar { display: grid; width: 48px; height: 48px; place-items: center; border-radius: 50%; background: #eaf0ff; color: #2851eb; font-size: 13px; font-weight: 400; }
 .account-menu-identity > div { display: grid; gap: 5px; min-width: 0; }
-.lumin-home .account-menu-identity h3 { overflow: hidden; padding: 0; color: #1d2939; font-family: "Funnel Display", "DM Sans", sans-serif; font-size: 17px; font-weight: 750; line-height: 1.2; text-overflow: ellipsis; white-space: nowrap; }
+.lumin-home .account-menu-identity h3 { overflow: hidden; padding: 0; color: #1d2939; font-family: "IBM Plex Sans", sans-serif; font-size: 16px; font-weight: 400; line-height: 1.2; text-overflow: ellipsis; white-space: nowrap; }
 .lumin-home .account-menu-identity p { display: flex; align-items: center; gap: 6px; overflow: hidden; color: #667085; font-size: 12px; line-height: 1.25; text-overflow: ellipsis; white-space: nowrap; }
 .account-menu-identity p svg { flex: 0 0 auto; color: #8a99a8; }
-.account-menu-actions { display: grid; gap: 9px; padding-top: 14px; border-top: 1px solid #edf1f4; }
-.account-menu-actions button { width: 100%; cursor: pointer; font: inherit; }
-.account-menu-settings { display: grid; grid-template-columns: 20px minmax(0, 1fr) 18px; align-items: center; gap: 10px; min-height: 64px; padding: 9px 12px; border: 1px solid #bfe7f7; border-radius: 11px; background: #edf9fe; color: #18394a; text-align: left; }
-.account-menu-settings > span { display: grid; gap: 2px; min-width: 0; }
-.account-menu-settings strong { font-size: 13px; font-weight: 800; }
-.account-menu-settings small { overflow: hidden; color: #5e7180; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
-.account-menu-settings:hover { border-color: #8fd3ef; background: #e5f6fd; }
-.account-menu-signout { display: inline-flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 13px; border: 1px solid #dce3e9; border-radius: 10px; background: #fff; color: #344054; font-size: 13px; font-weight: 750; }
-.account-menu-signout:hover { border-color: #c5d0d9; background: #f8fafb; }
+.account-menu-actions { display: grid; gap: 3px; padding-top: 9px; border-top: 1px solid #edf1f4; }
+.account-menu-actions button { display: flex; width: 100%; min-height: 44px; align-items: center; gap: 10px; padding: 0 10px; border: 0; border-radius: 8px; background: transparent; color: #344054; cursor: pointer; font-family: "IBM Plex Sans", sans-serif; font-size: 13px; font-weight: 400; text-align: left; }
+.account-menu-actions button > svg:last-child { margin-left: auto; color: #8a94a5; }
+.account-menu-actions button:hover { background: #f4f6fa; }
+.account-menu-actions button:focus-visible { outline: 2px solid #2851eb; outline-offset: 2px; }
 .dashboard-simple-section { max-width: 980px; margin: 0 auto; }
 .dashboard-simple-card { display: grid; grid-template-columns: 48px minmax(0, 1fr) auto; align-items: center; gap: 16px; padding: 22px; border: 1px solid var(--dash-line); border-radius: 12px; }
 .dashboard-simple-card h3, .dashboard-simple-card p { margin: 0; }
