@@ -1,4 +1,4 @@
-const browserPrivacy = "Processing runs in this browser. Guest files stay on this device; PDFs opened while signed in also sync privately to your account for cross-device access.";
+const browserPrivacy = "Supported processing runs in this browser, and guest files stay on this device. Cross-device account sync is available only when private account storage is enabled and verified for this release.";
 
 export const PRIMARY_SEARCH_TOOL_IDS = Object.freeze([
   "edit-pdf",
@@ -371,6 +371,42 @@ export const HIGH_INTENT_TOOL_CONTENT = Object.freeze({
       { question: "Is OCR performed by an external service?", answer: "No. A language model downloads on first use, then recognition and PDF creation run on this device." },
     ],
   },
+  "share-pdf": {
+    seoTitle: "Share PDF Online Free | PDFEnrich",
+    metaDescription: "Create an expiring, revocable read-only PDF link when account sharing is enabled for this release. Free PDF sharing with clear access limits.",
+    heroHeadline: "Share a PDF with an expiring link",
+    heroSubheadline: "Create a read-only link for a PDF you choose to share. Sign in, choose a 1, 7, or 30 day expiration, then copy the link for your recipient.",
+    longDescription: "PDFEnrich creates a separate read-only copy for sharing when you choose Create sharing link. The recipient can view and download that copy until it expires or you revoke it. Sharing requires the signed-in account and storage services to be enabled for the current release.",
+    benefits: ["Choose an expiration of 1, 7, or 30 days.", "Revoke a link before its expiration.", "The link grants read-only access to view and download the shared PDF."],
+    steps: ["Open a PDF in the editor and sign in when prompted.", "Choose Share, select an expiration, and create the sharing link.", "Copy the link and send it yourself; anyone with the link can view and download until it expires or is revoked."],
+    useCases: ["Share a review copy with a collaborator", "Send a read-only PDF link that expires", "Revoke access to a link before its expiration"],
+    privacySummary: "The PDF is uploaded to private sharing storage only when you choose to create a link. Anyone with the high-entropy link can access it until expiration or revocation. Availability depends on the sharing service being enabled for this release.",
+    currentLimitations: "Share links require sign-in and configured sharing storage. Anyone with the link can view and download; password access and named-recipient restrictions are not supported. If sharing is unavailable in this deployment, no link is created.",
+    faqEntries: [
+      { question: "How long does a PDF share link last?", answer: "Choose 1, 7, or 30 days. You can revoke the link sooner." },
+      { question: "Who can open a share link?", answer: "Anyone who has the link can view and download the PDF until it expires or is revoked. Password protection and named-recipient restrictions are not supported." },
+      { question: "Does creating a share link upload my PDF?", answer: "Yes. Creating a link uploads a separate PDF copy to private sharing storage. This requires sign-in and sharing storage enabled for the current release." },
+      { question: "Does PDFEnrich email the link for me?", answer: "No. Copy the link and send it using a method you choose." },
+    ],
+  },
+  "request-signatures": {
+    seoTitle: "Request PDF Signatures | PDFEnrich",
+    metaDescription: "Place required fields and create an expiring signing link for one recipient. Sign-in and configured account storage are required.",
+    heroHeadline: "Request a signature on a PDF",
+    heroSubheadline: "Place required fields, add one recipient, and create an expiring link. You review and send the link yourself; your recipient signs in their browser.",
+    longDescription: "Request Signatures prepares an exported PDF copy, stores it for sharing, and creates a single-recipient signing request with required fields. The sender copies the link or opens an email draft; PDFEnrich does not send the email. Availability requires a signed-in account and configured sharing storage.",
+    benefits: ["Place required text and signature fields on the PDF.", "Set a 1, 7, or 30 day expiration for the request.", "Let one recipient complete the fields and download a signed copy."],
+    steps: ["Open a PDF in the editor and place at least one required field.", "Choose Request, enter the recipient details and message, and choose an expiration.", "Create the link, then copy it or open an email draft and send it yourself. The recipient completes the fields in their browser and downloads the signed PDF."],
+    useCases: ["Collect one person's signature on a form", "Request a dated acknowledgement", "Prepare a single-recipient signing link for a PDF"],
+    privacySummary: "Creating a signing request uploads the exported PDF to sharing storage and saves recipient details and required fields in the protected request record. It requires sign-in and sharing storage enabled for this release.",
+    currentLimitations: "The workflow supports one recipient. The sender must send the link. Automated reminders, signing order, independent identity verification, and certificate-based signatures are not included. If sharing storage is unavailable in this deployment, no request is created.",
+    faqEntries: [
+      { question: "Does PDFEnrich email the signing request?", answer: "No. After creating the link, copy it or open an email draft and send it yourself." },
+      { question: "How many people can sign one request?", answer: "Each request supports one recipient. Automated reminders and signing order are not included." },
+      { question: "Is a signing request a certificate-based digital signature?", answer: "No. The recipient places a visual signature. The workflow does not independently verify identity or issue a certificate." },
+      { question: "Does creating a request upload my PDF?", answer: "Yes. Creating a request uploads the exported PDF to sharing storage and stores request details. It requires sign-in and the service enabled for this release." },
+    ],
+  },
   "translate-pdf": {
     seoTitle: "Translate PDF Online with On-Device AI | PDFEnrich",
     metaDescription: "Translate extracted PDF text between supported languages with your browser's on-device model, then download searchable PDF and TXT copies privately.",
@@ -412,7 +448,7 @@ export const HIGH_INTENT_TOOL_CONTENT = Object.freeze({
     troubleshooting: [
       { question: "Why is my uploaded signature background visible?", answer: "Use a transparent PNG for the cleanest result, or crop the image closely before uploading it." },
       { question: "Is this a digital certificate signature?", answer: "No. This tool places self-attested visual signature content; it does not issue a cryptographic certificate or verify identity." },
-      { question: "Can I send this to someone else to sign?", answer: "Yes. Signed-in owners can create a revocable, expiring single-signer link with required fields. The recipient can type or draw a signature and download both the signed PDF and a device-generated SHA-256 completion receipt. Automated reminders and independent identity verification are not included." },
+      { question: "Can I send this to someone else to sign?", answer: "Yes. When sharing storage is enabled for the current release, signed-in owners can create a single-recipient, expiring link. The sender must send the link; identity verification and certificate-based signatures are not included." },
     ],
     faqEntries: [
       { question: "How can I create my signature?", answer: "Type your name, draw with a pointer or touchscreen, or upload a PNG or JPG signature image." },

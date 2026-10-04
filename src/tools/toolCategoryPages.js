@@ -61,9 +61,9 @@ const categorySeoContent = Object.freeze({
   "ocr-scan": {
     slug: "ocr-pdf-tools",
     seoTitle: "OCR and Scan PDF Tools Online | PDFEnrich",
-    metaDescription: "Recognize English text in scanned PDFs, turn page photos into PDFs, and create searchable image PDFs in your browser.",
+    metaDescription: "Run local OCR on scanned PDFs in six languages, turn page photos into PDFs, and create English-searchable image PDFs in your browser.",
     headline: "Turn scanned pages into useful PDFs.",
-    intro: "Capture paper pages, combine ordered images, and add a searchable English text layer when a PDF contains pictures of text instead of selectable text.",
+    intro: "Run local OCR on scanned PDFs in English, Spanish, French, German, Italian, or Portuguese. The separate Image to Searchable PDF workflow currently recognizes English; scan tools can also capture or combine page images.",
     guidance: ["Use clear, straight, well-lit page images for stronger recognition.", "Verify names, dates, totals, and other important text after OCR.", "Keep the original scan when visual evidence must remain unchanged."],
   },
   ai: {

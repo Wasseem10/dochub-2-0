@@ -274,7 +274,7 @@ export function SigningRequestPage() {
         <ol className="sign-field-checklist">{state.request.fields.map((field) => { const value = values[field.id] || {}; const completeField = field.type === "checkbox" ? value.checked : value.text || value.imageDataUrl; return <li key={field.id} className={completeField ? "is-complete" : ""}><span>{completeField ? <Check size={14} /> : state.request.fields.indexOf(field) + 1}</span><div><strong>{field.label}</strong><small>Page {field.page + 1} · {field.required ? "Required" : "Optional"}</small></div></li>; })}</ol>
         {error && <p className="sign-request-error" role="alert">{error}</p>}
         <button type="button" className="sign-finish-button" disabled={busy} onClick={complete}>{busy ? <><LoaderCircle className="is-spinning" size={17} /> Creating signed PDF…</> : <><PenLine size={17} /> Finish and create signed PDF</>}</button>
-        <small className="sign-request-disclosure"><Lock size={13} /> This secure link can be revoked by the sender. The completion receipt records the document fingerprint but does not independently verify identity.</small>
+        <small className="sign-request-disclosure"><Lock size={13} /> The sender can revoke this link. The completion receipt records the document fingerprint but does not independently verify identity.</small>
       </>}
     </aside></div>
     {activeCapture && <SignatureCapture field={activeCapture} recipientName={state.request.recipient.name} onClose={() => setActiveCapture(null)} onSave={(signature) => { update(activeCapture.id, signature); setActiveCapture(null); }} />}

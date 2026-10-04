@@ -50,18 +50,18 @@ const dataRows = [
   {
     category: "Signed-in account PDFs",
     examples: "The finished edited PDF, sanitized display name, size, MIME type, checksum, internal IDs, timestamps, version, and deletion status. Visible signatures or form answers already placed in the finished PDF are part of those PDF bytes.",
-    source: "You when opening or editing a PDF while signed in, with account sync disclosed in the product.",
-    purpose: "Keep an account-restricted PDF copy and version history that you can open after signing in on another supported device.",
-    disclosed: "Supabase Edge Functions, Postgres metadata, and private Supabase Storage; Firebase Authentication supplies the signed-in identity token.",
-    retention: "Until permanent document or account deletion, subject to the configured trash-recovery window and provider backup or soft-delete periods.",
+    source: "You when opening or editing a PDF while signed in, only when private account storage is enabled and verified for the release.",
+    purpose: "When enabled, keep an account-restricted PDF copy and version history for access on another signed-in device.",
+    disclosed: "The configured private-storage provider and Firebase Authentication, only in releases where account storage is enabled.",
+    retention: "When enabled, until permanent document or account deletion, subject to the configured trash-recovery window and provider backup or soft-delete periods.",
   },
   {
     category: "Shared PDFs and signing links",
     examples: "Exported PDF, sanitized file name, size, owner ID, a hash of the high-entropy capability, expiration, and—for signing requests—recipient/requester details, message, and required fields in a Firebase record.",
-    source: "You when creating a share or signing request.",
-    purpose: "Create a revocable bearer link that a recipient can open until it expires.",
-    disclosed: "Firebase; recipients and email providers you choose to use.",
-    retention: "Links expire after 1, 7, or 30 days. Revocation or account deletion removes active records and objects; provider backups or soft-deleted generations may take longer to expire.",
+    source: "You when creating a share or signing request, only when sharing is enabled for the release.",
+    purpose: "When enabled, create a revocable bearer link that a recipient can open until it expires.",
+    disclosed: "The configured sharing provider; recipients and email providers you choose to use, only when you create a link.",
+    retention: "When enabled, links expire after 1, 7, or 30 days. Revocation or account deletion removes active records and objects; provider backups or soft-deleted generations may take longer to expire.",
   },
   {
     category: "Support information",
@@ -126,7 +126,7 @@ export function PrivacyPolicyPage() {
 
       <section className="privacy-quick-facts" aria-label="Privacy overview">
         <article><FileLock2 size={22} /><div><strong>Guest work stays local</strong><p>Supported PDF work runs in your browser when you use PDFEnrich without an account.</p></div></article>
-        <article><Database size={22} /><div><strong>Signed-in PDFs sync</strong><p>PDFs opened while signed in are saved privately to your account for cross-device access.</p></div></article>
+        <article><Database size={22} /><div><strong>Account storage depends on release setup</strong><p>Cross-device sync is available only when private account storage is enabled and verified for this release.</p></div></article>
         <article><SlidersHorizontal size={22} /><div><strong>Analytics require a choice</strong><p>Optional analytics stay off until you allow them, and Global Privacy Control is honored.</p></div></article>
       </section>
 
@@ -143,7 +143,7 @@ export function PrivacyPolicyPage() {
           <section id="summary">
             <span className="privacy-section-number">01</span>
             <h2>Plain-language summary</h2>
-            <p>PDFEnrich is designed so supported editing and conversion happen on your device. Guest files stay in that browser. When you are signed in, PDFs you open and later edited versions also sync as private account copies so they can be opened on another signed-in device. Support, optional analytics, and sharing use separate data paths.</p>
+            <p>PDFEnrich is designed so supported editing and conversion happen on your device. Guest files stay in that browser. Cross-device account copies and sharing links are available only when their services are enabled and verified for this release. When unavailable, files remain browser-local and no cloud copy or link is created.</p>
             <div className="privacy-promise-list">
               <p><CheckCircle2 size={17} /> PDFEnrich does not sell personal information or share it for cross-context behavioral advertising.</p>
               <p><CheckCircle2 size={17} /> PDFEnrich does not put file names, PDF contents, extracted text, signatures, form answers, or document URLs into product analytics.</p>
@@ -157,13 +157,13 @@ export function PrivacyPolicyPage() {
               </article>
               <article>
                 <span>Signed-in account copy</span>
-                <h3>Available across your devices</h3>
-                <p>After signing in, PDFs you open automatically sync as finished private PDFs with minimal metadata so you can open them after signing in on another supported device.</p>
+                <h3>When account storage is enabled</h3>
+                <p>In releases where private account storage is enabled and verified, signed-in PDFs sync as finished private copies with minimal metadata. Otherwise, they remain in this browser and are not uploaded for cross-device access.</p>
               </article>
               <article>
                 <span>Share or signing link</span>
-                <h3>Available to link holders</h3>
-                <p>This is separate from private account storage. Creating a link uploads the exported PDF and lets anyone with that unrevoked bearer link open or download it until it expires.</p>
+                <h3>When sharing is enabled</h3>
+                <p>Sharing is separate from private account storage. In releases where it is enabled, creating a link uploads the exported PDF and lets anyone who has that link open or download it until it expires or is revoked.</p>
               </article>
             </div>
           </section>
@@ -179,7 +179,7 @@ export function PrivacyPolicyPage() {
           <section id="collect">
             <span className="privacy-section-number">03</span>
             <h2>Information we process</h2>
-            <p>The table describes the categories handled during the preceding 12 months, their sources, purposes, disclosures, and intended retention. “Disclosed” means made available to a service provider for a business purpose; it does not mean sold.</p>
+            <p>The table describes information handled during the preceding 12 months and, for optional cloud features, information handled only when that feature is enabled and verified for the release. “Disclosed” means made available to a service provider for a business purpose; it does not mean sold. If a cloud feature is unavailable, it does not create a cloud copy or link.</p>
             <div className="privacy-data-table-wrap">
               <table className="privacy-data-table">
                 <thead><tr><th>Category</th><th>Examples and source</th><th>Purpose and disclosure</th><th>Retention</th></tr></thead>
@@ -199,11 +199,11 @@ export function PrivacyPolicyPage() {
             <h3>Browser-only workflows</h3>
             <p>The editor and supported page, image, protection, OCR, and conversion tools process files in browser memory. Saved guest work may use IndexedDB or local storage on your device. Clearing PDFEnrich site data removes those browser copies, but PDFEnrich cannot delete downloads, browser backups, or copies you saved elsewhere.</p>
             <h3>Signed-in account synchronization</h3>
-            <p>When the authenticated account-document API is available, PDFs opened while signed in automatically upload as rebuilt finished PDFs with minimal metadata to account-restricted storage. Existing browser-only documents are not bulk uploaded; opening one while signed in imports that document into account sync.</p>
-            <p>A confirmed account copy can be listed and downloaded after the same account signs in on another supported device. PDFEnrich does not upload the editable workspace, extracted OCR text, thumbnails, undo history, or signature library as separate cloud data. After an edit is saved locally, the rebuilt finished PDF is uploaded as a newer immutable version.</p>
+            <p>Only releases where the authenticated account-document API has been enabled and verified upload PDFs opened while signed in as rebuilt finished PDFs with minimal metadata. In other releases, those files stay in this browser. When sync is enabled, existing browser-only documents are not bulk uploaded; opening one while signed in imports that document into account sync.</p>
+            <p>When sync is enabled, a confirmed account copy can be listed and downloaded after the same account signs in on another supported device. PDFEnrich does not upload the editable workspace, extracted OCR text, thumbnails, undo history, or signature library as separate cloud data. After an edit is saved locally, the rebuilt finished PDF is uploaded as a newer immutable version.</p>
             <p>Before PDFEnrich marks the copy saved, the backend verifies the authenticated owner, checksum, size, page count, and PDF structure. The finished PDF can contain visible signatures and form answers the user placed on it. Users can delete individual account copies, empty applicable trash, or delete the entire account to request removal of active account-linked cloud data, subject to the retention limits below.</p>
             <h3>Sharing and signing requests</h3>
-            <p>Creating a sharing or signing link uploads the exported PDF to Firebase. Anyone who has the high-entropy bearer link can open or download it until expiration or revocation. The raw capability is kept in the URL fragment so it is not sent in ordinary page requests; Firebase records and object identifiers use its SHA-256 hash. Recipient name, recipient email, requester details, the optional message, and required fields are stored in the expiring signing-request record rather than encoded into the link. Those details and the link may also pass through the email provider you choose to send them. Do not create a link unless you are authorized to disclose the document and recipient information.</p>
+            <p>In releases where sharing is enabled, creating a sharing or signing link uploads the exported PDF to configured sharing storage. Anyone who has the high-entropy bearer link can open or download it until expiration or revocation. The raw capability is kept in the URL fragment so it is not sent in ordinary page requests; records and object identifiers use its SHA-256 hash. Recipient name, recipient email, requester details, the optional message, and required fields are stored in the expiring signing-request record rather than encoded into the link. Those details and the link may also pass through the email provider you choose to send them. Do not create a link unless you are authorized to disclose the document and recipient information. If sharing is unavailable in this release, no link is created.</p>
           </section>
 
           <section id="purposes">
@@ -224,8 +224,8 @@ export function PrivacyPolicyPage() {
             <h2>When information is disclosed</h2>
             <p>PDFEnrich limits disclosure to the following situations:</p>
             <ul>
-              <li><strong>Service providers:</strong> website hosting and content delivery providers; Google Firebase Authentication, Firestore, Storage, Analytics, App Check, reCAPTCHA Enterprise, and Google Sign-In; and Supabase Edge Functions, Postgres, and private Storage for signed-in account PDFs.</li>
-              <li><strong>People you direct:</strong> recipients of sharing or signing links and email providers you use to send them.</li>
+              <li><strong>Service providers:</strong> website hosting and content delivery providers; Google Firebase Authentication and, when enabled for a release, related Firebase services for accounts, analytics, sharing, or access controls; and Supabase services only when configured for private account storage.</li>
+              <li><strong>People you direct:</strong> recipients of sharing or signing links when those features are enabled, and email providers you choose to send them.</li>
               <li><strong>Legal and safety:</strong> authorities or other parties when reasonably necessary to comply with law, protect users, investigate abuse, or defend legal rights.</li>
               <li><strong>Business transition:</strong> a buyer, successor, or adviser in a merger, financing, reorganization, or sale, subject to appropriate confidentiality and notice where required.</li>
             </ul>
@@ -239,10 +239,10 @@ export function PrivacyPolicyPage() {
             <p>PDFEnrich uses category-specific limits rather than keeping every record indefinitely. The intended periods are listed in the information table above.</p>
             <ul>
               <li>Browser memory is released when the page closes. Browser-local saved work remains until you delete it or clear site data.</li>
-              <li>Private cloud documents remain active until moved to trash or permanently deleted. The trash recovery period and provider lifecycle must be verified in the deployed environment.</li>
+              <li>When private cloud storage is enabled, documents remain active until moved to trash or permanently deleted. The trash recovery period and provider lifecycle must be verified in that deployment.</li>
               <li>PDFEnrich product analytics receive a deletion date of {OPTIONAL_ANALYTICS_RETENTION_DAYS} days. Vercel website analytics follow the provider's applicable retention settings.</li>
               <li>Support requests receive a deletion date of {SUPPORT_REQUEST_RETENTION_DAYS} days unless a longer period is reasonably necessary for security, legal, or dispute handling.</li>
-              <li>Share links stop working after 1, 7, or 30 days. Expiration prevents access; physical deletion may follow through revocation, account deletion, or provider retention cleanup.</li>
+              <li>When sharing is enabled, links stop working after 1, 7, or 30 days. Expiration prevents access; physical deletion may follow through revocation, account deletion, or provider retention cleanup.</li>
             </ul>
             <p>Deletion from active systems may not immediately remove encrypted backups, security logs, cached copies, or copies already downloaded or shared. Those copies follow separate technical or legal schedules.</p>
           </section>
@@ -278,7 +278,7 @@ export function PrivacyPolicyPage() {
           <section id="security">
             <span className="privacy-section-number">11</span>
             <h2>Security</h2>
-            <p>PDFEnrich uses browser-local processing where practical, HTTPS in production, Firebase access controls, randomly generated sharing tokens, time-limited links, App Check/reCAPTCHA abuse controls, owner-restricted account data, and deletion tools. Access to account directories, analytics, and support records is restricted to authorized operator workflows.</p>
+            <p>PDFEnrich uses browser-local processing where practical. Account storage, sharing links, access controls, abuse controls, and related deletion tools are available only in deployments where those services have been enabled and verified. Check the current product and page-specific disclosures before using a cloud feature; do not assume it is available in every release.</p>
             <p>A private cloud PDF is protected by the signed-in account boundary, so anyone who gains access to that account or an already signed-in device may be able to open it. Users should use a unique password, protect access to their email and Google account, sign out on shared devices, and promptly report suspected unauthorized access.</p>
             <p>No system is perfectly secure. PDFEnrich does not claim ISO certification, end-to-end encryption, HIPAA compliance, a business-associate agreement, or an external security audit unless a separate page expressly documents it. Use local-only tools for highly sensitive files and avoid cloud history or sharing unless your organization has approved those services.</p>
             <p>If a security incident creates a legal notification obligation, PDFEnrich will investigate and provide notices required by applicable law.</p>

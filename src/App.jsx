@@ -3723,7 +3723,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       }
       throw new Error("The active account or document changed. Create the sharing link again.");
     }
-    showToast("Secure sharing link created.");
+    showToast("Sharing link created.");
     return { ...result, url: `${window.location.origin}${sharePath(result.token)}` };
   };
 
@@ -7467,7 +7467,7 @@ function LegacyLandingPage({ fileInputRef, onUpload, onSelectFiles, onLogin }) {
   const visibleTools = activeCategory === "All" ? tools : tools.filter((tool) => tool[2] === activeCategory);
   const faq = [
     ["Can I edit text that is already inside a PDF?", "Yes. The editor detects selectable PDF text and lets you edit, remove, restyle, or whiteout existing words before export."],
-    ["Do I need an account before uploading?", "No. Uploading, editing, and downloading work without an account. If you are signed in, PDFs you open also sync privately to your account for cross-device access."],
+    ["Do I need an account before uploading?", "No. Uploading, editing, and downloading work without an account. Cross-device account sync is available only when private account storage is enabled and verified for this release."],
     ["Does signing work inside the browser?", "Yes. You can type, draw, or place a signature, then download or share the completed PDF."],
     ["What happens after I upload?", "The file opens in the editor with page thumbnails, zoom controls, text tools, drawing, comments, fields, and export actions."],
     ["Can teams use this later?", "Yes. The dashboard, cloud save state, and sharing surfaces are already designed around team document workflows."],
@@ -7696,7 +7696,7 @@ function AuthPage({ mode, setMode, onBack, onComplete, onPasswordReset, authRead
   const authMetadata = isSignup
     ? {
         title: "Create Your PDFEnrich Account",
-        description: "Create a PDFEnrich account when you want to save a specific private cloud copy or use secure sharing.",
+        description: "Create a PDFEnrich account for account features. Private storage and sharing depend on services enabled for this release.",
         canonicalUrl: ROUTE_PATHS.signup,
       }
     : isPasswordReset
@@ -8660,8 +8660,7 @@ export function UploadLanding({
                         <button type="button" role="menuitem" onClick={(event) => runDocumentMenuAction(event, () => onDuplicateDocument(documentRecord))}><Copy size={20} /> Make a copy</button>
                         <span />
                         <button type="button" role="menuitem" onClick={(event) => runDocumentMenuAction(event, () => onRenameDocument(documentRecord))}><PenLine size={20} /> Rename</button>
-                        <button type="button" role="menuitem" disabled title="Secure document links require the future token service"><Link size={20} /> Copy link unavailable</button>
-                        <button type="button" role="menuitem" disabled title="Secure sharing requires the future token service"><Share2 size={20} /> Share unavailable</button>
+                        <button type="button" role="menuitem" onClick={(event) => runDocumentMenuAction(event, () => onOpenDocument(documentRecord))}><Share2 size={20} /> Open in editor to share</button>
                         <button type="button" role="menuitem" onClick={(event) => runDocumentMenuAction(event, () => onDownloadDocument(documentRecord))}><Download size={20} /> Download</button>
                         <button type="button" role="menuitem" onClick={(event) => runDocumentMenuAction(event, () => onToggleFavorite(documentRecord))}><Star size={20} /> {documentRecord.favorite ? "Unstar" : "Star"}</button>
                         <button type="button" role="menuitem" onClick={(event) => runDocumentMenuAction(event, () => onMoveDocument(documentRecord))}><Move size={20} /> Move</button>
@@ -9022,19 +9021,25 @@ export function UploadLanding({
           <div className="library-head">
             <h2>Settings</h2>
             <span className="settings-status">
-              {cloudConfigured ? "Account sync on" : "Browser-local only"}
+              {cloudCatalogStatus === "ready" ? "Account sync connected" : cloudCatalogStatus === "loading" || cloudCatalogStatus === "idle" ? "Checking account sync" : "Browser-local only"}
             </span>
           </div>
           <div className="settings-grid">
             <article>
               <strong>Autosave</strong>
-              <span>PDFs opened while signed in keep a browser recovery copy and sync an encrypted-in-transit private PDF to your account.</span>
+              <span>{cloudCatalogStatus === "ready"
+                ? "PDFs opened while signed in keep a browser recovery copy and sync finished PDFs to your private account."
+                : cloudCatalogStatus === "loading" || cloudCatalogStatus === "idle"
+                  ? "Checking whether private account storage is available for this release. Your browser copy remains available."
+                  : "Private account storage is unavailable or unverified for this release. Your files remain in this browser."}</span>
             </article>
             <article>
               <strong>Account documents</strong>
-              <span>{cloudConfigured
+              <span>{cloudCatalogStatus === "ready"
                 ? `${privateCloudDocumentCount} synced document${privateCloudDocumentCount === 1 ? "" : "s"} visible. Older browser-only PDFs are imported when you open them while signed in.`
-                : "Not connected. Files remain in this browser until account sync is available."}</span>
+                : cloudCatalogStatus === "loading" || cloudCatalogStatus === "idle"
+                  ? "Checking account storage. Your browser copies remain available."
+                  : "Account storage is unavailable or unverified. Files remain in this browser."}</span>
               <button
                 type="button"
                 disabled={!cloudConfigured || cloudCatalogStatus === "loading"}
@@ -9149,7 +9154,7 @@ export function UploadLanding({
         <header className="dashboard-selected-intro">
           <div className="dashboard-selected-intro-copy">
             <h1>Your PDF workspace</h1>
-            <p>Upload, edit, and reopen anywhere.<br />Signed-in PDFs sync privately to your account.</p>
+            <p>Upload, edit, and reopen on this device.<br />{currentUser?.uid ? cloudCatalogStatus === "ready" ? "Private account sync is connected." : cloudCatalogStatus === "loading" || cloudCatalogStatus === "idle" ? "Checking private account sync…" : "Account sync is unavailable here; your browser copy remains available." : "Guest files stay in this browser. Sign in only when you need account features."}</p>
             <button type="button" className="dashboard-selected-blank-action" onClick={onBlankPage}>
               <FilePlus2 size={16} aria-hidden="true" /> Start blank document
             </button>
@@ -9233,7 +9238,7 @@ export function UploadLanding({
         <button type="button" className="dashboard-rail-help" onClick={() => onNavigate(ROUTE_PATHS.help)}><CircleHelp size={17} /><span>Help</span></button>
         <div className="dashboard-bright-trust">
           <Lock size={17} />
-          <span><strong>{currentUser?.uid ? "Account sync on" : "Private by design"}</strong><small>{currentUser?.uid ? "Signed-in PDFs sync privately." : "Guest files stay in this browser."}</small></span>
+          <span><strong>{currentUser?.uid ? cloudCatalogStatus === "ready" ? "Account sync ready" : cloudCatalogStatus === "loading" || cloudCatalogStatus === "idle" ? "Checking account sync" : "Browser copy only" : "Private by design"}</strong><small>{currentUser?.uid ? cloudCatalogStatus === "ready" ? "Private account storage is responding." : cloudCatalogStatus === "loading" || cloudCatalogStatus === "idle" ? "Your saved PDFs stay available in this browser." : "Private account storage is unavailable or unverified." : "Guest files stay in this browser."}</small></span>
         </div>
       </aside>
 
@@ -10293,18 +10298,18 @@ function ShareModal({ fileName, onClose, onCreate, onRevoke, onExport }) {
             <div className="share-card-head">
               <Lock size={20} />
               <div>
-                <h3>Read-only secure link</h3>
-                <p>Create an unguessable link to the current exported PDF. The link expires automatically and can be revoked at any time.</p>
+                <h3>Read-only sharing link</h3>
+                <p>Create a link to the current exported PDF. It expires automatically and can be revoked at any time.</p>
               </div>
             </div>
-            {!share ? <div className="share-grid"><label className="field"><span>Link expiration</span><select value={expirationDays} onChange={(event) => setExpirationDays(Number(event.target.value))}><option value={1}>1 day</option><option value={7}>7 days</option><option value={30}>30 days</option></select></label><div className="share-security-note"><Lock size={16} /><span>Anyone with the link can view and download until it expires.</span></div></div> : <><div className="share-link-row"><input aria-label="Secure sharing link" readOnly value={share.url} onFocus={(event) => event.target.select()} /><button type="button" onClick={copyLink}><Copy size={15} /> {status === "copied" ? "Copied" : "Copy"}</button></div><div className="share-expiration">Expires {share.expiresAt.toLocaleString()}</div></>}
+            {!share ? <div className="share-grid"><label className="field"><span>Link expiration</span><select value={expirationDays} onChange={(event) => setExpirationDays(Number(event.target.value))}><option value={1}>1 day</option><option value={7}>7 days</option><option value={30}>30 days</option></select></label><div className="share-security-note"><Lock size={16} /><span>Anyone with the link can view and download until it expires.</span></div></div> : <><div className="share-link-row"><input aria-label="Sharing link" readOnly value={share.url} onFocus={(event) => event.target.select()} /><button type="button" onClick={copyLink}><Copy size={15} /> {status === "copied" ? "Copied" : "Copy"}</button></div><div className="share-expiration">Expires {share.expiresAt.toLocaleString()}</div></>}
             {error && <p className="share-error" role="alert">{error}</p>}
           </section>
         </div>
         <footer>
           {share ? <button type="button" className="modal-secondary is-danger" disabled={status === "revoking"} onClick={revokeLink}>{status === "revoking" ? "Revoking…" : "Revoke link"}</button> : <button type="button" className="modal-secondary" onClick={onExport}><Download size={16} /> Export instead</button>}
           <button type="button" className="modal-secondary" onClick={onClose}>Done</button>
-          {!share && <button type="button" className="modal-primary" disabled={status === "creating"} onClick={createLink}><Share2 size={16} /> {status === "creating" ? "Creating…" : "Create secure link"}</button>}
+          {!share && <button type="button" className="modal-primary" disabled={status === "creating"} onClick={createLink}><Share2 size={16} /> {status === "creating" ? "Creating…" : "Create sharing link"}</button>}
         </footer>
       </section>
     </div>
@@ -10366,7 +10371,7 @@ function SignatureRequestModal({ fileName, onClose, onPrepare }) {
         </div>
         <footer>
           <button type="button" className="modal-secondary" onClick={onClose}>{request ? "Done" : "Keep editing"}</button>
-          {request ? <a className="modal-primary signature-email-link" href={`mailto:${encodeURIComponent(recipient)}?subject=${emailSubject}&body=${emailBody}`}><Mail size={16} /> Open email draft</a> : <button type="button" className="modal-primary" disabled={busy} onClick={prepare}><Send size={16} /> {busy ? "Creating secure link…" : "Create signing link"}</button>}
+          {request ? <a className="modal-primary signature-email-link" href={`mailto:${encodeURIComponent(recipient)}?subject=${emailSubject}&body=${emailBody}`}><Mail size={16} /> Open email draft</a> : <button type="button" className="modal-primary" disabled={busy} onClick={prepare}><Send size={16} /> {busy ? "Creating link…" : "Create signing link"}</button>}
         </footer>
       </section>
     </div>

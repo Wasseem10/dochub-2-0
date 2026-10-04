@@ -21,8 +21,8 @@ const UPLOAD_COPY = Object.freeze({
   "sign-pdf": ["Sign a PDF online", "Type, draw, or upload your signature and place it precisely on the document."],
   "add-initials": ["Add initials to a PDF", "Create your initials once, place them anywhere, and download the completed PDF."],
   "add-date-fields": ["Add date fields to a PDF", "Place today’s date or enter a custom date wherever the document needs it."],
-  "request-signatures": ["Request signatures on a PDF", "Place required fields, create an expiring link, and let one recipient sign and download the completed PDF securely in their browser."],
-  "share-pdf": ["Share a PDF securely", "Review your PDF, sign in when you are ready, and create a revocable read-only link."],
+  "request-signatures": ["Request signatures on a PDF", "Place required fields and create an expiring link for one recipient. Copy the link or open an email draft to send it yourself."],
+  "share-pdf": ["Share a PDF with a link", "Sign in, choose an expiration, and create a read-only link that you can copy and send yourself."],
   "protect-pdf": ["Protect a PDF with a password", "Apply local AES-256 encryption and download a password-protected copy."],
   "review-pdf": ["Review a PDF online", "Highlight, draw, add shapes, and keep a complete local review trail in one workspace."],
   "comment-on-pdf": ["Comment on a PDF online", "Place comment threads on any page, add replies, resolve feedback, and export the reviewed PDF."],
@@ -127,7 +127,7 @@ export function EditorToolUploadPage({ toolId, fileInputRef, onUpload, onDropFil
         <div className="editor-tool-trust-row" aria-label="Upload information">
           <span><Lock size={16} /> Guest files stay in this browser</span>
           <span><CheckCircle2 size={16} /> {requiresAccountForCloudAction ? "Sign in required to create a link" : "No account required"}</span>
-          <span><ShieldCheck size={16} /> Signed-in PDFs sync privately</span>
+          <span><ShieldCheck size={16} /> Account sync is available only when enabled and verified for this release</span>
         </div>
       </section>
       <ToolGuideContent tool={tool} />

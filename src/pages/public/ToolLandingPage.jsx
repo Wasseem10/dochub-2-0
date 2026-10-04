@@ -17,6 +17,7 @@ function formatType(type) {
     "text/html": "HTML",
     "application/json": "JSON",
     "text/csv": "CSV",
+    "text/uri-list": "Sharing link",
   };
   return known[type] || type.split(/[./+-]/).pop().toUpperCase();
 }

@@ -34,8 +34,8 @@ const asset = (fileName) => `${import.meta.env.BASE_URL}homepage/${fileName}`;
 
 const faqs = [
   ["Is PDFEnrich really free?", "Yes. PDFEnrich is completely free. There are no subscriptions, paid tiers, checkout, email requirement, or PDFEnrich watermark—and no paid plans are planned."],
-  ["Do I need an account?", "No. Open, edit, and download supported files as a guest. When you sign in, PDFs you open are also saved privately to your account for cross-device access."],
-  ["Are files processed in my browser?", "Supported editor, page, and image tools process files in your browser. Guest work stays on that device; signed-in PDFs also sync as finished private copies to your account."],
+  ["Do I need an account?", "No. Open, edit, and download supported files as a guest. Cross-device account sync is available only when private account storage is enabled and verified for this release."],
+  ["Are files processed in my browser?", "Supported editor, page, and image tools process files in your browser. Guest work stays on that device. Account sync is available only when enabled and verified for this release."],
   ["What is the editor file limit?", "The editor accepts valid, unencrypted PDFs up to 50 MB and 500 pages. Large documents open progressively, so later pages render as you visit them."],
   ["Can PDFEnrich perfectly rewrite original PDF text?", "Not always. The editor can change detected text overlays and add new content, but original fonts, spacing, and layout may vary. Always review the export."],
   ["Does PDFEnrich add a watermark?", "No. PDFEnrich does not add a watermark to supported exports."],
@@ -169,7 +169,7 @@ const privacyProofs = [
   },
   {
     title: "Clear account sync",
-    copy: "Guest files stay local. PDFs opened while signed in sync privately across your devices.",
+    copy: "Guest files stay local. Account sync is available only when enabled and verified for this release.",
     icon: Cloud,
   },
 ];
@@ -475,7 +475,7 @@ export function LatticePdfLanding({ fileInputRef, onUpload, onSelectFiles, onDro
       <div className="freepdf-context-ending-heading">
         <span><ShieldCheck size={13} aria-hidden="true" /> Privacy, clearly explained</span>
         <h2 id="privacy-title">Your document stays <em>under your control.</em></h2>
-        <p>Start locally without an account. Use private account sync only when you deliberately sign in.</p>
+        <p>Start locally without an account. Account sync is available only when enabled and verified for this release.</p>
       </div>
       <div className="freepdf-context-privacy-board">
         <article className="freepdf-context-privacy-local">
@@ -491,7 +491,7 @@ export function LatticePdfLanding({ fileInputRef, onUpload, onSelectFiles, onDro
           <header><span>Optional account sync</span><small>02</small></header>
           <span className="freepdf-context-privacy-icon" aria-hidden="true"><Cloud size={28} /></span>
           <h3>Sync only when you sign in.</h3>
-          <p>Guest files stay on that device. PDFs opened while signed in also save as finished private account copies for access across your devices.</p>
+          <p>Guest files stay on that device. When private account storage is enabled and verified, signed-in PDFs save as finished account copies for access across your devices.</p>
           <div><Check size={18} aria-hidden="true" /><span><strong>{privacyProofs[2].title}</strong><small>{privacyProofs[2].copy}</small></span></div>
           <Link to={ROUTE_PATHS.privacy}>Read the privacy details <ArrowRight size={16} /></Link>
         </article>
