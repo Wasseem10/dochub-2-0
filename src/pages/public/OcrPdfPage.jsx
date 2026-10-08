@@ -66,13 +66,16 @@ function preprocessCanvas(canvas, mode) {
 
 function downloadBytes(bytes, type, name, toolId) {
   const url = URL.createObjectURL(new Blob([bytes], { type }));
-  const anchor = document.createElement("a");
-  anchor.href = url;
-  anchor.download = name;
-  anchor.click();
-  trackProductEvent("result_downloaded", { toolId });
-  if (type === "application/pdf") trackProductEvent("pdf_downloaded", { toolId });
-  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+  try {
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = name;
+    anchor.click();
+    trackProductEvent("result_downloaded", { toolId });
+    if (type === "application/pdf") trackProductEvent("pdf_downloaded", { toolId });
+  } finally {
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
 }
 
 export function OcrPdfPage({ tool }) {
@@ -85,6 +88,7 @@ export function OcrPdfPage({ tool }) {
   const [statusText, setStatusText] = useState("");
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState("");
+  const [failedDownload, setFailedDownload] = useState(null);
   const [dragging, setDragging] = useState(false);
   const [language, setLanguage] = useState("eng");
   const [cleanupMode, setCleanupMode] = useState("auto");
@@ -93,7 +97,7 @@ export function OcrPdfPage({ tool }) {
   const loadFile = async (nextFile) => {
     const validationError = validateOcrPdf(nextFile);
     if (validationError) { trackUploadValidationFailure(tool.id, "invalid_pdf"); setError(validationError); return; }
-    setStatus("reading"); setError(""); setResult(null);
+    setStatus("reading"); setError(""); setFailedDownload(null); setResult(null);
     try {
       const bytes = new Uint8Array(await nextFile.arrayBuffer());
       const pdfjs = await loadPdfRenderer();
@@ -109,10 +113,24 @@ export function OcrPdfPage({ tool }) {
     }
   };
 
+  const saveResult = (output, format) => {
+    setError(""); setFailedDownload(null);
+    try {
+      if (format === "txt") {
+        downloadBytes(new TextEncoder().encode(output.text), "text/plain", `${output.baseName}-ocr.txt`, tool.id);
+      } else {
+        downloadBytes(output.pdfBytes, "application/pdf", `${output.baseName}-searchable.pdf`, tool.id);
+      }
+    } catch {
+      setFailedDownload(format);
+      setError("The download could not start. Your completed result is still available; try downloading it again.");
+    }
+  };
+
   const runOcr = async () => {
     if (!file || !sourceBytes) return;
     if (!isSupportedOcrLanguage(language)) { setError("Choose a supported OCR language."); return; }
-    setStatus("processing"); setStatusText("Loading the OCR engine…"); setProgress(1); setError(""); setResult(null);
+    setStatus("processing"); setStatusText("Loading the OCR engine…"); setProgress(1); setError(""); setFailedDownload(null);
     const operation = beginToolOperation(tool.id, { operation: `ocr_${language}`, slowAfterMs: 30000 });
     let worker;
     try {
@@ -160,9 +178,10 @@ export function OcrPdfPage({ tool }) {
       const pdfBytes = await createSearchablePdfFromOcrPages(pages, { title: baseName });
       const text = ocrTextFromPages(pages);
       const confidence = summarizeOcrConfidence(pages);
-      setResult({ pdfBytes, text, baseName, confidence }); setProgress(100); setStatus("complete");
-      downloadBytes(pdfBytes, "application/pdf", `${baseName}-searchable.pdf`, tool.id);
+      const output = { pdfBytes, text, baseName, confidence };
+      setResult(output); setProgress(100); setStatus("complete");
       operation.succeed({ result: confidence.rating, pageCountBucket: pageCountBucket(pages.length) });
+      saveResult(output, "pdf");
     } catch (ocrError) {
       operation.fail("ocr_failed");
       setStatus("idle"); setError(ocrError.message || "Text recognition could not be completed.");
@@ -171,7 +190,10 @@ export function OcrPdfPage({ tool }) {
     }
   };
 
-  const choose = (files) => loadFile(Array.from(files || [])[0]);
+  const choose = (files) => {
+    if (status === "reading" || status === "processing") return;
+    return loadFile(Array.from(files || [])[0]);
+  };
   return <main className="image-conversion-page office-conversion-page ocr-pdf-page">
     <PageMetadata title={tool.seoTitle} description={tool.metaDescription} canonicalUrl={tool.canonicalUrl} schemas={toolSeoSchemas(tool)} toolStatus={tool.status} />
     <nav className="tool-breadcrumbs" aria-label="Breadcrumb"><Link to={ROUTE_PATHS.tools}>PDF tools</Link><span>/</span><span aria-current="page">{tool.name}</span></nav>
@@ -182,7 +204,7 @@ export function OcrPdfPage({ tool }) {
         <span><Upload size={27} /></span><h2>Drop a scanned PDF here</h2><p>PDFs up to 20 MB and {OCR_PDF_LIMITS.maxPages} pages.</p><button type="button" disabled={status === "reading" || status === "processing"} onClick={() => inputRef.current?.click()}>Choose a PDF</button>
       </div>
       {status === "reading" && <div className="conversion-progress"><LoaderCircle className="is-spinning" size={18} /> Checking your PDF…</div>}
-      <WorkflowErrorState message={error} onDismiss={() => setError("")} onRetry={file && status === "idle" ? runOcr : undefined} />
+      <WorkflowErrorState message={error} onDismiss={() => setError("")} onRetry={failedDownload && result ? () => saveResult(result, failedDownload) : file && status === "idle" ? runOcr : undefined} />
       {file && <div className="office-file-card"><header><FileSearch size={20} /><div><strong>{file.name}</strong><small>{pageCount} page{pageCount === 1 ? "" : "s"}</small></div></header></div>}
     </section><aside className="conversion-settings-card ocr-settings-card"><span>Searchable output</span><FileSearch size={25} /><h2>Recognize text on every page</h2>
       <div className="ocr-settings-grid">
@@ -192,9 +214,12 @@ export function OcrPdfPage({ tool }) {
       </div>
       <div className="office-mode-note"><strong>Private local recognition</strong><p>The selected language model downloads on first use, then processes your document locally. Page cleanup, rotation, OCR, and PDF creation run on this device.</p></div><div className="conversion-summary"><Check size={18} /><span>{file ? formatOcrPageReadiness(pageCount) : "Add a scanned PDF to continue"}</span></div>
       {status === "processing" && <><div className="conversion-progress-bar"><i style={{ width: `${progress}%` }} /></div><p className="ocr-status" aria-live="polite">{statusText}</p></>}
-      <button className="conversion-primary-action" type="button" disabled={!file || status === "reading" || status === "processing"} onClick={runOcr}>{status === "processing" ? <><LoaderCircle className="is-spinning" size={18} /> OCR {progress}%</> : <><FileSearch size={18} /> Run OCR and download PDF</>}</button>
-      {result && <button className="conversion-secondary-action" type="button" onClick={() => downloadBytes(new TextEncoder().encode(result.text), "text/plain", `${result.baseName}-ocr.txt`, tool.id)}><Download size={17} /> Download recognized TXT</button>}
-      {status === "complete" && result && <div className={`ocr-quality-result ${result.confidence.averageConfidence < 75 ? "needs-review" : ""}`} role="status"><strong>{result.confidence.rating} · {result.confidence.averageConfidence}% confidence</strong><span>{result.confidence.wordCount} words recognized · {result.confidence.lowConfidenceWords} need review</span></div>}
+      <button className="conversion-primary-action" type="button" disabled={!file || status === "reading" || status === "processing"} onClick={runOcr}>{status === "processing" ? <><LoaderCircle className="is-spinning" size={18} /> OCR {progress}%</> : <><FileSearch size={18} /> {result ? "Run OCR again" : "Run OCR and download PDF"}</>}</button>
+      {result && <>
+        <button className="conversion-secondary-action" type="button" disabled={status === "processing"} onClick={() => saveResult(result, "pdf")}><Download size={17} /> Download searchable PDF</button>
+        <button className="conversion-secondary-action" type="button" disabled={status === "processing"} onClick={() => saveResult(result, "txt")}><Download size={17} /> Download recognized TXT</button>
+        {status !== "processing" && <div className={`ocr-quality-result ${result.confidence.averageConfidence < 75 ? "needs-review" : ""}`} role="status"><strong>{result.confidence.rating} · {result.confidence.averageConfidence}% confidence</strong><span>{result.confidence.wordCount} words recognized · {result.confidence.lowConfidenceWords} need review</span><span>Downloads use the last completed result. Run OCR again to apply changed settings.</span></div>}
+      </>}
     </aside></div>
     <section className="conversion-privacy-note"><Check size={19} /><div><strong>Private browser processing</strong><p>Pages are recognized on this device. Check important names and numbers because OCR accuracy depends on scan quality.</p></div></section>
     <ToolGuideContent tool={tool} />

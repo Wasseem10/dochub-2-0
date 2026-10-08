@@ -1510,6 +1510,26 @@
   color: #31457f;
 }
 
+.ocr-pdf-page .conversion-secondary-action {
+  border-color: #cdd8fb;
+  color: #31457f;
+}
+
+.ocr-pdf-page .conversion-secondary-action:hover:not(:disabled) {
+  border-color: var(--tool-blue);
+  background: var(--tool-powder);
+}
+
+.ocr-pdf-page .conversion-secondary-action:focus-visible {
+  outline: 3px solid rgba(40, 81, 235, .2);
+  outline-offset: 2px;
+}
+
+.ocr-pdf-page .conversion-secondary-action:disabled {
+  opacity: .55;
+  cursor: wait;
+}
+
 
 
 .redact-page .redact-complete {
