@@ -18,7 +18,7 @@
   <a href="https://pdfenrich.com/terms">Terms</a>
 </p>
 
-![PDFEnrich editor workspace](pdf-editor/runtime-public/product-assets/pdfenrich-editor-workspace.png)
+![PDFEnrich landing page](docs/screenshots/pdfenrich-landing-page.jpg)
 
 ## Explore the project
 
