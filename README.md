@@ -18,6 +18,17 @@
   <a href="https://pdfenrich.com/terms">Terms</a>
 </p>
 
+![PDFEnrich editor workspace](pdf-editor/runtime-public/product-assets/pdfenrich-editor-workspace.png)
+
+## Explore the project
+
+| Explore | Where to start |
+| --- | --- |
+| Try the application | [pdfenrich.com](https://pdfenrich.com) |
+| Read the implementation | [Application source](pdf-editor/src) |
+| Review verification work | [Test suites](pdf-editor/tests) |
+| Understand document handling | [Security and data-flow notes](pdf-editor/SECURITY.md) |
+
 ## About the project
 
 PDFEnrich is a responsive React application for completing common PDF tasks without a paid plan or PDFEnrich watermark. Guest document workflows are browser-first, and the project includes optional authentication and private-document infrastructure for configured environments.
@@ -79,8 +90,8 @@ The product includes:
 ### Install and run
 
 ```bash
-git clone <repository-url>
-cd <repository-directory>/pdf-editor
+git clone https://github.com/Wasseem10/dochub-2-0.git
+cd dochub-2-0/pdf-editor
 npm ci
 ```
 
