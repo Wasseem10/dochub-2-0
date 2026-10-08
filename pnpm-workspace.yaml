@@ -8,3 +8,6 @@ overrides:
   image-size: 2.0.3
   nanoid@<3.3.18: 3.3.18
   postcss@<8.5.23: 8.5.23
+
+patchedDependencies:
+  tesseract.js@7.0.0: patches/tesseract.js@7.0.0.patch

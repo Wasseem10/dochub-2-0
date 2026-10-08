@@ -21,6 +21,7 @@ import {
 } from "../../tools/officeConversion.js";
 import { flattenOcrWords, OCR_LANGUAGES, ocrRenderScaleForPage } from "../../tools/ocrPdf.js";
 import { usePendingDocumentFile } from "../../hooks/usePendingDocumentFile.js";
+import { createBrowserOcrWorker } from "../../tools/browserOcrWorker.js";
 
 async function loadPdfRenderer() {
   const pdfjsLib = await import("pdfjs-dist");
@@ -214,7 +215,7 @@ function PdfToWordWorkspace({ tool }) {
         }
       } else if (mode === "ocr") {
         const { createWorker } = await import("tesseract.js");
-        ocrWorker = await createWorker(ocrLanguage);
+        ocrWorker = await createBrowserOcrWorker(ocrLanguage, {}, createWorker);
         await ocrWorker.setParameters({ preserve_interword_spaces: "1", user_defined_dpi: "300" });
         conversionPages = [];
         for (let index = 0; index < pages.length; index += 1) {

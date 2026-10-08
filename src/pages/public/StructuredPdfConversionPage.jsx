@@ -13,6 +13,7 @@ import { ToolGuideContent } from "../../components/public/ToolGuideContent.jsx";
 import { WorkflowErrorState } from "../../components/public/WorkflowErrorState.jsx";
 import { ROUTE_PATHS } from "../../router/routePaths.js";
 import { toolSeoSchemas } from "../../tools/toolSeoSchemas.js";
+import { createBrowserOcrWorker } from "../../tools/browserOcrWorker.js";
 import {
   createPptxFromRenderedPages,
   createStandaloneHtmlFromPdfPages,
@@ -150,12 +151,12 @@ export function StructuredPdfConversionPage({ tool }) {
             if (pdfDocument.numPages > OCR_PDF_LIMITS.maxPages) throw new Error(`Scanned PDF OCR supports up to ${OCR_PDF_LIMITS.maxPages} pages. Turn OCR off or split the PDF first.`);
             if (!ocrWorker) {
               const { createWorker } = await import("tesseract.js");
-              ocrWorker = await createWorker(ocrLanguage, undefined, { logger: (message) => {
+              ocrWorker = await createBrowserOcrWorker(ocrLanguage, { logger: (message) => {
                 if (message.status === "recognizing text") {
                   const completed = ((pageNumber - 1) + Number(message.progress || 0)) / pdfDocument.numPages;
                   setProgress(Math.max(2, Math.min(88, Math.round(completed * 88))));
                 }
-              } });
+              } }, createWorker);
               await ocrWorker.setParameters({ preserve_interword_spaces: "1", user_defined_dpi: "300" });
             }
             const pageSize = page.getViewport({ scale: 1 });

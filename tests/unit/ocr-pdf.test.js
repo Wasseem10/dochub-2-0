@@ -50,6 +50,22 @@ describe("OCR PDF output", () => {
     expect(ocrRenderScaleForPage(10_000, 10_000)).toBe(1.4);
   });
 
+  it("preserves sparse dark text and white paper when both percentiles are white", () => {
+    const data = new Uint8ClampedArray(50 * 50 * 4).fill(255);
+    data[0] = 0; data[1] = 0; data[2] = 0;
+    const source = { width: 50, height: 50, data };
+    const enhanced = enhanceOcrImageData(source, "auto");
+    expect(Array.from(enhanced.data.subarray(0, 4))).toEqual([0, 0, 0, 255]);
+    expect(Array.from(enhanced.data.subarray(-4))).toEqual([255, 255, 255, 255]);
+    expect(enhanced.data.filter((value, index) => index % 4 === 0 && value === 255).length).toBeGreaterThan(2400);
+    expect(source.data).toEqual(data);
+  });
+
+  it("does not turn a completely white page into a black OCR image", () => {
+    const data = new Uint8ClampedArray(4 * 4 * 4).fill(255);
+    expect(enhanceOcrImageData({ width: 4, height: 4, data }, "auto").data).toEqual(data);
+  });
+
   it("uses correct page grammar in the ready state", () => {
     expect(formatOcrPageReadiness(1)).toBe("1 page ready for OCR");
     expect(formatOcrPageReadiness(2)).toBe("2 pages ready for OCR");

@@ -7,6 +7,7 @@ import {
   summarizeOcrConfidence,
 } from "./ocrPdf.js";
 import { loadPdfJs } from "./scannedPdfDetection.js";
+import { createBrowserOcrWorker } from "./browserOcrWorker.js";
 
 function abortError() {
   return new DOMException("Local OCR was cancelled.", "AbortError");
@@ -224,7 +225,7 @@ export async function runLocalPdfOcr({
       throw new Error(`Local OCR supports up to ${OCR_PDF_LIMITS.maxPages} pages at a time.`);
     }
 
-    worker = await tesseract.createWorker(language, undefined, {
+    worker = await createBrowserOcrWorker(language, {
       logger: (message) => {
         if (message.status !== "recognizing text") return;
         const completedPages = Math.max(0, activePage - 1);
@@ -237,7 +238,7 @@ export async function runLocalPdfOcr({
           message: `Recognizing page ${activePage} of ${pageCount}…`,
         });
       },
-    });
+    }, tesseract.createWorker);
     signal?.addEventListener("abort", handleAbort, { once: true });
     throwIfAborted(signal);
     await worker.setParameters?.({ preserve_interword_spaces: "1", user_defined_dpi: "300" });

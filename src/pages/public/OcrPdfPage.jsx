@@ -11,6 +11,7 @@ import { ToolGuideContent } from "../../components/public/ToolGuideContent.jsx";
 import { WorkflowErrorState } from "../../components/public/WorkflowErrorState.jsx";
 import { ROUTE_PATHS } from "../../router/routePaths.js";
 import { toolSeoSchemas } from "../../tools/toolSeoSchemas.js";
+import { createBrowserOcrWorker } from "../../tools/browserOcrWorker.js";
 import {
   createSearchablePdfFromOcrPages,
   enhanceOcrImageData,
@@ -117,12 +118,12 @@ export function OcrPdfPage({ tool }) {
     try {
       const [{ createWorker }, pdfjs] = await Promise.all([import("tesseract.js"), loadPdfRenderer()]);
       let activePage = 0;
-      worker = await createWorker(language, undefined, { logger: (message) => {
+      worker = await createBrowserOcrWorker(language, { logger: (message) => {
         if (message.status === "recognizing text") {
           const completed = (activePage + Number(message.progress || 0)) / Math.max(1, pageCount);
           setProgress(Math.max(2, Math.min(96, Math.round(completed * 96))));
         }
-      } });
+      } }, createWorker);
       await worker.setParameters({ preserve_interword_spaces: "1", user_defined_dpi: "300" });
       const documentProxy = await pdfjs.getDocument({ data: sourceBytes.slice(0) }).promise;
       const pages = [];

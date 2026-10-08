@@ -16,6 +16,7 @@ import { trackProductEvent, trackUploadValidationFailure } from "../../analytics
 import { PageMetadata } from "../../components/public/PageMetadata.jsx";
 import { ToolGuideContent } from "../../components/public/ToolGuideContent.jsx";
 import { WorkflowErrorState } from "../../components/public/WorkflowErrorState.jsx";
+import { createBrowserOcrWorker } from "../../tools/browserOcrWorker.js";
 import { ROUTE_PATHS } from "../../router/routePaths.js";
 import { toolSeoSchemas } from "../../tools/toolSeoSchemas.js";
 import { createOpenCvWorkerPreprocessor } from "../../tools/browserOcrPipeline.js";
@@ -170,9 +171,9 @@ export function ScanPdfPage({ tool }) {
       if (isSearchable) {
         const { createWorker } = await import("tesseract.js");
         let activePage = 0;
-        worker = await createWorker("eng", undefined, { logger: (message) => {
+        worker = await createBrowserOcrWorker("eng", { logger: (message) => {
           if (message.status === "recognizing text") setProgress(Math.min(96, Math.round((activePage + Number(message.progress || 0)) / pages.length * 96)));
-        } });
+        } }, createWorker);
         for (let index = 0; index < pages.length; index += 1) {
           activePage = index;
           const canvas = await renderPage(pages[index], cleanupPreprocessor);

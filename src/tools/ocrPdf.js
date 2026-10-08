@@ -128,11 +128,13 @@ export function enhanceOcrImageData(imageData, mode = "auto") {
 
   const low = percentileFromHistogram(histogram, pixelCount, 0.01);
   const high = percentileFromHistogram(histogram, pixelCount, 0.99);
-  const range = Math.max(24, high - low);
+  const range = high - low;
   const threshold = mode === "document" ? otsuThreshold(histogram, pixelCount) : null;
   const leveled = new Uint8ClampedArray(pixelCount);
   for (let pixel = 0; pixel < pixelCount; pixel += 1) {
-    let value = Math.round(((grayscale[pixel] - low) / range) * 255);
+    // Sparse text and blank pages can have identical percentile endpoints.
+    // Keep those pixels unchanged instead of mapping white paper to black.
+    let value = range >= 24 ? Math.round(((grayscale[pixel] - low) / range) * 255) : grayscale[pixel];
     value = Math.max(0, Math.min(255, value));
     if (threshold !== null) value = grayscale[pixel] <= threshold ? 0 : 255;
     leveled[pixel] = value;

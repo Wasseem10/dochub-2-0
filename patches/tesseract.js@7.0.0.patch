@@ -1,0 +1,28 @@
+diff --git a/src/createWorker.js b/src/createWorker.js
+index 89b53b89b27f6579155ed2a0ef372fa8c2a8b8e6..9a7708b81dabfdef2fe81ab1665f1b74afa4aef4 100644
+--- a/src/createWorker.js
++++ b/src/createWorker.js
+@@ -41,7 +41,10 @@ module.exports = async (langs = 'eng', oem = OEM.LSTM_ONLY, _options = {}, confi
+     workerResResolve = resolve;
+     workerResReject = reject;
+   });
+-  const workerError = (event) => { workerResReject(event.message); };
++  const workerError = (event) => {
++    terminateWorker(worker);
++    workerResReject(event.message);
++  };
+ 
+   let worker = spawnWorker(options);
+   worker.onerror = workerError;
+@@ -240,7 +243,10 @@ module.exports = async (langs = 'eng', oem = OEM.LSTM_ONLY, _options = {}, confi
+     .then(() => loadLanguageInternal(langs))
+     .then(() => initializeInternal(langs, oem, config))
+     .then(() => workerResResolve(resolveObj))
+-    .catch(() => {});
++    .catch((error) => {
++      terminate();
++      workerResReject(error);
++    });
+ 
+   return workerRes;
+ };

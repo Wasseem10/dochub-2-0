@@ -1,11 +1,12 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
+import { ocrAssetsPlugin } from "./scripts/ocr-assets-plugin.mjs";
 
 const githubPagesBase = process.env.GITHUB_ACTIONS === "true" ? "/dochub-2-0/" : "/";
 
 export default defineConfig({
   base: githubPagesBase,
-  plugins: [react({ jsxRuntime: "automatic" })],
+  plugins: [react({ jsxRuntime: "automatic" }), ocrAssetsPlugin()],
   publicDir: "runtime-public",
   envPrefix: "VITE_",
   optimizeDeps: {
