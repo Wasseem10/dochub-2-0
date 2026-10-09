@@ -139,19 +139,20 @@ export function parseXlsxWorkbook(input) {
   return { sheets, truncated: allSheetMatches.length > TO_PDF_LIMITS.maxSheets };
 }
 
-function pdfText(value) {
-  return String(value ?? "")
-    .replace(/[‘’]/g, "'")
-    .replace(/[“”]/g, '"')
-    .replace(/[–—]/g, "-")
-    .replace(/…/g, "...")
-    .normalize("NFKD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^\x20-\x7E\n]/g, "?");
+function pdfText(value, font) {
+  // Compose equivalent accents without transliterating or replacing content.
+  const text = String(value ?? "").normalize("NFC");
+  try {
+    // Validate against the actual font. Line breaks and tabs are layout controls.
+    font.encodeText(text.replace(/[\t\r\n]/g, " "));
+  } catch {
+    throw new Error("This document contains text the current PDF font cannot preserve. Conversion stopped to avoid changing or losing text.");
+  }
+  return text;
 }
 
 function fitText(value, width, font, size) {
-  const text = pdfText(value).replace(/\s+/g, " ").trim();
+  const text = pdfText(value, font).replace(/\s+/g, " ").trim();
   if (!text || font.widthOfTextAtSize(text, size) <= width) return text;
   let low = 0;
   let high = text.length;
@@ -192,7 +193,7 @@ export async function createPdfFromWorkbook(workbook, { title = "Spreadsheet" } 
     groups.forEach((group, groupIndex) => {
       for (let rowStart = 0; rowStart < sourceRows.length; rowStart += rowsPerPage) {
         const page = pdf.addPage([pageWidth, pageHeight]);
-        page.drawText(pdfText(sheet.name), { x: margin, y: pageHeight - 34, size: 17, font: bold, color: rgb(0.08, 0.13, 0.25) });
+        page.drawText(pdfText(sheet.name, bold), { x: margin, y: pageHeight - 34, size: 17, font: bold, color: rgb(0.08, 0.13, 0.25) });
         page.drawText(`Columns ${group.start + 1}-${group.end}${groups.length > 1 ? ` · section ${groupIndex + 1} of ${groups.length}` : ""}`, { x: margin, y: pageHeight - 51, size: 8, font: regular, color: rgb(0.38, 0.44, 0.55) });
         let y = pageHeight - 76;
         const scale = Math.min(1, tableWidth / Math.max(1, group.total));
@@ -210,11 +211,11 @@ export async function createPdfFromWorkbook(workbook, { title = "Spreadsheet" } 
           });
           y -= rowHeight;
         });
-        page.drawText(`PDFEnrich · ${title}`, { x: margin, y: 18, size: 7.5, font: regular, color: rgb(0.48, 0.53, 0.62) });
+        page.drawText(pdfText(`PDFEnrich · ${title}`, regular), { x: margin, y: 18, size: 7.5, font: regular, color: rgb(0.48, 0.53, 0.62) });
       }
     });
   });
-  pdf.setTitle(pdfText(title));
+  pdf.setTitle(String(title));
   pdf.setCreator("PDFEnrich");
   pdf.setProducer("PDFEnrich browser spreadsheet conversion");
   return pdf.save();
@@ -316,7 +317,7 @@ export async function createPdfFromPresentation(presentation, { title = "Present
       if (!element.text) continue;
       const font = element.bold ? bold : regular;
       const size = Math.max(6, Math.min(44, element.size * (pageWidth / 960)));
-      const lines = element.text.split("\n");
+      const lines = pdfText(element.text, font).split("\n");
       let textY = y + height - size - 4;
       for (const line of lines) {
         if (textY < y + 2) break;
@@ -325,7 +326,7 @@ export async function createPdfFromPresentation(presentation, { title = "Present
       }
     }
   }
-  pdf.setTitle(pdfText(title));
+  pdf.setTitle(String(title));
   pdf.setCreator("PDFEnrich");
   pdf.setProducer("PDFEnrich browser presentation conversion");
   return pdf.save();
