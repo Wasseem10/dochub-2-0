@@ -18,7 +18,7 @@
   <a href="https://pdfenrich.com/terms">Terms</a>
 </p>
 
-![PDFEnrich editor workspace](pdf-editor/runtime-public/product-assets/pdfenrich-editor-workspace.png)
+[![PDFEnrich landing page](https://github.com/user-attachments/assets/d7690958-bfaf-4ab2-8d55-1d15eef89a74)](https://pdfenrich.com)
 
 ## Explore the project
 
@@ -183,3 +183,4 @@ Implementation in this repository is not proof that a cloud control is active in
 ## License
 
 No open-source license is currently included with this repository. All rights are reserved.
+
