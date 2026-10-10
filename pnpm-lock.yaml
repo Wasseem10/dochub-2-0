@@ -85,6 +85,9 @@ importers:
       react-router-dom:
         specifier: ^7.18.4
         version: 7.18.4(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+      ssf:
+        specifier: 0.11.2
+        version: 0.11.2
       tesseract.js:
         specifier: 7.0.0
         version: 7.0.0(patch_hash=64e4fe61b77c97b52429d02be3af966775ffe3b8f926b2b6856fd32077eafb4f)
@@ -1282,6 +1285,10 @@ packages:
   flatted@3.4.2:
     resolution: {integrity: sha512-PjDse7RzhcPkIJwy5t7KPWQSZ9cAbzQXcafsetQoD7sOJRQlGikNbx7yZp2OotDnJyrDcbyRq3Ttb18iYOqkxA==}
 
+  frac@1.1.2:
+    resolution: {integrity: sha512-w/XBfkibaTl3YDqASwfDUqkna4Z2p9cFSr1aHDt0WoMTECnRfBOv2WArlZILlqgWlmdIlALXGpM2AOhEk5W3IA==}
+    engines: {node: '>=0.8'}
+
   fsevents@2.3.2:
     resolution: {integrity: sha512-xiqMQR4xAeHTuB9uWm+fFRcIOgKBMiOBP+eXiyT7jsgVCq1bkVygt00oASowB7EdtpOHaaPgKt812P9ab+DDKA==}
     engines: {node: ^8.16.0 || ^10.6.0 || >=11.0.0}
@@ -1667,6 +1674,10 @@ packages:
   source-map-js@1.2.1:
     resolution: {integrity: sha512-UXWMKhLOwVKb728IUtQPXxfYU+usdybtUrK/8uGE8CQMvrhOpwvzDBwj0QhSL7MQc7vIsISBG8VQ8+IDQxpfQA==}
     engines: {node: '>=0.10.0'}
+
+  ssf@0.11.2:
+    resolution: {integrity: sha512-+idbmIXoYET47hH+d7dfm2epdOMUDjqcB4648sTZ+t2JwoyBFL/insLfB/racrDmsKB3diwsDA696pZMieAC5g==}
+    engines: {node: '>=0.8'}
 
   stackback@0.0.2:
     resolution: {integrity: sha512-1XMJE5fQo1jGH6Y/7ebnwPOBEkIEnT4QF32d5R1+VXdXveM0IBMJt8zfaxX1P3QhVwrYe+576+jkANtSS2mBbw==}
@@ -3091,6 +3102,8 @@ snapshots:
 
   flatted@3.4.2: {}
 
+  frac@1.1.2: {}
+
   fsevents@2.3.2:
     optional: true
 
@@ -3434,6 +3447,10 @@ snapshots:
   siginfo@2.0.0: {}
 
   source-map-js@1.2.1: {}
+
+  ssf@0.11.2:
+    dependencies:
+      frac: 1.1.2
 
   stackback@0.0.2: {}
 

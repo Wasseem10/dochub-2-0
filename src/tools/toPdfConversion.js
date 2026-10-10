@@ -1,5 +1,6 @@
 import { strFromU8, unzipSync } from "fflate";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
+import SSF from "ssf";
 
 export const TO_PDF_LIMITS = Object.freeze({
   maxInputBytes: 20 * 1024 * 1024,
@@ -105,11 +106,43 @@ function inlineText(xml) {
   return elementBodies(xml, "t").map((entry) => decodeEntities(entry.body.replace(/<[^>]+>/g, ""))).join("");
 }
 
+function spreadsheetNumberFormatter(stylesXml, workbookXml) {
+  // Keep custom formats scoped to this workbook; never mutate SSF's global table.
+  const table = { ...SSF.get_table() };
+  for (const match of stylesXml.matchAll(/<numFmt\b([^>]*)>/g)) {
+    const attrs = attributes(match[1]);
+    table[attrs.numFmtId] = attrs.formatCode;
+  }
+  const cellXfs = elementBodies(stylesXml, "cellXfs")[0]?.body || "";
+  const styles = [...cellXfs.matchAll(/<xf\b([^>]*)>/g)].map((match) => Number(attributes(match[1]).numFmtId || 0));
+  const workbookPr = attributes(workbookXml.match(/<workbookPr\b([^>]*)>/)?.[1]);
+  const date1904 = ["1", "true"].includes(workbookPr.date1904);
+  return (value, style) => {
+    if (!value.trim()) return value;
+    try {
+      const index = Number(style || 0);
+      const format = styles.length ? styles[index] : index === 0 ? 0 : undefined;
+      if (!Number.isInteger(index) || !Number.isInteger(format) || format < 0) throw new Error();
+      if (format === 0) return value;
+      // Missing custom definitions must not silently fall back to General.
+      if (format >= 164 && typeof table[format] !== "string") throw new Error();
+      if (table[format]?.length > 1024) throw new Error();
+      const numeric = Number(value);
+      if (!Number.isFinite(numeric)) throw new Error();
+      return SSF.format(format, numeric, { table, date1904 });
+    } catch {
+      // Format strings and stored values can contain private document content.
+      throw new Error("This spreadsheet contains a number format PDFEnrich cannot preserve. Conversion stopped to avoid changing cell values.");
+    }
+  };
+}
+
 export function parseXlsxWorkbook(input) {
   const files = archiveFiles(input, "xl/");
   const workbookXml = decodeXml(files["xl/workbook.xml"]);
   if (!workbookXml) throw new Error("This XLSX file does not contain a workbook.");
   const workbookRels = relationships(decodeXml(files["xl/_rels/workbook.xml.rels"]));
+  const formatNumber = spreadsheetNumberFormatter(decodeXml(files["xl/styles.xml"]), workbookXml);
   const sharedStrings = elementBodies(decodeXml(files["xl/sharedStrings.xml"]), "si").map((entry) => inlineText(entry.body));
   const allSheetMatches = [...workbookXml.matchAll(/<sheet\b([^>]*)\/?>(?:<\/sheet>)?/g)];
   const sheetMatches = allSheetMatches.slice(0, TO_PDF_LIMITS.maxSheets);
@@ -129,6 +162,7 @@ export function parseXlsxWorkbook(input) {
         let value = cell.attrs.t === "inlineStr" ? inlineText(cell.body) : decodeEntities(rawValue.replace(/<[^>]+>/g, ""));
         if (cell.attrs.t === "s") value = sharedStrings[Number(value)] ?? "";
         if (cell.attrs.t === "b") value = value === "1" ? "TRUE" : "FALSE";
+        if (!cell.attrs.t || cell.attrs.t === "n") value = formatNumber(value, cell.attrs.s);
         values[column] = value;
       }
       while (values.length && values.at(-1) == null) values.pop();

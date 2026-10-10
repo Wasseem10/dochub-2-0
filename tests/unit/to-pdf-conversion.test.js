@@ -1,8 +1,10 @@
 import PptxGenJS from "pptxgenjs";
+import { strFromU8, strToU8, unzipSync, zipSync } from "fflate";
 import { PDFDocument } from "pdf-lib";
 import * as pdfjs from "pdfjs-dist/legacy/build/pdf.mjs";
 import { describe, expect, it } from "vitest";
 import { createXlsxFromPdfPages } from "../../src/tools/structuredPdfConversion.js";
+import { formattedValues, formattedXlsx } from "../fixtures/xlsx-number-formats.mjs";
 import { createPdfFromPresentation, createPdfFromWorkbook, parsePptxPresentation, parseXlsxWorkbook, validateToPdfFile } from "../../src/tools/toPdfConversion.js";
 
 async function pdfText(bytes) {
@@ -20,10 +22,34 @@ async function pdfText(bytes) {
 }
 
 describe("Office files to PDF", () => {
+  it("retains numeric display formats instead of exposing raw stored values", async () => {
+    const workbook = parseXlsxWorkbook(formattedXlsx());
+    expect(workbook.sheets[0].rows.slice(1).map((row) => row[1])).toEqual(formattedValues);
+    const bytes = await createPdfFromWorkbook(workbook, { title: "Formats" });
+    expect((await PDFDocument.load(bytes)).getPageCount()).toBe(1);
+    const text = await pdfText(bytes);
+    for (const value of formattedValues.filter(Boolean)) expect(text).toContain(value);
+  });
+
+  it("honors the workbook date system and keeps custom formats local to each file", () => {
+    expect(parseXlsxWorkbook(formattedXlsx({ date1904: true })).sheets[0].rows[1][1]).toBe("2024-01-01");
+    expect(parseXlsxWorkbook(formattedXlsx({ currency: "£" })).sheets[0].rows[4][1]).toBe("£1,234.50");
+    expect(parseXlsxWorkbook(formattedXlsx()).sheets[0].rows[4][1]).toBe("€1,234.50");
+  });
+
+  it("stops with a safe error for invalid or missing number formats", () => {
+    expect(() => parseXlsxWorkbook(formattedXlsx({ currencyFormat: "invalid-private-format" }))).toThrow("This spreadsheet contains a number format PDFEnrich cannot preserve.");
+    const files = unzipSync(formattedXlsx());
+    files["xl/styles.xml"] = strToU8(strFromU8(files["xl/styles.xml"]).replace('numFmtId="166" formatCode=', 'numFmtId="168" formatCode='));
+    expect(() => parseXlsxWorkbook(zipSync(files))).toThrow(/cannot preserve/);
+    files["xl/worksheets/sheet1.xml"] = strToU8(strFromU8(files["xl/worksheets/sheet1.xml"]).replace('s="1"', 's="99"'));
+    expect(() => parseXlsxWorkbook(zipSync(files))).toThrow(/cannot preserve/);
+  });
+
   it("parses XLSX values and produces paginated PDF tables", async () => {
     const xlsx = createXlsxFromPdfPages([{ name: "Revenue", rows: [["Quarter", "Total"], ["Q1", "42000"]] }]);
     const workbook = parseXlsxWorkbook(xlsx);
-    expect(workbook.sheets[0]).toMatchObject({ name: "Revenue", rows: [["Quarter", "Total"], ["Q1", "42000"]] });
+    expect(workbook.sheets[0]).toMatchObject({ name: "Revenue", rows: [["Quarter", "Total"], ["Q1", "42,000.00"]] });
     const pdf = await PDFDocument.load(await createPdfFromWorkbook(workbook, { title: "Revenue" }));
     expect(pdf.getPageCount()).toBe(1);
   });

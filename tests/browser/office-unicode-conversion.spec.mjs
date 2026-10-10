@@ -4,6 +4,7 @@ import { PDFDocument } from "pdf-lib";
 import * as pdfjs from "pdfjs-dist/legacy/build/pdf.mjs";
 import PptxGenJS from "pptxgenjs";
 import { createXlsxFromPdfPages } from "../../src/tools/structuredPdfConversion.js";
+import { formattedValues, formattedXlsx } from "../fixtures/xlsx-number-formats.mjs";
 
 const appPath = (path) => process.env.GITHUB_ACTIONS === "true" ? `/dochub-2-0${path}` : path;
 const config = JSON.parse(await readFile(new URL("../../vercel.json", import.meta.url), "utf8"));
@@ -108,4 +109,53 @@ test("unsupported Office text reports an error without releasing a substituted P
     await expect(action).toBeEnabled();
   }
   expect(downloaded).toEqual([]);
+});
+
+test("Excel downloads retain dates, percentages, currency and leading zeros", async ({ page }, testInfo) => {
+  for (const date1904 of [false, true]) {
+    await page.goto(appPath("/excel-to-pdf"));
+    await page.locator('input[type="file"]').setInputFiles({ name: "Formats.xlsx", mimeType: spreadsheet().mimeType, buffer: Buffer.from(formattedXlsx({ date1904 })) });
+    const action = page.getByRole("button", { name: "Download PDF", exact: true });
+    await expect(action).toBeEnabled();
+    const pending = page.waitForEvent("download");
+    await action.click();
+    const downloaded = await pending;
+    expect(downloaded.suggestedFilename()).toBe("Formats.pdf");
+    await downloaded.saveAs(testInfo.outputPath(`number-formats-${date1904 ? 1904 : 1900}.pdf`));
+    const bytes = await readFile(await downloaded.path());
+    await checkPdf(bytes, 1, formattedValues.filter(Boolean));
+    await page.goto(appPath("/edit-pdf"));
+    await page.locator('input[type="file"]').first().setInputFiles({ name: "Formats.pdf", mimeType: "application/pdf", buffer: bytes });
+    await expect(page.getByRole("img", { name: "PDF page 1", exact: true })).toBeVisible();
+    await page.screenshot({ path: testInfo.outputPath(`number-formats-${date1904 ? 1904 : 1900}.png`) });
+  }
+});
+
+test("homepage Excel upload and editor download retain numeric display formats", async ({ page }) => {
+  await page.goto(appPath("/"));
+  await page.locator(".freepdf-page > input[type='file']").setInputFiles({ name: "Formats.xlsx", mimeType: spreadsheet().mimeType, buffer: Buffer.from(formattedXlsx()) });
+  await expect(page).toHaveURL(/\/edit-pdf\?[^#]*document=/);
+  await expect(page.getByRole("img", { name: "PDF page 1", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Finish", exact: true }).click();
+  const pending = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Download PDF", exact: true }).click();
+  await checkPdf(await readFile(await (await pending).path()), 1, formattedValues.filter(Boolean));
+});
+
+test("invalid Excel formats stop conversion and allow a new valid upload", async ({ page }) => {
+  const downloads = [];
+  page.on("download", (download) => downloads.push(download));
+  await page.goto(appPath("/excel-to-pdf"));
+  const input = page.locator('input[type="file"]');
+  await input.setInputFiles({ name: "Formats.xlsx", mimeType: spreadsheet().mimeType, buffer: Buffer.from(formattedXlsx({ currencyFormat: "invalid-private-format" })) });
+  await expect(page.getByRole("alert")).toContainText("cannot preserve");
+  await expect(page.getByRole("alert")).not.toContainText("invalid-private-format");
+  const action = page.getByRole("button", { name: "Download PDF", exact: true });
+  await expect(action).toBeDisabled();
+  expect(downloads).toEqual([]);
+  await input.setInputFiles({ name: "Formats.xlsx", mimeType: spreadsheet().mimeType, buffer: Buffer.from(formattedXlsx({ currency: "£" })) });
+  await expect(action).toBeEnabled();
+  const pending = page.waitForEvent("download");
+  await action.click();
+  await checkPdf(await readFile(await (await pending).path()), 1, ["2024-01-01", "£1,234.50", "(£12.50)"]);
 });
