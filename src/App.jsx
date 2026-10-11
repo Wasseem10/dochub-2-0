@@ -6409,7 +6409,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
         </div>
         <div className="reference-header-actions" aria-label="Document actions">
           <button type="button" onClick={saveDocumentToAccount}><Save size={21} /><span>Save to account</span></button>
-          <button type="button" onClick={printPdf} disabled={isExporting}><PhPrinter size={22} /><span>{isExporting ? "Preparing…" : "Print"}</span></button>
+          <button type="button" aria-label={isExporting ? "Preparing PDF" : "Print"} onClick={printPdf} disabled={isExporting}><PhPrinter size={22} /><span>{isExporting ? "Preparing…" : "Print"}</span></button>
           <button type="button" aria-label={isExporting ? "Preparing PDF" : "Download"} onClick={exportPdf} disabled={isExporting}><PhDownload size={22} /><span>{isExporting ? "Preparing…" : "Download"}</span></button>
           {publicTool === "share-pdf" && (
             <button type="button" aria-label="Share PDF" onClick={openShareSettings}><Share2 size={23} /><span>Share</span></button>

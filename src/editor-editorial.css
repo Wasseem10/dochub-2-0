@@ -593,13 +593,31 @@ main.editor-shell .annotation-controls button:hover {
   }
 
   main.editor-shell .reference-file-header {
-    grid-template-columns: minmax(116px, 1fr) auto !important;
+    grid-template-columns: max-content minmax(0, 1fr) auto !important;
+    column-gap: 12px !important;
     min-height: 56px !important;
     height: 56px !important;
     padding-inline: 10px !important;
   }
 
   main.editor-shell .reference-document-meta {
+    display: flex !important;
+    min-width: 0 !important;
+  }
+
+  main.editor-shell .reference-brand-name .brand-wordmark--logo {
+    width: auto !important;
+    height: 30px !important;
+    font-size: 16px !important;
+  }
+
+  main.editor-shell .reference-document-name {
+    width: 100% !important;
+    max-width: none !important;
+    justify-content: flex-start !important;
+  }
+
+  main.editor-shell .reference-save-state {
     display: none !important;
   }
 
@@ -661,14 +679,15 @@ main.editor-shell .annotation-controls button:hover {
    control inside the viewport without introducing a sideways page gutter. */
 @media (max-width: 600px) {
   main.editor-shell .reference-file-header {
-    grid-template-columns: 92px minmax(0, 1fr) auto !important;
+    grid-template-columns: max-content minmax(0, 1fr) auto !important;
     column-gap: 6px !important;
     padding-inline: 8px !important;
   }
 
   main.editor-shell .reference-brand-name .brand-wordmark--logo {
-    width: 88px !important;
+    width: auto !important;
     height: 22px !important;
+    font-size: 13px !important;
   }
 
   main.editor-shell .reference-document-meta {
@@ -787,14 +806,15 @@ main.editor-shell .annotation-controls button:hover {
 
 @media (max-width: 360px) {
   main.editor-shell .reference-file-header {
-    grid-template-columns: 72px minmax(0, 1fr) auto !important;
+    grid-template-columns: max-content minmax(0, 1fr) auto !important;
     column-gap: 4px !important;
     padding-inline: 6px !important;
   }
 
   main.editor-shell .reference-brand-name .brand-wordmark--logo {
-    width: 70px !important;
+    width: auto !important;
     height: 18px !important;
+    font-size: 11.5px !important;
   }
 
   main.editor-shell .reference-document-name {
