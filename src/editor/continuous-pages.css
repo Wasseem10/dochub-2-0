@@ -14,6 +14,14 @@ main.editor-shell .document-stage--continuous > .page-surface {
   flex: 0 0 auto !important;
 }
 
+/* Recovery controls must receive input above the page's annotation layer. */
+main.editor-shell .page-surface > .pdf-page-unavailable {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  box-sizing: border-box;
+}
+
 @media (max-width: 900px) {
   main.editor-shell .canvas-column > .document-stage.document-stage--continuous {
     gap: 18px;

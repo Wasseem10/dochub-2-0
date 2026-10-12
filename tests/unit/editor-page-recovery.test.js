@@ -2,10 +2,26 @@ import { describe, expect, it, vi } from "vitest";
 import {
   PdfPageRenderTimeoutError,
   recoverPdfPageRender,
+  serializePdfPageCanvas,
   withPdfPageDeadline,
 } from "../../src/tools/editorPageRecovery.js";
 
 describe("editor page recovery", () => {
+  it("rejects silent canvas encoding failures instead of releasing an empty image", () => {
+    for (const image of ["data:,", "", "data:image/png;base64,", null]) {
+      expect(() => serializePdfPageCanvas({ toDataURL: () => image })).toThrow("The PDF page preview could not be created.");
+    }
+  });
+
+  it("preserves successful PNG and JPEG encoding with the requested quality", () => {
+    const toDataURL = vi.fn().mockReturnValue("data:image/png;base64,iVBOR");
+    expect(serializePdfPageCanvas({ toDataURL })).toBe("data:image/png;base64,iVBOR");
+    expect(toDataURL).toHaveBeenLastCalledWith("image/png", 0.88);
+    toDataURL.mockReturnValue("data:image/jpeg;base64,/9j/");
+    expect(serializePdfPageCanvas({ toDataURL }, { recovery: true })).toBe("data:image/jpeg;base64,/9j/");
+    expect(toDataURL).toHaveBeenLastCalledWith("image/jpeg", 0.88);
+  });
+
   it("turns an unresolved render into a timeout and cancels its work", async () => {
     const onTimeout = vi.fn();
     await expect(withPdfPageDeadline(new Promise(() => {}), {

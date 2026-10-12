@@ -1,6 +1,16 @@
 export const PDF_PAGE_RENDER_TIMEOUT_MS = 8_000;
 export const PDF_PAGE_RENDER_ATTEMPTS = 2;
 
+export function serializePdfPageCanvas(canvas, { recovery = false } = {}) {
+  const image = canvas.toDataURL(recovery ? "image/jpeg" : "image/png", 0.88);
+  // Canvas serialization can return "data:," without throwing. Treat it as
+  // a failed render so the bounded retry can use a smaller JPEG canvas.
+  if (typeof image !== "string" || !/^data:image\/(?:png|jpeg);base64,[A-Za-z0-9+/]/.test(image)) {
+    throw new Error("The PDF page preview could not be created.");
+  }
+  return image;
+}
+
 export class PdfPageRenderTimeoutError extends Error {
   constructor(label = "PDF page", timeoutMs = PDF_PAGE_RENDER_TIMEOUT_MS) {
     super(`${label} did not finish rendering within ${Math.round(timeoutMs / 1000)} seconds.`);

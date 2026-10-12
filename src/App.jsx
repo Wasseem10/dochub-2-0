@@ -175,7 +175,7 @@ import { circleFrameFromDrag, directedLineFrameFromPoints, directedLineSvgGeomet
 import { normalizedPointerInRect } from "./tools/editorPointerCoordinates.js";
 import { createTextAnnotation, EDITOR_TEXT_MIN_HEIGHT, EDITOR_TEXT_MIN_WIDTH, estimateTextAnnotationSize, normalizeEditorText, shouldDiscardTextAnnotation } from "./tools/editorTextObjects.js";
 import { canMergeDetectedTextRuns, detectedTextBaseline, detectedTextRotation, detectedTextSourceFrame, layoutDetectedText, resolveDetectedTextStyle, sampleDetectedTextBackground, splitDetectedTextRun, standardPdfFontVariant } from "./tools/editorDetectedText.js";
-import { recoverPdfPageRender, withPdfPageDeadline } from "./tools/editorPageRecovery.js";
+import { recoverPdfPageRender, serializePdfPageCanvas, withPdfPageDeadline } from "./tools/editorPageRecovery.js";
 import {
   editorPdfRenderScale,
   pdfPageHydrationTimeoutMs,
@@ -995,7 +995,7 @@ async function renderPdfEditorPage(
       pdfHeight: textViewport.height,
       width: displayWidth,
       height: displayHeight,
-      image: canvas.toDataURL(lowMemoryRecovery ? "image/jpeg" : "image/png", 0.88),
+      image: serializePdfPageCanvas(canvas, { recovery: lowMemoryRecovery }),
       text: pageText,
       source: "pdf",
       hasDetectedText: pageText.length > 0,
@@ -1267,7 +1267,13 @@ function PdfPageLoading({ pageNumber, compact = false, recovering = false }) {
 
 function PdfPageUnavailable({ pageNumber, compact = false, onRetry }) {
   return (
-    <div className={`pdf-page-unavailable ${compact ? "is-compact" : ""}`} role="alert">
+    <div
+      className={`pdf-page-unavailable ${compact ? "is-compact" : ""}`}
+      role="alert"
+      onPointerDown={(event) => event.stopPropagation()}
+      onPointerUp={(event) => event.stopPropagation()}
+      onClick={(event) => event.stopPropagation()}
+    >
       <FileText size={compact ? 16 : 28} />
       {!compact && <><strong>Page {pageNumber} needs to reload</strong><span>The PDF is still safe in this browser.</span></>}
       <button type="button" onClick={onRetry}>{compact ? "Retry" : "Reload page"}</button>
