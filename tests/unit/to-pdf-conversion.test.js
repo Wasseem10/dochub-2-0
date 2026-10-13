@@ -5,6 +5,7 @@ import * as pdfjs from "pdfjs-dist/legacy/build/pdf.mjs";
 import { describe, expect, it } from "vitest";
 import { createXlsxFromPdfPages } from "../../src/tools/structuredPdfConversion.js";
 import { formattedValues, formattedXlsx } from "../fixtures/xlsx-number-formats.mjs";
+import { longCellNotes, longCellReference, longCellsXlsx } from "../fixtures/xlsx-long-cells.mjs";
 import { createPdfFromPresentation, createPdfFromWorkbook, parsePptxPresentation, parseXlsxWorkbook, validateToPdfFile } from "../../src/tools/toPdfConversion.js";
 
 async function pdfText(bytes) {
@@ -21,7 +22,46 @@ async function pdfText(bytes) {
   }
 }
 
+async function tableColumnText(bytes, x) {
+  const task = pdfjs.getDocument({ data: new Uint8Array(bytes), verbosity: 0 });
+  try {
+    const document = await task.promise;
+    const lines = [];
+    for (let number = 1; number <= document.numPages; number += 1) {
+      const content = await (await document.getPage(number)).getTextContent();
+      lines.push(...content.items.filter((item) => Math.abs(item.transform[4] - x) < 1 && Math.abs(item.height - 8.5) < 0.1).map((item) => item.str));
+    }
+    return lines.join("").replace(/\s/g, "");
+  } finally {
+    await task.destroy();
+  }
+}
+
 describe("Office files to PDF", () => {
+  it("retains long spreadsheet cells, including unbroken values, across PDF pages", async () => {
+    const workbook = parseXlsxWorkbook(longCellsXlsx());
+    const bytes = await createPdfFromWorkbook(workbook);
+    expect((await PDFDocument.load(bytes)).getPageCount()).toBeGreaterThan(1);
+    expect(await tableColumnText(bytes, 40)).toBe(`Notes${longCellNotes}Last row`.replace(/\s/g, ""));
+    expect(await tableColumnText(bytes, 194)).toBe(`Reference${longCellReference}REF 00042`.replace(/\s/g, ""));
+  });
+
+  it("wraps explicit line breaks and keeps following rows separate", async () => {
+    const bytes = await createPdfFromWorkbook({ sheets: [{ name: "Rows", rows: [["Header"], ["First line\nSecond line"], ["Following row"]] }] });
+    expect((await PDFDocument.load(bytes)).getPageCount()).toBe(1);
+    const task = pdfjs.getDocument({ data: new Uint8Array(bytes), verbosity: 0 });
+    try {
+      const content = await (await (await task.promise).getPage(1)).getTextContent();
+      const first = content.items.find((item) => item.str === "First line");
+      const second = content.items.find((item) => item.str === "Second line");
+      const following = content.items.find((item) => item.str === "Following row");
+      expect(first.transform[5] - second.transform[5]).toBe(12);
+      expect(second.transform[5] - following.transform[5]).toBeGreaterThanOrEqual(12);
+    } finally {
+      await task.destroy();
+    }
+  });
+
   it("retains numeric display formats instead of exposing raw stored values", async () => {
     const workbook = parseXlsxWorkbook(formattedXlsx());
     expect(workbook.sheets[0].rows.slice(1).map((row) => row[1])).toEqual(formattedValues);

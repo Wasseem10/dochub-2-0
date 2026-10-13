@@ -198,6 +198,32 @@ function fitText(value, width, font, size) {
   return `${text.slice(0, Math.max(0, low))}...`;
 }
 
+function wrapTableText(value, width, font, size) {
+  const lines = [];
+  for (const paragraph of pdfText(value, font).replace(/\r\n?/g, "\n").split("\n")) {
+    let line = "";
+    for (const character of paragraph.replace(/\s+/g, " ").trim()) {
+      if (line && font.widthOfTextAtSize(line + character, size) > width) {
+        const space = line.lastIndexOf(" ");
+        if (space > 0) {
+          lines.push(line.slice(0, space));
+          line = line.slice(space + 1);
+        } else {
+          lines.push(line);
+          line = "";
+        }
+        if (line && font.widthOfTextAtSize(line + character, size) > width) {
+          lines.push(line);
+          line = "";
+        }
+      }
+      if (character !== " " || line) line += character;
+    }
+    lines.push(line.trimEnd());
+  }
+  return lines;
+}
+
 export async function createPdfFromWorkbook(workbook, { title = "Spreadsheet" } = {}) {
   if (!workbook?.sheets?.length) throw new Error("No spreadsheet sheets were available for conversion.");
   const pdf = await PDFDocument.create();
@@ -223,30 +249,46 @@ export async function createPdfFromWorkbook(workbook, { title = "Spreadsheet" } 
       start = end;
     }
     const sourceRows = sheet.rows.length ? sheet.rows : [["This worksheet is empty."]];
-    const rowsPerPage = 22;
     groups.forEach((group, groupIndex) => {
-      for (let rowStart = 0; rowStart < sourceRows.length; rowStart += rowsPerPage) {
-        const page = pdf.addPage([pageWidth, pageHeight]);
+      const scale = Math.min(1, tableWidth / Math.max(1, group.total));
+      const visibleWidths = widths.slice(group.start, group.end).map((width) => width * scale);
+      const lineHeight = 12;
+      const bottom = 64;
+      let page;
+      let y;
+      const startPage = () => {
+        page = pdf.addPage([pageWidth, pageHeight]);
         page.drawText(pdfText(sheet.name, bold), { x: margin, y: pageHeight - 34, size: 17, font: bold, color: rgb(0.08, 0.13, 0.25) });
         page.drawText(`Columns ${group.start + 1}-${group.end}${groups.length > 1 ? ` · section ${groupIndex + 1} of ${groups.length}` : ""}`, { x: margin, y: pageHeight - 51, size: 8, font: regular, color: rgb(0.38, 0.44, 0.55) });
-        let y = pageHeight - 76;
-        const scale = Math.min(1, tableWidth / Math.max(1, group.total));
-        const visibleWidths = widths.slice(group.start, group.end).map((width) => width * scale);
-        const pageRows = sourceRows.slice(rowStart, rowStart + rowsPerPage);
-        pageRows.forEach((row, rowOffset) => {
-          const rowHeight = 21;
+        page.drawText(pdfText(`PDFEnrich · ${title}`, regular), { x: margin, y: 18, size: 7.5, font: regular, color: rgb(0.48, 0.53, 0.62) });
+        y = pageHeight - 59;
+      };
+      startPage();
+      sourceRows.forEach((row, rowIndex) => {
+        const font = rowIndex === 0 ? bold : regular;
+        const cells = visibleWidths.map((width, column) => wrapTableText(row[group.start + column] ?? "", width - 8, font, 8.5));
+        const rowLines = Math.max(1, ...cells.map((lines) => lines.length));
+        const fullHeight = Math.max(21, rowLines * lineHeight + 8);
+        // Keep a row together when it fits on one page. Larger rows continue
+        // in aligned cell slices instead of losing their remaining text.
+        if (fullHeight <= pageHeight - 59 - bottom && fullHeight > y - bottom) startPage();
+        for (let offset = 0; offset < rowLines;) {
+          if (y - bottom < 21) startPage();
+          const count = Math.min(rowLines - offset, Math.floor((y - bottom - 8) / lineHeight));
+          const rowHeight = Math.max(21, count * lineHeight + 8);
           let x = margin;
-          if (rowStart === 0 && rowOffset === 0) page.drawRectangle({ x, y: y - 4, width: visibleWidths.reduce((sum, width) => sum + width, 0), height: rowHeight, color: rgb(0.9, 0.93, 1) });
+          if (rowIndex === 0) page.drawRectangle({ x, y: y - rowHeight, width: group.total * scale, height: rowHeight, color: rgb(0.9, 0.93, 1) });
           visibleWidths.forEach((width, visibleColumn) => {
-            page.drawRectangle({ x, y: y - 4, width, height: rowHeight, borderWidth: 0.5, borderColor: rgb(0.75, 0.79, 0.86) });
-            const font = rowStart === 0 && rowOffset === 0 ? bold : regular;
-            page.drawText(fitText(row[group.start + visibleColumn] ?? "", width - 8, font, 8.5), { x: x + 4, y: y + 3, size: 8.5, font, color: rgb(0.08, 0.12, 0.2) });
+            page.drawRectangle({ x, y: y - rowHeight, width, height: rowHeight, borderWidth: 0.5, borderColor: rgb(0.75, 0.79, 0.86) });
+            cells[visibleColumn].slice(offset, offset + count).forEach((line, lineIndex) => {
+              page.drawText(line, { x: x + 4, y: y - 14 - lineIndex * lineHeight, size: 8.5, font, color: rgb(0.08, 0.12, 0.2) });
+            });
             x += width;
           });
           y -= rowHeight;
-        });
-        page.drawText(pdfText(`PDFEnrich · ${title}`, regular), { x: margin, y: 18, size: 7.5, font: regular, color: rgb(0.48, 0.53, 0.62) });
-      }
+          offset += count;
+        }
+      });
     });
   });
   pdf.setTitle(String(title));

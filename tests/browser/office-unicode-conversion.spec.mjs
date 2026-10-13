@@ -5,6 +5,7 @@ import * as pdfjs from "pdfjs-dist/legacy/build/pdf.mjs";
 import PptxGenJS from "pptxgenjs";
 import { createXlsxFromPdfPages } from "../../src/tools/structuredPdfConversion.js";
 import { formattedValues, formattedXlsx } from "../fixtures/xlsx-number-formats.mjs";
+import { longCellNotes, longCellReference, longCellsXlsx } from "../fixtures/xlsx-long-cells.mjs";
 
 const appPath = (path) => process.env.GITHUB_ACTIONS === "true" ? `/dochub-2-0${path}` : path;
 const config = JSON.parse(await readFile(new URL("../../vercel.json", import.meta.url), "utf8"));
@@ -52,6 +53,62 @@ async function checkPdf(bytes, pageCount, expected) {
     await task.destroy();
   }
 }
+
+async function checkLongCells(bytes) {
+  const task = pdfjs.getDocument({ data: new Uint8Array(bytes), verbosity: 0 });
+  try {
+    const document = await task.promise;
+    expect(document.numPages).toBeGreaterThan(1);
+    const columns = [[], []];
+    for (let number = 1; number <= document.numPages; number += 1) {
+      const content = await (await document.getPage(number)).getTextContent();
+      for (const item of content.items.filter((item) => Math.abs(item.height - 8.5) < 0.1)) {
+        expect(item.transform[5]).toBeGreaterThanOrEqual(64);
+        expect(item.transform[5]).toBeLessThan(536);
+        const column = Math.abs(item.transform[4] - 40) < 1 ? 0 : Math.abs(item.transform[4] - 194) < 1 ? 1 : -1;
+        if (column >= 0) columns[column].push(item.str);
+      }
+    }
+    expect(columns[0].join("").replace(/\s/g, "")).toBe(`Notes${longCellNotes}Last row`.replace(/\s/g, ""));
+    expect(columns[1].join("").replace(/\s/g, "")).toBe(`Reference${longCellReference}REF 00042`.replace(/\s/g, ""));
+    return document.numPages;
+  } finally {
+    await task.destroy();
+  }
+}
+
+test("long Excel cells retain their complete values in downloaded and rendered pages", async ({ page }, testInfo) => {
+  await page.goto(appPath("/excel-to-pdf"));
+  await page.locator('input[type="file"]').setInputFiles({ name: "Long cells.xlsx", mimeType: spreadsheet().mimeType, buffer: Buffer.from(longCellsXlsx()) });
+  const action = page.getByRole("button", { name: "Download PDF", exact: true });
+  await expect(action).toBeEnabled();
+  const pending = page.waitForEvent("download");
+  await action.click();
+  const download = await pending;
+  expect(download.suggestedFilename()).toBe("Long cells.pdf");
+  await download.saveAs(testInfo.outputPath("long-cells.pdf"));
+  const bytes = await readFile(await download.path());
+  const count = await checkLongCells(bytes);
+  await page.goto(appPath("/edit-pdf"));
+  await page.locator('input[type="file"]').first().setInputFiles({ name: "Long cells.pdf", mimeType: "application/pdf", buffer: bytes });
+  for (let number = 1; number <= count; number += 1) {
+    const image = page.getByRole("img", { name: `PDF page ${number}`, exact: true });
+    await image.scrollIntoViewIfNeeded();
+    await expect.poll(() => image.evaluate((element) => element.complete && element.naturalWidth > 0)).toBe(true);
+    await page.screenshot({ path: testInfo.outputPath(`long-cells-page-${number}.png`) });
+  }
+});
+
+test("homepage Excel upload and editor export retain complete long cell values", async ({ page }) => {
+  await page.goto(appPath("/"));
+  await page.locator(".freepdf-page > input[type='file']").setInputFiles({ name: "Long cells.xlsx", mimeType: spreadsheet().mimeType, buffer: Buffer.from(longCellsXlsx()) });
+  await expect(page).toHaveURL(/\/edit-pdf\?[^#]*document=/);
+  await expect(page.getByRole("img", { name: "PDF page 1", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Finish", exact: true }).click();
+  const pending = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Download PDF", exact: true }).click();
+  await checkLongCells(await readFile(await (await pending).path()));
+});
 
 test("Office tool downloads preserve supported Unicode and render every output page", async ({ page }, testInfo) => {
   const fixtures = [
