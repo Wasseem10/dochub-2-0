@@ -145,7 +145,10 @@ export function parseXlsxWorkbook(input) {
   const formatNumber = spreadsheetNumberFormatter(decodeXml(files["xl/styles.xml"]), workbookXml);
   const sharedStrings = elementBodies(decodeXml(files["xl/sharedStrings.xml"]), "si").map((entry) => inlineText(entry.body));
   const allSheetMatches = [...workbookXml.matchAll(/<sheet\b([^>]*)\/?>(?:<\/sheet>)?/g)];
-  const sheetMatches = allSheetMatches.slice(0, TO_PDF_LIMITS.maxSheets);
+  if (allSheetMatches.length > TO_PDF_LIMITS.maxSheets) {
+    throw new Error(`Excel conversion supports up to ${TO_PDF_LIMITS.maxSheets} worksheets. Conversion stopped to avoid losing sheets.`);
+  }
+  const sheetMatches = allSheetMatches;
   if (!sheetMatches.length) throw new Error("No worksheets were found in this XLSX file.");
 
   const sheets = sheetMatches.map((match, sheetIndex) => {
@@ -153,11 +156,18 @@ export function parseXlsxWorkbook(input) {
     const target = workbookRels.get(sheetAttrs["r:id"]);
     const path = target ? normalizeArchivePath("xl", target) : `xl/worksheets/sheet${sheetIndex + 1}.xml`;
     const sheetXml = decodeXml(files[path]);
+    const sourceRows = elementBodies(sheetXml, "row");
+    if (sourceRows.length > TO_PDF_LIMITS.maxRowsPerSheet) {
+      throw new Error(`Excel conversion supports up to ${TO_PDF_LIMITS.maxRowsPerSheet} rows per worksheet. Conversion stopped to avoid losing rows.`);
+    }
     const rows = [];
-    for (const row of elementBodies(sheetXml, "row").slice(0, TO_PDF_LIMITS.maxRowsPerSheet)) {
+    for (const row of sourceRows) {
       const values = [];
       for (const cell of elementBodies(row.body, "c")) {
-        const column = Math.min(TO_PDF_LIMITS.maxColumnsPerSheet - 1, cellColumnIndex(cell.attrs.r));
+        const column = cellColumnIndex(cell.attrs.r);
+        if (column >= TO_PDF_LIMITS.maxColumnsPerSheet) {
+          throw new Error(`Excel conversion supports up to ${TO_PDF_LIMITS.maxColumnsPerSheet} columns per worksheet. Conversion stopped to avoid changing or losing cells.`);
+        }
         const rawValue = elementBodies(cell.body, "v")[0]?.body || "";
         let value = cell.attrs.t === "inlineStr" ? inlineText(cell.body) : decodeEntities(rawValue.replace(/<[^>]+>/g, ""));
         if (cell.attrs.t === "s") value = sharedStrings[Number(value)] ?? "";
@@ -170,7 +180,7 @@ export function parseXlsxWorkbook(input) {
     }
     return { name: sheetAttrs.name || `Sheet ${sheetIndex + 1}`, rows };
   });
-  return { sheets, truncated: allSheetMatches.length > TO_PDF_LIMITS.maxSheets };
+  return { sheets, truncated: false };
 }
 
 function pdfText(value, font) {

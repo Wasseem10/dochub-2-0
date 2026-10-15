@@ -6,6 +6,7 @@ import PptxGenJS from "pptxgenjs";
 import { createXlsxFromPdfPages } from "../../src/tools/structuredPdfConversion.js";
 import { formattedValues, formattedXlsx } from "../fixtures/xlsx-number-formats.mjs";
 import { longCellNotes, longCellReference, longCellsXlsx } from "../fixtures/xlsx-long-cells.mjs";
+import { limitsXlsx } from "../fixtures/xlsx-limits.mjs";
 
 const appPath = (path) => process.env.GITHUB_ACTIONS === "true" ? `/dochub-2-0${path}` : path;
 const config = JSON.parse(await readFile(new URL("../../vercel.json", import.meta.url), "utf8"));
@@ -215,4 +216,58 @@ test("invalid Excel formats stop conversion and allow a new valid upload", async
   const pending = page.waitForEvent("download");
   await action.click();
   await checkPdf(await readFile(await (await pending).path()), 1, ["2024-01-01", "£1,234.50", "(£12.50)"]);
+});
+
+test("oversized Excel uploads stop safely and a supported replacement retains edge columns", async ({ page }, testInfo) => {
+  const downloads = [];
+  page.on("download", (download) => downloads.push(download));
+  await page.goto(appPath("/excel-to-pdf"));
+  const input = page.locator('input[type="file"]');
+  const action = page.getByRole("button", { name: "Download PDF", exact: true });
+  for (const [options, message] of [[{ sheets: 31 }, "30 worksheets"], [{ rows: 2501 }, "2500 rows"], [{ columns: 121 }, "120 columns"]]) {
+    await input.setInputFiles({ name: "Synthetic boundary.xlsx", mimeType: spreadsheet().mimeType, buffer: Buffer.from(limitsXlsx(options)) });
+    await expect(page.getByRole("alert")).toContainText(message);
+    await expect(page.getByRole("alert")).toContainText("Conversion stopped");
+    await expect(action).toBeDisabled();
+  }
+  const rejectAnalytics = page.getByRole("button", { name: "Reject optional analytics", exact: true });
+  if (await rejectAnalytics.isVisible()) await rejectAnalytics.click();
+  await page.getByRole("alert").scrollIntoViewIfNeeded();
+  await page.screenshot({ path: testInfo.outputPath("workbook-limit-error.png") });
+  expect(downloads).toHaveLength(0);
+  await input.setInputFiles({ name: "Edge columns.xlsx", mimeType: spreadsheet().mimeType, buffer: Buffer.from(limitsXlsx({ columns: 120 })) });
+  await expect(action).toBeEnabled();
+  const pending = page.waitForEvent("download");
+  await action.click();
+  const download = await pending;
+  const bytes = await readFile(await download.path());
+  await download.saveAs(testInfo.outputPath("edge-columns.pdf"));
+  const count = (await PDFDocument.load(bytes)).getPageCount();
+  expect(count).toBeGreaterThan(1);
+  await checkPdf(bytes, count, ["ROW 1", "PREVIOUS COLUMN", "FINAL COLUMN"]);
+  await page.goto(appPath("/edit-pdf"));
+  await page.locator('input[type="file"]').first().setInputFiles({ name: "Edge columns.pdf", mimeType: "application/pdf", buffer: bytes });
+  await page.locator(`.page-surface[data-page-index="${count - 1}"]`).scrollIntoViewIfNeeded();
+  const lastPage = page.getByRole("img", { name: `PDF page ${count}`, exact: true });
+  await expect.poll(() => lastPage.evaluate((element) => element.complete && element.naturalWidth > 0)).toBe(true);
+  await page.screenshot({ path: testInfo.outputPath("edge-columns.png") });
+});
+
+test("homepage oversized Excel upload stays recoverable without opening a partial document", async ({ page }) => {
+  const downloads = [];
+  page.on("download", (download) => downloads.push(download));
+  await page.goto(appPath("/"));
+  const input = page.locator(".freepdf-page > input[type='file']");
+  await input.setInputFiles({ name: "Synthetic boundary.xlsx", mimeType: spreadsheet().mimeType, buffer: Buffer.from(limitsXlsx({ columns: 121 })) });
+  await expect(page.getByRole("alert")).toContainText("120 columns");
+  await expect(page).not.toHaveURL(/document=/);
+  await expect(page.locator(".page-surface")).toHaveCount(0);
+  expect(downloads).toHaveLength(0);
+  await page.locator('input[type="file"]').first().setInputFiles(spreadsheet());
+  await expect(page).toHaveURL(/\/edit-pdf\?[^#]*document=/);
+  await expect(page.getByRole("img", { name: "PDF page 1", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Finish", exact: true }).click();
+  const pending = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Download PDF", exact: true }).click();
+  await checkPdf(await readFile(await (await pending).path()), 1, ["Café", "€ 42", "François"]);
 });

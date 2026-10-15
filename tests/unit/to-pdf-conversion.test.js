@@ -6,6 +6,7 @@ import { describe, expect, it } from "vitest";
 import { createXlsxFromPdfPages } from "../../src/tools/structuredPdfConversion.js";
 import { formattedValues, formattedXlsx } from "../fixtures/xlsx-number-formats.mjs";
 import { longCellNotes, longCellReference, longCellsXlsx } from "../fixtures/xlsx-long-cells.mjs";
+import { limitsXlsx } from "../fixtures/xlsx-limits.mjs";
 import { createPdfFromPresentation, createPdfFromWorkbook, parsePptxPresentation, parseXlsxWorkbook, validateToPdfFile } from "../../src/tools/toPdfConversion.js";
 
 async function pdfText(bytes) {
@@ -38,6 +39,28 @@ async function tableColumnText(bytes, x) {
 }
 
 describe("Office files to PDF", () => {
+  it.each([
+    [{ sheets: 31 }, "30 worksheets"],
+    [{ rows: 2501 }, "2500 rows per worksheet"],
+    [{ columns: 121 }, "120 columns per worksheet"],
+    [{ columns: 500 }, "120 columns per worksheet"],
+  ])("refuses oversized workbook %j before returning partial or overwritten cells", (options, message) => {
+    expect(() => parseXlsxWorkbook(limitsXlsx(options))).toThrow(message);
+  });
+
+  it("accepts workbook limits inclusively without dropping edge values", () => {
+    const sheets = parseXlsxWorkbook(limitsXlsx({ sheets: 30 }));
+    expect(sheets.sheets).toHaveLength(30);
+    expect(sheets.sheets[29].rows).toEqual([["ROW 1"]]);
+    const rows = parseXlsxWorkbook(limitsXlsx({ rows: 2500 }));
+    expect(rows.sheets[0].rows).toHaveLength(2500);
+    expect(rows.sheets[0].rows[2499]).toEqual(["ROW 2500"]);
+    const columns = parseXlsxWorkbook(limitsXlsx({ columns: 120 }));
+    expect(columns.sheets[0].rows[0]).toHaveLength(120);
+    expect(columns.sheets[0].rows[0].slice(-2)).toEqual(["PREVIOUS COLUMN", "FINAL COLUMN"]);
+    expect(columns.truncated).toBe(false);
+  });
+
   it("retains long spreadsheet cells, including unbroken values, across PDF pages", async () => {
     const workbook = parseXlsxWorkbook(longCellsXlsx());
     const bytes = await createPdfFromWorkbook(workbook);
