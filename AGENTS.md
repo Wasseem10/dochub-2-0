@@ -168,6 +168,8 @@ Keep the hero’s “{free and simple.}” typing loop brisk: the phrase should 
 
 The homepage hero upload console should use the larger September 1 sizing and accept every document format PDFEnrich can genuinely process. Homepage and dashboard document uploads open the selected document in the editor. Convert supported Word, spreadsheet, presentation, text, OpenDocument, HTML, archive, and image formats in the browser first, then open the resulting PDF in the editor without a download-page detour. The dashboard's primary upload action is labeled “Upload document.” Never imply arbitrary file support for formats that are not implemented; unsupported files need a clear error.
 
+The October 15, 2026 upload correction also applies to editor entry pages and the open editor: use the shared supported-document picker, accept native document drops throughout the editor and dashboard, and keep the signed-in top-right action labeled “Upload document.” A failed import must preserve the current document and show a dismissible error. Native file drops must not trigger thumbnail reordering.
+
 The homepage hero reassurance items use a slim square-edged technical rail with restrained blue-violet linework and monochrome icons. Do not restore the oversized rounded white card, multicolor icon tiles, or heavy shadow treatment.
 
 The homepage hero reassurance rail uses original detailed micro-illustrations for browser processing, guest access, connected devices, and the free document promise. Do not replace them with generic stock shield, lightning, globe, or rocket glyphs.

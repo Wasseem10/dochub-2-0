@@ -1,4 +1,4 @@
-import { resolveLandingDocumentSourceTool } from "./landingDocumentUpload.js";
+import { LANDING_DOCUMENT_FORMATS, resolveLandingDocumentSourceTool } from "./landingDocumentUpload.js";
 
 const OPEN_DOCUMENT_TOOLS = new Set([
   "rtf-to-pdf",
@@ -131,7 +131,7 @@ async function convertHtml(file, title) {
 /** Convert one supported upload into a PDF File that can open in the editor. */
 export async function convertDocumentToPdfFile(file) {
   const toolId = resolveLandingDocumentSourceTool(file);
-  if (!toolId) throw new Error("Choose a supported document or image file.");
+  if (!toolId) throw new Error(`Choose a supported document: ${LANDING_DOCUMENT_FORMATS}.`);
   if (toolId === "edit-pdf") return file;
   const title = pdfName(file.name).replace(/\.pdf$/i, "");
   let bytes;
