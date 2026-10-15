@@ -18,7 +18,7 @@ test("homepage exposes comparisons and keeps first-visit privacy choices compact
   await expect(consent).toBeVisible();
   const consentBox = await consent.boundingBox();
   expect(consentBox.height).toBeLessThan(120);
-  const uploadActionBox = await page.getByRole("button", { name: "Choose a PDF from your device" }).boundingBox();
+  const uploadActionBox = await page.getByRole("button", { name: "Choose a document from your device" }).boundingBox();
   expect(consentBox.x + consentBox.width).toBeLessThan(uploadActionBox.x + uploadActionBox.width / 2);
   await expect(consent.getByRole("button", { name: "Reject optional analytics" })).toBeVisible();
   await expect(consent.getByRole("button", { name: "Allow analytics" })).toBeVisible();

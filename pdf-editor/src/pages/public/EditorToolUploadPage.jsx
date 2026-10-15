@@ -11,6 +11,7 @@ import { PageMetadata } from "../../components/public/PageMetadata.jsx";
 import { ToolGuideContent } from "../../components/public/ToolGuideContent.jsx";
 import { toolSeoSchemas } from "../../tools/toolSeoSchemas.js";
 import { TOOL_BY_ID } from "../../tools/toolRegistry.js";
+import { LANDING_DOCUMENT_ACCEPT, LANDING_DOCUMENT_FORMATS } from "../../tools/landingDocumentUpload.js";
 
 const UPLOAD_COPY = Object.freeze({
   "edit-pdf": ["Edit a PDF online", "Change text, add content, and finish your PDF in one focused workspace."],
@@ -61,7 +62,7 @@ export function EditorToolUploadPage({ toolId, fileInputRef, onUpload, onDropFil
   return (
     <main className={`editor-tool-upload-page editor-tool-upload-page--${tool.id}`}>
       <PageMetadata title={tool.seoTitle} description={tool.metaDescription} canonicalUrl={tool.canonicalUrl} schemas={toolSeoSchemas(tool)} />
-      <input ref={fileInputRef} className="sr-only" type="file" accept="application/pdf,.pdf" onChange={onUpload} tabIndex={-1} aria-hidden="true" />
+      <input ref={fileInputRef} className="sr-only" type="file" accept={LANDING_DOCUMENT_ACCEPT} onChange={onUpload} tabIndex={-1} aria-hidden="true" />
       <nav className="editor-tool-breadcrumbs" aria-label="Breadcrumb">
         <Link to="/"><Home size={14} />Home</Link>
         <ChevronRight size={14} />
@@ -100,17 +101,17 @@ export function EditorToolUploadPage({ toolId, fileInputRef, onUpload, onDropFil
             }}
           >
             <span className="editor-tool-upload-icon" aria-hidden="true"><Upload size={48} strokeWidth={1.8} /></span>
-            <h2>{dragging ? "Drop your PDF to open it" : `Drop your PDF here to ${DROP_ACTION[tool.id] || "open"}`}</h2>
+            <h2>{dragging ? "Drop your document to open it" : `Drop your document here to ${DROP_ACTION[tool.id] || "open"}`}</h2>
             <button
               type="button"
               className="editor-tool-dropzone-action"
               disabled={isUploading}
               onClick={openPicker}
-              aria-label={`Choose a PDF to ${DROP_ACTION[tool.id] || "open"}`}
+              aria-label={`Choose a document to ${DROP_ACTION[tool.id] || "open"}`}
             />
             <span className="editor-tool-picker-label" aria-hidden="true">
               <FileText className={isUploading ? "is-uploading" : ""} size={19} />
-              {isUploading ? "Opening your PDF..." : "Choose a PDF"}
+              {isUploading ? "Opening your document..." : "Choose a document"}
             </span>
             {tool.id === "edit-pdf" && onBlankPage && (
               <button type="button" className="editor-tool-blank-action" disabled={isUploading} onClick={onBlankPage}>
@@ -118,7 +119,7 @@ export function EditorToolUploadPage({ toolId, fileInputRef, onUpload, onDropFil
               </button>
             )}
             <p className={uploadError ? "is-error" : ""} role={uploadError ? "alert" : undefined} aria-live="polite">
-              {uploadError || (isUploading ? `${uploadStage.status}${uploadStage.fileName ? ` - ${uploadStage.fileName}` : ""}` : "PDF documents up to 50 MB and 500 pages")}
+              {uploadError || (isUploading ? `${uploadStage.status}${uploadStage.fileName ? ` - ${uploadStage.fileName}` : ""}` : `Supported: ${LANDING_DOCUMENT_FORMATS}. Other formats convert to PDF before editing; file and page limits vary by format.`)}
             </p>
             {isUploading && <div className="editor-tool-upload-progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow={uploadStage.percent || 0}><span style={{ width: `${uploadStage.percent || 0}%` }} /></div>}
           </div>

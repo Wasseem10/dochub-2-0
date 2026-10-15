@@ -108,7 +108,7 @@ describe("public PDF tool platform", () => {
     expect(editor.root.findAllByType("input").some((input) => input.props.type === "file" && input.props.accept.includes("application/pdf"))).toBe(true);
     expect(textOf(editor.root).includes("Sign a PDF exactly where the signature belongs")).toBe(true);
     expect(textOf(editor.root).includes("Why use Sign PDF in PDFEnrich?")).toBe(true);
-    expect(textOf(editor.root).includes("Choose a PDF")).toBe(true);
+    expect(textOf(editor.root).includes("Choose a document")).toBe(true);
     expect(textOf(editor.root).includes("No account required")).toBe(true);
     expect(textOf(editor.root).includes("No file uploads to our servers")).toBe(true);
     expect(textOf(editor.root).includes("How to use Sign PDF")).toBe(true);

@@ -1,5 +1,6 @@
 import { strFromU8, unzipSync } from "fflate";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
+import SSF from "ssf";
 
 export const TO_PDF_LIMITS = Object.freeze({
   maxInputBytes: 20 * 1024 * 1024,
@@ -105,14 +106,49 @@ function inlineText(xml) {
   return elementBodies(xml, "t").map((entry) => decodeEntities(entry.body.replace(/<[^>]+>/g, ""))).join("");
 }
 
+function spreadsheetNumberFormatter(stylesXml, workbookXml) {
+  // Keep custom formats scoped to this workbook; never mutate SSF's global table.
+  const table = { ...SSF.get_table() };
+  for (const match of stylesXml.matchAll(/<numFmt\b([^>]*)>/g)) {
+    const attrs = attributes(match[1]);
+    table[attrs.numFmtId] = attrs.formatCode;
+  }
+  const cellXfs = elementBodies(stylesXml, "cellXfs")[0]?.body || "";
+  const styles = [...cellXfs.matchAll(/<xf\b([^>]*)>/g)].map((match) => Number(attributes(match[1]).numFmtId || 0));
+  const workbookPr = attributes(workbookXml.match(/<workbookPr\b([^>]*)>/)?.[1]);
+  const date1904 = ["1", "true"].includes(workbookPr.date1904);
+  return (value, style) => {
+    if (!value.trim()) return value;
+    try {
+      const index = Number(style || 0);
+      const format = styles.length ? styles[index] : index === 0 ? 0 : undefined;
+      if (!Number.isInteger(index) || !Number.isInteger(format) || format < 0) throw new Error();
+      if (format === 0) return value;
+      // Missing custom definitions must not silently fall back to General.
+      if (format >= 164 && typeof table[format] !== "string") throw new Error();
+      if (table[format]?.length > 1024) throw new Error();
+      const numeric = Number(value);
+      if (!Number.isFinite(numeric)) throw new Error();
+      return SSF.format(format, numeric, { table, date1904 });
+    } catch {
+      // Format strings and stored values can contain private document content.
+      throw new Error("This spreadsheet contains a number format PDFEnrich cannot preserve. Conversion stopped to avoid changing cell values.");
+    }
+  };
+}
+
 export function parseXlsxWorkbook(input) {
   const files = archiveFiles(input, "xl/");
   const workbookXml = decodeXml(files["xl/workbook.xml"]);
   if (!workbookXml) throw new Error("This XLSX file does not contain a workbook.");
   const workbookRels = relationships(decodeXml(files["xl/_rels/workbook.xml.rels"]));
+  const formatNumber = spreadsheetNumberFormatter(decodeXml(files["xl/styles.xml"]), workbookXml);
   const sharedStrings = elementBodies(decodeXml(files["xl/sharedStrings.xml"]), "si").map((entry) => inlineText(entry.body));
   const allSheetMatches = [...workbookXml.matchAll(/<sheet\b([^>]*)\/?>(?:<\/sheet>)?/g)];
-  const sheetMatches = allSheetMatches.slice(0, TO_PDF_LIMITS.maxSheets);
+  if (allSheetMatches.length > TO_PDF_LIMITS.maxSheets) {
+    throw new Error(`Excel conversion supports up to ${TO_PDF_LIMITS.maxSheets} worksheets. Conversion stopped to avoid losing sheets.`);
+  }
+  const sheetMatches = allSheetMatches;
   if (!sheetMatches.length) throw new Error("No worksheets were found in this XLSX file.");
 
   const sheets = sheetMatches.map((match, sheetIndex) => {
@@ -120,15 +156,23 @@ export function parseXlsxWorkbook(input) {
     const target = workbookRels.get(sheetAttrs["r:id"]);
     const path = target ? normalizeArchivePath("xl", target) : `xl/worksheets/sheet${sheetIndex + 1}.xml`;
     const sheetXml = decodeXml(files[path]);
+    const sourceRows = elementBodies(sheetXml, "row");
+    if (sourceRows.length > TO_PDF_LIMITS.maxRowsPerSheet) {
+      throw new Error(`Excel conversion supports up to ${TO_PDF_LIMITS.maxRowsPerSheet} rows per worksheet. Conversion stopped to avoid losing rows.`);
+    }
     const rows = [];
-    for (const row of elementBodies(sheetXml, "row").slice(0, TO_PDF_LIMITS.maxRowsPerSheet)) {
+    for (const row of sourceRows) {
       const values = [];
       for (const cell of elementBodies(row.body, "c")) {
-        const column = Math.min(TO_PDF_LIMITS.maxColumnsPerSheet - 1, cellColumnIndex(cell.attrs.r));
+        const column = cellColumnIndex(cell.attrs.r);
+        if (column >= TO_PDF_LIMITS.maxColumnsPerSheet) {
+          throw new Error(`Excel conversion supports up to ${TO_PDF_LIMITS.maxColumnsPerSheet} columns per worksheet. Conversion stopped to avoid changing or losing cells.`);
+        }
         const rawValue = elementBodies(cell.body, "v")[0]?.body || "";
         let value = cell.attrs.t === "inlineStr" ? inlineText(cell.body) : decodeEntities(rawValue.replace(/<[^>]+>/g, ""));
         if (cell.attrs.t === "s") value = sharedStrings[Number(value)] ?? "";
         if (cell.attrs.t === "b") value = value === "1" ? "TRUE" : "FALSE";
+        if (!cell.attrs.t || cell.attrs.t === "n") value = formatNumber(value, cell.attrs.s);
         values[column] = value;
       }
       while (values.length && values.at(-1) == null) values.pop();
@@ -136,22 +180,23 @@ export function parseXlsxWorkbook(input) {
     }
     return { name: sheetAttrs.name || `Sheet ${sheetIndex + 1}`, rows };
   });
-  return { sheets, truncated: allSheetMatches.length > TO_PDF_LIMITS.maxSheets };
+  return { sheets, truncated: false };
 }
 
-function pdfText(value) {
-  return String(value ?? "")
-    .replace(/[‘’]/g, "'")
-    .replace(/[“”]/g, '"')
-    .replace(/[–—]/g, "-")
-    .replace(/…/g, "...")
-    .normalize("NFKD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^\x20-\x7E\n]/g, "?");
+function pdfText(value, font) {
+  // Compose equivalent accents without transliterating or replacing content.
+  const text = String(value ?? "").normalize("NFC");
+  try {
+    // Validate against the actual font. Line breaks and tabs are layout controls.
+    font.encodeText(text.replace(/[\t\r\n]/g, " "));
+  } catch {
+    throw new Error("This document contains text the current PDF font cannot preserve. Conversion stopped to avoid changing or losing text.");
+  }
+  return text;
 }
 
 function fitText(value, width, font, size) {
-  const text = pdfText(value).replace(/\s+/g, " ").trim();
+  const text = pdfText(value, font).replace(/\s+/g, " ").trim();
   if (!text || font.widthOfTextAtSize(text, size) <= width) return text;
   let low = 0;
   let high = text.length;
@@ -161,6 +206,32 @@ function fitText(value, width, font, size) {
     else high = middle - 1;
   }
   return `${text.slice(0, Math.max(0, low))}...`;
+}
+
+function wrapTableText(value, width, font, size) {
+  const lines = [];
+  for (const paragraph of pdfText(value, font).replace(/\r\n?/g, "\n").split("\n")) {
+    let line = "";
+    for (const character of paragraph.replace(/\s+/g, " ").trim()) {
+      if (line && font.widthOfTextAtSize(line + character, size) > width) {
+        const space = line.lastIndexOf(" ");
+        if (space > 0) {
+          lines.push(line.slice(0, space));
+          line = line.slice(space + 1);
+        } else {
+          lines.push(line);
+          line = "";
+        }
+        if (line && font.widthOfTextAtSize(line + character, size) > width) {
+          lines.push(line);
+          line = "";
+        }
+      }
+      if (character !== " " || line) line += character;
+    }
+    lines.push(line.trimEnd());
+  }
+  return lines;
 }
 
 export async function createPdfFromWorkbook(workbook, { title = "Spreadsheet" } = {}) {
@@ -188,33 +259,49 @@ export async function createPdfFromWorkbook(workbook, { title = "Spreadsheet" } 
       start = end;
     }
     const sourceRows = sheet.rows.length ? sheet.rows : [["This worksheet is empty."]];
-    const rowsPerPage = 22;
     groups.forEach((group, groupIndex) => {
-      for (let rowStart = 0; rowStart < sourceRows.length; rowStart += rowsPerPage) {
-        const page = pdf.addPage([pageWidth, pageHeight]);
-        page.drawText(pdfText(sheet.name), { x: margin, y: pageHeight - 34, size: 17, font: bold, color: rgb(0.08, 0.13, 0.25) });
+      const scale = Math.min(1, tableWidth / Math.max(1, group.total));
+      const visibleWidths = widths.slice(group.start, group.end).map((width) => width * scale);
+      const lineHeight = 12;
+      const bottom = 64;
+      let page;
+      let y;
+      const startPage = () => {
+        page = pdf.addPage([pageWidth, pageHeight]);
+        page.drawText(pdfText(sheet.name, bold), { x: margin, y: pageHeight - 34, size: 17, font: bold, color: rgb(0.08, 0.13, 0.25) });
         page.drawText(`Columns ${group.start + 1}-${group.end}${groups.length > 1 ? ` · section ${groupIndex + 1} of ${groups.length}` : ""}`, { x: margin, y: pageHeight - 51, size: 8, font: regular, color: rgb(0.38, 0.44, 0.55) });
-        let y = pageHeight - 76;
-        const scale = Math.min(1, tableWidth / Math.max(1, group.total));
-        const visibleWidths = widths.slice(group.start, group.end).map((width) => width * scale);
-        const pageRows = sourceRows.slice(rowStart, rowStart + rowsPerPage);
-        pageRows.forEach((row, rowOffset) => {
-          const rowHeight = 21;
+        page.drawText(pdfText(`PDFEnrich · ${title}`, regular), { x: margin, y: 18, size: 7.5, font: regular, color: rgb(0.48, 0.53, 0.62) });
+        y = pageHeight - 59;
+      };
+      startPage();
+      sourceRows.forEach((row, rowIndex) => {
+        const font = rowIndex === 0 ? bold : regular;
+        const cells = visibleWidths.map((width, column) => wrapTableText(row[group.start + column] ?? "", width - 8, font, 8.5));
+        const rowLines = Math.max(1, ...cells.map((lines) => lines.length));
+        const fullHeight = Math.max(21, rowLines * lineHeight + 8);
+        // Keep a row together when it fits on one page. Larger rows continue
+        // in aligned cell slices instead of losing their remaining text.
+        if (fullHeight <= pageHeight - 59 - bottom && fullHeight > y - bottom) startPage();
+        for (let offset = 0; offset < rowLines;) {
+          if (y - bottom < 21) startPage();
+          const count = Math.min(rowLines - offset, Math.floor((y - bottom - 8) / lineHeight));
+          const rowHeight = Math.max(21, count * lineHeight + 8);
           let x = margin;
-          if (rowStart === 0 && rowOffset === 0) page.drawRectangle({ x, y: y - 4, width: visibleWidths.reduce((sum, width) => sum + width, 0), height: rowHeight, color: rgb(0.9, 0.93, 1) });
+          if (rowIndex === 0) page.drawRectangle({ x, y: y - rowHeight, width: group.total * scale, height: rowHeight, color: rgb(0.9, 0.93, 1) });
           visibleWidths.forEach((width, visibleColumn) => {
-            page.drawRectangle({ x, y: y - 4, width, height: rowHeight, borderWidth: 0.5, borderColor: rgb(0.75, 0.79, 0.86) });
-            const font = rowStart === 0 && rowOffset === 0 ? bold : regular;
-            page.drawText(fitText(row[group.start + visibleColumn] ?? "", width - 8, font, 8.5), { x: x + 4, y: y + 3, size: 8.5, font, color: rgb(0.08, 0.12, 0.2) });
+            page.drawRectangle({ x, y: y - rowHeight, width, height: rowHeight, borderWidth: 0.5, borderColor: rgb(0.75, 0.79, 0.86) });
+            cells[visibleColumn].slice(offset, offset + count).forEach((line, lineIndex) => {
+              page.drawText(line, { x: x + 4, y: y - 14 - lineIndex * lineHeight, size: 8.5, font, color: rgb(0.08, 0.12, 0.2) });
+            });
             x += width;
           });
           y -= rowHeight;
-        });
-        page.drawText(`PDFEnrich · ${title}`, { x: margin, y: 18, size: 7.5, font: regular, color: rgb(0.48, 0.53, 0.62) });
-      }
+          offset += count;
+        }
+      });
     });
   });
-  pdf.setTitle(pdfText(title));
+  pdf.setTitle(String(title));
   pdf.setCreator("PDFEnrich");
   pdf.setProducer("PDFEnrich browser spreadsheet conversion");
   return pdf.save();
@@ -316,7 +403,7 @@ export async function createPdfFromPresentation(presentation, { title = "Present
       if (!element.text) continue;
       const font = element.bold ? bold : regular;
       const size = Math.max(6, Math.min(44, element.size * (pageWidth / 960)));
-      const lines = element.text.split("\n");
+      const lines = pdfText(element.text, font).split("\n");
       let textY = y + height - size - 4;
       for (const line of lines) {
         if (textY < y + 2) break;
@@ -325,7 +412,7 @@ export async function createPdfFromPresentation(presentation, { title = "Present
       }
     }
   }
-  pdf.setTitle(pdfText(title));
+  pdf.setTitle(String(title));
   pdf.setCreator("PDFEnrich");
   pdf.setProducer("PDFEnrich browser presentation conversion");
   return pdf.save();
