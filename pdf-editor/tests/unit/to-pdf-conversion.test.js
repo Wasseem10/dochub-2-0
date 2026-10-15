@@ -8,7 +8,7 @@ describe("Office files to PDF", () => {
   it("parses XLSX values and produces paginated PDF tables", async () => {
     const xlsx = createXlsxFromPdfPages([{ name: "Revenue", rows: [["Quarter", "Total"], ["Q1", "42000"]] }]);
     const workbook = parseXlsxWorkbook(xlsx);
-    expect(workbook.sheets[0]).toMatchObject({ name: "Revenue", rows: [["Quarter", "Total"], ["Q1", "42000"]] });
+    expect(workbook.sheets[0]).toMatchObject({ name: "Revenue", rows: [["Quarter", "Total"], ["Q1", "42,000.00"]] });
     const pdf = await PDFDocument.load(await createPdfFromWorkbook(workbook, { title: "Revenue" }));
     expect(pdf.getPageCount()).toBe(1);
   });

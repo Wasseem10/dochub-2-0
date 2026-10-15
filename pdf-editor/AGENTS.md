@@ -135,3 +135,5 @@ The editor Finish action opens a post-edit download chooser instead of immediate
 The Finish chooser must also include a clear Finish later action that saves the current work and returns to `/app/dashboard` without requiring a download. The editor header must expose a direct dashboard return as well.
 
 Signed-in PDFs sync to the private account automatically after local persistence; users must never need to click a Save to account control. Show a clear Sign in to sync action to guests, then replace it with visible queued, syncing, synced, offline, or retry status. Returning from sign-in must immediately queue the active PDF without opening a confirmation dialog.
+
+The October 15, 2026 document-upload correction applies to the homepage, dashboard and editor. Use the shared supported-document picker, convert supported non-PDF files in the browser before opening them, and label primary upload actions “Upload document.” Native file drops must open a document without triggering page reordering; failed imports preserve the current document.

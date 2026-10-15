@@ -67,7 +67,7 @@ test("the lightweight homepage hands a selected PDF to the full editor", async (
 
   await page.goto(appPath("/"));
   const fileChooserPromise = page.waitForEvent("filechooser");
-  await page.getByRole("button", { name: "Choose a PDF from your device", exact: true }).click();
+  await page.getByRole("button", { name: "Choose a document from your device", exact: true }).click();
   const fileChooser = await fileChooserPromise;
   await fileChooser.setFiles({ name: "landing-handoff.pdf", mimeType: "application/pdf", buffer: Buffer.from(await pdf.save()) });
 

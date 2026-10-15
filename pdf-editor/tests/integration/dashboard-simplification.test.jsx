@@ -41,7 +41,7 @@ describe("simplified dashboard navigation", () => {
           fileInputRef={{ current: null }}
           onUpload={() => {}}
           onSelectFiles={onSelectFiles}
-          onDropFile={() => {}}
+          documentDropHandlers={{}}
           onBlankPage={onBlankPage}
           uploadError=""
           uploadStage={{ status: "idle", fileName: "" }}
@@ -74,7 +74,7 @@ describe("simplified dashboard navigation", () => {
     expect(text).not.toContain("Total Documents");
     expect(text).not.toContain("Invite members");
 
-    const uploadButton = renderer.root.findAllByType("button").find((button) => textOf(button) === "Upload PDF");
+    const uploadButton = renderer.root.findAllByType("button").find((button) => textOf(button) === "Upload document");
     await act(async () => uploadButton.props.onClick());
     expect(onSelectFiles).toHaveBeenCalledOnce();
 
@@ -99,7 +99,7 @@ describe("simplified dashboard navigation", () => {
           fileInputRef={{ current: null }}
           onUpload={() => {}}
           onSelectFiles={() => {}}
-          onDropFile={() => {}}
+          documentDropHandlers={{}}
           onBlankPage={() => {}}
           uploadError=""
           uploadStage={{ status: "idle", fileName: "" }}
@@ -143,7 +143,7 @@ describe("simplified dashboard navigation", () => {
           fileInputRef={{ current: null }}
           onUpload={() => {}}
           onSelectFiles={onSelectFiles}
-          onDropFile={() => {}}
+          documentDropHandlers={{}}
           onBlankPage={() => {}}
           uploadError=""
           uploadStage={{ status: "idle", fileName: "" }}
@@ -175,7 +175,7 @@ describe("simplified dashboard navigation", () => {
     await act(async () => favoritesButton.props.onClick());
     expect(renderer.root.findAllByType("button").find((button) => textOf(button).includes("Favorites")).props["aria-pressed"]).toBe(true);
 
-    const uploadButton = renderer.root.findAllByType("button").find((button) => textOf(button).includes("Upload PDF"));
+    const uploadButton = renderer.root.findAllByType("button").find((button) => textOf(button).includes("Upload document"));
     await act(async () => uploadButton.props.onClick());
     expect(onSelectFiles).toHaveBeenCalledOnce();
     await act(async () => renderer.unmount());

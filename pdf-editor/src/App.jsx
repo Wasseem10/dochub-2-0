@@ -146,6 +146,8 @@ import {
   validatePdfUpload,
 } from "./tools/pdfUploadValidation.js";
 import { takePendingPdfFile } from "./tools/pendingPdfFile.js";
+import { LANDING_DOCUMENT_ACCEPT } from "./tools/landingDocumentUpload.js";
+import { convertDocumentToPdfFile } from "./tools/convertDocumentToPdfFile.js";
 import { drawFlattenedInputAnnotation } from "./tools/pdfEditorAnnotationExport.js";
 import { attachPdfCommentAnnotation } from "./tools/pdfCommentAnnotations.js";
 import { addPdfLinkAnnotation, normalizeEditorLinkUrl } from "./editor/pdfLinkAnnotation.mjs";
@@ -2048,6 +2050,9 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
   const [uploadError, setUploadError] = useState("");
   const [uploadStage, setUploadStage] = useState({ status: "idle", percent: 0, fileName: "" });
   const [isDraggingFile, setIsDraggingFile] = useState(false);
+  const documentDropDepthRef = useRef(0);
+  const documentImportBusyRef = useRef(false);
+  const [isImportingDocument, setIsImportingDocument] = useState(false);
   const [toast, setToast] = useState("");
   const [isPagesCollapsed, setIsPagesCollapsed] = useState(usesMobileEditorLayout);
   const [isPageAppendMenuOpen, setIsPageAppendMenuOpen] = useState(false);
@@ -3547,28 +3552,24 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       return false;
     }
 
+    let openedDocumentProxy;
     try {
       const workingFile = file.name === displayFileName
         ? file
         : new File([file], displayFileName, { type: "application/pdf", lastModified: file.lastModified });
       setUploadError("");
-      sourceFileRef.current = workingFile;
       setUploadStage({ status: "reading", percent: 18, fileName: displayFileName });
       const { buffer, documentProxy, loadedPages, detectedItems, detectedFormFields } = await parsePdfFile(workingFile, {
         startPercent: 24,
         endPercent: 80,
         stagePrefix: "Rendering page",
       });
+      openedDocumentProxy = documentProxy;
       if (storageOwnerIdRef.current !== loadOwnerId) {
         await documentProxy?.destroy?.().catch?.(() => {});
         return;
       }
 
-      try { await pdfDocumentRef.current?.destroy?.(); } catch { /* Replace the active PDF even if cleanup fails. */ }
-      pdfHydrationTokenRef.current += 1;
-      pdfDocumentRef.current = documentProxy;
-      pdfPageHydrationTasksRef.current.clear();
-      pdfPageRenderGenerationRef.current.clear();
 
       setUploadStage({ status: "Saving browser copy", percent: 88, fileName: displayFileName });
       const stamp = nowIso();
@@ -3609,10 +3610,16 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
         setUploadError("This PDF opened from your account, but Safari could not keep an offline browser copy.");
       }
       if (storageOwnerIdRef.current !== loadOwnerId) return;
+      try { await pdfDocumentRef.current?.destroy?.(); } catch { /* Replace the active PDF even if cleanup fails. */ }
+      pdfHydrationTokenRef.current += 1;
+      pdfDocumentRef.current = documentProxy;
+      pdfPageHydrationTasksRef.current.clear();
+      pdfPageRenderGenerationRef.current.clear();
       trackToolUpload(publicTool || "edit-pdf", workingFile, { pageCount: loadedPages.length });
       activeDocumentOwnerIdRef.current = loadOwnerId;
       setActiveDocumentId(documentRecord.id);
       setPages(loadedPages);
+      sourceFileRef.current = workingFile;
       setPdfBytes(buffer);
       setFileName(displayFileName);
       setPageIndex(0);
@@ -3641,6 +3648,7 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
       window.setTimeout(() => setUploadStage({ status: "idle", percent: 0, fileName: "" }), 900);
       return true;
     } catch (error) {
+      if (openedDocumentProxy && pdfDocumentRef.current !== openedDocumentProxy) await openedDocumentProxy.destroy?.().catch?.(() => {});
       if (storageOwnerIdRef.current !== loadOwnerId || error?.name === "AbortError") return;
       trackUploadValidationFailure(publicTool || "edit-pdf", "invalid_pdf");
       setUploadError(getPdfLoadErrorMessage(error));
@@ -3650,20 +3658,45 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     }
   };
 
+  const importDocumentFile = async (file) => {
+    if (!file || documentImportBusyRef.current) return;
+    const importOwnerId = storageOwnerId;
+    documentImportBusyRef.current = true;
+    setIsImportingDocument(true);
+    setUploadError("");
+    setUploadStage({ status: "Preparing document", percent: 5, fileName: file.name });
+    try {
+      const pdfFile = await convertDocumentToPdfFile(file);
+      if (storageOwnerIdRef.current !== importOwnerId) return;
+      if (["editor", "public-editor"].includes(view) && activeDocumentId && !(await saveActiveDocument(true))) {
+        throw new Error("Your current document could not be saved. Keep this tab open and try again.");
+      }
+      await loadPdfFile(pdfFile);
+    } catch (error) {
+      if (storageOwnerIdRef.current !== importOwnerId) return;
+      setUploadError(error?.message || "This document could not be opened. Choose another supported file.");
+      setUploadStage({ status: "error", percent: 0, fileName: file.name });
+    } finally {
+      documentImportBusyRef.current = false;
+      setIsImportingDocument(false);
+    }
+  };
+
   const onUpload = async (event) => {
-    await loadPdfFile(event.target.files?.[0]);
+    await importDocumentFile(event.target.files?.[0]);
     event.target.value = "";
   };
 
   useEffect(() => {
     if (view !== "tool-upload" || !location.state?.pendingLandingFile || pendingLandingFileConsumedRef.current) return;
+    if (!authReady) return;
     const pendingFile = takePendingPdfFile();
     if (!pendingFile) return;
     pendingLandingFileConsumedRef.current = true;
-    void loadPdfFile(pendingFile);
+    void importDocumentFile(pendingFile);
     // The pending file is an in-memory, one-time handoff from the lightweight homepage.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [location.key, location.state?.pendingLandingFile, view]);
+  }, [location.key, location.state?.pendingLandingFile, view, authReady]);
 
   const mergeAndAppendPdfFile = async (file) => {
     if (!file) return;
@@ -3776,8 +3809,39 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
 
   const onDropFile = async (event) => {
     event.preventDefault();
+    event.stopPropagation();
+    documentDropDepthRef.current = 0;
     setIsDraggingFile(false);
-    await loadPdfFile(event.dataTransfer.files?.[0]);
+    await importDocumentFile(event.dataTransfer.files?.[0]);
+  };
+
+  // Capture native file drops before thumbnail-reordering handlers see them.
+  // Internal drags carry text data and keep their existing page workflow.
+  const isDocumentFileDrag = (event) => Array.from(event.dataTransfer?.types || []).includes("Files");
+  const documentDropHandlers = {
+    onDragEnterCapture: (event) => {
+      if (!isDocumentFileDrag(event)) return;
+      event.preventDefault();
+      event.stopPropagation();
+      documentDropDepthRef.current += 1;
+      setIsDraggingFile(true);
+    },
+    onDragOverCapture: (event) => {
+      if (!isDocumentFileDrag(event)) return;
+      event.preventDefault();
+      event.stopPropagation();
+      event.dataTransfer.dropEffect = "copy";
+    },
+    onDragLeaveCapture: (event) => {
+      if (!isDocumentFileDrag(event)) return;
+      event.preventDefault();
+      event.stopPropagation();
+      documentDropDepthRef.current = Math.max(0, documentDropDepthRef.current - 1);
+      if (!documentDropDepthRef.current) setIsDraggingFile(false);
+    },
+    onDropCapture: (event) => {
+      if (isDocumentFileDrag(event)) void onDropFile(event);
+    },
   };
 
   const startBlankDocument = async () => {
@@ -5994,12 +6058,11 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
         fileInputRef={fileInputRef}
         onUpload={onUpload}
         onSelectFiles={selectPdfFile}
-        onDropFile={onDropFile}
+        documentDropHandlers={documentDropHandlers}
         onBlankPage={startBlankDocument}
         uploadError={uploadError}
         uploadStage={uploadStage}
         isDraggingFile={isDraggingFile}
-        setIsDraggingFile={setIsDraggingFile}
         documents={documents}
         onOpenDocument={openDocument}
         onRenameDocument={renameDocument}
@@ -6022,13 +6085,14 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
     );
   }
 
-  if ((view === "editor" || view === "public-editor") && (editorRouteState !== "ready" || !pages.length)) {
+  if ((view === "editor" || view === "public-editor") && (isImportingDocument || editorRouteState !== "ready" || !pages.length)) {
+    if (isImportingDocument) return <EditorRouteStatePage state="loading" />;
     return <EditorRouteStatePage state={editorRouteState} onRetry={retryEditorRoute} onBack={() => navigate(view === "public-editor" ? publicEditorPath(publicTool) : ROUTE_PATHS.documents)} backLabel={view === "public-editor" ? `Back to ${getEditorToolPreset(publicTool)?.label || "PDF tools"}` : "Back to documents"} onHome={view === "public-editor" ? () => navigate(ROUTE_PATHS.home) : undefined} />;
   }
 
   return (
-    <main className={`editor-shell ${publicTool === "request-signatures" ? "is-signature-request" : ""} ${hasVisibleToolSettings ? "has-tool-settings" : ""} ${tool === "editText" ? "is-smart-text-mode" : ""} ${tool === "textHighlight" ? "is-text-highlight-mode" : ""} ${tool === "highlight" || tool === "textHighlight" ? "is-highlight-settings-mode" : ""} ${zoomMode === EDITOR_ZOOM_MODE.CUSTOM ? "is-custom-zoom" : "is-fit-zoom"}`}>
-      <input ref={fileInputRef} className="hidden-input" type="file" accept="application/pdf" onChange={onUpload} />
+    <main {...documentDropHandlers} className={`editor-shell ${publicTool === "request-signatures" ? "is-signature-request" : ""} ${hasVisibleToolSettings ? "has-tool-settings" : ""} ${tool === "editText" ? "is-smart-text-mode" : ""} ${tool === "textHighlight" ? "is-text-highlight-mode" : ""} ${tool === "highlight" || tool === "textHighlight" ? "is-highlight-settings-mode" : ""} ${zoomMode === EDITOR_ZOOM_MODE.CUSTOM ? "is-custom-zoom" : "is-fit-zoom"}`}>
+      <input ref={fileInputRef} className="hidden-input" type="file" accept={LANDING_DOCUMENT_ACCEPT} onChange={onUpload} />
       <input ref={appendFileInputRef} className="hidden-input" type="file" accept="application/pdf" onChange={onAppendUpload} />
       <input ref={imageInputRef} className="hidden-input" type="file" accept="image/png,image/jpeg" onChange={onImageUpload} />
       {isOffline && <div className="editor-offline-banner" role="status">You are offline. Editing and local saves still work in this browser.</div>}
@@ -7114,7 +7178,8 @@ export function App({ view = "landing", appSection = "Home", authMode = "login",
           onSignIn={continueAuthAction}
         />
       )}
-      {toast && <div className="toast" role="status" aria-live="polite">{toast}</div>}
+      {isDraggingFile && <div className="editor-file-drop-hint" role="status">Drop to open a document</div>}
+      {uploadError ? <div className="toast editor-import-error" role="alert"><span>{uploadError}</span><button type="button" aria-label="Dismiss upload error" onClick={() => setUploadError("")}><X size={18} /></button></div> : toast && <div className="toast" role="status" aria-live="polite">{toast}</div>}
     </main>
   );
 }
@@ -7128,7 +7193,7 @@ function LandingPage({ fileInputRef, onUpload, onSelectFiles, onLogin }) {
 
   const categories = ["All", "Prepare", "Edit", "Sign", "Organize", "Export"];
   const tools = [
-    ["Upload PDF", "Local file", "Prepare", "Start here", Upload],
+    ["Upload document", "Local file", "Prepare", "Start here", Upload],
     ["Blank document", "New PDF", "Prepare", "", FilePlus2],
     ["Find fields", "Auto-fill", "Prepare", "", ScanText],
     ["Edit text", "Live text", "Edit", "Popular", Type],
@@ -7179,7 +7244,7 @@ function LandingPage({ fileInputRef, onUpload, onSelectFiles, onLogin }) {
 
   return (
     <main className="cosmic-page">
-      <input ref={fileInputRef} className="hidden-input" type="file" accept="application/pdf" onChange={onUpload} />
+      <input ref={fileInputRef} className="hidden-input" type="file" accept={LANDING_DOCUMENT_ACCEPT} onChange={onUpload} />
       <a className="cosmic-topline" href="#security">Secure browser-based PDF editing for teams <ArrowDownToLine size={14} /></a>
       <header className="cosmic-header">
         <a className="cosmic-brand blank-brand" href="#hero" onClick={() => setMobileMenuOpen(false)}><span><Box size={17} /></span></a>
@@ -7188,7 +7253,7 @@ function LandingPage({ fileInputRef, onUpload, onSelectFiles, onLogin }) {
         </nav>
         <div className="cosmic-header-actions">
           <button type="button" className="cosmic-login" onClick={onLogin}>Log in</button>
-          <button type="button" className="cosmic-upload-small" onClick={uploadClick}>Upload PDF</button>
+          <button type="button" className="cosmic-upload-small" onClick={uploadClick}>Upload document</button>
           <button type="button" className="cosmic-menu" onClick={() => setMobileMenuOpen((value) => !value)} aria-expanded={mobileMenuOpen} aria-label="Open menu"><List size={20} /></button>
         </div>
         {mobileMenuOpen && (
@@ -8094,12 +8159,11 @@ export function UploadLanding({
   fileInputRef,
   onUpload,
   onSelectFiles,
-  onDropFile,
+  documentDropHandlers,
   onBlankPage,
   uploadError,
   uploadStage,
   isDraggingFile,
-  setIsDraggingFile,
   documents,
   onOpenDocument,
   onRenameDocument,
@@ -8453,8 +8517,8 @@ export function UploadLanding({
   ) : (
     <div className="dashboard-premium-empty">
       <span><FileText size={25} /></span>
-      <div><strong>{normalizedQuery ? "No matching recent documents" : "Your recent work will appear here"}</strong><small>{normalizedQuery ? "Try a different search." : "Upload a PDF to start editing."}</small></div>
-      {!normalizedQuery && <button type="button" onClick={onSelectFiles}>Upload PDF</button>}
+      <div><strong>{normalizedQuery ? "No matching recent documents" : "Your recent work will appear here"}</strong><small>{normalizedQuery ? "Try a different search." : "Upload a document to start editing."}</small></div>
+      {!normalizedQuery && <button type="button" onClick={onSelectFiles}>Upload document</button>}
     </div>
   );
 
@@ -8476,7 +8540,7 @@ export function UploadLanding({
       })}
     </div>
   ) : (
-    <div className="dashboard-premium-empty dashboard-library-empty"><span><FileText size={25} /></span><div><strong>{normalizedQuery || dashboardFilter === "favorites" ? "No documents match these filters" : "No documents yet"}</strong><small>{normalizedQuery || dashboardFilter === "favorites" ? "Clear the search or show all documents." : "Upload a PDF and it will appear here."}</small></div>{showEmptyAction && !normalizedQuery && dashboardFilter === "all" && <button type="button" onClick={onSelectFiles}>Upload PDF</button>}</div>
+    <div className="dashboard-premium-empty dashboard-library-empty"><span><FileText size={25} /></span><div><strong>{normalizedQuery || dashboardFilter === "favorites" ? "No documents match these filters" : "No documents yet"}</strong><small>{normalizedQuery || dashboardFilter === "favorites" ? "Clear the search or show all documents." : "Upload a document and it will appear here."}</small></div>{showEmptyAction && !normalizedQuery && dashboardFilter === "all" && <button type="button" onClick={onSelectFiles}>Upload document</button>}</div>
   );
 
   const renderDashboardLibraryGrid = () => dashboardLibraryRows.length ? (
@@ -8512,7 +8576,7 @@ export function UploadLanding({
                 </select>
                 <ChevronDown size={14} aria-hidden="true" />
               </label>
-              <button type="button" className="is-primary" onClick={onSelectFiles}><Upload size={16} /> Upload PDF</button>
+              <button type="button" className="is-primary" onClick={onSelectFiles}><Upload size={16} /> Upload document</button>
             </div>
           </header>
           <div className="dashboard-documents-table">
@@ -8531,7 +8595,7 @@ export function UploadLanding({
               <p id="dashboard-tools-title">Every PDF task, one clear place.</p>
               <small>Choose a tool and get straight to work. Your supported files stay in your browser.</small>
             </div>
-            <button type="button" onClick={onSelectFiles}><Upload size={17} /> Upload PDF</button>
+            <button type="button" onClick={onSelectFiles}><Upload size={17} /> Upload document</button>
           </header>
 
           <div className="dashboard-tools-layout">
@@ -8809,10 +8873,6 @@ export function UploadLanding({
     return (
       <div
         className={`dashboard-premium-home dashboard-editorial-home dashboard-bright-home ${isDraggingFile ? "is-dragging" : ""}`}
-        onDragEnter={(event) => { event.preventDefault(); setIsDraggingFile(true); }}
-        onDragOver={(event) => { event.preventDefault(); setIsDraggingFile(true); }}
-        onDragLeave={(event) => { if (event.currentTarget === event.target) setIsDraggingFile(false); }}
-        onDrop={onDropFile}
       >
         <header className="dashboard-bright-welcome">
           <div className="dashboard-bright-welcome-copy">
@@ -8863,8 +8923,8 @@ export function UploadLanding({
   };
 
   return (
-    <main className="upload-shell lumin-home dashboard-editorial-theme">
-      <input ref={fileInputRef} className="hidden-input" type="file" accept="application/pdf" onChange={onUpload} />
+    <main {...documentDropHandlers} className="upload-shell lumin-home dashboard-editorial-theme">
+      <input ref={fileInputRef} className="hidden-input" type="file" accept={LANDING_DOCUMENT_ACCEPT} onChange={onUpload} />
       <aside className="lumin-home-rail">
         <button type="button" className="dashboard-brand" aria-label="PDFEnrich dashboard" onClick={() => setActiveSection("Home")}><BrandWordmark logo /></button>
         <nav className="upload-nav" aria-label="Primary">
@@ -8916,7 +8976,7 @@ export function UploadLanding({
             >
               <FileText size={17} /> Documents
             </button>
-            {(activeSection === "Home" || !["Documents", "Features", "Analytics"].includes(activeSection)) && <button type="button" className="dashboard-top-upload" onClick={onSelectFiles}><Upload size={18} /> Upload PDF</button>}
+            {(activeSection === "Home" || !["Documents", "Features", "Analytics"].includes(activeSection)) && <button type="button" className="dashboard-top-upload" onClick={onSelectFiles}><Upload size={18} /> Upload document</button>}
             <button
               type="button"
               className={`dashboard-notification-button ${openPanel === "notifications" ? "is-active" : ""}`}

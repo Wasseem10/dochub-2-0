@@ -57,7 +57,7 @@ export function ToolDirectoryPage() {
           <h1 id="tools-catalog-title">Every PDF task, one clear place.</h1>
           <p>Choose a tool and get straight to work. Your supported files stay in your browser.</p>
         </div>
-        <Link to={ROUTE_PATHS.editPdf}><Upload size={17} /> Upload PDF</Link>
+        <Link to={ROUTE_PATHS.editPdf}><Upload size={17} /> Upload document</Link>
       </section>
 
       <section className="tools-catalog-controls" aria-label="Find a PDF tool">
