@@ -34,7 +34,7 @@ test("Excel, PowerPoint, and HTML each produce a valid PDF download", async ({ p
   expect((await PDFDocument.load(excel.bytes)).getPageCount()).toBe(1);
   const [excelText] = await searchablePdfText(excel.bytes);
   expect(excelText).toContain("Quarter Total");
-  expect(excelText).toContain("Q1 42000");
+  expect(excelText).toContain("Q1 42,000.00");
 
   const pptx = new PptxGenJS();
   pptx.addSlide().addText("Public launch", { x: 1, y: 1, w: 5, h: 1, fontSize: 28, bold: true });

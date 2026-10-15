@@ -167,8 +167,8 @@ test("editor rejects a corrupted PDF with a recoverable explanation", async ({ p
     mimeType: "application/pdf",
     buffer: Buffer.from("this is not a PDF"),
   });
-  await expect(page.getByText(/corrupted or invalid/i)).toBeVisible();
-  await expect(page.getByRole("button", { name: "Choose a PDF", exact: true })).toBeVisible();
+  await expect(page.getByRole("alert").filter({ hasText: /valid PDF signature|corrupted or invalid/i })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Choose a document to edit", exact: true })).toBeVisible();
 });
 
 test("progressive pages finish rendering instead of remaining on an endless loader", async ({ page }) => {
