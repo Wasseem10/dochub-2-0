@@ -1,3 +1,5 @@
+const printTargetCleanups = new WeakMap();
+
 export function createPdfPrintTarget({ windowObject = window } = {}) {
   const editorDocument = windowObject.document;
   if (!editorDocument?.body) return null;
@@ -24,18 +26,31 @@ export function createPdfPrintTarget({ windowObject = window } = {}) {
 }
 
 export function closePdfPrintTarget(target) {
-  target?.iframe?.remove?.();
+  const cleanup = target && printTargetCleanups.get(target);
+  if (cleanup) cleanup();
+  else target?.iframe?.remove?.();
 }
 
 function canvasBlob(canvas) {
   return new Promise((resolve) => canvas.toBlob(resolve, "image/png"));
 }
 
-function waitForImage(image) {
-  if (image.complete) return Promise.resolve();
+function loadPrintImage(image, objectUrl) {
   return new Promise((resolve, reject) => {
-    image.addEventListener("load", resolve, { once: true });
-    image.addEventListener("error", reject, { once: true });
+    const finish = (error) => {
+      clearTimeout(timeout);
+      image.removeEventListener("load", loaded);
+      image.removeEventListener("error", failed);
+      if (error) reject(error);
+      else resolve();
+    };
+    const failed = () => finish(new Error("A PDF page image could not be prepared for printing. Please try again."));
+    const loaded = () => image.naturalWidth > 0 ? finish() : failed();
+    const timeout = setTimeout(failed, 30_000);
+    image.addEventListener("load", loaded, { once: true });
+    image.addEventListener("error", failed, { once: true });
+    image.src = objectUrl;
+    if (image.complete) loaded();
   });
 }
 
@@ -45,59 +60,74 @@ export async function renderPdfDocumentForPrint(target, pdfDocument, { windowObj
   const printDocument = printWindow.document;
   const objectUrls = [];
   const namedPageRules = [];
-
-  printDocument.open();
-  printDocument.write(`<!doctype html><html><head><meta charset="utf-8"><title>Print PDF</title><style>
-    *{box-sizing:border-box}html,body{margin:0;padding:0;background:#fff}.pdf-print-document{margin:0;padding:0}.pdf-print-page{display:block;margin:0;overflow:hidden;break-after:page;page-break-after:always;background:#fff}.pdf-print-page:last-child{break-after:auto;page-break-after:auto}.pdf-print-page img{display:block;width:100%;height:100%;object-fit:fill}@media screen{body{padding:24px;background:#667085}.pdf-print-page{margin:0 auto 24px;box-shadow:0 8px 30px rgba(0,0,0,.25)}}@media print{html,body,.pdf-print-document{margin:0!important;padding:0!important}.pdf-print-page{margin:0!important;box-shadow:none!important}}
-  </style></head><body><main id="pdf-print-document" class="pdf-print-document" aria-label="PDF pages"></main></body></html>`);
-  printDocument.close();
-  const container = printDocument.getElementById("pdf-print-document");
-
-  for (let index = 0; index < pdfDocument.numPages; index += 1) {
-    const page = await pdfDocument.getPage(index + 1);
-    const baseViewport = page.getViewport({ scale: 1 });
-    const renderScale = pdfDocument.numPages > 40 ? 1.25 : pdfDocument.numPages > 15 ? 1.5 : 2;
-    const viewport = page.getViewport({ scale: renderScale });
-    const pageName = `pdfPage${index + 1}`;
-    const widthInches = Math.max(1, baseViewport.width / 72);
-    const heightInches = Math.max(1, baseViewport.height / 72);
-    namedPageRules.push(`@page ${pageName}{size:${widthInches}in ${heightInches}in;margin:0}.pdf-print-page-${index + 1}{page:${pageName}}`);
-
-    const section = printDocument.createElement("section");
-    section.className = `pdf-print-page pdf-print-page-${index + 1}`;
-    section.style.width = `${widthInches}in`;
-    section.style.height = `${heightInches}in`;
-    const canvas = printDocument.createElement("canvas");
-    canvas.width = Math.ceil(viewport.width);
-    canvas.height = Math.ceil(viewport.height);
-    const context = canvas.getContext("2d", { alpha: false });
-    context.fillStyle = "#ffffff";
-    context.fillRect(0, 0, canvas.width, canvas.height);
-    await page.render({ canvasContext: context, viewport, background: "#ffffff" }).promise;
-
-    const blob = await canvasBlob(canvas);
-    if (!blob) throw new Error(`Page ${index + 1} could not be prepared for printing.`);
-    const objectUrl = windowObject.URL.createObjectURL(blob);
-    objectUrls.push(objectUrl);
-    const image = printDocument.createElement("img");
-    image.alt = `PDF page ${index + 1}`;
-    image.src = objectUrl;
-    section.appendChild(image);
-    container.appendChild(section);
-    await waitForImage(image);
-    page.cleanup?.();
-  }
-
-  const pageStyle = printDocument.createElement("style");
-  pageStyle.textContent = namedPageRules.join("\n");
-  printDocument.head.appendChild(pageStyle);
-  await printDocument.fonts?.ready;
-
+  let cleaned = false;
   const cleanup = () => {
+    if (cleaned) return;
+    cleaned = true;
+    printTargetCleanups.delete(target);
+    printWindow.removeEventListener?.("afterprint", cleanup);
     objectUrls.forEach((url) => windowObject.URL.revokeObjectURL(url));
-    pdfDocument.destroy?.();
+    Promise.resolve().then(() => pdfDocument.destroy?.()).catch(() => {});
     target.iframe?.remove?.();
   };
-  printWindow.addEventListener?.("afterprint", cleanup, { once: true });
-  printWindow.print();
+  printTargetCleanups.set(target, cleanup);
+
+  try {
+    printDocument.open();
+    printDocument.write(`<!doctype html><html><head><meta charset="utf-8"><title>Print PDF</title><style>
+      *{box-sizing:border-box}html,body{margin:0;padding:0;background:#fff}.pdf-print-document{margin:0;padding:0}.pdf-print-page{display:block;margin:0;overflow:hidden;break-after:page;page-break-after:always;background:#fff}.pdf-print-page:last-child{break-after:auto;page-break-after:auto}.pdf-print-page img{display:block;width:100%;height:100%;object-fit:fill}@media screen{body{padding:24px;background:#667085}.pdf-print-page{margin:0 auto 24px;box-shadow:0 8px 30px rgba(0,0,0,.25)}}@media print{html,body,.pdf-print-document{margin:0!important;padding:0!important}.pdf-print-page{margin:0!important;box-shadow:none!important}}
+    </style></head><body><main id="pdf-print-document" class="pdf-print-document" aria-label="PDF pages"></main></body></html>`);
+    printDocument.close();
+    const container = printDocument.getElementById("pdf-print-document");
+
+    for (let index = 0; index < pdfDocument.numPages; index += 1) {
+      const page = await pdfDocument.getPage(index + 1);
+      const baseViewport = page.getViewport({ scale: 1 });
+      const renderScale = pdfDocument.numPages > 40 ? 1.25 : pdfDocument.numPages > 15 ? 1.5 : 2;
+      const viewport = page.getViewport({ scale: renderScale });
+      const pageName = `pdfPage${index + 1}`;
+      const widthInches = Math.max(1, baseViewport.width / 72);
+      const heightInches = Math.max(1, baseViewport.height / 72);
+      namedPageRules.push(`@page ${pageName}{size:${widthInches}in ${heightInches}in;margin:0}.pdf-print-page-${index + 1}{page:${pageName}}`);
+
+      const section = printDocument.createElement("section");
+      section.className = `pdf-print-page pdf-print-page-${index + 1}`;
+      section.style.width = `${widthInches}in`;
+      section.style.height = `${heightInches}in`;
+      const canvas = printDocument.createElement("canvas");
+      try {
+        canvas.width = Math.ceil(viewport.width);
+        canvas.height = Math.ceil(viewport.height);
+        const context = canvas.getContext("2d", { alpha: false });
+        context.fillStyle = "#ffffff";
+        context.fillRect(0, 0, canvas.width, canvas.height);
+        await page.render({ canvasContext: context, viewport, background: "#ffffff" }).promise;
+
+        const blob = await canvasBlob(canvas);
+        if (!blob) throw new Error(`Page ${index + 1} could not be prepared for printing.`);
+        const objectUrl = windowObject.URL.createObjectURL(blob);
+        objectUrls.push(objectUrl);
+        const image = printDocument.createElement("img");
+        image.alt = `PDF page ${index + 1}`;
+        section.appendChild(image);
+        container.appendChild(section);
+        await loadPrintImage(image, objectUrl);
+      } finally {
+        canvas.width = 0;
+        canvas.height = 0;
+        page.cleanup?.();
+      }
+    }
+
+    const pageStyle = printDocument.createElement("style");
+    pageStyle.textContent = namedPageRules.join("\n");
+    printDocument.head.appendChild(pageStyle);
+    await printDocument.fonts?.ready;
+
+    printWindow.addEventListener?.("afterprint", cleanup, { once: true });
+    printWindow.print();
+  } catch (error) {
+    cleanup();
+    throw error;
+  }
 }
